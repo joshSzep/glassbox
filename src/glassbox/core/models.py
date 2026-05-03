@@ -17,6 +17,7 @@ from glassbox.core.ids import BranchCandidateId
 from glassbox.core.ids import BranchSearchId
 from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
+from glassbox.core.ids import ManualEvidenceId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import ReviewFeedbackId
@@ -52,6 +53,11 @@ from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
+from glassbox.core.types import ManualEvidenceFreshness
+from glassbox.core.types import ManualEvidenceKind
+from glassbox.core.types import ManualEvidenceRedactionStatus
+from glassbox.core.types import ManualEvidenceState
+from glassbox.core.types import ManualEvidenceTargetKind
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
@@ -1304,6 +1310,45 @@ class ReviewFeedbackFixupPathRecord(BaseModel):
     provenance_confidence: str = Field(max_length=50)
     matches_feedback_scope: bool
     summary: str = Field(min_length=1, max_length=1000)
+    last_sequence: int = Field(ge=0)
+
+
+class ManualEvidenceRecord(BaseModel):
+    """Projected local manual evidence attachment state."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: SessionId
+    evidence_id: ManualEvidenceId
+    evidence_kind: ManualEvidenceKind
+    state: ManualEvidenceState
+    target_kind: ManualEvidenceTargetKind
+    target_id: str = Field(min_length=1, max_length=200)
+    changeset_id: ChangesetId | None = None
+    feedback_id: ReviewFeedbackId | None = None
+    artifact_id: ArtifactId | None = None
+    artifact_schema_version: int | None = Field(default=None, ge=1)
+    summary: str = Field(min_length=1, max_length=1000)
+    source_label: str = Field(min_length=1, max_length=200)
+    observed_at: datetime | None = None
+    created_by: str = Field(min_length=1, max_length=200)
+    local_only: bool
+    redaction_status: ManualEvidenceRedactionStatus
+    freshness: ManualEvidenceFreshness
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+    non_claims: list[str] = Field(default_factory=list, max_length=20)
+    rejected_reason: str | None = Field(default=None, max_length=2000)
+    archived_reason: str | None = Field(default=None, max_length=2000)
+    superseded_reason: str | None = Field(default=None, max_length=2000)
+    replacement_evidence_id: ManualEvidenceId | None = None
+    superseded_by: str | None = Field(default=None, max_length=200)
+    archived_by: str | None = Field(default=None, max_length=200)
+    rejected_by: str | None = Field(default=None, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    verification_id: TaskVerificationId | None = None
+    created_at: datetime
+    updated_at: datetime
     last_sequence: int = Field(ge=0)
 
 

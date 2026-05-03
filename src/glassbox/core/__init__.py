@@ -54,6 +54,10 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
 from glassbox.core.events import EventPayloadType
 from glassbox.core.events import LongRunPhaseChanged
+from glassbox.core.events import ManualEvidenceArchived
+from glassbox.core.events import ManualEvidenceAttached
+from glassbox.core.events import ManualEvidenceRejected
+from glassbox.core.events import ManualEvidenceSuperseded
 from glassbox.core.events import ModelCallCompleted
 from glassbox.core.events import ModelCallStarted
 from glassbox.core.events import ModelToolCallRequested
@@ -133,6 +137,7 @@ from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
+from glassbox.core.ids import ManualEvidenceId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
@@ -157,6 +162,7 @@ from glassbox.core.ids import new_budget_override_id
 from glassbox.core.ids import new_changeset_id
 from glassbox.core.ids import new_context_compaction_id
 from glassbox.core.ids import new_event_id
+from glassbox.core.ids import new_manual_evidence_id
 from glassbox.core.ids import new_message_id
 from glassbox.core.ids import new_pause_window_id
 from glassbox.core.ids import new_question_id
@@ -193,6 +199,7 @@ from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import LongRunStatusRecord
+from glassbox.core.models import ManualEvidenceRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
@@ -254,6 +261,11 @@ from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import ManualEvidenceFreshness
+from glassbox.core.types import ManualEvidenceKind
+from glassbox.core.types import ManualEvidenceRedactionStatus
+from glassbox.core.types import ManualEvidenceState
+from glassbox.core.types import ManualEvidenceTargetKind
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
@@ -397,6 +409,17 @@ __all__ = [
     "LongRunPhaseChanged",
     "LongRunPhaseState",
     "LongRunStatusRecord",
+    "ManualEvidenceArchived",
+    "ManualEvidenceAttached",
+    "ManualEvidenceFreshness",
+    "ManualEvidenceId",
+    "ManualEvidenceKind",
+    "ManualEvidenceRecord",
+    "ManualEvidenceRedactionStatus",
+    "ManualEvidenceRejected",
+    "ManualEvidenceState",
+    "ManualEvidenceSuperseded",
+    "ManualEvidenceTargetKind",
     "MessagePart",
     "MessageId",
     "ModelCallCompleted",
@@ -559,6 +582,7 @@ __all__ = [
     "new_changeset_id",
     "new_context_compaction_id",
     "new_event_id",
+    "new_manual_evidence_id",
     "new_message_id",
     "new_pause_window_id",
     "new_question_id",

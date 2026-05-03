@@ -649,7 +649,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1331: Add Manual Evidence Store, Artifacts, And Redaction Pipeline
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1330`
 - Goal: retain manual evidence safely as summary-first local artifacts
 - Deliverables:
@@ -673,6 +673,19 @@ shortcuts are shaped by the review-loop features that precede them.
 - Done when:
   - manual evidence can be retained, queried, redacted, and invalidated without
     pretending Glassbox executed it
+
+Completed in this slice:
+
+- Added manual evidence canonical event payloads for attached, superseded,
+  rejected, and archived evidence, plus local manual evidence IDs and typed
+  state, kind, target, redaction, and freshness enums.
+- Added summary-first `manual_evidence` artifact schemas and deterministic
+  redaction checks for secret-looking assignments, private keys, absolute
+  paths, `.glassbox/` state paths, raw provider snippets, and oversized logs.
+- Added SQLite projection tables, rebuild support, repository query helpers,
+  and tests that prove manual evidence can be attached, queried, rejected,
+  superseded, archived, and rebuilt without becoming retained command
+  evidence.
 
 ### GBX-1332: Add Manual Evidence CLI, API, And Review Surface
 

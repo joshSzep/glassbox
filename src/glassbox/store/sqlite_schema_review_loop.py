@@ -161,6 +161,63 @@ def ensure_review_loop_projection_schema(connection: sqlite3.Connection) -> None
             on review_feedback_fixup_paths (session_id, path, last_sequence)
         """
     )
+    connection.execute(
+        """
+        create table if not exists manual_evidence (
+            session_id text not null,
+            evidence_id text not null,
+            evidence_kind text not null,
+            state text not null,
+            target_kind text not null,
+            target_id text not null,
+            changeset_id text,
+            feedback_id text,
+            artifact_id text,
+            artifact_schema_version integer,
+            summary text not null,
+            source_label text not null,
+            observed_at text,
+            created_by text not null,
+            local_only integer not null,
+            redaction_status text not null,
+            freshness text not null,
+            limitations_json text not null default '[]',
+            non_claims_json text not null default '[]',
+            rejected_reason text,
+            archived_reason text,
+            superseded_reason text,
+            replacement_evidence_id text,
+            superseded_by text,
+            archived_by text,
+            rejected_by text,
+            task_id text,
+            turn_id text,
+            verification_id text,
+            created_at text not null,
+            updated_at text not null,
+            last_sequence integer not null,
+            primary key (session_id, evidence_id)
+        )
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_manual_evidence_changeset_state
+            on manual_evidence (session_id, changeset_id, state, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_manual_evidence_target
+            on manual_evidence (session_id, target_kind, target_id, updated_at desc)
+        """
+    )
+    connection.execute(
+        """
+        create index if not exists idx_manual_evidence_feedback
+            on manual_evidence (session_id, feedback_id, updated_at desc)
+        """
+    )
 
 
 __all__ = ["ensure_review_loop_projection_schema"]

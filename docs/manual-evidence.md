@@ -139,7 +139,7 @@ Avoid:
 
 ## Redaction Fixture Plan
 
-GBX-1331 should add deterministic fixtures for:
+GBX-1331 adds deterministic fixtures for:
 
 - secret-looking strings in notes and logs
 - absolute paths and `.glassbox/` paths
@@ -151,6 +151,30 @@ GBX-1331 should add deterministic fixtures for:
 
 Each fixture should assert the evidence kind, redaction result, local-only
 posture, target IDs, freshness posture, limitations, and non-claims.
+
+## Implemented Store Contract
+
+Manual evidence is now represented by local canonical events for attachment,
+rejection, supersession, and archive decisions. The projection stores the
+manual evidence lifecycle state, evidence kind, target reference, source label,
+artifact reference, redaction status, freshness posture, limitations, and
+non-claims. Query helpers hide rejected, archived, and superseded evidence by
+default unless an operator explicitly asks to include invalidated records.
+
+The retained artifact schema is summary-first:
+
+- `artifact_kind` is `manual_evidence`
+- `schema_version` is `1`
+- raw logs, raw provider output, and raw file contents are always marked absent
+- screenshot and local file references are metadata-only and local-only
+- artifact non-claims state that the evidence is not retained command
+  evidence, deterministic verification proof, review approval, or publication
+  authority
+
+Inputs that appear to contain secret assignments, private keys, absolute local
+paths, `.glassbox/` state paths, raw provider snippets, or oversized logs are
+rejected before artifact capture. Rejection records retain only the finding
+class and bounded reason, not the unsafe source text.
 
 ## Non-Claims
 

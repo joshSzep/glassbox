@@ -21,6 +21,7 @@ from glassbox.core.ids import BudgetOverrideId
 from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import EventId
+from glassbox.core.ids import ManualEvidenceId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import PauseWindowId
 from glassbox.core.ids import QuestionId
@@ -72,6 +73,10 @@ from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import ManualEvidenceFreshness
+from glassbox.core.types import ManualEvidenceKind
+from glassbox.core.types import ManualEvidenceRedactionStatus
+from glassbox.core.types import ManualEvidenceTargetKind
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
@@ -1286,6 +1291,70 @@ class ReviewFeedbackFixupInventoryAttached(EventPayload):
     verification_id: TaskVerificationId | None = None
 
 
+class ManualEvidenceAttached(EventPayload):
+    event_type: Literal["ManualEvidenceAttached"] = "ManualEvidenceAttached"
+    evidence_id: ManualEvidenceId
+    evidence_kind: ManualEvidenceKind
+    target_kind: ManualEvidenceTargetKind
+    target_id: str = Field(min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=1000)
+    source_label: str = Field(min_length=1, max_length=200)
+    artifact_id: ArtifactId
+    artifact_schema_version: int = Field(ge=1)
+    observed_at: datetime | None = None
+    created_by: str = Field(default="operator", min_length=1, max_length=200)
+    local_only: bool = True
+    redaction_status: ManualEvidenceRedactionStatus
+    freshness: ManualEvidenceFreshness = ManualEvidenceFreshness.UNKNOWN
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+    non_claims: list[str] = Field(default_factory=list, max_length=20)
+    changeset_id: ChangesetId | None = None
+    feedback_id: ReviewFeedbackId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ManualEvidenceRejected(EventPayload):
+    event_type: Literal["ManualEvidenceRejected"] = "ManualEvidenceRejected"
+    evidence_id: ManualEvidenceId
+    evidence_kind: ManualEvidenceKind
+    target_kind: ManualEvidenceTargetKind = ManualEvidenceTargetKind.UNKNOWN
+    target_id: str = Field(default="unknown", min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=1000)
+    source_label: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    rejected_by: str = Field(default="operator", min_length=1, max_length=200)
+    redaction_status: ManualEvidenceRedactionStatus = (
+        ManualEvidenceRedactionStatus.REJECTED
+    )
+    redaction_findings: list[str] = Field(default_factory=list, max_length=20)
+    changeset_id: ChangesetId | None = None
+    feedback_id: ReviewFeedbackId | None = None
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+    verification_id: TaskVerificationId | None = None
+
+
+class ManualEvidenceSuperseded(EventPayload):
+    event_type: Literal["ManualEvidenceSuperseded"] = "ManualEvidenceSuperseded"
+    evidence_id: ManualEvidenceId
+    replacement_evidence_id: ManualEvidenceId
+    reason: str = Field(min_length=1, max_length=2000)
+    superseded_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+
+
+class ManualEvidenceArchived(EventPayload):
+    event_type: Literal["ManualEvidenceArchived"] = "ManualEvidenceArchived"
+    evidence_id: ManualEvidenceId
+    reason: str = Field(min_length=1, max_length=2000)
+    archived_by: str = Field(default="operator", min_length=1, max_length=200)
+    task_id: TaskId | None = None
+    turn_id: TurnId | None = None
+
+
 class WorktreeCreated(EventPayload):
     event_type: Literal["WorktreeCreated"] = "WorktreeCreated"
     worktree_id: WorktreeId
@@ -1521,6 +1590,10 @@ EventPayloadType = Annotated[
     | ReviewFeedbackArchived
     | ReviewFeedbackRiskAccepted
     | ReviewFeedbackFixupInventoryAttached
+    | ManualEvidenceAttached
+    | ManualEvidenceRejected
+    | ManualEvidenceSuperseded
+    | ManualEvidenceArchived
     | WorktreeCreated
     | WorktreeStatusRecorded
     | WorktreeCleanupRecorded
@@ -1644,6 +1717,10 @@ class EventEnvelope(BaseModel):
     @property
     def feedback_id(self) -> ReviewFeedbackId | None:
         return getattr(self.payload, "feedback_id", None)
+
+    @property
+    def evidence_id(self) -> ManualEvidenceId | None:
+        return getattr(self.payload, "evidence_id", None)
 
     @property
     def artifact_id(self) -> ArtifactId | None:

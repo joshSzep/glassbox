@@ -63,6 +63,7 @@ def _expected_migration_versions() -> list[int]:
         19,
         20,
         21,
+        22,
         SCHEMA_VERSION,
     ]
 
@@ -89,6 +90,7 @@ def _expected_migration_names() -> list[str]:
         "add changeset projection tables",
         "add review feedback projection tables",
         "add review feedback fixup inventory tables",
+        "add manual evidence projection table",
     ]
 
 
@@ -148,6 +150,7 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "review_feedback_scopes",
         "review_feedback_fixup_inventories",
         "review_feedback_fixup_paths",
+        "manual_evidence",
     }.issubset(tables)
     assert {
         "idx_sessions_status_updated",
@@ -206,6 +209,9 @@ def test_initialize_database_creates_bootstrap_schema(tmp_path: Path) -> None:
         "idx_review_feedback_scopes_file",
         "idx_review_feedback_fixup_latest",
         "idx_review_feedback_fixup_paths_file",
+        "idx_manual_evidence_changeset_state",
+        "idx_manual_evidence_target",
+        "idx_manual_evidence_feedback",
     }.issubset(indexes)
     assert [row[0] for row in migration_rows] == _expected_migration_versions()
     assert [row[1] for row in migration_rows] == _expected_migration_names()
@@ -548,5 +554,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         19,
         20,
         21,
+        22,
         SCHEMA_VERSION,
     ]

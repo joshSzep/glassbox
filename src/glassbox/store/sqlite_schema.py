@@ -45,7 +45,7 @@ from glassbox.store.sqlite_schema_workspace_memory import (
     ensure_workspace_memory_projection_schema,
 )
 
-SCHEMA_VERSION = 22
+SCHEMA_VERSION = 23
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -153,6 +153,11 @@ MIGRATIONS = (
     SchemaMigration(
         version=22,
         name="add review feedback fixup inventory tables",
+        apply=ensure_review_loop_projection_schema,
+    ),
+    SchemaMigration(
+        version=23,
+        name="add manual evidence projection table",
         apply=ensure_review_loop_projection_schema,
     ),
 )

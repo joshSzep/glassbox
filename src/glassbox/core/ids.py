@@ -19,6 +19,7 @@ type BackgroundJobId = UUID
 type WorkspaceMemoryId = UUID
 type ChangesetId = UUID
 type ReviewFeedbackId = UUID
+type ManualEvidenceId = UUID
 type BranchSearchId = UUID
 type BranchCandidateId = UUID
 type TaskCheckpointId = UUID
@@ -106,6 +107,11 @@ def new_changeset_id() -> ChangesetId:
 
 def new_review_feedback_id() -> ReviewFeedbackId:
     """Create a new local review feedback identifier."""
+    return uuid4()
+
+
+def new_manual_evidence_id() -> ManualEvidenceId:
+    """Create a new local manual evidence identifier."""
     return uuid4()
 
 

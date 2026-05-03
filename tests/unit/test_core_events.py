@@ -58,6 +58,14 @@ from glassbox.core import EventPayloadType
 from glassbox.core import LongRunPhase
 from glassbox.core import LongRunPhaseChanged
 from glassbox.core import LongRunPhaseState
+from glassbox.core import ManualEvidenceArchived
+from glassbox.core import ManualEvidenceAttached
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceRejected
+from glassbox.core import ManualEvidenceSuperseded
+from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import MessagePart
 from glassbox.core import PauseWindowCancelled
 from glassbox.core import PauseWindowPolicy
@@ -127,6 +135,7 @@ from glassbox.core import new_branch_candidate_id
 from glassbox.core import new_branch_search_id
 from glassbox.core import new_changeset_id
 from glassbox.core import new_context_compaction_id
+from glassbox.core import new_manual_evidence_id
 from glassbox.core import new_message_id
 from glassbox.core import new_pause_window_id
 from glassbox.core import new_recovery_decision_id
@@ -1167,6 +1176,105 @@ def test_review_feedback_envelope_exposes_correlation_ids() -> None:
     assert envelope.verification_id == verification_id
     assert envelope.task_id == task_id
     assert envelope.turn_id == turn_id
+
+
+def test_manual_evidence_payloads_round_trip_through_event_union() -> None:
+    adapter = TypeAdapter(EventPayloadType)
+    evidence_id = new_manual_evidence_id()
+    replacement_id = new_manual_evidence_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    observed_at = datetime.now(UTC)
+
+    attached = adapter.validate_python(
+        {
+            "event_type": "ManualEvidenceAttached",
+            "evidence_id": evidence_id,
+            "evidence_kind": "manual_command",
+            "target_kind": "feedback",
+            "target_id": str(feedback_id),
+            "changeset_id": changeset_id,
+            "feedback_id": feedback_id,
+            "artifact_id": artifact_id,
+            "artifact_schema_version": 1,
+            "summary": "operator says local pytest passed outside Glassbox",
+            "source_label": "operator shell",
+            "observed_at": observed_at,
+            "redaction_status": "passed",
+            "freshness": "current",
+            "verification_id": verification_id,
+            "limitations": ["manual summary only"],
+            "non_claims": ["not retained command evidence"],
+        }
+    )
+    rejected = adapter.validate_python(
+        {
+            "event_type": "ManualEvidenceRejected",
+            "evidence_id": new_manual_evidence_id(),
+            "evidence_kind": "sanitized_log",
+            "summary": "raw log rejected before retention",
+            "reason": "secret-looking assignment detected",
+            "redaction_findings": ["secret-looking-value"],
+        }
+    )
+    superseded = adapter.validate_python(
+        {
+            "event_type": "ManualEvidenceSuperseded",
+            "evidence_id": evidence_id,
+            "replacement_evidence_id": replacement_id,
+            "reason": "newer bounded summary replaced this note",
+        }
+    )
+    archived = adapter.validate_python(
+        {
+            "event_type": "ManualEvidenceArchived",
+            "evidence_id": replacement_id,
+            "reason": "local-only reference no longer applies",
+        }
+    )
+
+    assert isinstance(attached, ManualEvidenceAttached)
+    assert attached.evidence_kind == ManualEvidenceKind.MANUAL_COMMAND
+    assert attached.target_kind == ManualEvidenceTargetKind.FEEDBACK
+    assert attached.redaction_status == ManualEvidenceRedactionStatus.PASSED
+    assert attached.freshness == ManualEvidenceFreshness.CURRENT
+    assert isinstance(rejected, ManualEvidenceRejected)
+    assert rejected.redaction_status == ManualEvidenceRedactionStatus.REJECTED
+    assert isinstance(superseded, ManualEvidenceSuperseded)
+    assert superseded.replacement_evidence_id == replacement_id
+    assert isinstance(archived, ManualEvidenceArchived)
+
+
+def test_manual_evidence_envelope_exposes_correlation_ids() -> None:
+    evidence_id = new_manual_evidence_id()
+    changeset_id = new_changeset_id()
+    artifact_id = new_artifact_id()
+    verification_id = new_task_verification_id()
+    envelope = EventEnvelope(
+        session_id=new_session_id(),
+        sequence=31,
+        payload=ManualEvidenceAttached(
+            evidence_id=evidence_id,
+            evidence_kind=ManualEvidenceKind.EXTERNAL_CHECK,
+            target_kind=ManualEvidenceTargetKind.CHANGESET,
+            target_id=str(changeset_id),
+            changeset_id=changeset_id,
+            summary="external CI reported green on the operator's branch",
+            source_label="external-ci",
+            artifact_id=artifact_id,
+            artifact_schema_version=1,
+            redaction_status=ManualEvidenceRedactionStatus.PASSED,
+            verification_id=verification_id,
+        ),
+    )
+
+    assert envelope.event_type == "ManualEvidenceAttached"
+    assert envelope.evidence_id == evidence_id
+    assert envelope.changeset_id == changeset_id
+    assert envelope.artifact_id == artifact_id
+    assert envelope.verification_id == verification_id
 
 
 def test_context_compaction_rejects_inverted_source_range() -> None:

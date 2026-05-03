@@ -39,6 +39,10 @@ from glassbox.core import ChangesetVerificationPostureUpdated
 from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
 from glassbox.core import EventPayloadType
+from glassbox.core import ManualEvidenceId
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ProjectionHealth
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
@@ -221,6 +225,25 @@ class ChangesetRepository(ChangesetDerivationRepository, Protocol):
         feedback_id: ReviewFeedbackId,
         artifact_id: ArtifactId,
     ) -> list[ReviewFeedbackFixupPathRecord]: ...
+
+    def list_manual_evidence(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        changeset_id: ChangesetId | None = None,
+        target_kind: ManualEvidenceTargetKind | None = None,
+        target_id: str | None = None,
+        state: ManualEvidenceState | None = None,
+        include_archived: bool = False,
+        include_rejected: bool = False,
+        include_superseded: bool = False,
+        limit: int | None = None,
+    ) -> list[ManualEvidenceRecord]: ...
+
+    def get_manual_evidence(
+        self,
+        evidence_id: ManualEvidenceId,
+    ) -> ManualEvidenceRecord | None: ...
 
     def list_task_verification_ledger(
         self,
@@ -730,6 +753,37 @@ class ChangesetQueryService:
             feedback_id,
             artifact_id,
         )
+
+    def list_manual_evidence(
+        self,
+        *,
+        session_id: SessionId | None = None,
+        changeset_id: ChangesetId | None = None,
+        target_kind: ManualEvidenceTargetKind | None = None,
+        target_id: str | None = None,
+        state: ManualEvidenceState | None = None,
+        include_archived: bool = False,
+        include_rejected: bool = False,
+        include_superseded: bool = False,
+        limit: int | None = None,
+    ) -> list[ManualEvidenceRecord]:
+        return self._repository.list_manual_evidence(
+            session_id=session_id,
+            changeset_id=changeset_id,
+            target_kind=target_kind,
+            target_id=target_id,
+            state=state,
+            include_archived=include_archived,
+            include_rejected=include_rejected,
+            include_superseded=include_superseded,
+            limit=limit,
+        )
+
+    def get_manual_evidence(
+        self,
+        evidence_id: ManualEvidenceId,
+    ) -> ManualEvidenceRecord | None:
+        return self._repository.get_manual_evidence(evidence_id)
 
     def get_review_feedback_response_status(
         self,

@@ -286,6 +286,60 @@ class ReviewFixupSourceKind(StrEnum):
     MANUAL_EVIDENCE = "manual_evidence"
 
 
+class ManualEvidenceKind(StrEnum):
+    """Manual evidence classes accepted into the local review loop."""
+
+    MANUAL_COMMAND = "manual_command"
+    EXTERNAL_CHECK = "external_check"
+    REVIEWER_NOTE = "reviewer_note"
+    SCREENSHOT = "screenshot"
+    BROWSER_OBSERVATION = "browser_observation"
+    ACCESSIBILITY_NOTE = "accessibility_note"
+    LOCAL_FILE_REFERENCE = "local_file_reference"
+    SANITIZED_LOG = "sanitized_log"
+    OPERATOR_ASSERTION = "operator_assertion"
+
+
+class ManualEvidenceTargetKind(StrEnum):
+    """Local review-loop targets that manual evidence may cite."""
+
+    CHANGESET = "changeset"
+    FEEDBACK = "feedback"
+    RESPONSE = "response"
+    VERIFICATION_REQUIREMENT = "verification_requirement"
+    REVIEW_BRIEF = "review_brief"
+    PUBLICATION_BOUNDARY = "publication_boundary"
+    UNKNOWN = "unknown"
+
+
+class ManualEvidenceState(StrEnum):
+    """Lifecycle state for one manual evidence record."""
+
+    ATTACHED = "attached"
+    SUPERSEDED = "superseded"
+    REJECTED = "rejected"
+    ARCHIVED = "archived"
+
+
+class ManualEvidenceRedactionStatus(StrEnum):
+    """Outcome of manual evidence redaction checks."""
+
+    PASSED = "passed"
+    REDACTED = "redacted"
+    LOCAL_ONLY = "local_only"
+    REJECTED = "rejected"
+    QUARANTINED = "quarantined"
+
+
+class ManualEvidenceFreshness(StrEnum):
+    """Freshness posture for manual review-loop evidence."""
+
+    CURRENT = "current"
+    NEEDS_INSPECTION = "needs_inspection"
+    STALE = "stale"
+    UNKNOWN = "unknown"
+
+
 class ReviewResponseState(StrEnum):
     """Derived local response posture for review feedback."""
 

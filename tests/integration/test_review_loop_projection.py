@@ -6,6 +6,15 @@ from pathlib import Path
 from glassbox.core import ChangesetCreated
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import EventEnvelope
+from glassbox.core import ManualEvidenceArchived
+from glassbox.core import ManualEvidenceAttached
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceRejected
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceSuperseded
+from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackArchived
 from glassbox.core import ReviewFeedbackCreated
 from glassbox.core import ReviewFeedbackDisposition
@@ -23,6 +32,7 @@ from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import SessionStarted
 from glassbox.core import new_artifact_id
 from glassbox.core import new_changeset_id
+from glassbox.core import new_manual_evidence_id
 from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_id
@@ -432,3 +442,169 @@ def test_review_feedback_fixup_inventory_projection_links_paths(
     ]
     assert paths[0].matches_feedback_scope is True
     assert paths[1].test_file is True
+
+
+def test_manual_evidence_projection_queries_and_rebuilds(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    evidence_id = new_manual_evidence_id()
+    replacement_id = new_manual_evidence_id()
+    rejected_id = new_manual_evidence_id()
+    artifact_id = new_artifact_id()
+    replacement_artifact_id = new_artifact_id()
+    connection = _open_initialized_database(tmp_path)
+    try:
+        append_events(
+            connection,
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd="/tmp/glassbox",
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ChangesetCreated(
+                        changeset_id=changeset_id,
+                        objective="retain manual evidence",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ReviewFeedbackCreated(
+                        feedback_id=feedback_id,
+                        changeset_id=changeset_id,
+                        feedback_kind=ReviewFeedbackKind.REQUESTED_CHANGE,
+                        summary="Add manual evidence retention.",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ManualEvidenceAttached(
+                        evidence_id=evidence_id,
+                        evidence_kind=ManualEvidenceKind.MANUAL_COMMAND,
+                        target_kind=ManualEvidenceTargetKind.FEEDBACK,
+                        target_id=str(feedback_id),
+                        changeset_id=changeset_id,
+                        feedback_id=feedback_id,
+                        artifact_id=artifact_id,
+                        artifact_schema_version=1,
+                        summary="operator says pytest passed outside Glassbox",
+                        source_label="operator-shell",
+                        redaction_status=ManualEvidenceRedactionStatus.PASSED,
+                        freshness=ManualEvidenceFreshness.CURRENT,
+                        limitations=["manual summary only"],
+                        non_claims=["not retained command evidence"],
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ManualEvidenceAttached(
+                        evidence_id=replacement_id,
+                        evidence_kind=ManualEvidenceKind.MANUAL_COMMAND,
+                        target_kind=ManualEvidenceTargetKind.FEEDBACK,
+                        target_id=str(feedback_id),
+                        changeset_id=changeset_id,
+                        feedback_id=feedback_id,
+                        artifact_id=replacement_artifact_id,
+                        artifact_schema_version=1,
+                        summary="operator says focused pytest passed after rerun",
+                        source_label="operator-shell",
+                        redaction_status=ManualEvidenceRedactionStatus.PASSED,
+                        freshness=ManualEvidenceFreshness.CURRENT,
+                        limitations=["manual summary only"],
+                        non_claims=["not retained command evidence"],
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ManualEvidenceSuperseded(
+                        evidence_id=evidence_id,
+                        replacement_evidence_id=replacement_id,
+                        reason="newer rerun summary replaced the first note",
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ManualEvidenceRejected(
+                        evidence_id=rejected_id,
+                        evidence_kind=ManualEvidenceKind.SANITIZED_LOG,
+                        target_kind=ManualEvidenceTargetKind.CHANGESET,
+                        target_id=str(changeset_id),
+                        changeset_id=changeset_id,
+                        summary="raw log was rejected",
+                        source_label="operator-shell",
+                        reason="secret-looking-value detected",
+                        redaction_findings=["secret-looking-value"],
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=ManualEvidenceArchived(
+                        evidence_id=replacement_id,
+                        reason="manual note became stale after another fixup",
+                    ),
+                ),
+            ],
+        )
+        repository = SQLiteSessionRepository(connection)
+        active = repository.list_manual_evidence(
+            session_id=session_id,
+            changeset_id=changeset_id,
+        )
+        all_evidence = repository.list_manual_evidence(
+            session_id=session_id,
+            changeset_id=changeset_id,
+            include_archived=True,
+            include_rejected=True,
+            include_superseded=True,
+        )
+        target_evidence = repository.list_manual_evidence(
+            session_id=session_id,
+            target_kind=ManualEvidenceTargetKind.FEEDBACK,
+            target_id=str(feedback_id),
+            include_archived=True,
+            include_superseded=True,
+        )
+        superseded = repository.get_manual_evidence(evidence_id)
+
+        with connection:
+            connection.execute(
+                "delete from manual_evidence where session_id = ?",
+                (str(session_id),),
+            )
+        rebuild_session_projections(connection, session_id)
+        rebuilt = repository.get_manual_evidence(evidence_id)
+    finally:
+        connection.close()
+
+    assert active == []
+    assert {item.evidence_id for item in all_evidence} == {
+        evidence_id,
+        replacement_id,
+        rejected_id,
+    }
+    assert [item.evidence_id for item in target_evidence] == [
+        replacement_id,
+        evidence_id,
+    ]
+    assert superseded is not None
+    assert superseded.state == ManualEvidenceState.SUPERSEDED
+    assert superseded.replacement_evidence_id == replacement_id
+    assert superseded.non_claims == ["not retained command evidence"]
+    assert rebuilt is not None
+    assert rebuilt.state == ManualEvidenceState.SUPERSEDED
