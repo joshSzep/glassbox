@@ -510,7 +510,7 @@ shortcuts are shaped by the review-loop features that precede them.
 
 ### GBX-1312: Add Review Feedback CLI, API, And Dashboard Read Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1311`
 - Goal: let operators inspect and record local feedback through stable
   non-mutating review surfaces

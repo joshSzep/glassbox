@@ -12,9 +12,12 @@ from glassbox.core.models import ChangesetRecord
 from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
+from glassbox.core.models import ReviewFeedbackRecord
+from glassbox.core.models import ReviewFeedbackScopeRecord
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 
@@ -157,6 +160,59 @@ class ChangesetReviewBriefResponse(BaseModel):
     last_sequence: int
 
 
+class ReviewFeedbackScopeResponse(BaseModel):
+    session_id: str
+    feedback_id: str
+    changeset_id: str
+    scope_kind: str
+    reason: str
+    source_session_id: str | None = None
+    task_id: str | None = None
+    turn_id: str | None = None
+    artifact_id: str | None = None
+    verification_id: str | None = None
+    branch_search_id: str | None = None
+    branch_candidate_id: str | None = None
+    file_path: str | None = None
+    line_start: int | None = None
+    line_end: int | None = None
+    created_at: datetime
+    last_sequence: int
+
+
+class ReviewFeedbackResponse(BaseModel):
+    session_id: str
+    feedback_id: str
+    changeset_id: str
+    feedback_kind: str
+    provenance: str
+    disposition: str
+    summary: str
+    body: str | None = None
+    source_label: str | None = None
+    reviewer_label: str | None = None
+    created_by: str
+    updated_by: str | None = None
+    resolved_by: str | None = None
+    archived_by: str | None = None
+    accepted_by: str | None = None
+    source_session_id: str | None = None
+    task_id: str | None = None
+    turn_id: str | None = None
+    artifact_id: str | None = None
+    verification_id: str | None = None
+    resolution_summary: str | None = None
+    residual_risk: str | None = None
+    risk_summary: str | None = None
+    acceptance_reason: str | None = None
+    archived_reason: str | None = None
+    replacement_feedback_id: str | None = None
+    reopened_count: int
+    created_at: datetime
+    updated_at: datetime
+    last_sequence: int
+
+
 class ChangesetReadinessResponse(BaseModel):
     session_id: str
     changeset_id: str
@@ -187,6 +243,7 @@ class ChangesetDetailResponse(BaseModel):
     inventory_status: ChangesetInventoryStatusResponse
     verification_posture: ChangesetVerificationPostureResponse | None = None
     review_briefs: list[ChangesetReviewBriefResponse]
+    review_feedback: list[ReviewFeedbackResponse]
     readiness: list[ChangesetReadinessResponse]
     command_evidence: ChangesetCommandEvidenceSummaryResponse
     limitations: list[str]
@@ -213,6 +270,71 @@ class ChangesetArchiveRequest(BaseModel):
     actor: str = "operator"
     reason: str = Field(min_length=1, max_length=2000)
     replacement_changeset_id: str | None = None
+
+
+class ReviewFeedbackCreateRequest(BaseModel):
+    feedback_kind: str = Field(
+        pattern="^(requested_change|reviewer_question|operator_note|observation|risk)$"
+    )
+    summary: str = Field(min_length=1, max_length=1000)
+    provenance: str = Field(
+        default="manual",
+        pattern="^(reviewer|operator|manual|imported|unknown)$",
+    )
+    body: str | None = Field(default=None, max_length=4000)
+    source_label: str | None = Field(default=None, max_length=200)
+    reviewer_label: str | None = Field(default=None, max_length=200)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+    scope_kind: str = Field(
+        default="changeset",
+        pattern="^(changeset|file|task|turn|artifact|verification|branch_candidate)$",
+    )
+    scope_reason: str | None = Field(default=None, max_length=2000)
+    file_path: str | None = Field(default=None, max_length=2000)
+    line_start: int | None = Field(default=None, ge=1)
+    line_end: int | None = Field(default=None, ge=1)
+
+
+class ReviewFeedbackResolveRequest(BaseModel):
+    summary: str = Field(min_length=1, max_length=4000)
+    residual_risk: str | None = Field(default=None, max_length=2000)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class ReviewFeedbackReopenRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class ReviewFeedbackArchiveRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+    replacement_feedback_id: str | None = None
+
+
+class ReviewFeedbackAcceptRiskRequest(BaseModel):
+    risk_summary: str = Field(min_length=1, max_length=4000)
+    reason: str = Field(min_length=1, max_length=2000)
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class ReviewFeedbackListPageResponse(BaseModel):
+    items: list[ReviewFeedbackResponse]
+
+
+class ReviewFeedbackDetailResponse(BaseModel):
+    feedback: ReviewFeedbackResponse
+    scopes: list[ReviewFeedbackScopeResponse]
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
+class ReviewFeedbackActionResponse(BaseModel):
+    feedback: ReviewFeedbackResponse
+    scopes: list[ReviewFeedbackScopeResponse]
+    event_sequences: list[int]
+    safe_next_actions: list[str]
+    non_claims: list[str]
 
 
 class ChangesetRefreshRequest(BaseModel):
@@ -473,6 +595,9 @@ def build_changeset_detail_response(
         ),
         review_briefs=[
             build_changeset_review_brief_response(item) for item in detail.review_briefs
+        ],
+        review_feedback=[
+            build_review_feedback_response(item) for item in detail.review_feedback
         ],
         readiness=[
             build_changeset_readiness_response(item) for item in detail.readiness
@@ -796,6 +921,94 @@ def build_changeset_review_brief_response(
     )
 
 
+def build_review_feedback_response(
+    feedback: ReviewFeedbackRecord,
+) -> ReviewFeedbackResponse:
+    return ReviewFeedbackResponse(
+        session_id=str(feedback.session_id),
+        feedback_id=str(feedback.feedback_id),
+        changeset_id=str(feedback.changeset_id),
+        feedback_kind=feedback.feedback_kind.value,
+        provenance=feedback.provenance.value,
+        disposition=feedback.disposition.value,
+        summary=feedback.summary,
+        body=feedback.body,
+        source_label=feedback.source_label,
+        reviewer_label=feedback.reviewer_label,
+        created_by=feedback.created_by,
+        updated_by=feedback.updated_by,
+        resolved_by=feedback.resolved_by,
+        archived_by=feedback.archived_by,
+        accepted_by=feedback.accepted_by,
+        source_session_id=_optional_str(feedback.source_session_id),
+        task_id=_optional_str(feedback.task_id),
+        turn_id=_optional_str(feedback.turn_id),
+        artifact_id=_optional_str(feedback.artifact_id),
+        verification_id=_optional_str(feedback.verification_id),
+        resolution_summary=feedback.resolution_summary,
+        residual_risk=feedback.residual_risk,
+        risk_summary=feedback.risk_summary,
+        acceptance_reason=feedback.acceptance_reason,
+        archived_reason=feedback.archived_reason,
+        replacement_feedback_id=_optional_str(feedback.replacement_feedback_id),
+        reopened_count=feedback.reopened_count,
+        created_at=feedback.created_at,
+        updated_at=feedback.updated_at,
+        last_sequence=feedback.last_sequence,
+    )
+
+
+def build_review_feedback_scope_response(
+    scope: ReviewFeedbackScopeRecord,
+) -> ReviewFeedbackScopeResponse:
+    return ReviewFeedbackScopeResponse(
+        session_id=str(scope.session_id),
+        feedback_id=str(scope.feedback_id),
+        changeset_id=str(scope.changeset_id),
+        scope_kind=scope.scope_kind.value,
+        reason=scope.reason,
+        source_session_id=_optional_str(scope.source_session_id),
+        task_id=_optional_str(scope.task_id),
+        turn_id=_optional_str(scope.turn_id),
+        artifact_id=_optional_str(scope.artifact_id),
+        verification_id=_optional_str(scope.verification_id),
+        branch_search_id=_optional_str(scope.branch_search_id),
+        branch_candidate_id=_optional_str(scope.branch_candidate_id),
+        file_path=scope.file_path,
+        line_start=scope.line_start,
+        line_end=scope.line_end,
+        created_at=scope.created_at,
+        last_sequence=scope.last_sequence,
+    )
+
+
+def build_review_feedback_detail_response(
+    feedback: ReviewFeedbackRecord,
+    scopes: Sequence[ReviewFeedbackScopeRecord],
+) -> ReviewFeedbackDetailResponse:
+    return ReviewFeedbackDetailResponse(
+        feedback=build_review_feedback_response(feedback),
+        scopes=[build_review_feedback_scope_response(scope) for scope in scopes],
+        safe_next_actions=[
+            f"glassbox changeset feedback show {feedback.feedback_id} --cwd .",
+            f"glassbox changeset show {feedback.changeset_id} --cwd .",
+        ],
+        non_claims=_review_feedback_non_claims(),
+    )
+
+
+def build_review_feedback_action_response(
+    result: ReviewFeedbackRecordResult,
+) -> ReviewFeedbackActionResponse:
+    return ReviewFeedbackActionResponse(
+        feedback=build_review_feedback_response(result.feedback),
+        scopes=[build_review_feedback_scope_response(scope) for scope in result.scopes],
+        event_sequences=[event.sequence for event in result.events],
+        safe_next_actions=result.safe_next_actions,
+        non_claims=result.non_claims,
+    )
+
+
 def build_changeset_readiness_response(
     readiness: ChangesetReadinessRecord,
 ) -> ChangesetReadinessResponse:
@@ -821,3 +1034,10 @@ def build_changeset_readiness_response(
 
 def _optional_str(value: object | None) -> str | None:
     return str(value) if value is not None else None
+
+
+def _review_feedback_non_claims() -> list[str]:
+    return [
+        "review feedback is local evidence, not approval",
+        "Glassbox did not stage, commit, push, open a PR, or merge",
+    ]

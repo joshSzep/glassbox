@@ -8,12 +8,17 @@ from fastapi import APIRouter
 from fastapi import HTTPException
 from fastapi import Query
 
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationService
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.web.app import RuntimeContextDep
@@ -31,6 +36,14 @@ from glassbox.web.changeset_api import ChangesetReviewBriefRequest
 from glassbox.web.changeset_api import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api import CommitReadinessResponse
+from glassbox.web.changeset_api import ReviewFeedbackAcceptRiskRequest
+from glassbox.web.changeset_api import ReviewFeedbackActionResponse
+from glassbox.web.changeset_api import ReviewFeedbackArchiveRequest
+from glassbox.web.changeset_api import ReviewFeedbackCreateRequest
+from glassbox.web.changeset_api import ReviewFeedbackDetailResponse
+from glassbox.web.changeset_api import ReviewFeedbackListPageResponse
+from glassbox.web.changeset_api import ReviewFeedbackReopenRequest
+from glassbox.web.changeset_api import ReviewFeedbackResolveRequest
 from glassbox.web.changeset_api import build_changeset_detail_response
 from glassbox.web.changeset_api import build_changeset_review_brief_generate_response
 from glassbox.web.changeset_api import build_changeset_summary_responses
@@ -38,6 +51,9 @@ from glassbox.web.changeset_api import build_changeset_verification_plan_respons
 from glassbox.web.changeset_api import build_changeset_verification_readiness_response
 from glassbox.web.changeset_api import build_commit_message_suggestion_response
 from glassbox.web.changeset_api import build_commit_readiness_response
+from glassbox.web.changeset_api import build_review_feedback_action_response
+from glassbox.web.changeset_api import build_review_feedback_detail_response
+from glassbox.web.changeset_api import build_review_feedback_response
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
@@ -126,6 +142,62 @@ async def create_changeset(
 
 
 @router.get(
+    "/feedback",
+    response_model=ReviewFeedbackListPageResponse,
+)
+async def list_review_feedback(
+    context: RuntimeContextDep,
+    session_id: UUID | None = None,
+    changeset_id: UUID | None = None,
+    disposition: str | None = Query(
+        default=None,
+        pattern="^(open|in_progress|responded|resolved_locally|accepted_with_risk|archived)$",
+    ),
+    include_archived: bool = False,
+    file_path: str | None = None,
+    limit: LimitParam = 100,
+) -> ReviewFeedbackListPageResponse:
+    """Return bounded local review feedback rows for dashboard inspection."""
+
+    feedback = ChangesetQueryService(_repository(context)).list_review_feedback(
+        session_id=session_id,
+        changeset_id=changeset_id,
+        disposition=(
+            ReviewFeedbackDisposition(disposition) if disposition is not None else None
+        ),
+        include_archived=include_archived,
+        file_path=file_path,
+        limit=limit,
+    )
+    return ReviewFeedbackListPageResponse(
+        items=[build_review_feedback_response(item) for item in feedback]
+    )
+
+
+@router.get(
+    "/feedback/{feedback_id}",
+    response_model=ReviewFeedbackDetailResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_review_feedback_detail(
+    feedback_id: UUID,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackDetailResponse:
+    """Return one local review-feedback record with bounded scope metadata."""
+
+    service = ChangesetQueryService(_repository(context))
+    feedback = service.get_review_feedback(feedback_id)
+    if feedback is None:
+        raise HTTPException(
+            status_code=404, detail=f"unknown review feedback: {feedback_id}"
+        )
+    scopes = service.list_review_feedback_scopes(
+        feedback.session_id, feedback.feedback_id
+    )
+    return build_review_feedback_detail_response(feedback, scopes)
+
+
+@router.get(
     "/{changeset_id}",
     response_model=ChangesetDetailResponse,
     responses={404: {"model": ErrorDetailResponse}},
@@ -145,6 +217,138 @@ async def get_changeset_detail(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return build_changeset_detail_response(detail)
+
+
+@router.post(
+    "/{changeset_id}/feedback",
+    response_model=ReviewFeedbackActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def add_review_feedback(
+    changeset_id: UUID,
+    request: ReviewFeedbackCreateRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackActionResponse:
+    """Record local review feedback evidence for one changeset."""
+
+    try:
+        result = ReviewFeedbackActionService(_repository(context)).add_feedback(
+            changeset_id,
+            feedback_kind=ReviewFeedbackKind(request.feedback_kind),
+            provenance=ReviewFeedbackProvenance(request.provenance),
+            summary=request.summary,
+            body=request.body,
+            source_label=request.source_label,
+            reviewer_label=request.reviewer_label,
+            created_by=request.actor,
+            scope_kind=ReviewFeedbackScopeKind(request.scope_kind),
+            scope_reason=request.scope_reason,
+            file_path=request.file_path,
+            line_start=request.line_start,
+            line_end=request.line_end,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_review_feedback_action_response(result)
+
+
+@router.post(
+    "/feedback/{feedback_id}/resolve",
+    response_model=ReviewFeedbackActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def resolve_review_feedback(
+    feedback_id: UUID,
+    request: ReviewFeedbackResolveRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackActionResponse:
+    """Mark local review feedback as resolved locally."""
+
+    try:
+        result = ReviewFeedbackActionService(_repository(context)).resolve_feedback(
+            feedback_id,
+            resolution_summary=request.summary,
+            residual_risk=request.residual_risk,
+            resolved_by=request.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_review_feedback_action_response(result)
+
+
+@router.post(
+    "/feedback/{feedback_id}/reopen",
+    response_model=ReviewFeedbackActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def reopen_review_feedback(
+    feedback_id: UUID,
+    request: ReviewFeedbackReopenRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackActionResponse:
+    """Reopen local review feedback."""
+
+    try:
+        result = ReviewFeedbackActionService(_repository(context)).reopen_feedback(
+            feedback_id,
+            reason=request.reason,
+            reopened_by=request.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_review_feedback_action_response(result)
+
+
+@router.post(
+    "/feedback/{feedback_id}/archive",
+    response_model=ReviewFeedbackActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def archive_review_feedback(
+    feedback_id: UUID,
+    request: ReviewFeedbackArchiveRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackActionResponse:
+    """Archive local review feedback after explicit operator intent."""
+
+    try:
+        result = ReviewFeedbackActionService(_repository(context)).archive_feedback(
+            feedback_id,
+            reason=request.reason,
+            archived_by=request.actor,
+            replacement_feedback_id=(
+                UUID(request.replacement_feedback_id)
+                if request.replacement_feedback_id is not None
+                else None
+            ),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_review_feedback_action_response(result)
+
+
+@router.post(
+    "/feedback/{feedback_id}/accept-risk",
+    response_model=ReviewFeedbackActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def accept_review_feedback_risk(
+    feedback_id: UUID,
+    request: ReviewFeedbackAcceptRiskRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackActionResponse:
+    """Mark local review feedback accepted with explicit residual risk."""
+
+    try:
+        result = ReviewFeedbackActionService(_repository(context)).accept_risk(
+            feedback_id,
+            risk_summary=request.risk_summary,
+            acceptance_reason=request.reason,
+            accepted_by=request.actor,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_review_feedback_action_response(result)
 
 
 @router.post(

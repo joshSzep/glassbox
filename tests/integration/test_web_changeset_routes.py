@@ -90,6 +90,43 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     },
                 )
                 changeset_id = create_response.json()["changeset_id"]
+                feedback_add_response = await client.post(
+                    f"/changesets/{changeset_id}/feedback",
+                    json={
+                        "feedback_kind": "reviewer_question",
+                        "summary": "Does the API expose feedback scopes?",
+                        "provenance": "reviewer",
+                        "reviewer_label": "reviewer-api",
+                        "file_path": "app.py",
+                        "line_start": 1,
+                    },
+                )
+                feedback_id = feedback_add_response.json()["feedback"]["feedback_id"]
+                feedback_list_response = await client.get(
+                    "/changesets/feedback",
+                    params={"changeset_id": changeset_id},
+                )
+                feedback_detail_response = await client.get(
+                    f"/changesets/feedback/{feedback_id}"
+                )
+                feedback_resolve_response = await client.post(
+                    f"/changesets/feedback/{feedback_id}/resolve",
+                    json={
+                        "summary": "API exposes feedback detail and scopes.",
+                        "residual_risk": "Reviewer approval is not implied.",
+                    },
+                )
+                feedback_reopen_response = await client.post(
+                    f"/changesets/feedback/{feedback_id}/reopen",
+                    json={"reason": "Need dashboard read copy."},
+                )
+                feedback_accept_response = await client.post(
+                    f"/changesets/feedback/{feedback_id}/accept-risk",
+                    json={
+                        "risk_summary": "Dashboard mutation waits for later UX work.",
+                        "reason": "Read surfaces are sufficient for this slice.",
+                    },
+                )
                 list_response = await client.get("/changesets")
                 detail_response = await client.get(f"/changesets/{changeset_id}")
                 (tmp_path / "app.py").write_text(
@@ -175,6 +212,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     encoding="utf-8",
                 )
                 stale_response = await client.get(f"/changesets/{changeset_id}")
+                feedback_archive_response = await client.post(
+                    f"/changesets/feedback/{feedback_id}/archive",
+                    json={"actor": "qa", "reason": "superseded local record"},
+                )
                 archive_response = await client.post(
                     f"/changesets/{changeset_id}/archive",
                     json={"actor": "qa", "reason": "superseded"},
@@ -182,10 +223,45 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
 
             assert create_response.status_code == 200
             assert create_response.json()["session_id"] == str(session_id)
+            assert feedback_add_response.status_code == 200
+            assert feedback_add_response.json()["feedback"]["summary"] == (
+                "Does the API expose feedback scopes?"
+            )
+            assert feedback_add_response.json()["scopes"][0]["file_path"] == "app.py"
+            assert "not approval" in " ".join(
+                feedback_add_response.json()["non_claims"]
+            )
+            assert feedback_list_response.status_code == 200
+            assert (
+                feedback_list_response.json()["items"][0]["feedback_id"] == feedback_id
+            )
+            assert feedback_detail_response.status_code == 200
+            assert feedback_detail_response.json()["scopes"][0]["scope_kind"] == "file"
+            assert feedback_resolve_response.status_code == 200
+            assert (
+                feedback_resolve_response.json()["feedback"]["disposition"]
+                == "resolved_locally"
+            )
+            assert (
+                feedback_resolve_response.json()["feedback"]["residual_risk"]
+                == "Reviewer approval is not implied."
+            )
+            assert feedback_reopen_response.status_code == 200
+            assert feedback_reopen_response.json()["feedback"]["disposition"] == "open"
+            assert feedback_reopen_response.json()["feedback"]["reopened_count"] == 1
+            assert feedback_accept_response.status_code == 200
+            assert (
+                feedback_accept_response.json()["feedback"]["disposition"]
+                == "accepted_with_risk"
+            )
             assert list_response.status_code == 200
             assert list_response.json()["items"][0]["changeset_id"] == changeset_id
             assert detail_response.status_code == 200
             assert detail_response.json()["sources"][0]["source_kind"] == "task"
+            assert (
+                detail_response.json()["review_feedback"][0]["feedback_id"]
+                == feedback_id
+            )
             assert (
                 "glassbox changeset show"
                 in detail_response.json()["safe_next_actions"][0]
@@ -242,6 +318,11 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert stale_response.json()["inventory_status"]["stale"] is True
             assert stale_response.json()["inventory"]["freshness"] == "stale"
             assert stale_response.json()["verification_posture"]["state"] == "passed"
+            assert feedback_archive_response.status_code == 200
+            assert (
+                feedback_archive_response.json()["feedback"]["disposition"]
+                == "archived"
+            )
             assert archive_response.status_code == 200
             assert (
                 archive_response.json()["detail"]["changeset"]["status"] == "archived"

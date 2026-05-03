@@ -128,6 +128,126 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/feedback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Review Feedback
+     * @description Return bounded local review feedback rows for dashboard inspection.
+     */
+    get: operations["list_review_feedback_changesets_feedback_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/feedback/{feedback_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Review Feedback Detail
+     * @description Return one local review-feedback record with bounded scope metadata.
+     */
+    get: operations["get_review_feedback_detail_changesets_feedback__feedback_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/feedback/{feedback_id}/accept-risk": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Accept Review Feedback Risk
+     * @description Mark local review feedback accepted with explicit residual risk.
+     */
+    post: operations["accept_review_feedback_risk_changesets_feedback__feedback_id__accept_risk_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/feedback/{feedback_id}/archive": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Archive Review Feedback
+     * @description Archive local review feedback after explicit operator intent.
+     */
+    post: operations["archive_review_feedback_changesets_feedback__feedback_id__archive_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/feedback/{feedback_id}/reopen": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reopen Review Feedback
+     * @description Reopen local review feedback.
+     */
+    post: operations["reopen_review_feedback_changesets_feedback__feedback_id__reopen_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/feedback/{feedback_id}/resolve": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resolve Review Feedback
+     * @description Mark local review feedback as resolved locally.
+     */
+    post: operations["resolve_review_feedback_changesets_feedback__feedback_id__resolve_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}": {
     parameters: {
       query?: never;
@@ -222,6 +342,26 @@ export interface paths {
     get: operations["preview_changeset_commit_readiness_changesets__changeset_id__commit_readiness_get"];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/feedback": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Add Review Feedback
+     * @description Record local review feedback evidence for one changeset.
+     */
+    post: operations["add_review_feedback_changesets__changeset_id__feedback_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -2031,6 +2171,8 @@ export interface components {
       readiness: components["schemas"]["ChangesetReadinessResponse"][];
       /** Review Briefs */
       review_briefs: components["schemas"]["ChangesetReviewBriefResponse"][];
+      /** Review Feedback */
+      review_feedback: components["schemas"]["ReviewFeedbackResponse"][];
       /** Safe Next Actions */
       safe_next_actions: string[];
       /** Sources */
@@ -3666,6 +3808,224 @@ export interface components {
      */
     ResolveApprovalRequest: {
       decision: components["schemas"]["ApprovalDecision"];
+    };
+    /** ReviewFeedbackAcceptRiskRequest */
+    ReviewFeedbackAcceptRiskRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason: string;
+      /** Risk Summary */
+      risk_summary: string;
+    };
+    /** ReviewFeedbackActionResponse */
+    ReviewFeedbackActionResponse: {
+      /** Event Sequences */
+      event_sequences: number[];
+      feedback: components["schemas"]["ReviewFeedbackResponse"];
+      /** Non Claims */
+      non_claims: string[];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Scopes */
+      scopes: components["schemas"]["ReviewFeedbackScopeResponse"][];
+    };
+    /** ReviewFeedbackArchiveRequest */
+    ReviewFeedbackArchiveRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason: string;
+      /** Replacement Feedback Id */
+      replacement_feedback_id?: string | null;
+    };
+    /** ReviewFeedbackCreateRequest */
+    ReviewFeedbackCreateRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Body */
+      body?: string | null;
+      /** Feedback Kind */
+      feedback_kind: string;
+      /** File Path */
+      file_path?: string | null;
+      /** Line End */
+      line_end?: number | null;
+      /** Line Start */
+      line_start?: number | null;
+      /**
+       * Provenance
+       * @default manual
+       */
+      provenance: string;
+      /** Reviewer Label */
+      reviewer_label?: string | null;
+      /**
+       * Scope Kind
+       * @default changeset
+       */
+      scope_kind: string;
+      /** Scope Reason */
+      scope_reason?: string | null;
+      /** Source Label */
+      source_label?: string | null;
+      /** Summary */
+      summary: string;
+    };
+    /** ReviewFeedbackDetailResponse */
+    ReviewFeedbackDetailResponse: {
+      feedback: components["schemas"]["ReviewFeedbackResponse"];
+      /** Non Claims */
+      non_claims: string[];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Scopes */
+      scopes: components["schemas"]["ReviewFeedbackScopeResponse"][];
+    };
+    /** ReviewFeedbackListPageResponse */
+    ReviewFeedbackListPageResponse: {
+      /** Items */
+      items: components["schemas"]["ReviewFeedbackResponse"][];
+    };
+    /** ReviewFeedbackReopenRequest */
+    ReviewFeedbackReopenRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Reason */
+      reason: string;
+    };
+    /** ReviewFeedbackResolveRequest */
+    ReviewFeedbackResolveRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /** Residual Risk */
+      residual_risk?: string | null;
+      /** Summary */
+      summary: string;
+    };
+    /** ReviewFeedbackResponse */
+    ReviewFeedbackResponse: {
+      /** Acceptance Reason */
+      acceptance_reason?: string | null;
+      /** Accepted By */
+      accepted_by?: string | null;
+      /** Archived By */
+      archived_by?: string | null;
+      /** Archived Reason */
+      archived_reason?: string | null;
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Body */
+      body?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Created By */
+      created_by: string;
+      /** Disposition */
+      disposition: string;
+      /** Feedback Id */
+      feedback_id: string;
+      /** Feedback Kind */
+      feedback_kind: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Provenance */
+      provenance: string;
+      /** Reopened Count */
+      reopened_count: number;
+      /** Replacement Feedback Id */
+      replacement_feedback_id?: string | null;
+      /** Residual Risk */
+      residual_risk?: string | null;
+      /** Resolution Summary */
+      resolution_summary?: string | null;
+      /** Resolved By */
+      resolved_by?: string | null;
+      /** Reviewer Label */
+      reviewer_label?: string | null;
+      /** Risk Summary */
+      risk_summary?: string | null;
+      /** Session Id */
+      session_id: string;
+      /** Source Label */
+      source_label?: string | null;
+      /** Source Session Id */
+      source_session_id?: string | null;
+      /** Summary */
+      summary: string;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+      /** Updated By */
+      updated_by?: string | null;
+      /** Verification Id */
+      verification_id?: string | null;
+    };
+    /** ReviewFeedbackScopeResponse */
+    ReviewFeedbackScopeResponse: {
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Branch Candidate Id */
+      branch_candidate_id?: string | null;
+      /** Branch Search Id */
+      branch_search_id?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Feedback Id */
+      feedback_id: string;
+      /** File Path */
+      file_path?: string | null;
+      /** Last Sequence */
+      last_sequence: number;
+      /** Line End */
+      line_end?: number | null;
+      /** Line Start */
+      line_start?: number | null;
+      /** Reason */
+      reason: string;
+      /** Scope Kind */
+      scope_kind: string;
+      /** Session Id */
+      session_id: string;
+      /** Source Session Id */
+      source_session_id?: string | null;
+      /** Task Id */
+      task_id?: string | null;
+      /** Turn Id */
+      turn_id?: string | null;
+      /** Verification Id */
+      verification_id?: string | null;
     };
     /**
      * RuntimeContextNoteSnapshot
@@ -5466,6 +5826,258 @@ export interface operations {
       };
     };
   };
+  list_review_feedback_changesets_feedback_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        changeset_id?: string | null;
+        disposition?: string | null;
+        include_archived?: boolean;
+        file_path?: string | null;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_review_feedback_detail_changesets_feedback__feedback_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  accept_review_feedback_risk_changesets_feedback__feedback_id__accept_risk_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackAcceptRiskRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  archive_review_feedback_changesets_feedback__feedback_id__archive_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackArchiveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reopen_review_feedback_changesets_feedback__feedback_id__reopen_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackReopenRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  resolve_review_feedback_changesets_feedback__feedback_id__resolve_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackResolveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_changeset_detail_changesets__changeset_id__get: {
     parameters: {
       query?: never;
@@ -5654,6 +6266,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["CommitReadinessResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  add_review_feedback_changesets__changeset_id__feedback_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackCreateRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
         };
       };
       /** @description Not Found */

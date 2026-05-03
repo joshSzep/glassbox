@@ -26,6 +26,7 @@ export type BranchSearchListPageResponse = components["schemas"]["BranchSearchLi
 export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResponse"];
 export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
+export type ReviewFeedbackActionResponse = components["schemas"]["ReviewFeedbackActionResponse"];
 export type CommitReadinessResponse = components["schemas"]["CommitReadinessResponse"];
 export type CommitMessageSuggestionResponse =
   components["schemas"]["CommitMessageSuggestionResponse"];
@@ -33,6 +34,8 @@ export type ChangesetReviewBriefGenerateResponse =
   components["schemas"]["ChangesetReviewBriefGenerateResponse"];
 export type ChangesetVerificationPlanPreviewResponse =
   components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+export type ReviewFeedbackListPageResponse =
+  components["schemas"]["ReviewFeedbackListPageResponse"];
 export type WorkspaceMemoryListPageResponse =
   components["schemas"]["WorkspaceMemoryListPageResponse"];
 export type WorkspaceMemoryDetailResponse = components["schemas"]["WorkspaceMemoryDetailResponse"];
@@ -79,6 +82,9 @@ export type BranchSearchListPageQuery = NonNullable<
 >;
 export type ChangesetListPageQuery = NonNullable<
   paths["/changesets"]["get"]["parameters"]["query"]
+>;
+export type ReviewFeedbackListPageQuery = NonNullable<
+  paths["/changesets/feedback"]["get"]["parameters"]["query"]
 >;
 export type TaskStepPageQuery = NonNullable<
   paths["/tasks/{task_id}/steps"]["get"]["parameters"]["query"]
@@ -535,6 +541,15 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         requestOptions,
       ),
 
+    getReviewFeedbackPage: (
+      query: ReviewFeedbackListPageQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ReviewFeedbackListPageResponse>("GET", "/changesets/feedback", {
+        ...requestOptions,
+        query,
+      }),
+
     getChangesetCommitReadiness: (changesetId: string, requestOptions?: RequestOptions) =>
       requestJson<CommitReadinessResponse>(
         "GET",
@@ -575,6 +590,46 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
         {
           ...requestOptions,
           body: { actor: input.actor ?? "operator" },
+        },
+      ),
+
+    addReviewFeedback: (
+      input: {
+        actor?: string;
+        body?: string | null;
+        changesetId: string;
+        feedbackKind: components["schemas"]["ReviewFeedbackCreateRequest"]["feedback_kind"];
+        filePath?: string | null;
+        lineEnd?: number | null;
+        lineStart?: number | null;
+        provenance?: components["schemas"]["ReviewFeedbackCreateRequest"]["provenance"];
+        reviewerLabel?: string | null;
+        scopeKind?: components["schemas"]["ReviewFeedbackCreateRequest"]["scope_kind"];
+        scopeReason?: string | null;
+        sourceLabel?: string | null;
+        summary: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ReviewFeedbackActionResponse>(
+        "POST",
+        `/changesets/${encodeURIComponent(input.changesetId)}/feedback`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            body: input.body ?? null,
+            feedback_kind: input.feedbackKind,
+            file_path: input.filePath ?? null,
+            line_end: input.lineEnd ?? null,
+            line_start: input.lineStart ?? null,
+            provenance: input.provenance ?? "manual",
+            reviewer_label: input.reviewerLabel ?? null,
+            scope_kind: input.scopeKind ?? "changeset",
+            scope_reason: input.scopeReason ?? null,
+            source_label: input.sourceLabel ?? null,
+            summary: input.summary,
+          },
         },
       ),
 

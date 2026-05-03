@@ -224,6 +224,7 @@ function ChangesetDetail({
         latestBriefId={changeset.latest_review_brief_artifact_id ?? null}
         readiness={reviewReadiness}
       />
+      <ReviewFeedbackPanel detail={detail.detail} />
       <InventoryPanel detail={detail.detail} />
       <TopologyPanel verificationPlan={verificationPlan} />
       <VerificationPanel
@@ -595,6 +596,72 @@ function ReviewPanel({
             ))}
           </DataList>
         ) : null}
+      </div>
+    </Section>
+  );
+}
+
+function ReviewFeedbackPanel({ detail }: { detail: NonNullable<ChangesetDetailState["detail"]> }) {
+  const feedback = detail.review_feedback;
+  const openItems = feedback.filter(
+    (item) => item.disposition === "open" || item.disposition === "in_progress",
+  );
+  const questions = feedback.filter((item) => item.feedback_kind === "reviewer_question");
+  const requestedChanges = feedback.filter((item) => item.feedback_kind === "requested_change");
+  const acceptedRisks = feedback.filter((item) => item.disposition === "accepted_with_risk");
+  const resolved = feedback.filter((item) => item.disposition === "resolved_locally");
+  return (
+    <Section title="Review Feedback">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={openItems.length > 0 ? "warning" : "muted"}>
+            {openItems.length} open
+          </Badge>
+          <Badge variant={requestedChanges.length > 0 ? "warning" : "muted"}>
+            {requestedChanges.length} requested
+          </Badge>
+          <Badge variant={questions.length > 0 ? "info" : "muted"}>
+            {questions.length} questions
+          </Badge>
+          <Badge variant={resolved.length > 0 ? "success" : "muted"}>
+            {resolved.length} resolved locally
+          </Badge>
+          <Badge variant={acceptedRisks.length > 0 ? "outline" : "muted"}>
+            {acceptedRisks.length} accepted risks
+          </Badge>
+        </div>
+        {feedback.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No local review feedback is attached to this changeset.
+          </p>
+        ) : (
+          <DataList density="compact">
+            {feedback.slice(0, 8).map((item) => (
+              <DataListItem key={item.feedback_id}>
+                <DataListLabel>{item.summary}</DataListLabel>
+                <DataListMeta>
+                  {item.feedback_kind} - {item.disposition} - {item.provenance}
+                  {item.reviewer_label ? ` - ${item.reviewer_label}` : ""}
+                </DataListMeta>
+                {item.resolution_summary ? (
+                  <DataListMeta>Resolution: {item.resolution_summary}</DataListMeta>
+                ) : null}
+                {item.risk_summary ? (
+                  <DataListMeta>Accepted risk: {item.risk_summary}</DataListMeta>
+                ) : null}
+                {item.residual_risk ? (
+                  <DataListMeta>Residual risk: {item.residual_risk}</DataListMeta>
+                ) : null}
+              </DataListItem>
+            ))}
+          </DataList>
+        )}
+        <ul className="grid gap-2 text-console text-muted-foreground">
+          <li className="break-all">
+            glassbox changeset feedback list --changeset {detail.changeset.changeset_id} --cwd .
+          </li>
+          <li>Review feedback is local evidence, not approval.</li>
+        </ul>
       </div>
     </Section>
   );

@@ -8,6 +8,11 @@ from typing import cast
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.core import ChangesetRecord
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackRecord
+from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPreview
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRepository
@@ -24,6 +29,8 @@ from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changesets import ReviewFeedbackActionService
+from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
@@ -62,6 +69,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_commit_prep_command(args)
     if command == "archive":
         return _changeset_archive_command(args)
+    if command == "feedback":
+        return _changeset_feedback_command(args)
     raise ValueError("specify a changeset subcommand")
 
 
@@ -311,6 +320,149 @@ def _changeset_archive_command(args: argparse.Namespace) -> int:
         print(f"Archived changeset {args.changeset_id}")
         print(f"Reason: {args.reason}")
     return 0
+
+
+def _changeset_feedback_command(args: argparse.Namespace) -> int:
+    command = getattr(args, "feedback_command", None)
+    if command == "add":
+        return _feedback_add_command(args)
+    if command == "list":
+        return _feedback_list_command(args)
+    if command == "show":
+        return _feedback_show_command(args)
+    if command == "resolve":
+        return _feedback_resolve_command(args)
+    if command == "reopen":
+        return _feedback_reopen_command(args)
+    if command == "archive":
+        return _feedback_archive_command(args)
+    if command == "accept-risk":
+        return _feedback_accept_risk_command(args)
+    raise ValueError("specify a feedback subcommand")
+
+
+def _feedback_add_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).add_feedback(
+            args.changeset_id,
+            feedback_kind=ReviewFeedbackKind(args.kind),
+            provenance=ReviewFeedbackProvenance(args.provenance),
+            summary=args.summary,
+            body=args.body,
+            source_label=args.source_label,
+            reviewer_label=args.reviewer_label,
+            created_by=args.actor,
+            scope_kind=ReviewFeedbackScopeKind(args.scope_kind),
+            scope_reason=args.scope_reason,
+            file_path=args.file,
+            line_start=args.line_start,
+            line_end=args.line_end,
+        )
+    return _print_feedback_result(result, args.json, "Recorded review feedback")
+
+
+def _feedback_list_command(args: argparse.Namespace) -> int:
+    if args.limit is not None and args.limit < 1:
+        raise ValueError("--limit must be greater than zero")
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        feedback = ChangesetQueryService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).list_review_feedback(
+            session_id=args.session_id,
+            changeset_id=args.changeset_id,
+            disposition=(
+                ReviewFeedbackDisposition(args.disposition)
+                if args.disposition is not None
+                else None
+            ),
+            include_archived=args.include_archived,
+            file_path=args.file,
+            limit=args.limit,
+        )
+    if args.json:
+        print_json_output([item.model_dump(mode="json") for item in feedback])
+    else:
+        _print_feedback_list(feedback)
+    return 0
+
+
+def _feedback_show_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        service = ChangesetQueryService(repository)
+        feedback = service.get_review_feedback(args.feedback_id)
+        if feedback is None:
+            raise ValueError(f"unknown review feedback: {args.feedback_id}")
+        scopes = service.list_review_feedback_scopes(
+            feedback.session_id,
+            feedback.feedback_id,
+        )
+    payload = _feedback_payload(feedback, scopes=scopes)
+    if args.json:
+        print_json_output(payload)
+    else:
+        _print_feedback_detail(feedback, scopes)
+    return 0
+
+
+def _feedback_resolve_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).resolve_feedback(
+            args.feedback_id,
+            resolution_summary=args.summary,
+            residual_risk=args.residual_risk,
+            resolved_by=args.actor,
+        )
+    return _print_feedback_result(result, args.json, "Resolved review feedback locally")
+
+
+def _feedback_reopen_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).reopen_feedback(
+            args.feedback_id,
+            reason=args.reason,
+            reopened_by=args.actor,
+        )
+    return _print_feedback_result(result, args.json, "Reopened review feedback")
+
+
+def _feedback_archive_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).archive_feedback(
+            args.feedback_id,
+            reason=args.reason,
+            archived_by=args.actor,
+            replacement_feedback_id=args.replacement_feedback_id,
+        )
+    return _print_feedback_result(result, args.json, "Archived review feedback")
+
+
+def _feedback_accept_risk_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        result = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).accept_risk(
+            args.feedback_id,
+            risk_summary=args.risk_summary,
+            acceptance_reason=args.reason,
+            accepted_by=args.actor,
+        )
+    return _print_feedback_result(result, args.json, "Accepted review feedback risk")
 
 
 def _changeset_export_command(args: argparse.Namespace) -> int:
@@ -584,6 +736,12 @@ def _print_changeset_detail(
             f"(attempt {item.tool_attempt_id[:8]})"
         )
     print(f"Review briefs: {len(detail.review_briefs)}")
+    print(f"Review feedback: {len(detail.review_feedback)}")
+    for item in detail.review_feedback[:5]:
+        print(
+            f"  {item.feedback_kind.value}/{item.disposition.value}: "
+            f"{item.summary} ({item.feedback_id})"
+        )
     print(f"Readiness decisions: {len(detail.readiness)}")
     _print_limitations(detail.limitations)
     print("Safe next actions:")
@@ -702,6 +860,98 @@ def _precommit_evidence_payload(
         "verification_event": result.verification_event.model_dump(mode="json"),
         "readiness_event": result.readiness_event.model_dump(mode="json"),
         "commit_readiness": result.commit_readiness.model_dump(mode="json"),
+    }
+
+
+def _print_feedback_list(feedback: list[ReviewFeedbackRecord]) -> None:
+    if not feedback:
+        print("No review feedback found")
+        return
+    print(f"Review feedback: {len(feedback)}")
+    for item in feedback:
+        print(
+            f"{item.feedback_id}  {item.feedback_kind.value}  "
+            f"{item.disposition.value}  updated {item.updated_at.isoformat()}"
+        )
+        print(f"  Changeset: {item.changeset_id}")
+        print(f"  Summary: {item.summary}")
+        if item.reviewer_label is not None:
+            print(f"  Reviewer label: {item.reviewer_label}")
+
+
+def _print_feedback_detail(
+    feedback: ReviewFeedbackRecord,
+    scopes,
+) -> None:
+    print(f"Review feedback {feedback.feedback_id}")
+    print(f"Changeset: {feedback.changeset_id}")
+    print(f"Kind: {feedback.feedback_kind.value}")
+    print(f"Disposition: {feedback.disposition.value}")
+    print(f"Provenance: {feedback.provenance.value}")
+    print(f"Summary: {feedback.summary}")
+    if feedback.body is not None:
+        print(f"Body: {feedback.body}")
+    if feedback.resolution_summary is not None:
+        print(f"Resolution: {feedback.resolution_summary}")
+    if feedback.residual_risk is not None:
+        print(f"Residual risk: {feedback.residual_risk}")
+    if feedback.risk_summary is not None:
+        print(f"Accepted risk: {feedback.risk_summary}")
+    if feedback.acceptance_reason is not None:
+        print(f"Acceptance reason: {feedback.acceptance_reason}")
+    if feedback.archived_reason is not None:
+        print(f"Archived reason: {feedback.archived_reason}")
+    print(f"Scopes: {len(scopes)}")
+    for scope in scopes:
+        print(f"  {scope.scope_kind.value}: {scope.reason}")
+        if scope.file_path is not None:
+            suffix = ""
+            if scope.line_start is not None:
+                suffix = f":{scope.line_start}"
+                if scope.line_end is not None and scope.line_end != scope.line_start:
+                    suffix += f"-{scope.line_end}"
+            print(f"    File: {scope.file_path}{suffix}")
+    print("Non-claims:")
+    print("  - review feedback is local evidence, not approval")
+    print("  - Glassbox did not stage, commit, push, open a PR, or merge")
+
+
+def _print_feedback_result(
+    result: ReviewFeedbackRecordResult,
+    as_json: bool,
+    headline: str,
+) -> int:
+    if as_json:
+        print_json_output(_feedback_result_payload(result))
+    else:
+        print(f"{headline}: {result.feedback.feedback_id}")
+        print(f"Changeset: {result.feedback.changeset_id}")
+        print(f"Disposition: {result.feedback.disposition.value}")
+        print(f"Summary: {result.feedback.summary}")
+        print("Safe next actions:")
+        for action in result.safe_next_actions:
+            print(f"  - {action}")
+        print("Glassbox did not stage, commit, push, open a PR, or merge.")
+    return 0
+
+
+def _feedback_payload(feedback: ReviewFeedbackRecord, *, scopes) -> dict[str, object]:
+    return {
+        "feedback": feedback.model_dump(mode="json"),
+        "scopes": [scope.model_dump(mode="json") for scope in scopes],
+        "non_claims": [
+            "review feedback is local evidence, not approval",
+            "Glassbox did not stage, commit, push, open a PR, or merge",
+        ],
+    }
+
+
+def _feedback_result_payload(result: ReviewFeedbackRecordResult) -> dict[str, object]:
+    return {
+        **_feedback_payload(result.feedback, scopes=result.scopes),
+        "events": [event.model_dump(mode="json") for event in result.events],
+        "safe_next_actions": result.safe_next_actions,
+        "non_claims": result.non_claims,
     }
 
 

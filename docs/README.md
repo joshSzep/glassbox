@@ -178,6 +178,9 @@ release candidate.
 - [review-briefs.md](./review-briefs.md): understand the v12 reviewer-safe
   changeset brief generation command/API, artifact shape, redaction policy,
   render targets, readiness posture, and non-claims
+- [review-feedback.md](./review-feedback.md): record and inspect v13 local
+  review feedback, requested changes, reviewer questions, accepted risks,
+  feedback scopes, CLI/API mutations, dashboard read surfaces, and non-claims
 - [commit-readiness.md](./commit-readiness.md): understand the v12 read-only
   advisory model for staged changes, dirty worktree ambiguity, verification,
   review brief freshness, provenance, path-risk cues, and accepted risk before

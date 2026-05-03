@@ -161,6 +161,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getChangesetCommitReadiness: async (changesetId) => makeCommitReadiness(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
+    getReviewFeedbackPage: async () => ({ items: [] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => ({
       built_at: "2026-04-23T00:00:00Z",
@@ -227,6 +228,16 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       markdown: null,
       readiness_event_sequence: 7,
       session_id: "session-1",
+    }),
+    addReviewFeedback: async (input) => ({
+      event_sequences: [8, 9],
+      feedback: makeReviewFeedback(input.changesetId),
+      non_claims: ["review feedback is local evidence, not approval"],
+      safe_next_actions: [
+        `glassbox changeset feedback show feedback-1 --cwd .`,
+        `glassbox changeset show ${input.changesetId} --cwd .`,
+      ],
+      scopes: [],
     }),
     confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
@@ -1520,6 +1531,7 @@ function makeChangesetDetail(
       verification_count: 0,
     },
     review_briefs: [],
+    review_feedback: [],
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     sources: [
       {
@@ -1540,6 +1552,41 @@ function makeChangesetDetail(
       },
     ],
     verification_posture: null,
+  };
+}
+
+function makeReviewFeedback(changesetId: string): components["schemas"]["ReviewFeedbackResponse"] {
+  return {
+    acceptance_reason: null,
+    accepted_by: null,
+    archived_by: null,
+    archived_reason: null,
+    artifact_id: null,
+    body: null,
+    changeset_id: changesetId,
+    created_at: timestamp(3),
+    created_by: "operator",
+    disposition: "open",
+    feedback_id: "feedback-1",
+    feedback_kind: "requested_change",
+    last_sequence: 8,
+    provenance: "reviewer",
+    reopened_count: 0,
+    replacement_feedback_id: null,
+    residual_risk: null,
+    resolution_summary: null,
+    resolved_by: null,
+    reviewer_label: "reviewer-1",
+    risk_summary: null,
+    session_id: "session-1",
+    source_label: null,
+    source_session_id: null,
+    summary: "Clarify feedback copy",
+    task_id: "task-1",
+    turn_id: null,
+    updated_at: timestamp(4),
+    updated_by: null,
+    verification_id: null,
   };
 }
 

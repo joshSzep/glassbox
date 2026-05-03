@@ -52,6 +52,115 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     created = json.loads(capsys.readouterr().out)
     changeset_id = created["changeset_id"]
+    feedback_add_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "add",
+            changeset_id,
+            "--kind",
+            "requested_change",
+            "--summary",
+            "Clarify the review-feedback list output",
+            "--body",
+            "Keep the feedback entry local and bounded.",
+            "--provenance",
+            "reviewer",
+            "--reviewer-label",
+            "reviewer-1",
+            "--file",
+            "app.py",
+            "--line-start",
+            "1",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_added = json.loads(capsys.readouterr().out)
+    feedback_id = feedback_added["feedback"]["feedback_id"]
+    feedback_list_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "list",
+            "--changeset",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    feedback_list_output = capsys.readouterr().out
+    feedback_show_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "show",
+            feedback_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_detail = json.loads(capsys.readouterr().out)
+    feedback_resolve_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "resolve",
+            feedback_id,
+            "--summary",
+            "List output now includes feedback summary and safe next actions.",
+            "--residual-risk",
+            "Reviewer acceptance is not implied.",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_resolved = json.loads(capsys.readouterr().out)
+    feedback_reopen_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "reopen",
+            feedback_id,
+            "--reason",
+            "Need a dashboard read surface too.",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_reopened = json.loads(capsys.readouterr().out)
+    feedback_accept_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "accept-risk",
+            feedback_id,
+            "--risk-summary",
+            "Dashboard is read-only for this task.",
+            "--reason",
+            "CLI and API own feedback mutation until later UX work.",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_accepted = json.loads(capsys.readouterr().out)
 
     list_exit = main(
         [
@@ -243,6 +352,22 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     stale_detail = json.loads(capsys.readouterr().out)
+    feedback_archive_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "archive",
+            feedback_id,
+            "--reason",
+            "Superseded by resolved local response evidence.",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback_archived = json.loads(capsys.readouterr().out)
 
     archive_exit = main(
         [
@@ -262,10 +387,33 @@ def test_changeset_create_list_show_refresh_and_archive(
 
     assert create_exit == 0
     assert created["session_id"] == str(session_id)
+    assert feedback_add_exit == 0
+    assert feedback_added["feedback"]["summary"] == (
+        "Clarify the review-feedback list output"
+    )
+    assert feedback_added["scopes"][0]["file_path"] == "app.py"
+    assert "not approval" in " ".join(feedback_added["non_claims"])
+    assert feedback_list_exit == 0
+    assert "Review feedback: 1" in feedback_list_output
+    assert "Clarify the review-feedback list output" in feedback_list_output
+    assert feedback_show_exit == 0
+    assert feedback_detail["feedback"]["feedback_kind"] == "requested_change"
+    assert feedback_detail["scopes"][0]["scope_kind"] == "file"
+    assert feedback_resolve_exit == 0
+    assert feedback_resolved["feedback"]["disposition"] == "resolved_locally"
+    assert feedback_resolved["feedback"]["residual_risk"] == (
+        "Reviewer acceptance is not implied."
+    )
+    assert feedback_reopen_exit == 0
+    assert feedback_reopened["feedback"]["disposition"] == "open"
+    assert feedback_reopened["feedback"]["reopened_count"] == 1
+    assert feedback_accept_exit == 0
+    assert feedback_accepted["feedback"]["disposition"] == "accepted_with_risk"
     assert list_exit == 0
     assert "Changesets: 1" in list_output
     assert show_exit == 0
     assert detail["changeset"]["task_id"] == str(task_id)
+    assert detail["review_feedback"][0]["feedback_id"] == feedback_id
     assert detail["sources"][0]["source_kind"] == "task"
     assert "glassbox changeset refresh" in detail["safe_next_actions"][1]
     assert refresh_exit == 0
@@ -330,6 +478,11 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert stale_detail["verification_plan"]["readiness"]["state"] == "stale"
     assert stale_detail["inventory_status"]["stale"] is True
     assert "source digest changed" in stale_detail["inventory_status"]["reason"]
+    assert feedback_archive_exit == 0
+    assert feedback_archived["feedback"]["disposition"] == "archived"
+    assert feedback_archived["feedback"]["archived_reason"] == (
+        "Superseded by resolved local response evidence."
+    )
     assert archive_exit == 0
     assert archived["payload"]["event_type"] == "ChangesetArchived"
 
