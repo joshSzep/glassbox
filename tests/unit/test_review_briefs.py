@@ -45,7 +45,7 @@ def test_review_brief_artifact_contract_and_render_targets() -> None:
     assert artifact.raw_provider_transcript_included is False
     assert artifact.raw_diff_included is False
     assert artifact.raw_file_contents_included is False
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == 2
     assert "Change Summary" in markdown
     assert "Changed-File Inventory" in markdown
     assert "Affected Subsystems" in markdown
@@ -55,6 +55,117 @@ def test_review_brief_artifact_contract_and_render_targets() -> None:
     assert "Reviewer Checklist" in markdown
     assert "Safe Inspection Commands" in markdown
     assert '"artifact_kind": "changeset_review_brief"' in raw_json
+
+
+def test_review_lifecycle_brief_contract_sections_and_evidence_refs() -> None:
+    artifact = _brief(
+        lifecycle_summary=ReviewBriefSection(
+            title="Lifecycle Summary",
+            body=(
+                "Feedback exists, one response is stale, and handoff is not claimed."
+            ),
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="readiness",
+                    identifier="handoff-preview",
+                    summary="handoff posture remains advisory",
+                )
+            ],
+        ),
+        review_feedback=ReviewBriefSection(
+            title="Review Feedback",
+            body="One requested change remains open and visible.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="feedback",
+                    identifier="rfb_1",
+                    summary="requested change is unresolved",
+                )
+            ],
+        ),
+        review_responses=ReviewBriefSection(
+            title="Review Responses",
+            body="One fixup response cites inventory but needs fresh checks.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="response",
+                    identifier="rrsp_1",
+                    summary="response linked to changed files",
+                )
+            ],
+        ),
+        manual_evidence=ReviewBriefSection(
+            title="Manual Evidence",
+            body="External check is summary-only and local-only.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="manual_evidence",
+                    identifier="mev_1",
+                    summary="operator-attached command summary",
+                    local_only=True,
+                )
+            ],
+        ),
+        live_review_evidence=ReviewBriefSection(
+            title="Live Review Evidence",
+            body="Browser and accessibility notes are advisory.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="browser_evidence",
+                    identifier="browser-1",
+                    summary="dashboard route inspected in local browser",
+                    local_only=True,
+                ),
+                ReviewBriefEvidenceRef(
+                    kind="accessibility_evidence",
+                    identifier="a11y-1",
+                    summary="keyboard pass noted unresolved focus risk",
+                    local_only=True,
+                ),
+            ],
+        ),
+        stale_verification=ReviewBriefSection(
+            title="Stale Verification",
+            body="A retained pass predates response-linked fixup inventory.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="verification",
+                    identifier="pytest-stale",
+                    summary="rerun focused tests before handoff",
+                )
+            ],
+        ),
+        publication_boundary=ReviewBriefSection(
+            title="Publication Boundary",
+            body="Handoff readiness is advisory; publication did not occur.",
+            evidence_refs=[
+                ReviewBriefEvidenceRef(
+                    kind="publication_boundary",
+                    identifier="publication-boundary",
+                    summary="no stage, commit, push, PR, or merge action",
+                )
+            ],
+        ),
+    )
+
+    payload = artifact.model_dump(mode="json")
+    markdown = review_brief_markdown(artifact)
+
+    assert payload["schema_version"] == 2
+    assert payload["review_feedback"]["evidence_refs"][0]["kind"] == "feedback"
+    assert payload["manual_evidence"]["evidence_refs"][0]["local_only"] is True
+    for section_title in (
+        "Lifecycle Summary",
+        "Review Feedback",
+        "Review Responses",
+        "Manual Evidence",
+        "Live Review Evidence",
+        "Stale Verification",
+        "Publication Boundary",
+    ):
+        assert section_title in markdown
+    assert "publication did not occur" in markdown
+    assert "no stage, commit, push, PR, or merge action" in markdown
 
 
 def test_review_brief_redacts_local_paths_glassbox_paths_and_secrets() -> None:
@@ -117,6 +228,13 @@ def test_review_brief_generation_degrades_without_inventory(tmp_path: Path) -> N
 
 def _brief(
     objective: str = "Review deterministic changeset evidence",
+    lifecycle_summary: ReviewBriefSection | None = None,
+    review_feedback: ReviewBriefSection | None = None,
+    review_responses: ReviewBriefSection | None = None,
+    manual_evidence: ReviewBriefSection | None = None,
+    live_review_evidence: ReviewBriefSection | None = None,
+    stale_verification: ReviewBriefSection | None = None,
+    publication_boundary: ReviewBriefSection | None = None,
 ) -> ReviewBriefArtifact:
     verification_id = new_task_verification_id()
     inventory_artifact_id = new_artifact_id()
@@ -155,6 +273,11 @@ def _brief(
             title="Provenance",
             body="Path provenance is direct for runtime changes and inferred for docs.",
         ),
+        lifecycle_summary=lifecycle_summary,
+        review_feedback=review_feedback,
+        review_responses=review_responses,
+        manual_evidence=manual_evidence,
+        live_review_evidence=live_review_evidence,
         verification=ReviewBriefSection(
             title="Verification",
             body="One retained verification check is missing.",
@@ -167,6 +290,7 @@ def _brief(
                 )
             ],
         ),
+        stale_verification=stale_verification,
         command_evidence=ReviewBriefSection(
             title="Command Evidence",
             body="One retained command supports verification.",
@@ -180,6 +304,7 @@ def _brief(
                 )
             ],
         ),
+        publication_boundary=publication_boundary,
         risks=ReviewBriefSection(
             title="Risks",
             body="Medium advisory risk remains until verification is fresh.",

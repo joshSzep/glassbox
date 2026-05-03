@@ -550,6 +550,38 @@ def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     assert "v13-review-loop-audit.md" in docs_readme
 
 
+def test_v13_review_brief_lifecycle_contract_covers_non_claims() -> None:
+    content = (REPO_ROOT / "docs" / "review-briefs.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "v13 lifecycle briefs",
+        "`schema_version`: `2`",
+        "## Lifecycle Brief Contract",
+        "## Render Targets",
+        "lifecycle summary",
+        "review feedback",
+        "review responses",
+        "manual evidence",
+        "live review evidence",
+        "stale verification",
+        "publication boundary",
+        "`feedback`",
+        "`response`",
+        "`manual_evidence`",
+        "`browser_evidence`",
+        "`dashboard_evidence`",
+        "`accessibility_evidence`",
+        "`publication_boundary`",
+        "Passing verification does not hide unresolved feedback",
+        "does not imply the reviewer accepted it",
+        "review feedback was approved or accepted by a reviewer",
+        "manual evidence is retained command/tool evidence",
+        "lifecycle handoff readiness means publication occurred",
+        "a commit, push, PR, or merge should happen automatically",
+    ):
+        assert required_text in content
+
+
 def test_manual_evidence_contract_covers_attachment_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "manual-evidence.md").read_text(encoding="utf-8")
     root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")

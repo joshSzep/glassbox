@@ -1003,7 +1003,7 @@ Completed in this slice:
 
 ### GBX-1360: Define Review Lifecycle Brief Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1352`
 - Goal: upgrade review briefs from initial changeset summaries into local
   review lifecycle summaries
@@ -1025,6 +1025,20 @@ Completed in this slice:
   - docs guardrails for non-claims
 - Done when:
   - lifecycle briefs have a stable contract that later tools can rely on
+
+Completed in this slice:
+
+- Updated `docs/review-briefs.md` from the v12 initial-review brief posture to
+  a v13 lifecycle-capable contract with feedback, response, manual evidence,
+  browser/dashboard/accessibility evidence, stale verification, accepted-risk,
+  and publication-boundary sections.
+- Extended the `changeset_review_brief` artifact contract to schema version 2
+  with optional lifecycle sections and evidence-reference kinds for feedback,
+  responses, manual evidence, live evidence, readiness, and publication
+  boundary posture.
+- Added contract tests for JSON and Markdown render targets plus docs
+  guardrails for lifecycle brief non-claims around reviewer approval,
+  verification proof, local-only portability, and automatic publication.
 
 ### GBX-1361: Generate Lifecycle Briefs From Review-Loop Evidence
 

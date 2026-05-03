@@ -20,7 +20,7 @@ from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskVerificationId
 
 REVIEW_BRIEF_ARTIFACT_KIND = "changeset_review_brief"
-REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION = 1
+REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION = 2
 REVIEW_BRIEF_REDACTION = "reviewer-safe-summary-no-raw-logs"
 
 ReviewBriefRenderTarget = Literal["markdown", "json"]
@@ -30,6 +30,14 @@ ReviewBriefEvidenceKind = Literal[
     "provenance",
     "verification",
     "command",
+    "feedback",
+    "response",
+    "manual_evidence",
+    "browser_evidence",
+    "dashboard_evidence",
+    "accessibility_evidence",
+    "readiness",
+    "publication_boundary",
     "branch_candidate",
     "risk",
     "artifact",
@@ -83,7 +91,7 @@ class ReviewBriefArtifact(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     artifact_kind: Literal["changeset_review_brief"] = REVIEW_BRIEF_ARTIFACT_KIND
-    schema_version: Literal[1] = REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION
+    schema_version: Literal[2] = REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION
     changeset_id: ChangesetId
     session_id: SessionId
     task_id: TaskId | None = None
@@ -105,9 +113,16 @@ class ReviewBriefArtifact(BaseModel):
     changed_file_inventory: ReviewBriefSection
     affected_subsystems: ReviewBriefSection | None = None
     provenance: ReviewBriefSection
+    lifecycle_summary: ReviewBriefSection | None = None
+    review_feedback: ReviewBriefSection | None = None
+    review_responses: ReviewBriefSection | None = None
+    manual_evidence: ReviewBriefSection | None = None
+    live_review_evidence: ReviewBriefSection | None = None
     verification: ReviewBriefSection
+    stale_verification: ReviewBriefSection | None = None
     command_evidence: ReviewBriefSection
     branch_candidate_rationale: ReviewBriefSection | None = None
+    publication_boundary: ReviewBriefSection | None = None
     risks: ReviewBriefSection
     non_claims: list[str] = Field(default_factory=list, min_length=1, max_length=20)
     reviewer_checklist: list[str] = Field(
@@ -170,16 +185,44 @@ def review_brief_markdown(artifact: ReviewBriefArtifact) -> str:
     sections.extend(
         [
             ("Provenance", _section_markdown(artifact.provenance)),
-            ("Verification", _section_markdown(artifact.verification)),
-            ("Command Evidence", _section_markdown(artifact.command_evidence)),
         ]
     )
+    if artifact.lifecycle_summary is not None:
+        sections.append(
+            ("Lifecycle Summary", _section_markdown(artifact.lifecycle_summary))
+        )
+    if artifact.review_feedback is not None:
+        sections.append(
+            ("Review Feedback", _section_markdown(artifact.review_feedback))
+        )
+    if artifact.review_responses is not None:
+        sections.append(
+            ("Review Responses", _section_markdown(artifact.review_responses))
+        )
+    if artifact.manual_evidence is not None:
+        sections.append(
+            ("Manual Evidence", _section_markdown(artifact.manual_evidence))
+        )
+    if artifact.live_review_evidence is not None:
+        sections.append(
+            ("Live Review Evidence", _section_markdown(artifact.live_review_evidence))
+        )
+    sections.append(("Verification", _section_markdown(artifact.verification)))
+    if artifact.stale_verification is not None:
+        sections.append(
+            ("Stale Verification", _section_markdown(artifact.stale_verification))
+        )
+    sections.append(("Command Evidence", _section_markdown(artifact.command_evidence)))
     if artifact.branch_candidate_rationale is not None:
         sections.append(
             (
                 "Branch-Candidate Rationale",
                 _section_markdown(artifact.branch_candidate_rationale),
             )
+        )
+    if artifact.publication_boundary is not None:
+        sections.append(
+            ("Publication Boundary", _section_markdown(artifact.publication_boundary))
         )
     sections.extend(
         [
