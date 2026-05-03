@@ -238,7 +238,7 @@ or print the exact safe next inspection command.
 
 ## GBX-1381 Target
 
-`GBX-1381` should implement the TUI portion of this audit:
+`GBX-1381` implements the TUI portion of this audit:
 
 - `TerminalCommandId.REVIEW_CREATE_CHANGESET`
 - `TerminalCommandId.REVIEW_REFRESH_INVENTORY`
@@ -252,6 +252,5 @@ or print the exact safe next inspection command.
 - post-create feedback with changeset ID, limitations, safe next actions, and
   dashboard URL when available
 
-The implementation should continue to use lower-level changeset services as
-the source of behavior, not duplicate review-loop state in terminal-only
-memory.
+The implementation uses lower-level changeset services and daemon HTTP APIs as
+the source of behavior, not terminal-only review-loop state.

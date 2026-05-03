@@ -12,6 +12,8 @@ from textual.widgets import Static
 from glassbox.cli.interactive_client import InteractiveClientError
 from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
+from glassbox.cli.interactive_client import ReviewLoopAction
+from glassbox.cli.interactive_client import ReviewLoopActionResult
 from glassbox.cli.interactive_launch import InteractiveLaunchMode
 from glassbox.cli.interactive_launch import InteractiveLaunchOptions
 from glassbox.cli.tui import GlassboxTerminalApp
@@ -189,6 +191,14 @@ def test_tui_app_reports_approval_resolution_feedback() -> None:
 
 def test_tui_app_approval_slash_commands_are_typeable() -> None:
     asyncio.run(_run_approval_slash_command_test())
+
+
+def test_tui_app_review_slash_commands_are_typeable() -> None:
+    asyncio.run(_run_review_slash_command_test())
+
+
+def test_tui_app_executes_review_palette_actions() -> None:
+    asyncio.run(_run_review_palette_action_test())
 
 
 def test_tui_app_follows_latest_streaming_transcript() -> None:
@@ -1281,6 +1291,73 @@ async def _run_approval_slash_command_test() -> None:
     await app.close_client()
 
 
+async def _run_review_slash_command_test() -> None:
+    snapshot = _snapshot()
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+        dashboard_url="http://127.0.0.1:8765/",
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        composer = pilot.app.query_one(ComposerWidget)
+        composer.text = "/review create Tighten review-loop UX"
+        await _wait_for_tui_reactive_update(pilot)
+        await pilot.press("enter")
+        await _wait_for_tui_reactive_update(pilot)
+        action_strip = pilot.app.query_one("#action-strip", Static)
+
+        assert client.created_review_objectives == ["Tighten review-loop UX"]
+        assert "Accepted: Created review changeset" in str(action_strip.content)
+        assert "Limitation: workspace diff has 2 changed path(s)" in str(
+            action_strip.content
+        )
+        assert "Next: glassbox changeset show" in str(action_strip.content)
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_review_palette_action_test() -> None:
+    snapshot = _snapshot()
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+        dashboard_url="http://127.0.0.1:8765/",
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.REVIEW_GENERATE_BRIEF
+        )
+        action_strip = pilot.app.query_one("#action-strip", Static)
+        conversation = pilot.app.query_one(ConversationPane)
+
+        assert client.review_actions == [(ReviewLoopAction.GENERATE_BRIEF, None)]
+        assert "Accepted: Generated lifecycle brief" in str(action_strip.content)
+        assert "Brief artifact:" in conversation.content_text
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.REVIEW_PREVIEW_VERIFICATION,
+            argument="11111111-1111-1111-1111-111111111111",
+        )
+
+        assert client.review_actions[-1] == (
+            ReviewLoopAction.PREVIEW_VERIFICATION,
+            "11111111-1111-1111-1111-111111111111",
+        )
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
 async def _run_streaming_transcript_follow_latest_test(
     *,
     render_markdown: bool = False,
@@ -1565,6 +1642,8 @@ class _FakeInteractiveClient:
         self.submitted_answers: list[tuple[QuestionId, str]] = []
         self.resolved_approvals: list[tuple[ApprovalId, ApprovalDecision]] = []
         self.cancelled_turns: list[tuple[TurnId | None, str | None]] = []
+        self.created_review_objectives: list[str | None] = []
+        self.review_actions: list[tuple[ReviewLoopAction, str | None]] = []
 
     @property
     def session_id(self):
@@ -1606,6 +1685,52 @@ class _FakeInteractiveClient:
         if self.cancel_error is not None:
             raise self.cancel_error
         self.cancelled_turns.append((turn_id, reason))
+
+    async def create_review_changeset(
+        self,
+        *,
+        objective: str | None = None,
+    ) -> ReviewLoopActionResult:
+        self.created_review_objectives.append(objective)
+        return ReviewLoopActionResult(
+            action="create",
+            headline="Created review changeset 11111111-1111-1111-1111-111111111111",
+            changeset_id="11111111-1111-1111-1111-111111111111",
+            details=("Source: current workspace diff for this chat session.",),
+            limitations=("workspace diff has 2 changed path(s)",),
+            safe_next_actions=(
+                "glassbox changeset show 11111111-1111-1111-1111-111111111111 --cwd .",
+            ),
+            dashboard_path="/app/changesets/11111111-1111-1111-1111-111111111111",
+        )
+
+    async def run_review_action(
+        self,
+        action: ReviewLoopAction,
+        *,
+        changeset_id: str | None = None,
+    ) -> ReviewLoopActionResult:
+        self.review_actions.append((action, changeset_id))
+        resolved_changeset_id = changeset_id or "11111111-1111-1111-1111-111111111111"
+        if action == ReviewLoopAction.GENERATE_BRIEF:
+            headline = f"Generated lifecycle brief for {resolved_changeset_id}"
+            details = ("Brief artifact: artifact-1",)
+        elif action == ReviewLoopAction.PREVIEW_VERIFICATION:
+            headline = f"Previewed verification for {resolved_changeset_id}"
+            details = ("Readiness: passed", "1 recommended command(s); none were run.")
+        else:
+            headline = f"Review action {action.value} for {resolved_changeset_id}"
+            details = ("No mutation beyond explicit local evidence occurred.",)
+        return ReviewLoopActionResult(
+            action=action,
+            headline=headline,
+            changeset_id=resolved_changeset_id,
+            details=details,
+            safe_next_actions=(
+                f"glassbox changeset show {resolved_changeset_id} --cwd .",
+            ),
+            dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+        )
 
     async def stream_events(
         self,

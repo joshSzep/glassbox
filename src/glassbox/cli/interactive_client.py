@@ -4,7 +4,9 @@ import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 from typing import Protocol
+from typing import cast
 from uuid import UUID
 
 import httpx
@@ -37,6 +39,28 @@ class InteractiveClientError(ValueError):
     def __init__(self, kind: InteractiveClientErrorKind, message: str) -> None:
         super().__init__(message)
         self.kind = kind
+
+
+class ReviewLoopAction(StrEnum):
+    STATUS = "status"
+    REFRESH_INVENTORY = "refresh_inventory"
+    GENERATE_BRIEF = "generate_brief"
+    PREVIEW_VERIFICATION = "preview_verification"
+    INSPECT_HANDOFF = "inspect_handoff"
+    SHOW_FEEDBACK_STATUS = "show_feedback_status"
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewLoopActionResult:
+    """Terminal-friendly summary of one review-loop action."""
+
+    action: ReviewLoopAction | str
+    headline: str
+    changeset_id: str | None = None
+    details: tuple[str, ...] = ()
+    limitations: tuple[str, ...] = ()
+    safe_next_actions: tuple[str, ...] = ()
+    dashboard_path: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,6 +107,19 @@ class InteractiveSessionClient(Protocol):
         *,
         reason: str | None = None,
     ) -> None: ...
+
+    async def create_review_changeset(
+        self,
+        *,
+        objective: str | None = None,
+    ) -> ReviewLoopActionResult: ...
+
+    async def run_review_action(
+        self,
+        action: ReviewLoopAction,
+        *,
+        changeset_id: str | None = None,
+    ) -> ReviewLoopActionResult: ...
 
     def stream_events(
         self, *, after_sequence: int = 0
@@ -158,6 +195,195 @@ class LocalInteractiveSessionClient:
             reason=reason,
         )
 
+    async def create_review_changeset(
+        self,
+        *,
+        objective: str | None = None,
+    ) -> ReviewLoopActionResult:
+        from glassbox.runtime.changesets import ChangesetDerivationService
+
+        workspace_root = self._workspace_root()
+        result = ChangesetDerivationService(
+            self._changeset_repository()
+        ).create_from_workspace_diff(
+            self.session_id,
+            workspace_root,
+            objective=objective,
+        )
+        changeset_id = str(result.changeset_id)
+        return ReviewLoopActionResult(
+            action="create",
+            headline=f"Created review changeset {changeset_id}",
+            changeset_id=changeset_id,
+            details=(
+                "Source: current workspace diff for this chat session.",
+                "No tests, staging, commit, push, PR, or merge was run.",
+            ),
+            limitations=tuple(result.limitations),
+            safe_next_actions=(
+                f"glassbox changeset show {changeset_id} --cwd .",
+                f"glassbox changeset verification-plan {changeset_id} --cwd .",
+                f"glassbox changeset brief {changeset_id} --cwd .",
+                f"glassbox changeset handoff-readiness {changeset_id} --cwd .",
+            ),
+            dashboard_path=f"/app/changesets/{changeset_id}",
+        )
+
+    async def run_review_action(
+        self,
+        action: ReviewLoopAction,
+        *,
+        changeset_id: str | None = None,
+    ) -> ReviewLoopActionResult:
+        resolved_changeset_id = UUID(changeset_id) if changeset_id else None
+        if resolved_changeset_id is None:
+            resolved_changeset_id = self._latest_changeset_id()
+        if resolved_changeset_id is None:
+            raise InteractiveClientError(
+                InteractiveClientErrorKind.VALIDATION_ERROR,
+                "No changeset exists for this session. Start with /review create.",
+            )
+        workspace_root = self._workspace_root()
+        repository = self._changeset_repository()
+        artifact_repository = self.runtime_context.repositories.artifacts
+        if action == ReviewLoopAction.STATUS:
+            from glassbox.runtime.changesets import ChangesetQueryService
+
+            detail = ChangesetQueryService(repository).get_detail(
+                resolved_changeset_id,
+                workspace_root=workspace_root,
+            )
+            summary = detail.review_response_summary
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Review status for changeset {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(
+                    f"{summary.total_feedback_count} feedback item(s), "
+                    f"{summary.unresolved_count} unresolved, "
+                    f"{summary.stale_response_count} stale response check(s).",
+                    f"Inventory: {detail.inventory_status.freshness.value}.",
+                ),
+                limitations=tuple(detail.limitations),
+                safe_next_actions=tuple(detail.safe_next_actions),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.REFRESH_INVENTORY:
+            from glassbox.runtime.changesets import ChangesetActionService
+
+            result = await ChangesetActionService(
+                repository,
+                artifact_repository,
+            ).refresh_inventory(
+                resolved_changeset_id,
+                workspace_root,
+                refreshed_by="terminal",
+            )
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Refreshed review inventory for {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(
+                    f"Inventory artifact: {result.artifact.artifact_id}",
+                    f"Freshness: {result.freshness.value}",
+                ),
+                safe_next_actions=(
+                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
+                    "glassbox changeset verification-plan "
+                    f"{resolved_changeset_id} --cwd .",
+                ),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.GENERATE_BRIEF:
+            from glassbox.runtime.changesets import ChangesetReviewBriefService
+
+            result = ChangesetReviewBriefService(
+                repository,
+                artifact_repository,
+            ).generate(
+                resolved_changeset_id,
+                workspace_root,
+                created_by="terminal",
+            )
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Generated lifecycle brief for {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(f"Brief artifact: {result.artifact.artifact_id}",),
+                limitations=tuple(result.limitations),
+                safe_next_actions=(
+                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
+                    "glassbox changeset handoff-readiness "
+                    f"{resolved_changeset_id} --cwd .",
+                ),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.PREVIEW_VERIFICATION:
+            from glassbox.runtime.changesets import ChangesetVerificationService
+
+            preview = ChangesetVerificationService(
+                repository,
+                artifact_repository,
+            ).preview_plan(resolved_changeset_id, workspace_root)
+            command_count = len(preview.recommended_commands)
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Previewed verification for {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(
+                    f"Readiness: {preview.readiness.state.value}",
+                    f"{command_count} recommended command(s); none were run.",
+                ),
+                limitations=tuple(preview.limitations),
+                safe_next_actions=tuple(preview.safe_next_actions),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.INSPECT_HANDOFF:
+            from glassbox.runtime.handoff_readiness import (
+                ChangesetHandoffReadinessService,
+            )
+
+            readiness = await ChangesetHandoffReadinessService(
+                repository,
+                artifact_repository,
+            ).preview(resolved_changeset_id, workspace_root)
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Handoff readiness for {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(
+                    f"State: {readiness.state}",
+                    readiness.reason,
+                    f"{len(readiness.blockers)} blocker(s).",
+                ),
+                limitations=tuple(readiness.limitations),
+                safe_next_actions=tuple(readiness.safe_next_actions),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.SHOW_FEEDBACK_STATUS:
+            from glassbox.runtime.changesets import ChangesetQueryService
+
+            summary = ChangesetQueryService(repository).get_review_response_summary(
+                resolved_changeset_id,
+                workspace_root=workspace_root,
+            )
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Feedback status for {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+                details=(
+                    f"{summary.total_feedback_count} feedback item(s), "
+                    f"{summary.unresolved_count} unresolved.",
+                    f"{summary.stale_response_count} stale response check(s).",
+                ),
+                safe_next_actions=tuple(summary.safe_next_actions),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        raise InteractiveClientError(
+            InteractiveClientErrorKind.VALIDATION_ERROR,
+            f"unsupported review action: {action}",
+        )
+
     async def stream_events(
         self,
         *,
@@ -184,6 +410,30 @@ class LocalInteractiveSessionClient:
 
     async def aclose(self) -> None:
         return None
+
+    def _workspace_root(self) -> Path:
+        session = self.runtime_context.repositories.sessions.get_session(
+            self.session_id
+        )
+        if session is None:
+            raise InteractiveClientError(
+                InteractiveClientErrorKind.UNKNOWN_SESSION,
+                f"unknown session_id: {self.session_id}",
+            )
+        return session.cwd
+
+    def _latest_changeset_id(self) -> UUID | None:
+        changesets = self.runtime_context.repositories.sessions.list_changesets(
+            session_id=self.session_id,
+            include_archived=False,
+            limit=1,
+        )
+        return changesets[0].changeset_id if changesets else None
+
+    def _changeset_repository(self):
+        from glassbox.runtime.changesets import ChangesetRepository
+
+        return cast(ChangesetRepository, self.runtime_context.repositories.sessions)
 
 
 @dataclass(slots=True)
@@ -276,6 +526,213 @@ class DaemonInteractiveSessionClient:
         )
         _raise_for_action_error(response)
 
+    async def create_review_changeset(
+        self,
+        *,
+        objective: str | None = None,
+    ) -> ReviewLoopActionResult:
+        response = await _request_runtime(
+            self.client,
+            "POST",
+            "/changesets",
+            dashboard_url=self.dashboard_url,
+            json={
+                "source_kind": "workspace-diff",
+                "session_id": str(self.session_id),
+                "objective": objective,
+            },
+        )
+        _raise_for_action_error(response)
+        payload = response.json()
+        changeset_id = str(payload["changeset_id"])
+        limitations = tuple(str(item) for item in payload.get("limitations", []))
+        return ReviewLoopActionResult(
+            action="create",
+            headline=f"Created review changeset {changeset_id}",
+            changeset_id=changeset_id,
+            details=(
+                "Source: current workspace diff for this chat session.",
+                "No tests, staging, commit, push, PR, or merge was run.",
+            ),
+            limitations=limitations,
+            safe_next_actions=(
+                f"glassbox changeset show {changeset_id} --cwd .",
+                f"glassbox changeset verification-plan {changeset_id} --cwd .",
+                f"glassbox changeset brief {changeset_id} --cwd .",
+                f"glassbox changeset handoff-readiness {changeset_id} --cwd .",
+            ),
+            dashboard_path=f"/app/changesets/{changeset_id}",
+        )
+
+    async def run_review_action(
+        self,
+        action: ReviewLoopAction,
+        *,
+        changeset_id: str | None = None,
+    ) -> ReviewLoopActionResult:
+        resolved_changeset_id = changeset_id or await self._latest_changeset_id()
+        if resolved_changeset_id is None:
+            raise InteractiveClientError(
+                InteractiveClientErrorKind.VALIDATION_ERROR,
+                "No changeset exists for this session. Start with /review create.",
+            )
+        if action == ReviewLoopAction.STATUS:
+            response = await _request_runtime(
+                self.client,
+                "GET",
+                f"/changesets/{resolved_changeset_id}",
+                dashboard_url=self.dashboard_url,
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            review_summary = payload["review_response_summary"]
+            inventory_status = payload["inventory_status"]
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Review status for changeset {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(
+                    (
+                        f"{review_summary['total_feedback_count']} feedback item(s), "
+                        f"{review_summary['unresolved_count']} unresolved, "
+                        f"{review_summary['stale_response_count']} stale response "
+                        "check(s)."
+                    ),
+                    f"Inventory: {inventory_status['freshness']}.",
+                ),
+                limitations=_string_tuple(payload.get("limitations", [])),
+                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.REFRESH_INVENTORY:
+            response = await _request_runtime(
+                self.client,
+                "POST",
+                f"/changesets/{resolved_changeset_id}/refresh",
+                dashboard_url=self.dashboard_url,
+                json={"actor": "terminal"},
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            detail = payload.get("detail", {})
+            inventory = detail.get("inventory") or {}
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Refreshed review inventory for {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(
+                    f"Inventory artifact: {inventory.get('artifact_id', 'unknown')}",
+                    f"Status: {payload.get('status', 'refreshed')}",
+                ),
+                safe_next_actions=(
+                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
+                    "glassbox changeset verification-plan "
+                    f"{resolved_changeset_id} --cwd .",
+                ),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.GENERATE_BRIEF:
+            response = await _request_runtime(
+                self.client,
+                "POST",
+                f"/changesets/{resolved_changeset_id}/brief",
+                dashboard_url=self.dashboard_url,
+                json={"actor": "terminal", "include_markdown": False},
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Generated lifecycle brief for {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(f"Brief artifact: {payload['artifact_id']}",),
+                limitations=_string_tuple(payload.get("limitations", [])),
+                safe_next_actions=(
+                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
+                    "glassbox changeset handoff-readiness "
+                    f"{resolved_changeset_id} --cwd .",
+                ),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.PREVIEW_VERIFICATION:
+            response = await _request_runtime(
+                self.client,
+                "GET",
+                f"/changesets/{resolved_changeset_id}/verification-plan",
+                dashboard_url=self.dashboard_url,
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            commands = payload.get("recommended_commands", [])
+            readiness = payload.get("readiness", {})
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Previewed verification for {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(
+                    f"Readiness: {readiness.get('state', 'unknown')}",
+                    f"{len(commands)} recommended command(s); none were run.",
+                ),
+                limitations=_string_tuple(payload.get("limitations", [])),
+                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.INSPECT_HANDOFF:
+            response = await _request_runtime(
+                self.client,
+                "GET",
+                f"/changesets/{resolved_changeset_id}/handoff-readiness",
+                dashboard_url=self.dashboard_url,
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            blockers = payload.get("blockers", [])
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Handoff readiness for {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(
+                    f"State: {payload.get('state', 'unknown')}",
+                    str(payload.get("reason", "No reason returned.")),
+                    f"{len(blockers)} blocker(s).",
+                ),
+                limitations=_string_tuple(payload.get("limitations", [])),
+                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.SHOW_FEEDBACK_STATUS:
+            response = await _request_runtime(
+                self.client,
+                "GET",
+                "/changesets/feedback",
+                dashboard_url=self.dashboard_url,
+                params={"changeset_id": resolved_changeset_id},
+            )
+            _raise_for_action_error(response)
+            payload = response.json()
+            summary = payload.get("response_summary") or {}
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Feedback status for {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
+                details=(
+                    (
+                        f"{summary.get('total_feedback_count', 0)} feedback item(s), "
+                        f"{summary.get('unresolved_count', 0)} unresolved."
+                    ),
+                    (
+                        f"{summary.get('stale_response_count', 0)} stale response "
+                        "check(s)."
+                    ),
+                ),
+                safe_next_actions=_string_tuple(summary.get("safe_next_actions", [])),
+                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        raise InteractiveClientError(
+            InteractiveClientErrorKind.VALIDATION_ERROR,
+            f"unsupported review action: {action}",
+        )
+
     async def stream_events(
         self,
         *,
@@ -303,6 +760,20 @@ class DaemonInteractiveSessionClient:
 
     async def aclose(self) -> None:
         await self.client.aclose()
+
+    async def _latest_changeset_id(self) -> str | None:
+        response = await _request_runtime(
+            self.client,
+            "GET",
+            "/changesets",
+            dashboard_url=self.dashboard_url,
+            params={"session_id": str(self.session_id), "limit": 1},
+        )
+        _raise_for_action_error(response)
+        items = response.json().get("items", [])
+        if not items:
+            return None
+        return str(items[0]["changeset_id"])
 
 
 def interactive_snapshot_from_response(
@@ -409,3 +880,9 @@ def _response_detail(response: httpx.Response) -> str:
     except json.JSONDecodeError:
         detail = response.text
     return str(detail)
+
+
+def _string_tuple(items: object) -> tuple[str, ...]:
+    if not isinstance(items, list):
+        return ()
+    return tuple(str(item) for item in items)

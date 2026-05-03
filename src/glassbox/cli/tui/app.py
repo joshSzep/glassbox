@@ -24,7 +24,7 @@ from glassbox.cli.tui.app_refresh import set_composer_feedback
 from glassbox.cli.tui.app_stream import consume_live_events
 from glassbox.cli.tui.client import TerminalClientAdapter
 from glassbox.cli.tui.commands import TerminalCommandId
-from glassbox.cli.tui.commands import command_from_slash
+from glassbox.cli.tui.commands import slash_command_from_text
 from glassbox.cli.tui.conversation import TerminalConversationState
 from glassbox.cli.tui.conversation import TerminalMode
 from glassbox.cli.tui.conversation import TerminalStreamStatus
@@ -167,9 +167,13 @@ class GlassboxTerminalApp(App[None]):
     async def action_submit_prompt(self) -> None:
         composer = self.query_one(ComposerWidget)
         text = composer.text
-        command_id = command_from_slash(text)
-        if command_id is not None:
-            await self.execute_terminal_command(command_id)
+        slash_command = slash_command_from_text(text)
+        if slash_command is not None:
+            self.update_conversation_state(with_composer_draft(self.state, ""))
+            await self.execute_terminal_command(
+                slash_command.command_id,
+                argument=slash_command.argument,
+            )
             return
         availability = composer_availability(self.state)
         if self._is_prompt_submit_pending():
@@ -231,8 +235,13 @@ class GlassboxTerminalApp(App[None]):
             self.set_focus(self._focused_before_palette)
         self._focused_before_palette = None
 
-    async def execute_terminal_command(self, command_id: TerminalCommandId) -> None:
-        await dispatch_command(self, command_id)
+    async def execute_terminal_command(
+        self,
+        command_id: TerminalCommandId,
+        *,
+        argument: str | None = None,
+    ) -> None:
+        await dispatch_command(self, command_id, argument=argument)
 
     async def action_toggle_details(self) -> None:
         await self.execute_terminal_command(TerminalCommandId.TOGGLE_DETAILS)

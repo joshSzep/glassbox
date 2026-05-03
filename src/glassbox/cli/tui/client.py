@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 from glassbox.cli.interactive_client import InteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
+from glassbox.cli.interactive_client import ReviewLoopAction
+from glassbox.cli.interactive_client import ReviewLoopActionResult
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
@@ -44,6 +46,24 @@ class TerminalClientAdapter:
         reason: str | None = None,
     ) -> None:
         await self.client.cancel_turn(turn_id=turn_id, reason=reason)
+
+    async def create_review_changeset(
+        self,
+        *,
+        objective: str | None = None,
+    ) -> ReviewLoopActionResult:
+        return await self.client.create_review_changeset(objective=objective)
+
+    async def run_review_action(
+        self,
+        action: ReviewLoopAction,
+        *,
+        changeset_id: str | None = None,
+    ) -> ReviewLoopActionResult:
+        return await self.client.run_review_action(
+            action,
+            changeset_id=changeset_id,
+        )
 
     async def close(self) -> None:
         await self.client.aclose()

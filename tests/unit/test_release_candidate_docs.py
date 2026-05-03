@@ -1487,6 +1487,32 @@ def test_operator_quickstart_covers_daily_happy_path() -> None:
         assert required_text in content
 
 
+def test_interactive_workflows_cover_tui_review_loop_shortcuts() -> None:
+    content = (REPO_ROOT / "docs" / "interactive-workflows.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "### In-Session Review Loop",
+        "`/changeset` is a compatibility alias",
+        "/review create",
+        "/review status",
+        "/review refresh",
+        "/review brief",
+        "/review verify",
+        "/review handoff",
+        "/review feedback",
+        "/review dashboard",
+        "current workspace",
+        "diff and anchors it to the active chat session",
+        "active chat session",
+        "do not auto-run tests",
+        "stage files, commit, push, open pull requests",
+        "full-screen TUI-only",
+    ):
+        assert required_text in content
+
+
 def test_root_readme_prioritizes_current_product_path_before_release_archive() -> None:
     root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
 

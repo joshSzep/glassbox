@@ -6,6 +6,7 @@ from glassbox.cli.tui.commands import command_from_slash
 from glassbox.cli.tui.commands import command_item_by_id
 from glassbox.cli.tui.commands import command_items_for_state
 from glassbox.cli.tui.commands import filter_command_items
+from glassbox.cli.tui.commands import slash_command_from_text
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import reduce_events
 from glassbox.cli.tui.conversation import with_composer_draft
@@ -41,6 +42,13 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.SUBMIT_ANSWER in command_ids
     assert TerminalCommandId.INTERRUPT in command_ids
     assert TerminalCommandId.CLEAR_TRANSCRIPT in command_ids
+    assert TerminalCommandId.REVIEW_CREATE_CHANGESET in command_ids
+    assert TerminalCommandId.REVIEW_REFRESH_INVENTORY in command_ids
+    assert TerminalCommandId.REVIEW_OPEN_DASHBOARD in command_ids
+    assert TerminalCommandId.REVIEW_GENERATE_BRIEF in command_ids
+    assert TerminalCommandId.REVIEW_PREVIEW_VERIFICATION in command_ids
+    assert TerminalCommandId.REVIEW_INSPECT_HANDOFF in command_ids
+    assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in command_ids
     assert TerminalCommandId.QUIT in command_ids
 
 
@@ -84,6 +92,7 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
     assert [item.spec.command_id for item in filter_command_items(items, "dash")] == [
         TerminalCommandId.OPEN_DASHBOARD,
         TerminalCommandId.COPY_DASHBOARD_URL,
+        TerminalCommandId.REVIEW_OPEN_DASHBOARD,
     ]
     assert [
         item.spec.command_id for item in filter_command_items(items, "/latest")
@@ -92,6 +101,11 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
         item.spec.command_id for item in filter_command_items(items, "markdown")
     ]
     assert markdown_command_ids == [TerminalCommandId.TOGGLE_MARKDOWN]
+    review_command_ids = [
+        item.spec.command_id for item in filter_command_items(items, "/review")
+    ]
+    assert TerminalCommandId.REVIEW_CREATE_CHANGESET in review_command_ids
+    assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in review_command_ids
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:
@@ -101,15 +115,20 @@ def test_command_registry_reports_contextual_disabled_reasons() -> None:
     approve = command_item_by_id(items, TerminalCommandId.APPROVE)
     submit_answer = command_item_by_id(items, TerminalCommandId.SUBMIT_ANSWER)
     copy_artifact = command_item_by_id(items, TerminalCommandId.COPY_ARTIFACT_PATH)
+    review_dashboard = command_item_by_id(
+        items, TerminalCommandId.REVIEW_OPEN_DASHBOARD
+    )
 
     assert open_dashboard is not None
     assert approve is not None
     assert submit_answer is not None
     assert copy_artifact is not None
+    assert review_dashboard is not None
     assert open_dashboard.disabled_reason == "dashboard unavailable"
     assert approve.disabled_reason == "no pending approval"
     assert submit_answer.disabled_reason == "no pending question"
     assert copy_artifact.disabled_reason == "no artifact path"
+    assert review_dashboard.disabled_reason == "dashboard unavailable"
 
 
 def test_command_registry_enables_approval_and_answer_commands() -> None:
@@ -161,8 +180,33 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
     assert command_from_slash("/md") == TerminalCommandId.TOGGLE_MARKDOWN
     assert command_from_slash("/copy-session now") == TerminalCommandId.COPY_SESSION_ID
     assert command_from_slash("/copy-artifact") == TerminalCommandId.COPY_ARTIFACT_PATH
+    assert (
+        command_from_slash("/review") == TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS
+    )
+    assert (
+        command_from_slash("/review create")
+        == TerminalCommandId.REVIEW_CREATE_CHANGESET
+    )
+    assert (
+        command_from_slash("/changeset brief")
+        == TerminalCommandId.REVIEW_GENERATE_BRIEF
+    )
     assert command_from_slash("hello") is None
     assert command_from_slash("/unknown") is None
+
+
+def test_slash_command_from_text_preserves_review_arguments() -> None:
+    create = slash_command_from_text("/review create Tighten handoff docs")
+    brief = slash_command_from_text(
+        "/changeset brief 11111111-1111-1111-1111-111111111111"
+    )
+
+    assert create is not None
+    assert create.command_id == TerminalCommandId.REVIEW_CREATE_CHANGESET
+    assert create.argument == "Tighten handoff docs"
+    assert brief is not None
+    assert brief.command_id == TerminalCommandId.REVIEW_GENERATE_BRIEF
+    assert brief.argument == "11111111-1111-1111-1111-111111111111"
 
 
 def _state(*, session_id=None, dashboard_url="http://127.0.0.1:8765/"):

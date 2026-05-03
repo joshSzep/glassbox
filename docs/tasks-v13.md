@@ -1310,7 +1310,7 @@ Completed in this slice:
 
 ### GBX-1381: Add TUI Slash Commands And Command-Palette Review Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1380`
 - Goal: let operators create and inspect review-loop changesets from inside
   `glassbox session chat`
@@ -1338,6 +1338,31 @@ Completed in this slice:
 - Done when:
   - an operator can start the review-loop flow from terminal chat without
     leaving the session to copy the session ID into a separate command
+
+Completed in this slice:
+
+- Added TUI command registry entries and command-palette actions for
+  `Review: Create Changeset`, `Review: Refresh Inventory`,
+  `Review: Open Dashboard`, `Review: Generate Lifecycle Brief`,
+  `Review: Preview Verification`, `Review: Inspect Handoff`, and
+  `Review: Show Feedback Status`.
+- Added `/review` slash commands with `/changeset` compatibility aliases for
+  create, status, refresh, dashboard handoff, lifecycle brief generation,
+  verification preview, handoff readiness, and feedback status.
+- Added a review-loop action boundary to the interactive terminal client so
+  local TUI sessions use existing changeset services and daemon-backed TUI
+  sessions use existing changeset HTTP routes.
+- Defaulted `/review create` to current-session `workspace-diff` changeset
+  creation and post-create feedback that includes the changeset ID,
+  limitations, safe next inspection command, and dashboard review route when
+  available.
+- Preserved the no-mutation publication boundary: shortcuts do not auto-run
+  tests, stage, commit, push, open pull requests, merge, deploy, publish, or
+  imply reviewer approval.
+- Updated `docs/interactive-workflows.md` and
+  `docs/v13-review-loop-ux-audit.md`, and added focused TUI command/app tests
+  for slash parsing, palette actions, current-session creation, and explicit
+  changeset ID arguments.
 
 ### GBX-1382: Add Plain Interactive And Dashboard UX Parity
 

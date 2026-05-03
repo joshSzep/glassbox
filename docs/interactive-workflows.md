@@ -33,12 +33,53 @@ Inside the full-screen session:
 - approvals use `Alt+A` to approve and `Alt+X` to deny when the pending action is current
 - pending questions use the composer for the answer draft and `Ctrl+R` to submit
 - the command palette opens with `Ctrl+P` and exposes status, dashboard, copy, details, approval, answer, interrupt, and quit actions with contextual disabled reasons
+- review-loop palette actions expose changeset creation, inventory refresh,
+  dashboard review handoff, lifecycle brief generation, verification preview,
+  handoff posture, and feedback status with contextual disabled reasons
 - `Ctrl+L` jumps to the latest activity, `Ctrl+E` toggles details, `Ctrl+D` opens the dashboard, `Alt+D` copies the dashboard URL, and `Ctrl+G` returns focus to the composer
 - `Escape` closes transient UI first, including the command palette or details pane, without mutating runtime state
 - `Ctrl+C` follows the interruption contract: it closes transient UI first and never silently abandons a live turn, approval, or question
 - `Ctrl+Escape` quits immediately from idle or inspect-only states and asks for a second press when a live turn, approval, question, or reconnecting state could still be running
 
 Composer drafts are local UI state until submission succeeds. Recoverable failures preserve the draft so you can retry after reading the feedback.
+
+### In-Session Review Loop
+
+Use `/review` inside the full-screen terminal session to start or continue the
+local review loop without copying the current session ID into a separate
+command. `/changeset` is a compatibility alias for the same workflow.
+
+```text
+/review create
+/review create Tighten final handoff evidence
+/review status
+/review refresh
+/review brief
+/review verify
+/review handoff
+/review feedback
+/review dashboard
+```
+
+`/review create` records local changeset evidence from the current workspace
+diff and anchors it to the active chat session. It is an evidence mutation, not
+a git mutation. Glassbox prints the created changeset ID, first limitation,
+safe next inspection command, and dashboard handoff when available.
+
+The other `/review` actions target the latest changeset for the current
+session by default. You may pass an explicit changeset ID after the action:
+
+```text
+/review brief CHANGESET_ID
+/review verify CHANGESET_ID
+/review handoff CHANGESET_ID
+```
+
+These shortcuts reuse the lower-level `glassbox changeset ...` services. They
+do not auto-run tests, stage files, commit, push, open pull requests, merge,
+deploy, publish, or imply reviewer approval. Verification preview is
+read-only; lifecycle brief generation and inventory refresh record explicit
+local evidence and report the created artifact or refreshed inventory.
 
 ### Plain Line-Mode Compatibility
 
@@ -50,7 +91,12 @@ uv run glassbox session chat --plain --cwd .
 
 Implicit `session chat` falls back to plain mode when stdin/stdout are not both interactive, the terminal is `dumb`, CI-like environment variables are present, or the TUI dependency is unavailable. Explicit `--tui` is strict: it fails with a clear error instead of silently falling back.
 
-In plain mode, freeform text sends prompts or answers pending questions, `/approve` and `/deny` resolve the current approval, and `/status`, `/help`, and `/exit` remain available.
+In plain mode, freeform text sends prompts or answers pending questions,
+`/approve` and `/deny` resolve the current approval, and `/status`, `/help`,
+and `/exit` remain available. The `/review` shortcut family is currently
+full-screen TUI-only; use the printed lower-level `glassbox changeset ...`
+commands from the TUI or run those commands directly when working in plain
+mode.
 
 ## Reopen A Persisted Session: `attach`
 
