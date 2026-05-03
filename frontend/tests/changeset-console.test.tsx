@@ -41,6 +41,10 @@ describe("changeset console", () => {
     expect(markup).toContain("1 stale");
     expect(markup).toContain("2 missing");
     expect(markup).toContain("1 accepted risk");
+    expect(markup).toContain("3 feedback");
+    expect(markup).toContain("3 manual evidence");
+    expect(markup).toContain("Review-loop context");
+    expect(markup).toContain("1 missing response checks");
     expect(markup).toContain("pytest unit");
     expect(markup).toContain("uv run pytest tests/unit");
     expect(markup).toContain("artifact-1");
@@ -680,6 +684,37 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    review_loop_summary: {
+      accepted_risk_response_count: 1,
+      accessibility_evidence_count: 1,
+      browser_evidence_count: 1,
+      failed_response_verification_count: 0,
+      feedback_count: 3,
+      manual_evidence_count: 3,
+      manual_evidence_kind_counts: {
+        accessibility_note: 1,
+        browser_observation: 1,
+        external_check: 1,
+      },
+      missing_response_verification_count: 1,
+      non_claims: [
+        "manual evidence suggests context only; retained verification decides check state",
+      ],
+      open_feedback_count: 1,
+      response_state_counts: {
+        accepted_with_risk: 1,
+        blocked: 1,
+        planned: 1,
+      },
+      retained_verification_state: "missing",
+      safe_next_actions: [`glassbox changeset evidence list --changeset ${changesetId} --cwd .`],
+      stale_check_count: 1,
+      stale_response_count: 1,
+      topology_impact_count: 1,
+      limitations: [
+        "manual evidence can inform verification choice but is not retained verification proof",
+      ],
+    },
     readiness: {
       accepted_risk_count: 1,
       failed_count: 1,

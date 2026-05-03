@@ -2782,6 +2782,7 @@ export interface components {
       recommended_commands: string[];
       /** Retained Artifact Ids */
       retained_artifact_ids: string[];
+      review_loop_summary: components["schemas"]["ChangesetVerificationReviewLoopSummaryResponse"];
       /** Safe Next Actions */
       safe_next_actions: string[];
       /** Session Id */
@@ -2916,6 +2917,47 @@ export interface components {
       state: string;
       /** Verification Id */
       verification_id?: string | null;
+    };
+    /** ChangesetVerificationReviewLoopSummaryResponse */
+    ChangesetVerificationReviewLoopSummaryResponse: {
+      /** Accepted Risk Response Count */
+      accepted_risk_response_count: number;
+      /** Accessibility Evidence Count */
+      accessibility_evidence_count: number;
+      /** Browser Evidence Count */
+      browser_evidence_count: number;
+      /** Failed Response Verification Count */
+      failed_response_verification_count: number;
+      /** Feedback Count */
+      feedback_count: number;
+      /** Limitations */
+      limitations: string[];
+      /** Manual Evidence Count */
+      manual_evidence_count: number;
+      /** Manual Evidence Kind Counts */
+      manual_evidence_kind_counts: {
+        [key: string]: number;
+      };
+      /** Missing Response Verification Count */
+      missing_response_verification_count: number;
+      /** Non Claims */
+      non_claims: string[];
+      /** Open Feedback Count */
+      open_feedback_count: number;
+      /** Response State Counts */
+      response_state_counts: {
+        [key: string]: number;
+      };
+      /** Retained Verification State */
+      retained_verification_state: string;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale Check Count */
+      stale_check_count: number;
+      /** Stale Response Count */
+      stale_response_count: number;
+      /** Topology Impact Count */
+      topology_impact_count: number;
     };
     /** CheckpointAbsenceResponse */
     CheckpointAbsenceResponse: {

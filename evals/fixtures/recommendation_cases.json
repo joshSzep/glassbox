@@ -80,6 +80,26 @@
             "expected_recipe_ids": ["review-loop-evidence", "store-schema"]
         },
         {
+            "case_id": "recommendation.feedback-fixup-verification-path",
+            "title": "Feedback fixup verification path recommendation includes review-loop checks",
+            "touched_paths": [
+                "tests/integration/test_review_response_fixup_inventory.py"
+            ],
+            "expected_case_ids": ["changeset.reviewable-lifecycle"],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_recipe_ids": ["review-loop-evidence"]
+        },
+        {
+            "case_id": "recommendation.manual-evidence-attachment-path",
+            "title": "Manual evidence attachment path recommendation includes review-loop checks",
+            "touched_paths": [
+                "src/glassbox/runtime/manual_evidence.py"
+            ],
+            "expected_case_ids": ["changeset.reviewable-lifecycle"],
+            "expected_profile_ids": ["release-candidate"],
+            "expected_recipe_ids": ["review-loop-evidence"]
+        },
+        {
             "case_id": "recommendation.generated-changeset-api-types",
             "title": "Generated changeset API types route to dashboard and surface checks",
             "touched_paths": [

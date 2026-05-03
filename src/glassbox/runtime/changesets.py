@@ -404,6 +404,30 @@ class ChangesetVerificationRecipePreview(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+class ChangesetVerificationReviewLoopSummary(BaseModel):
+    """Review-loop context included in a verification plan preview."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    feedback_count: int = Field(default=0, ge=0)
+    open_feedback_count: int = Field(default=0, ge=0)
+    response_state_counts: dict[str, int] = Field(default_factory=dict)
+    stale_response_count: int = Field(default=0, ge=0)
+    missing_response_verification_count: int = Field(default=0, ge=0)
+    failed_response_verification_count: int = Field(default=0, ge=0)
+    accepted_risk_response_count: int = Field(default=0, ge=0)
+    manual_evidence_count: int = Field(default=0, ge=0)
+    manual_evidence_kind_counts: dict[str, int] = Field(default_factory=dict)
+    browser_evidence_count: int = Field(default=0, ge=0)
+    accessibility_evidence_count: int = Field(default=0, ge=0)
+    stale_check_count: int = Field(default=0, ge=0)
+    topology_impact_count: int = Field(default=0, ge=0)
+    retained_verification_state: ChangesetVerificationState
+    safe_next_actions: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
 class ChangesetVerificationPlanPreview(BaseModel):
     """Preview-only verification plan for one changeset."""
 
@@ -418,6 +442,11 @@ class ChangesetVerificationPlanPreview(BaseModel):
     eval_profiles: list[str] = Field(default_factory=list)
     recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
     topology_impacts: list[ChangesetTopologyImpact] = Field(default_factory=list)
+    review_loop_summary: ChangesetVerificationReviewLoopSummary = Field(
+        default_factory=lambda: ChangesetVerificationReviewLoopSummary(
+            retained_verification_state=ChangesetVerificationState.NOT_APPLICABLE
+        )
+    )
     reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
     expected_scope: list[str] = Field(default_factory=list)
     retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
@@ -1028,6 +1057,39 @@ def _review_response_summary(
     return changeset_review_response_summary(
         changeset_id=changeset.changeset_id,
         items=statuses,
+    )
+
+
+def _review_response_summary_for_preview(
+    repository: ChangesetRepository,
+    changeset: ChangesetRecord,
+    *,
+    workspace_root: Path,
+) -> ChangesetReviewResponseSummary:
+    if not hasattr(repository, "list_review_feedback"):
+        return changeset_review_response_summary(
+            changeset_id=changeset.changeset_id,
+            items=[],
+        )
+    return _review_response_summary(
+        repository,
+        changeset,
+        workspace_root=workspace_root,
+    )
+
+
+def _manual_evidence_for_preview(
+    repository: ChangesetRepository,
+    changeset: ChangesetRecord,
+) -> list[ManualEvidenceRecord]:
+    if not hasattr(repository, "list_manual_evidence"):
+        return []
+    return repository.list_manual_evidence(
+        session_id=changeset.session_id,
+        changeset_id=changeset.changeset_id,
+        include_archived=True,
+        include_rejected=True,
+        include_superseded=True,
     )
 
 
@@ -1890,6 +1952,19 @@ class ChangesetVerificationService:
             workspace_profile=load_workspace_profile(workspace_root),
         )
         retained_artifact_ids = _artifact_ids_from_readiness(readiness)
+        review_response_summary = _review_response_summary_for_preview(
+            self._repository,
+            changeset,
+            workspace_root=workspace_root,
+        )
+        manual_evidence = _manual_evidence_for_preview(self._repository, changeset)
+        review_loop_summary = _review_loop_verification_summary(
+            changeset=changeset,
+            response_summary=review_response_summary,
+            manual_evidence=manual_evidence,
+            readiness=readiness,
+            topology_impacts=topology_impacts,
+        )
         return ChangesetVerificationPlanPreview(
             changeset_id=changeset.changeset_id,
             session_id=changeset.session_id,
@@ -1905,6 +1980,7 @@ class ChangesetVerificationService:
             eval_profiles=_eval_profile_ids_for_preview(recommendation),
             recipes=_recipe_previews(recommendation),
             topology_impacts=topology_impacts,
+            review_loop_summary=review_loop_summary,
             reason_groups=(
                 recommendation.reason_groups if recommendation is not None else []
             ),
@@ -1912,9 +1988,17 @@ class ChangesetVerificationService:
             retained_artifact_ids=retained_artifact_ids,
             readiness=readiness,
             limitations=limitations,
-            safe_next_actions=readiness.safe_next_actions,
+            safe_next_actions=list(
+                dict.fromkeys(
+                    [
+                        *readiness.safe_next_actions,
+                        *review_loop_summary.safe_next_actions,
+                    ]
+                )
+            ),
             non_claims=[
                 *readiness.non_claims,
+                *review_loop_summary.non_claims,
                 "verification plan preview does not run commands",
                 (
                     "publish, deploy, push, and upload commands are not "
@@ -2809,11 +2893,106 @@ def _is_safe_verification_command(command: str) -> bool:
         "deploy",
         "publish",
         "push",
+        "rm",
         "upload",
         "release",
         "release:publish",
     }
     return not tokens.intersection(blocked)
+
+
+def _review_loop_verification_summary(
+    *,
+    changeset: ChangesetRecord,
+    response_summary: ChangesetReviewResponseSummary,
+    manual_evidence: Sequence[ManualEvidenceRecord],
+    readiness: ChangesetVerificationReadiness,
+    topology_impacts: Sequence[ChangesetTopologyImpact],
+) -> ChangesetVerificationReviewLoopSummary:
+    response_state_counts: dict[str, int] = {}
+    for item in response_summary.items:
+        key = item.response_state.value
+        response_state_counts[key] = response_state_counts.get(key, 0) + 1
+
+    manual_evidence_kind_counts: dict[str, int] = {}
+    for item in manual_evidence:
+        key = item.evidence_kind.value
+        manual_evidence_kind_counts[key] = manual_evidence_kind_counts.get(key, 0) + 1
+
+    missing_response_verification_count = sum(
+        1
+        for item in response_summary.items
+        if item.verification_state == ChangesetVerificationState.MISSING
+    )
+    failed_response_verification_count = sum(
+        1
+        for item in response_summary.items
+        if item.verification_state == ChangesetVerificationState.FAILED
+    )
+    accepted_risk_response_count = sum(
+        1
+        for item in response_summary.items
+        if item.verification_state == ChangesetVerificationState.ACCEPTED_WITH_RISK
+    )
+    browser_evidence_count = sum(
+        1
+        for item in manual_evidence
+        if item.evidence_kind
+        in {
+            ManualEvidenceKind.BROWSER_OBSERVATION,
+            ManualEvidenceKind.SCREENSHOT,
+        }
+    )
+    accessibility_evidence_count = sum(
+        1
+        for item in manual_evidence
+        if item.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE
+    )
+    safe_next_actions = [
+        *response_summary.safe_next_actions,
+        (
+            "glassbox changeset evidence list --changeset "
+            f"{changeset.changeset_id} --cwd ."
+        ),
+        f"glassbox changeset verification-plan {changeset.changeset_id} --cwd .",
+    ]
+    limitations: list[str] = []
+    if manual_evidence:
+        limitations.append(
+            "manual evidence can inform verification choice but is not retained "
+            "verification proof"
+        )
+    if missing_response_verification_count:
+        limitations.append(
+            "one or more review responses lack retained verification mapped to "
+            "their fixup paths"
+        )
+    return ChangesetVerificationReviewLoopSummary(
+        feedback_count=response_summary.total_feedback_count,
+        open_feedback_count=response_summary.open_count,
+        response_state_counts=response_state_counts,
+        stale_response_count=response_summary.stale_response_count,
+        missing_response_verification_count=missing_response_verification_count,
+        failed_response_verification_count=failed_response_verification_count,
+        accepted_risk_response_count=accepted_risk_response_count,
+        manual_evidence_count=len(manual_evidence),
+        manual_evidence_kind_counts=manual_evidence_kind_counts,
+        browser_evidence_count=browser_evidence_count,
+        accessibility_evidence_count=accessibility_evidence_count,
+        stale_check_count=readiness.stale_count,
+        topology_impact_count=len(topology_impacts),
+        retained_verification_state=readiness.state,
+        safe_next_actions=list(dict.fromkeys(safe_next_actions)),
+        limitations=limitations,
+        non_claims=[
+            (
+                "manual evidence suggests context only; retained verification "
+                "decides check state"
+            ),
+            "browser and accessibility evidence remain advisory review-loop context",
+            "verification plan output is preview-only and does not run commands",
+        ],
+    )
 
 
 def _eval_profile_ids_for_preview(

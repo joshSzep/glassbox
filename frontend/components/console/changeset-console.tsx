@@ -891,6 +891,7 @@ function VerificationPanel({
     );
   }
   const readiness = verificationPlan.readiness;
+  const reviewLoop = verificationPlan.review_loop_summary;
   const visibleRequirements = readiness.requirements.slice(0, 6);
   return (
     <Section title="Verification">
@@ -911,8 +912,32 @@ function VerificationPanel({
           {readiness.accepted_risk_count > 0 ? (
             <Badge variant="outline">{readiness.accepted_risk_count} accepted risk</Badge>
           ) : null}
+          <Badge variant={reviewLoop.feedback_count > 0 ? "info" : "muted"}>
+            {reviewLoop.feedback_count} feedback
+          </Badge>
+          <Badge variant={reviewLoop.manual_evidence_count > 0 ? "outline" : "muted"}>
+            {reviewLoop.manual_evidence_count} manual evidence
+          </Badge>
+          <Badge variant={reviewLoop.stale_response_count > 0 ? "warning" : "muted"}>
+            {reviewLoop.stale_response_count} stale responses
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{readiness.summary}</p>
+        <DataList density="compact">
+          <DataListItem>
+            <DataListLabel>Review-loop context</DataListLabel>
+            <DataListMeta>
+              {reviewLoop.open_feedback_count} open feedback -{" "}
+              {reviewLoop.missing_response_verification_count} missing response checks -{" "}
+              {reviewLoop.accepted_risk_response_count} accepted with risk
+            </DataListMeta>
+            <DataListMeta>
+              {reviewLoop.browser_evidence_count} browser/dashboard -{" "}
+              {reviewLoop.accessibility_evidence_count} accessibility -{" "}
+              {reviewLoop.topology_impact_count} topology impacts
+            </DataListMeta>
+          </DataListItem>
+        </DataList>
         {visibleRequirements.length > 0 ? (
           <DataList density="compact">
             {visibleRequirements.map((requirement) => (

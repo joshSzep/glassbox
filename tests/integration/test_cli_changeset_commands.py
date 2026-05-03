@@ -601,6 +601,14 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert plan_exit == 0
     assert plan["expected_scope"] == ["app.py"]
     assert plan["readiness"]["state"] == "missing"
+    assert plan["review_loop_summary"]["feedback_count"] == 1
+    assert plan["review_loop_summary"]["manual_evidence_count"] == 3
+    assert plan["review_loop_summary"]["browser_evidence_count"] == 1
+    assert plan["review_loop_summary"]["accessibility_evidence_count"] == 1
+    assert (
+        "manual evidence suggests context only"
+        in plan["review_loop_summary"]["non_claims"][0]
+    )
     assert record_exit == 0
     assert recorded["readiness"]["state"] == "passed"
     assert recorded["retained_artifact_ids"] == [str(artifact_id)]

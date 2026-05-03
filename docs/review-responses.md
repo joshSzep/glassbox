@@ -149,6 +149,14 @@ response-linked fixups. Glassbox should recommend verification commands only as
 inspection or local checks. It should not recommend publish, deploy, push,
 upload, merge, or release commands as response verification.
 
+The changeset verification-plan preview also includes a review-loop summary.
+That summary counts feedback, response states, stale response checks, missing
+response verification, manual evidence, browser/dashboard evidence,
+accessibility notes, and topology impacts beside the retained verification
+requirements. Manual, browser, and accessibility evidence can influence which
+local check the operator chooses, but the plan labels that evidence as context
+instead of retained verification proof.
+
 ## Response Records And Feedback Dispositions
 
 Feedback dispositions from [review-feedback.md](./review-feedback.md) remain

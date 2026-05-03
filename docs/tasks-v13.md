@@ -953,7 +953,7 @@ Completed in this slice:
 
 ### GBX-1352: Add Review-Loop Verification Recommendation Summaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1351`
 - Goal: help operators choose verification after feedback, manual evidence, and
   browser/accessibility observations change the review picture
@@ -978,6 +978,24 @@ Completed in this slice:
 - Done when:
   - verification recommendations are review-loop aware without running commands
     implicitly
+
+Completed in this slice:
+
+- Added a review-loop summary to changeset verification-plan previews with
+  feedback counts, response-state counts, stale/missing/failed response
+  verification counts, manual evidence, browser/dashboard evidence,
+  accessibility evidence, retained verification state, and topology impact
+  counts.
+- Kept verification-plan commands preview-only and preserved the existing
+  publish/deploy/push/upload filter while adding destructive `rm` filtering.
+- Surfaced the review-loop summary in FastAPI responses, regenerated
+  OpenAPI/frontend API types, and rendered the context in the dashboard
+  verification panel.
+- Added recommendation fixture cases for feedback-fixup verification and manual
+  evidence attachment paths.
+- Updated review-response docs plus CLI/API/dashboard/generated-type coverage so
+  manual evidence is visible as advisory context rather than retained
+  verification proof.
 
 ---
 

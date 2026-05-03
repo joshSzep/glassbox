@@ -628,6 +628,26 @@ class ChangesetVerificationReadinessResponse(BaseModel):
     non_claims: list[str]
 
 
+class ChangesetVerificationReviewLoopSummaryResponse(BaseModel):
+    feedback_count: int
+    open_feedback_count: int
+    response_state_counts: dict[str, int]
+    stale_response_count: int
+    missing_response_verification_count: int
+    failed_response_verification_count: int
+    accepted_risk_response_count: int
+    manual_evidence_count: int
+    manual_evidence_kind_counts: dict[str, int]
+    browser_evidence_count: int
+    accessibility_evidence_count: int
+    stale_check_count: int
+    topology_impact_count: int
+    retained_verification_state: str
+    safe_next_actions: list[str]
+    limitations: list[str]
+    non_claims: list[str]
+
+
 class ChangesetVerificationPlanPreviewResponse(BaseModel):
     changeset_id: str
     session_id: str
@@ -638,6 +658,7 @@ class ChangesetVerificationPlanPreviewResponse(BaseModel):
     eval_profiles: list[str]
     recipes: list[ChangesetVerificationRecipePreviewResponse]
     topology_impacts: list[ChangesetTopologyImpactResponse]
+    review_loop_summary: ChangesetVerificationReviewLoopSummaryResponse
     reason_groups: list[ChangesetVerificationReasonGroupResponse]
     expected_scope: list[str]
     retained_artifact_ids: list[str]
@@ -901,6 +922,9 @@ def build_changeset_verification_plan_response(
             )
             for impact in preview.topology_impacts
         ],
+        review_loop_summary=build_verification_review_loop_summary_response(
+            preview.review_loop_summary
+        ),
         reason_groups=[
             ChangesetVerificationReasonGroupResponse(
                 group=group.group,
@@ -922,6 +946,30 @@ def build_changeset_verification_plan_response(
         limitations=preview.limitations,
         safe_next_actions=preview.safe_next_actions,
         non_claims=preview.non_claims,
+    )
+
+
+def build_verification_review_loop_summary_response(
+    summary,
+) -> ChangesetVerificationReviewLoopSummaryResponse:
+    return ChangesetVerificationReviewLoopSummaryResponse(
+        feedback_count=summary.feedback_count,
+        open_feedback_count=summary.open_feedback_count,
+        response_state_counts=summary.response_state_counts,
+        stale_response_count=summary.stale_response_count,
+        missing_response_verification_count=summary.missing_response_verification_count,
+        failed_response_verification_count=summary.failed_response_verification_count,
+        accepted_risk_response_count=summary.accepted_risk_response_count,
+        manual_evidence_count=summary.manual_evidence_count,
+        manual_evidence_kind_counts=summary.manual_evidence_kind_counts,
+        browser_evidence_count=summary.browser_evidence_count,
+        accessibility_evidence_count=summary.accessibility_evidence_count,
+        stale_check_count=summary.stale_check_count,
+        topology_impact_count=summary.topology_impact_count,
+        retained_verification_state=summary.retained_verification_state.value,
+        safe_next_actions=summary.safe_next_actions,
+        limitations=summary.limitations,
+        non_claims=summary.non_claims,
     )
 
 

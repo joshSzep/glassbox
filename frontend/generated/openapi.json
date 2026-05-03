@@ -3469,6 +3469,9 @@
             "title": "Retained Artifact Ids",
             "type": "array"
           },
+          "review_loop_summary": {
+            "$ref": "#/components/schemas/ChangesetVerificationReviewLoopSummaryResponse"
+          },
           "safe_next_actions": {
             "items": {
               "type": "string"
@@ -3497,6 +3500,7 @@
           "eval_profiles",
           "recipes",
           "topology_impacts",
+          "review_loop_summary",
           "reason_groups",
           "expected_scope",
           "retained_artifact_ids",
@@ -3936,6 +3940,114 @@
           "safe_next_actions"
         ],
         "title": "ChangesetVerificationRequirementResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationReviewLoopSummaryResponse": {
+        "properties": {
+          "accepted_risk_response_count": {
+            "title": "Accepted Risk Response Count",
+            "type": "integer"
+          },
+          "accessibility_evidence_count": {
+            "title": "Accessibility Evidence Count",
+            "type": "integer"
+          },
+          "browser_evidence_count": {
+            "title": "Browser Evidence Count",
+            "type": "integer"
+          },
+          "failed_response_verification_count": {
+            "title": "Failed Response Verification Count",
+            "type": "integer"
+          },
+          "feedback_count": {
+            "title": "Feedback Count",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manual_evidence_count": {
+            "title": "Manual Evidence Count",
+            "type": "integer"
+          },
+          "manual_evidence_kind_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Manual Evidence Kind Counts",
+            "type": "object"
+          },
+          "missing_response_verification_count": {
+            "title": "Missing Response Verification Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "open_feedback_count": {
+            "title": "Open Feedback Count",
+            "type": "integer"
+          },
+          "response_state_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Response State Counts",
+            "type": "object"
+          },
+          "retained_verification_state": {
+            "title": "Retained Verification State",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale_check_count": {
+            "title": "Stale Check Count",
+            "type": "integer"
+          },
+          "stale_response_count": {
+            "title": "Stale Response Count",
+            "type": "integer"
+          },
+          "topology_impact_count": {
+            "title": "Topology Impact Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "feedback_count",
+          "open_feedback_count",
+          "response_state_counts",
+          "stale_response_count",
+          "missing_response_verification_count",
+          "failed_response_verification_count",
+          "accepted_risk_response_count",
+          "manual_evidence_count",
+          "manual_evidence_kind_counts",
+          "browser_evidence_count",
+          "accessibility_evidence_count",
+          "stale_check_count",
+          "topology_impact_count",
+          "retained_verification_state",
+          "safe_next_actions",
+          "limitations",
+          "non_claims"
+        ],
+        "title": "ChangesetVerificationReviewLoopSummaryResponse",
         "type": "object"
       },
       "CheckpointAbsenceResponse": {

@@ -401,6 +401,15 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             )
             assert plan_response.status_code == 200
             assert plan_response.json()["expected_scope"] == ["app.py"]
+            assert plan_response.json()["review_loop_summary"]["feedback_count"] == 1
+            assert (
+                plan_response.json()["review_loop_summary"]["manual_evidence_count"]
+                == 3
+            )
+            assert (
+                plan_response.json()["review_loop_summary"]["browser_evidence_count"]
+                == 1
+            )
             assert record_response.status_code == 200
             assert record_response.json()["readiness"]["state"] == "passed"
             assert record_response.json()["retained_artifact_ids"] == [str(artifact_id)]
