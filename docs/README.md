@@ -41,6 +41,10 @@ release candidate.
   choosing `/review` as the primary in-session review-loop command, with
   build-order notes for TUI, plain interactive mode, dashboard handoff, and
   docs
+- [v13-release-gate.md](./v13-release-gate.md): v13 automated release evidence
+  command for inherited v12 checks plus review-loop evals, in-session command
+  coverage, package contents, installed smoke, and advisory
+  provider/browser/accessibility evidence
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -79,6 +83,10 @@ release candidate.
   command for inherited v11 checks plus reviewable-change evals, changeset
   lifecycle smoke, package contents, installed smoke, and advisory provider
   evidence
+- [v13-release-gate.md](./v13-release-gate.md): v13 automated release evidence
+  command for inherited v12 checks plus review-loop evals, in-session command
+  coverage, package contents, installed smoke, and advisory
+  provider/browser/accessibility evidence
 - [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
   dogfooding findings for changeset creation, review briefs, verification
   readiness, commit preparation, branch-candidate adoption, topology
@@ -264,6 +272,9 @@ release candidate.
 - [v13-review-loop-ux-audit.md](./v13-review-loop-ux-audit.md): source-linked
   v13 UX audit for terminal chat, plain interactive mode, command palette,
   dashboard review actions, and `/review` vocabulary
+- [v13-release-gate.md](./v13-release-gate.md): automated v13 release evidence
+  command, inherited v12 stage map, review-loop eval stages, retained summary
+  shape, advisory evidence policy, and pass/fail rules
 - [v11-release-candidate.md](./v11-release-candidate.md): release-candidate
   narrative tying the v11 contract, gate, dogfooding, package, provider,
   accessibility, live cockpit, and residual-risk evidence together

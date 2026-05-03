@@ -813,6 +813,36 @@ def test_v12_release_gate_documents_reviewable_change_evidence() -> None:
     assert "v12-release-gate.md" in docs_readme
 
 
+def test_v13_release_gate_documents_review_loop_evidence() -> None:
+    content = (REPO_ROOT / "docs" / "v13-release-gate.md").read_text(encoding="utf-8")
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Automated Stages",
+        "## Evidence Summary",
+        "## Pass And Fail Policy",
+        "scripts/validate_v13_release_gate.py",
+        "v13 deterministic eval release report",
+        "v13 review-loop release profile",
+        "v13 review-loop eval smoke",
+        "v13 review-loop command coverage",
+        "v13 eval coverage audit",
+        "changeset.review-loop-lifecycle",
+        "changeset.in-session-review-ux",
+        "package contents",
+        "installed-wheel smoke",
+        "advisory browser evidence",
+        "advisory accessibility evidence",
+        "summary.json",
+        "live pull request creation",
+    ):
+        assert required_text in content
+
+    assert "docs/v13-release-gate.md" in root_readme
+    assert "v13-release-gate.md" in docs_readme
+
+
 def test_v12_dogfooding_summary_records_real_reviewable_change_passes() -> None:
     content = (REPO_ROOT / "docs" / "v12-dogfooding-summary.md").read_text(
         encoding="utf-8"

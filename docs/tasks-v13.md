@@ -1465,7 +1465,7 @@ Completed slice:
 
 ### GBX-1391: Add v13 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1390`
 - Goal: create the automated release-candidate gate for the v13 milestone
 - Deliverables:
@@ -1487,6 +1487,23 @@ Completed slice:
 - Done when:
   - `uv run python scripts/validate_v13_release_gate.py --dry-run` can explain
     exactly what would block or advise a v13 release candidate
+
+Completed slice:
+
+- Added `scripts/validate_v13_release_gate.py` as an inherited v12 gate with
+  v13-specific deterministic stages for release signoff, release-candidate
+  profile execution, review-loop eval smoke, in-session review command
+  coverage, and eval coverage audit.
+- Added `docs/v13-release-gate.md` and linked it from the root and docs
+  indexes.
+- Extended package-content validation to retain v13 review-loop docs, the v13
+  release gate script, and the v13 review-loop eval cases and bundles.
+- Structured `summary.json` advisory evidence for provider canaries,
+  browser/dashboard evidence, and accessibility evidence without making those
+  live/manual checks release blockers.
+- Verified with release-gate unit tests, package-content tests, release-doc
+  tests, focused review-loop command coverage, and v13 release-gate dry runs
+  with and without planned provider canary evidence.
 
 ### GBX-1392: Run V13 Dogfooding Passes
 

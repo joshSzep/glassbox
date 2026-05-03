@@ -144,6 +144,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v12-change-lifecycle-audit.md" in problems
     assert "sdist missing required file: docs/v12-release-gate.md" in problems
     assert "sdist missing required file: docs/tasks-v12.md" in problems
+    assert "sdist missing required file: docs/v13-release-gate.md" in problems
+    assert "sdist missing required file: docs/tasks-v13.md" in problems
+    assert "sdist missing required file: docs/review-feedback.md" in problems
+    assert "sdist missing required file: docs/manual-evidence.md" in problems
     assert "sdist missing required file: docs/workspace-profiles.md" in problems
     assert "sdist missing required file: docs/manual-qa-evidence-v7.md" in problems
     assert (
@@ -172,11 +176,27 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: "
+        "evals/cases/changeset.review-loop-lifecycle.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/cases/changeset.in-session-review-ux.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
         "evals/bundles/changeset.branch-candidate-adoption.json" in problems
     )
     assert (
         "sdist missing required file: evals/bundles/changeset.reviewable-lifecycle.json"
         in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/bundles/changeset.review-loop-lifecycle.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/bundles/changeset.in-session-review-ux.json" in problems
     )
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
@@ -193,6 +213,9 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: scripts/validate_v12_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_v13_release_gate.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_frontend_release_assets.py"
@@ -337,6 +360,16 @@ def _write_sdist(
                 "docs/v12-change-lifecycle-audit.md",
                 "docs/v12-release-gate.md",
                 "docs/tasks-v12.md",
+                "docs/v13-review-loop-contract.md",
+                "docs/v13-review-loop-audit.md",
+                "docs/v13-review-loop-ux-audit.md",
+                "docs/v13-release-gate.md",
+                "docs/review-feedback.md",
+                "docs/review-responses.md",
+                "docs/manual-evidence.md",
+                "docs/browser-accessibility-evidence.md",
+                "docs/publication-boundary.md",
+                "docs/tasks-v13.md",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{doc_path}", "# docs\n")
             _add_tar_text(
@@ -414,6 +447,8 @@ def _write_sdist(
                 "evals/cases/autonomy.budget-exhaustion.json",
                 "evals/cases/branch-search.candidate-comparison.json",
                 "evals/cases/changeset.branch-candidate-adoption.json",
+                "evals/cases/changeset.in-session-review-ux.json",
+                "evals/cases/changeset.review-loop-lifecycle.json",
                 "evals/cases/changeset.reviewable-lifecycle.json",
                 "evals/cases/context.compaction-provenance.json",
                 "evals/cases/long-run.cockpit-summary.json",
@@ -429,6 +464,8 @@ def _write_sdist(
                 "evals/bundles/autonomy.budget-exhaustion.json",
                 "evals/bundles/branch-search.candidate-comparison.json",
                 "evals/bundles/changeset.branch-candidate-adoption.json",
+                "evals/bundles/changeset.in-session-review-ux.json",
+                "evals/bundles/changeset.review-loop-lifecycle.json",
                 "evals/bundles/changeset.reviewable-lifecycle.json",
                 "evals/bundles/context.compaction-provenance.json",
                 "evals/bundles/long-run.cockpit-summary.json",
@@ -463,6 +500,7 @@ def _write_sdist(
                 "scripts/validate_v10_release_gate.py",
                 "scripts/validate_v11_release_gate.py",
                 "scripts/validate_v12_release_gate.py",
+                "scripts/validate_v13_release_gate.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{script_path}", "\n")
             for source_path in (
