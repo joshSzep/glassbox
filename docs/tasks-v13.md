@@ -1083,7 +1083,7 @@ Completed in this slice:
 
 ### GBX-1362: Upgrade Reviewer-Safe Evidence Exports
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1361`
 - Goal: make changeset exports useful after review-loop work without leaking
   raw local state
@@ -1106,6 +1106,21 @@ Completed in this slice:
 - Done when:
   - reviewers can receive a lifecycle evidence bundle without needing raw
     `.glassbox` state
+
+Completed in this slice:
+
+- Extended changeset export packages with lifecycle brief metadata, review
+  feedback summaries, response summaries, manual evidence summaries, live
+  browser/dashboard/accessibility evidence summaries, verification posture,
+  redaction report updates, and review-loop non-claims.
+- Added artifact references for summary-only manual evidence and response
+  fixup inventories while continuing to omit raw `.glassbox` databases, raw
+  command output, provider transcripts, raw diffs, raw file contents, raw
+  screenshots, browser traces, accessibility transcripts, and raw manual logs.
+- Updated `docs/reviewer-evidence-bundles.md` and the changeset CLI
+  integration flow so reviewer-safe exports expose lifecycle evidence without
+  implying reviewer approval, retained command proof, publication, or git
+  mutation.
 
 ---
 

@@ -18,7 +18,7 @@ redacted by design:
 | Surface | Command Or Path | Good For | Review Before Sharing |
 | --- | --- | --- | --- |
 | Handoff export | `uv run glassbox session export SESSION_ID handoff.json --cwd .` | Session story, latest objective, checkpoint and compaction posture, verification state, accepted risks, branch lineage, knowledge posture, and safe inspection commands. | Transcript text, operator note, branch labels, and accepted-risk wording. |
-| Changeset export | `uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .` | Change-centered objective, inventory summary, provenance, verification readiness, latest review brief metadata, artifact references, redaction report, and non-claims. | Objective text, risk summaries, source reasons, artifact IDs, and any local-only brief limitations. |
+| Changeset export | `uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .` | Change-centered objective, inventory summary, provenance, verification readiness, latest lifecycle brief metadata, feedback summaries, response summaries, manual evidence summaries, browser/accessibility summaries, artifact references, redaction report, and non-claims. | Objective text, feedback summaries, response wording, risk summaries, source reasons, artifact IDs, local-only evidence limitations, and advisory live-evidence claims. |
 | Eval report | `uv run glassbox eval report commit-smoke --cwd .` | Deterministic profile pass/fail evidence and retained `summary.json` paths. | Changed path names, case notes, and failure summaries. |
 | Eval audit | `uv run glassbox eval audit --cwd .` | Coverage gaps and profile manifest health. | Repository path names and local output paths. |
 | Replay bundle | `uv run glassbox replay bundle export SESSION_ID bundle.json --cwd .` | Portable deterministic replay fixture when the behavior should become regression evidence. | Prompt text, transcript summaries, bundle notes, and artifact references. |
@@ -97,12 +97,16 @@ uv run glassbox eval audit --cwd .
 ```
 
 The changeset export is the preferred review-centered bundle when a changeset
-exists. It does not include raw `.glassbox` database state, raw command output,
-provider transcripts, raw diffs, or file contents. The handoff export gives the
-reviewer the broader session story and safe inspection commands. The
-recommendation output explains the cheapest trustworthy next verification
-command. The audit output shows whether the repository-owned eval coverage has
-gaps that matter for the touched surface.
+exists. It includes lifecycle brief metadata, review feedback summaries,
+response posture, manual evidence summaries, live browser/dashboard/accessibility
+summaries, verification posture, command evidence references, a redaction
+report, and non-claims. It does not include raw `.glassbox` database state, raw
+command output, provider transcripts, raw diffs, file contents, raw screenshots,
+browser traces, accessibility transcripts, or raw manual logs. The handoff
+export gives the reviewer the broader session story and safe inspection
+commands. The recommendation output explains the cheapest trustworthy next
+verification command. The audit output shows whether the repository-owned eval
+coverage has gaps that matter for the touched surface.
 
 If the behavior should become repeatable release evidence, export or promote a
 replay bundle only after reviewing the bundle contents for private transcript

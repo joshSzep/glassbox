@@ -1,6 +1,7 @@
 """Reviewer-safe changeset export packages."""
 
 import json
+from collections.abc import Iterable
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,9 @@ from glassbox.core import ChangesetId
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetSourceRecord
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ReviewFeedbackRecord
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
@@ -50,6 +54,10 @@ class ChangesetExportPayload(BaseModel):
     inventory: dict[str, Any] | None = None
     verification: dict[str, Any]
     review_brief: dict[str, Any] | None = None
+    review_feedback: dict[str, Any]
+    review_responses: dict[str, Any]
+    manual_evidence: dict[str, Any]
+    live_review_evidence: dict[str, Any]
     readiness: list[dict[str, Any]] = Field(default_factory=list)
     artifact_references: list[ChangesetExportArtifactReference] = Field(
         default_factory=list
@@ -118,13 +126,22 @@ def build_changeset_export_payload(
             detail.changeset.session_id,
             artifact_repository,
         ),
+        review_feedback=_review_feedback_summary(detail.review_feedback),
+        review_responses=detail.review_response_summary.model_dump(mode="json"),
+        manual_evidence=_manual_evidence_summary(detail.manual_evidence),
+        live_review_evidence=_live_review_evidence_summary(detail.manual_evidence),
         readiness=[item.model_dump(mode="json") for item in detail.readiness],
         artifact_references=_artifact_references(detail, verification_plan),
         redaction_report=[
             "raw .glassbox database state is not included",
             "raw command output is not included",
             "raw provider transcripts are not included",
+            "raw manual evidence text and raw external logs are not included",
             "raw diffs and file contents are not included",
+            (
+                "raw screenshots, browser traces, and accessibility transcripts "
+                "are not included"
+            ),
             "artifact paths remain local-only references by artifact ID",
         ],
         non_claims=[
@@ -133,8 +150,12 @@ def build_changeset_export_payload(
                 "line was reviewed"
             ),
             "stale verification is not treated as fresh",
+            "review feedback response state is not reviewer approval",
+            "manual evidence is not retained Glassbox command evidence",
+            "browser, dashboard, and accessibility evidence remains advisory",
             "local-only artifacts are not shareable without separate review",
             "commit, push, PR, and merge remain explicit operator actions",
+            "export package does not publish the changeset",
         ],
         safe_inspection_commands=detail.safe_next_actions,
     )
@@ -264,11 +285,128 @@ def _review_brief_summary(
         )
         artifact = json.loads(content)
         summary["objective"] = artifact.get("objective")
+        summary["schema_version"] = artifact.get("schema_version")
+        summary["lifecycle_summary"] = artifact.get("lifecycle_summary")
+        summary["review_feedback"] = artifact.get("review_feedback")
+        summary["review_responses"] = artifact.get("review_responses")
+        summary["manual_evidence"] = artifact.get("manual_evidence")
+        summary["live_review_evidence"] = artifact.get("live_review_evidence")
+        summary["stale_verification"] = artifact.get("stale_verification")
+        summary["publication_boundary"] = artifact.get("publication_boundary")
         summary["non_claims"] = artifact.get("non_claims", [])
         summary["limitations"] = artifact.get("limitations", [])
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         summary["limitations"] = [f"review brief artifact could not be read: {exc}"]
     return summary
+
+
+def _review_feedback_summary(feedback: list[ReviewFeedbackRecord]) -> dict[str, Any]:
+    return {
+        "total_count": len(feedback),
+        "disposition_counts": _value_counts(
+            item.disposition.value for item in feedback
+        ),
+        "kind_counts": _value_counts(item.feedback_kind.value for item in feedback),
+        "items": [
+            {
+                "feedback_id": str(item.feedback_id),
+                "feedback_kind": item.feedback_kind.value,
+                "provenance": item.provenance.value,
+                "disposition": item.disposition.value,
+                "summary": item.summary,
+                "reviewer_label": item.reviewer_label,
+                "artifact_id": (
+                    str(item.artifact_id) if item.artifact_id is not None else None
+                ),
+                "verification_id": (
+                    str(item.verification_id)
+                    if item.verification_id is not None
+                    else None
+                ),
+                "residual_risk": item.residual_risk,
+                "risk_summary": item.risk_summary,
+                "last_sequence": item.last_sequence,
+            }
+            for item in feedback[:20]
+        ],
+    }
+
+
+def _manual_evidence_summary(evidence: list[ManualEvidenceRecord]) -> dict[str, Any]:
+    return {
+        "total_count": len(evidence),
+        "local_only_count": sum(1 for item in evidence if item.local_only),
+        "kind_counts": _value_counts(item.evidence_kind.value for item in evidence),
+        "state_counts": _value_counts(item.state.value for item in evidence),
+        "items": [_manual_evidence_item(item) for item in evidence[:20]],
+        "non_claims": [
+            "manual evidence summaries are not retained command evidence",
+            "raw manual evidence text, screenshots, and logs are not included",
+        ],
+    }
+
+
+def _live_review_evidence_summary(
+    evidence: list[ManualEvidenceRecord],
+) -> dict[str, Any]:
+    live_evidence = [
+        item
+        for item in evidence
+        if item.evidence_kind
+        in {
+            ManualEvidenceKind.BROWSER_OBSERVATION,
+            ManualEvidenceKind.SCREENSHOT,
+            ManualEvidenceKind.ACCESSIBILITY_NOTE,
+        }
+    ]
+    return {
+        "total_count": len(live_evidence),
+        "browser_evidence_count": sum(
+            1
+            for item in live_evidence
+            if item.evidence_kind
+            in {
+                ManualEvidenceKind.BROWSER_OBSERVATION,
+                ManualEvidenceKind.SCREENSHOT,
+            }
+        ),
+        "accessibility_evidence_count": sum(
+            1
+            for item in live_evidence
+            if item.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE
+        ),
+        "kind_counts": _value_counts(
+            item.evidence_kind.value for item in live_evidence
+        ),
+        "items": [_manual_evidence_item(item) for item in live_evidence[:20]],
+        "non_claims": [
+            "live browser, dashboard, and accessibility evidence is advisory",
+            (
+                "raw screenshots, browser traces, and accessibility transcripts "
+                "are not included"
+            ),
+        ],
+    }
+
+
+def _manual_evidence_item(item: ManualEvidenceRecord) -> dict[str, Any]:
+    return {
+        "evidence_id": str(item.evidence_id),
+        "evidence_kind": item.evidence_kind.value,
+        "state": item.state.value,
+        "target_kind": item.target_kind.value,
+        "target_id": item.target_id,
+        "feedback_id": str(item.feedback_id) if item.feedback_id is not None else None,
+        "artifact_id": str(item.artifact_id) if item.artifact_id is not None else None,
+        "summary": item.summary,
+        "source_label": item.source_label,
+        "local_only": item.local_only,
+        "redaction_status": item.redaction_status.value,
+        "freshness": item.freshness.value,
+        "limitations": item.limitations,
+        "non_claims": item.non_claims,
+        "last_sequence": item.last_sequence,
+    }
 
 
 def _artifact_references(
@@ -292,6 +430,24 @@ def _artifact_references(
                 summary="reviewer-safe brief artifact",
             )
         )
+    for item in detail.review_response_summary.items:
+        if item.latest_fixup_inventory_artifact_id is not None:
+            references.append(
+                ChangesetExportArtifactReference(
+                    artifact_id=item.latest_fixup_inventory_artifact_id,
+                    artifact_kind="review_feedback_fixup_inventory",
+                    summary="summary-only review response fixup inventory",
+                )
+            )
+    for item in detail.manual_evidence:
+        if item.artifact_id is not None:
+            references.append(
+                ChangesetExportArtifactReference(
+                    artifact_id=item.artifact_id,
+                    artifact_kind="manual_evidence",
+                    summary=(f"{item.evidence_kind.value} manual evidence summary"),
+                )
+            )
     for artifact_id in verification_plan.retained_artifact_ids:
         references.append(
             ChangesetExportArtifactReference(
@@ -304,6 +460,13 @@ def _artifact_references(
     for reference in references:
         deduped[str(reference.artifact_id)] = reference
     return list(deduped.values())
+
+
+def _value_counts(values: Iterable[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return counts
 
 
 def _review_brief_artifact_path(session_id, artifact_id: ArtifactId) -> Path:

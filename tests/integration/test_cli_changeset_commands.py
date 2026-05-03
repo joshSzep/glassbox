@@ -655,10 +655,26 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert export_payload["export_kind"] == "changeset_review_export"
     assert export_payload["changeset"]["changeset_id"] == changeset_id
     assert export_payload["review_brief"]["artifact_id"] == brief["artifact_id"]
+    assert export_payload["review_brief"]["schema_version"] == 2
+    assert export_payload["review_brief"]["review_feedback"] is not None
+    assert export_payload["review_brief"]["manual_evidence"] is not None
+    assert export_payload["review_brief"]["publication_boundary"] is not None
+    assert export_payload["review_feedback"]["total_count"] == 1
+    assert export_payload["review_responses"]["accepted_risk_count"] == 1
+    assert export_payload["manual_evidence"]["total_count"] == 3
+    assert export_payload["live_review_evidence"]["browser_evidence_count"] == 1
+    assert export_payload["live_review_evidence"]["accessibility_evidence_count"] == 1
+    assert "raw screenshots" in " ".join(export_payload["redaction_report"])
+    assert "not reviewer approval" in " ".join(export_payload["non_claims"])
     assert (
         "raw .glassbox database state is not included"
         in (export_payload["redaction_report"])
     )
+    artifact_kinds = {
+        reference["artifact_kind"]
+        for reference in export_payload["artifact_references"]
+    }
+    assert "manual_evidence" in artifact_kinds
     assert export_payload["artifact_references"][0]["local_only"] is True
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
