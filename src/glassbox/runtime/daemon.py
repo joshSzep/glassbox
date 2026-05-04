@@ -134,7 +134,7 @@ def start_runtime_owner(
     host: str,
     port: int,
     db_path: Path | None = None,
-    startup_timeout_seconds: float = 5.0,
+    startup_timeout_seconds: float = 15.0,
     poll_interval_seconds: float | None = None,
 ) -> RuntimeOwnerRecord:
     """Spawn the persistent runtime owner and wait for a healthy startup."""
@@ -298,9 +298,15 @@ def _wait_for_healthy_runtime_owner(
         ):
             return status.record
         if process.poll() is not None:
+            time.sleep(0.1)  # Ensure logs are fully flushed
             raise ValueError(_startup_failure_message(cwd, db_path=db_path))
         time.sleep(poll_interval_seconds)
 
+    process.terminate()
+    try:
+        process.wait(timeout=1.0)
+    except subprocess.TimeoutExpired:
+        process.kill()
     raise ValueError(_startup_failure_message(cwd, db_path=db_path))
 
 
