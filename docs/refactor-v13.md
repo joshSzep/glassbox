@@ -809,7 +809,7 @@ Completion notes:
 
 ### GBX-R540: Split Changeset CLI Service Wiring From Formatting
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R510, GBX-R512, GBX-R520, GBX-R530, GBX-R531
 - Target files:
   - `src/glassbox/cli/changeset_commands.py`
@@ -831,7 +831,7 @@ Completion notes:
 
 ### GBX-R541: Split Parser Changeset Argument Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R540
 - Target files:
   - `src/glassbox/cli/parser_changesets.py`
@@ -853,7 +853,7 @@ Completion notes:
 
 ### GBX-R542: Extract TUI And Plain Review Command Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R540
 - Target files:
   - `src/glassbox/cli/tui/commands.py`

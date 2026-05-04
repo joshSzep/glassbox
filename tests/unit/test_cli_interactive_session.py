@@ -2,11 +2,11 @@
 
 from glassbox.cli.interactive_client import ReviewLoopAction
 from glassbox.cli.interactive_client import ReviewLoopActionResult
-from glassbox.cli.interactive_session import _dashboard_review_url
+from glassbox.cli.interactive_review_commands import _dashboard_review_url
+from glassbox.cli.interactive_review_commands import _parse_review_command
+from glassbox.cli.interactive_review_commands import _print_review_result
 from glassbox.cli.interactive_session import _interactive_help_text
 from glassbox.cli.interactive_session import _parse_interactive_input
-from glassbox.cli.interactive_session import _parse_review_command
-from glassbox.cli.interactive_session import _print_review_result
 
 
 def test_plain_interactive_parser_routes_review_commands() -> None:

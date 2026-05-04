@@ -248,7 +248,9 @@ def slash_command_from_text(text: str) -> TerminalSlashCommand | None:
     if not normalized.startswith("/"):
         return None
     if normalized in {"/review", "/changeset"}:
-        return _review_slash_command(parts[1] if len(parts) > 1 else "")
+        from glassbox.cli.tui.review_commands import review_slash_command
+
+        return review_slash_command(parts[1] if len(parts) > 1 else "")
     for spec in _COMMAND_SPECS:
         if normalized in spec.slash_aliases:
             return TerminalSlashCommand(
@@ -284,6 +286,11 @@ def _disabled_reason(
     command_id: TerminalCommandId,
     state: TerminalConversationState,
 ) -> str | None:
+    from glassbox.cli.tui.review_commands import is_review_command
+    from glassbox.cli.tui.review_commands import review_disabled_reason
+
+    if is_review_command(command_id):
+        return review_disabled_reason(command_id, state)
     if command_id in {
         TerminalCommandId.OPEN_DASHBOARD,
         TerminalCommandId.COPY_DASHBOARD_URL,
@@ -330,57 +337,4 @@ def _disabled_reason(
     if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
         if not state.messages and not state.turns and state.failure is None:
             return "transcript is empty"
-    if command_id in {
-        TerminalCommandId.REVIEW_CREATE_CHANGESET,
-        TerminalCommandId.REVIEW_REFRESH_INVENTORY,
-        TerminalCommandId.REVIEW_GENERATE_BRIEF,
-    }:
-        if state.header.cwd is None:
-            return "workspace unavailable"
-        if state.header.stream_status in {
-            TerminalStreamStatus.RECONNECTING,
-            TerminalStreamStatus.UNAVAILABLE,
-            TerminalStreamStatus.HISTORICAL_ONLY,
-        }:
-            return "runtime unavailable"
-    if command_id in {
-        TerminalCommandId.REVIEW_PREVIEW_VERIFICATION,
-        TerminalCommandId.REVIEW_INSPECT_HANDOFF,
-        TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
-    }:
-        if state.header.cwd is None:
-            return "workspace unavailable"
-    if command_id == TerminalCommandId.REVIEW_OPEN_DASHBOARD:
-        if state.header.dashboard_url is None:
-            return "dashboard unavailable"
     return None
-
-
-def _review_slash_command(rest: str) -> TerminalSlashCommand:
-    parts = rest.strip().split(maxsplit=1)
-    subcommand = parts[0].lower() if parts else "status"
-    argument = parts[1] if len(parts) > 1 else None
-    if subcommand in {"create", "new"}:
-        return TerminalSlashCommand(TerminalCommandId.REVIEW_CREATE_CHANGESET, argument)
-    if subcommand == "refresh":
-        return TerminalSlashCommand(
-            TerminalCommandId.REVIEW_REFRESH_INVENTORY, argument
-        )
-    if subcommand in {"dashboard", "open-dashboard"}:
-        return TerminalSlashCommand(TerminalCommandId.REVIEW_OPEN_DASHBOARD, argument)
-    if subcommand in {"brief", "lifecycle-brief"}:
-        return TerminalSlashCommand(TerminalCommandId.REVIEW_GENERATE_BRIEF, argument)
-    if subcommand in {"verify", "verification", "verification-plan"}:
-        return TerminalSlashCommand(
-            TerminalCommandId.REVIEW_PREVIEW_VERIFICATION, argument
-        )
-    if subcommand in {"handoff", "handoff-readiness"}:
-        return TerminalSlashCommand(TerminalCommandId.REVIEW_INSPECT_HANDOFF, argument)
-    if subcommand in {"status", "feedback", "responses"}:
-        return TerminalSlashCommand(
-            TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS, argument
-        )
-    return TerminalSlashCommand(
-        TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
-        f"{subcommand} {argument}".strip() if argument else subcommand,
-    )
