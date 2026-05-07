@@ -278,7 +278,7 @@ supersedes it.
 
 ### GBX-1400: Define The v14 Review-Loop Maturity Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: publish the operator and contributor contract for review-loop maturity
   without expanding Glassbox into approval or publication automation

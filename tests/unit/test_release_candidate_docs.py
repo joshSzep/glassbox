@@ -508,6 +508,51 @@ def test_v13_review_loop_contract_covers_product_boundary() -> None:
     assert "tasks-v13.md" in docs_readme
 
 
+def test_v14_review_loop_maturity_contract_covers_product_boundary() -> None:
+    content = (REPO_ROOT / "docs" / "v14-review-loop-maturity-contract.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Vocabulary Deltas",
+        "## Supported Workflow Set",
+        "## Evidence Expectations",
+        "## Advisory Evidence Boundaries",
+        "## Release Authority",
+        "## Safety Rules",
+        "## V13 Dogfooding Mapping",
+        "## Non-Goals",
+        "Response-linked fixup inventory",
+        "Skipped advisory evidence",
+        "Summarized lifecycle limitations",
+        "Fresh advisory UX evidence",
+        "rich lifecycle limitations",
+        "response-linked fixup inventory",
+        "skipped advisory evidence",
+        "Deterministic replay, eval, package, migration, unit, integration",
+        "Review-loop guidance starts with safe inspection before any mutation.",
+        "Do not say Glassbox approved, staged, committed, pushed, opened a PR",
+        "v13-review-loop-contract.md",
+        "v13-dogfooding-summary.md",
+        "tasks-v14.md",
+        "automatic review approval",
+        "automatic staging",
+        "automatic commits",
+        "automatic pushes",
+        "automatic pull request creation",
+        "turning skipped browser or accessibility evidence into passing evidence",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-review-loop-maturity-contract.md" in root_readme
+    assert "v14-review-loop-maturity-contract.md" in docs_readme
+    assert "docs/tasks-v14.md" in root_readme
+    assert "tasks-v14.md" in docs_readme
+
+
 def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v13-review-loop-audit.md").read_text(
         encoding="utf-8"

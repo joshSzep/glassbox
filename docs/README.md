@@ -11,8 +11,8 @@ Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
 v13 review-loop contract is the current implemented review lifecycle, and the
-v14 review-loop maturity task graph scopes the next planning track after the
-v13 release candidate and post-v13 refactor.
+v14 review-loop maturity contract and task graph scope the next planning track
+after the v13 release candidate and post-v13 refactor.
 
 ## Start Here
 
@@ -52,6 +52,11 @@ v13 release candidate and post-v13 refactor.
 - [v13-release-candidate.md](./v13-release-candidate.md): v13
   release-candidate guide for the supported review-loop operating model,
   validation path, advisory evidence expectations, residual risks, and decision
+- [v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md):
+  v14 contract for maturing rich-evidence lifecycle briefs, response-linked
+  fixup inventory, skipped advisory evidence, command discovery, fresh
+  advisory UX evidence, deterministic release authority, and non-publication
+  boundaries
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
@@ -105,6 +110,10 @@ v13 release candidate and post-v13 refactor.
 - [v13-release-candidate.md](./v13-release-candidate.md): v13
   release-candidate guide for review-loop release authority, evidence
   expectations, advisory non-claims, accepted residual risks, and decision
+- [v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md):
+  v14 maturity contract for response-linked fixup inventory, skipped advisory
+  evidence, summarized lifecycle limitations, and preserved publication
+  boundaries
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, command discovery, advisory UX evidence, dogfooding, and

@@ -115,8 +115,9 @@ The v13 planning contract is in
 task graph in [docs/tasks-v13.md](docs/tasks-v13.md) and the
 release-candidate guide in
 [docs/v13-release-candidate.md](docs/v13-release-candidate.md). The next
-review-loop maturity planning graph is in
-[docs/tasks-v14.md](docs/tasks-v14.md).
+review-loop maturity contract is in
+[docs/v14-review-loop-maturity-contract.md](docs/v14-review-loop-maturity-contract.md),
+with the planning graph in [docs/tasks-v14.md](docs/tasks-v14.md).
 
 ## Documentation
 
@@ -135,6 +136,7 @@ Start here based on what you need:
 - [docs/v13-release-gate.md](docs/v13-release-gate.md)
 - [docs/v13-dogfooding-summary.md](docs/v13-dogfooding-summary.md)
 - [docs/v13-release-candidate.md](docs/v13-release-candidate.md)
+- [docs/v14-review-loop-maturity-contract.md](docs/v14-review-loop-maturity-contract.md)
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
