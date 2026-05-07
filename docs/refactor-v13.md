@@ -967,7 +967,7 @@ Completion notes:
 
 ### GBX-R550: Split Changeset Console Types, Formatting, And Shared Rows
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R543
 - Target files:
   - `frontend/components/console/changeset-console.tsx`
@@ -986,6 +986,18 @@ Completion notes:
   - `pnpm --dir frontend test -- changeset-console.test.tsx`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+
+Completion notes:
+
+- Kept `frontend/components/console/changeset-console.tsx` as the stable
+  component entrypoint and compatibility export for `ChangesetConsoleProps`.
+- Moved changeset console prop/input helper types into
+  `frontend/components/console/changeset/types.ts`.
+- Moved badge variant and verification-state formatting helpers into
+  `frontend/components/console/changeset/format.ts`.
+- Moved shared fact row, section, and state-line presentation helpers into
+  `frontend/components/console/changeset/shared.tsx` without changing
+  accessibility labels or visual hierarchy.
 
 ### GBX-R551: Split Changeset List And Detail Shell
 

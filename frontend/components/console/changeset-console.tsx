@@ -10,7 +10,6 @@ import {
   RefreshCcw,
   ShieldCheck,
 } from "lucide-react";
-import type { ReactNode } from "react";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,28 +23,17 @@ import type {
   ChangesetDetailState,
   ChangesetPageState,
 } from "@/stores/dashboard-stores";
+import {
+  candidateBadgeVariant,
+  formatVerificationState,
+  handoffBadgeVariant,
+  readinessBadgeVariant,
+  verificationBadgeVariant,
+} from "./changeset/format";
+import { Fact, Section, StateLine } from "./changeset/shared";
+import type { ChangesetConsoleProps } from "./changeset/types";
 
-export type ChangesetConsoleProps = {
-  action?: ChangesetActionStatus;
-  detail: ChangesetDetailState;
-  onGenerateReviewBrief?: () => void;
-  onAttachManualEvidence?: (input: {
-    commandText?: string | null;
-    evidenceKind?: "manual_command" | "external_check" | "operator_assertion" | "reviewer_note";
-    freshness?: "current" | "needs_inspection" | "stale" | "unknown";
-    note?: string | null;
-    sourceLabel: string;
-    summary: string;
-  }) => void;
-  onInspectFeedbackStatus?: () => void;
-  onInspectHandoff?: () => void;
-  onPreviewVerification?: () => void;
-  onRefresh?: () => void;
-  onRefreshChangeset?: () => void;
-  onSelectChangeset?: (changesetId: string) => void;
-  onShowList?: () => void;
-  page: ChangesetPageState;
-};
+export type { ChangesetConsoleProps } from "./changeset/types";
 
 export function ChangesetConsole({
   action = { error: null, kind: null, state: "idle" },
@@ -1263,120 +1251,5 @@ function VerificationPanel({
         ) : null}
       </div>
     </Section>
-  );
-}
-
-function verificationBadgeVariant(
-  state: string,
-): "destructive" | "muted" | "outline" | "success" | "warning" {
-  if (state === "failed") {
-    return "destructive";
-  }
-  if (state === "passed" || state === "not_applicable") {
-    return "success";
-  }
-  if (state === "stale" || state === "missing") {
-    return "warning";
-  }
-  if (state === "accepted_with_risk" || state === "skipped") {
-    return "outline";
-  }
-  return "muted";
-}
-
-function readinessBadgeVariant(
-  state: string,
-): "destructive" | "muted" | "outline" | "success" | "warning" {
-  if (state === "ready") {
-    return "success";
-  }
-  if (state === "failed_checks" || state === "not_ready") {
-    return "destructive";
-  }
-  if (state === "accepted_with_risk") {
-    return "outline";
-  }
-  if (state === "needs_verification" || state === "stale_inventory") {
-    return "warning";
-  }
-  return "muted";
-}
-
-function handoffBadgeVariant(
-  state: string,
-): "destructive" | "muted" | "outline" | "success" | "warning" {
-  if (state === "handoff_ready" || state === "commit_prep_ready") {
-    return "success";
-  }
-  if (state === "accepted_with_risk") {
-    return "outline";
-  }
-  if (state === "publication_blocked") {
-    return "destructive";
-  }
-  if (
-    state === "needs_review_response" ||
-    state === "needs_verification" ||
-    state === "stale_inventory" ||
-    state === "unresolved_risk"
-  ) {
-    return "warning";
-  }
-  return "muted";
-}
-
-function candidateBadgeVariant(
-  state: string | null | undefined,
-): "destructive" | "info" | "muted" | "outline" | "success" | "warning" {
-  if (state === "selected" || state === "verified" || state === "completed") {
-    return "success";
-  }
-  if (state === "rejected") {
-    return "destructive";
-  }
-  if (state === "needs_review" || state === "planned" || state === "forked") {
-    return "warning";
-  }
-  if (state === null || state === undefined) {
-    return "muted";
-  }
-  return "info";
-}
-
-function formatVerificationState(state: string): string {
-  return state.replaceAll("_", " ");
-}
-
-function Fact({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 rounded-md border border-border/70 bg-surface px-3 py-2">
-      <dt className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-1 truncate text-console">{value}</dd>
-    </div>
-  );
-}
-
-function Section({ children, title }: { children: ReactNode; title: string }) {
-  return (
-    <section className="mt-4">
-      <h3 className="text-sm font-semibold tracking-normal">{title}</h3>
-      <div className="mt-2">{children}</div>
-    </section>
-  );
-}
-
-function StateLine({ tone = "muted", value }: { tone?: "destructive" | "muted"; value: string }) {
-  return (
-    <div
-      className={
-        tone === "destructive"
-          ? "rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-          : "rounded-md border border-border/80 bg-card px-3 py-2 text-sm text-muted-foreground"
-      }
-    >
-      {value}
-    </div>
   );
 }
