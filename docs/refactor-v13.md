@@ -915,7 +915,7 @@ Completion notes:
 
 ### GBX-R544: Split Changeset Route Service Factories And HTTP Errors
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R543
 - Target files:
   - `src/glassbox/web/routes/changesets.py`
@@ -935,6 +935,19 @@ Completion notes:
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `pnpm --dir frontend api:generate`
   - `pnpm --dir frontend test -- dashboard-stores.test.ts changeset-console.test.tsx`
+
+Completion notes:
+
+- Kept `src/glassbox/web/routes/changesets.py` as the FastAPI route
+  declaration entrypoint while moving repository casts, service wiring, and
+  workspace-root lookup into
+  `src/glassbox/web/routes/changeset_route_services.py`.
+- Moved common changeset route 404 translation into
+  `src/glassbox/web/routes/changeset_route_errors.py`.
+- Moved request enum/UUID coercion and create-changeset source branching into
+  `src/glassbox/web/routes/changeset_route_requests.py`.
+- Regenerated frontend API artifacts; no generated OpenAPI or API type diff was
+  produced.
 
 ---
 

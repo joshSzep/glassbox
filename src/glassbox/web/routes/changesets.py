@@ -1,34 +1,11 @@
 """Changeset dashboard API routes."""
 
 from typing import Annotated
-from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter
-from fastapi import HTTPException
 from fastapi import Query
 
-from glassbox.core import ManualEvidenceFreshness
-from glassbox.core import ManualEvidenceKind
-from glassbox.core import ManualEvidenceState
-from glassbox.core import ManualEvidenceTargetKind
-from glassbox.core import ReviewFeedbackDisposition
-from glassbox.core import ReviewFeedbackKind
-from glassbox.core import ReviewFeedbackProvenance
-from glassbox.core import ReviewFeedbackScopeKind
-from glassbox.runtime.changesets import AccessibilityEvidenceActionService
-from glassbox.runtime.changesets import BrowserEvidenceActionService
-from glassbox.runtime.changesets import ChangesetActionService
-from glassbox.runtime.changesets import ChangesetDerivationService
-from glassbox.runtime.changesets import ChangesetQueryService
-from glassbox.runtime.changesets import ChangesetRepository
-from glassbox.runtime.changesets import ChangesetReviewBriefService
-from glassbox.runtime.changesets import ChangesetVerificationService
-from glassbox.runtime.changesets import ManualEvidenceActionService
-from glassbox.runtime.changesets import ReviewFeedbackActionService
-from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
-from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
-from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.changeset_api import AccessibilityEvidenceAttachRequest
 from glassbox.web.changeset_api import BrowserEvidenceAttachRequest
@@ -72,15 +49,43 @@ from glassbox.web.changeset_api import build_review_feedback_action_response
 from glassbox.web.changeset_api import build_review_feedback_detail_response
 from glassbox.web.changeset_api import build_review_feedback_response
 from glassbox.web.changeset_api import build_review_response_summary_response
+from glassbox.web.routes.changeset_route_errors import raise_not_found_from_value_error
+from glassbox.web.routes.changeset_route_errors import raise_unknown_review_feedback
+from glassbox.web.routes.changeset_route_requests import create_changeset_from_request
+from glassbox.web.routes.changeset_route_requests import manual_evidence_freshness
+from glassbox.web.routes.changeset_route_requests import manual_evidence_kind
+from glassbox.web.routes.changeset_route_requests import manual_evidence_state
+from glassbox.web.routes.changeset_route_requests import manual_evidence_target_kind
+from glassbox.web.routes.changeset_route_requests import optional_uuid
+from glassbox.web.routes.changeset_route_requests import record_verification_id
+from glassbox.web.routes.changeset_route_requests import record_verification_task_id
+from glassbox.web.routes.changeset_route_requests import review_feedback_disposition
+from glassbox.web.routes.changeset_route_requests import review_feedback_kind
+from glassbox.web.routes.changeset_route_requests import review_feedback_provenance
+from glassbox.web.routes.changeset_route_requests import review_feedback_scope_kind
+from glassbox.web.routes.changeset_route_services import (
+    accessibility_evidence_action_service,
+)
+from glassbox.web.routes.changeset_route_services import browser_evidence_action_service
+from glassbox.web.routes.changeset_route_services import changeset_action_service
+from glassbox.web.routes.changeset_route_services import changeset_derivation_service
+from glassbox.web.routes.changeset_route_services import changeset_query_service
+from glassbox.web.routes.changeset_route_services import changeset_repository
+from glassbox.web.routes.changeset_route_services import changeset_review_brief_service
+from glassbox.web.routes.changeset_route_services import changeset_verification_service
+from glassbox.web.routes.changeset_route_services import (
+    commit_message_suggestion_service,
+)
+from glassbox.web.routes.changeset_route_services import commit_readiness_service
+from glassbox.web.routes.changeset_route_services import handoff_readiness_service
+from glassbox.web.routes.changeset_route_services import manual_evidence_action_service
+from glassbox.web.routes.changeset_route_services import review_feedback_action_service
+from glassbox.web.routes.changeset_route_services import workspace_root_for_changeset
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
 
 LimitParam = Annotated[int | None, Query(ge=1, le=200)]
-
-
-def _repository(context: RuntimeContextDep) -> ChangesetRepository:
-    return cast(ChangesetRepository, context.repositories.sessions)
 
 
 @router.get("", response_model=ChangesetListPageResponse)
@@ -92,7 +97,7 @@ async def list_changesets(
 ) -> ChangesetListPageResponse:
     """Return recent changesets for dashboard inspection."""
 
-    changesets = ChangesetQueryService(_repository(context)).list_changesets(
+    changesets = changeset_query_service(changeset_repository(context)).list_changesets(
         session_id=session_id,
         include_archived=include_archived,
         limit=limit,
@@ -109,48 +114,16 @@ async def create_changeset(
 ) -> ChangesetCreateResponse:
     """Create an explicit local changeset from retained evidence."""
 
-    service = ChangesetDerivationService(_repository(context))
+    repository = changeset_repository(context)
+    service = changeset_derivation_service(repository)
     try:
-        if request.source_kind == "session":
-            if request.session_id is None:
-                raise ValueError("session_id is required for source_kind=session")
-            result = service.create_from_session(
-                UUID(request.session_id),
-                objective=request.objective,
-            )
-        elif request.source_kind == "task":
-            if request.task_id is None:
-                raise ValueError("task_id is required for source_kind=task")
-            result = service.create_from_task(
-                UUID(request.task_id),
-                objective=request.objective,
-            )
-        elif request.source_kind == "branch-candidate":
-            if request.branch_search_id is None or request.candidate_id is None:
-                raise ValueError(
-                    "branch_search_id and candidate_id are required for "
-                    "source_kind=branch-candidate"
-                )
-            result = service.create_from_branch_candidate(
-                UUID(request.branch_search_id),
-                UUID(request.candidate_id),
-                objective=request.objective,
-            )
-        else:
-            if request.session_id is None:
-                raise ValueError(
-                    "session_id is required for source_kind=workspace-diff"
-                )
-            result = service.create_from_workspace_diff(
-                UUID(request.session_id),
-                _workspace_root_for_session(
-                    repository=_repository(context),
-                    session_id=UUID(request.session_id),
-                ),
-                objective=request.objective,
-            )
+        result = create_changeset_from_request(
+            request,
+            repository=repository,
+            service=service,
+        )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return ChangesetCreateResponse(
         changeset_id=str(result.changeset_id),
         session_id=str(result.session_id),
@@ -177,14 +150,12 @@ async def list_review_feedback(
 ) -> ReviewFeedbackListPageResponse:
     """Return bounded local review feedback rows for dashboard inspection."""
 
-    repository = _repository(context)
-    service = ChangesetQueryService(repository)
+    repository = changeset_repository(context)
+    service = changeset_query_service(repository)
     feedback = service.list_review_feedback(
         session_id=session_id,
         changeset_id=changeset_id,
-        disposition=(
-            ReviewFeedbackDisposition(disposition) if disposition is not None else None
-        ),
+        disposition=(review_feedback_disposition(disposition)),
         include_archived=include_archived,
         file_path=file_path,
         limit=limit,
@@ -192,7 +163,7 @@ async def list_review_feedback(
     response_summary = (
         service.get_review_response_summary(
             changeset_id,
-            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+            workspace_root=workspace_root_for_changeset(repository, changeset_id),
         )
         if changeset_id is not None
         else None
@@ -226,10 +197,12 @@ async def list_manual_evidence(
 ) -> ManualEvidenceListPageResponse:
     """Return bounded manual evidence rows for dashboard inspection."""
 
-    evidence = ChangesetQueryService(_repository(context)).list_manual_evidence(
+    evidence = changeset_query_service(
+        changeset_repository(context)
+    ).list_manual_evidence(
         session_id=session_id,
         changeset_id=changeset_id,
-        state=ManualEvidenceState(state) if state is not None else None,
+        state=manual_evidence_state(state),
         include_archived=include_archived,
         include_rejected=include_rejected,
         include_superseded=include_superseded,
@@ -251,21 +224,17 @@ async def get_review_feedback_detail(
 ) -> ReviewFeedbackDetailResponse:
     """Return one local review-feedback record with bounded scope metadata."""
 
-    service = ChangesetQueryService(_repository(context))
+    repository = changeset_repository(context)
+    service = changeset_query_service(repository)
     feedback = service.get_review_feedback(feedback_id)
     if feedback is None:
-        raise HTTPException(
-            status_code=404, detail=f"unknown review feedback: {feedback_id}"
-        )
+        raise_unknown_review_feedback(feedback_id)
     scopes = service.list_review_feedback_scopes(
         feedback.session_id, feedback.feedback_id
     )
     response_status = service.get_review_feedback_response_status(
         feedback.feedback_id,
-        workspace_root=_workspace_root_for_changeset(
-            _repository(context),
-            feedback.changeset_id,
-        ),
+        workspace_root=workspace_root_for_changeset(repository, feedback.changeset_id),
     )
     return build_review_feedback_detail_response(feedback, scopes, response_status)
 
@@ -282,30 +251,26 @@ async def attach_manual_evidence(
 ) -> ManualEvidenceActionResponse:
     """Attach summary-first manual evidence to one local changeset."""
 
+    repository = changeset_repository(context)
     try:
-        result = ManualEvidenceActionService(
-            _repository(context),
-            context.repositories.artifacts,
-        ).attach(
+        result = manual_evidence_action_service(context, repository).attach(
             changeset_id,
-            evidence_kind=ManualEvidenceKind(request.evidence_kind),
+            evidence_kind=manual_evidence_kind(request),
             summary=request.summary,
             source_label=request.source_label,
             actor=request.actor,
-            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_kind=manual_evidence_target_kind(request),
             target_id=request.target_id,
-            feedback_id=(
-                UUID(request.feedback_id) if request.feedback_id is not None else None
-            ),
+            feedback_id=optional_uuid(request.feedback_id),
             note=request.note,
             command_text=request.command_text,
             external_url_label=request.external_url_label,
             local_file_label=request.local_file_label,
             local_file_path_hint=request.local_file_path_hint,
-            freshness=ManualEvidenceFreshness(request.freshness),
+            freshness=manual_evidence_freshness(request),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_manual_evidence_action_response(result)
 
 
@@ -321,11 +286,9 @@ async def attach_browser_evidence(
 ) -> ManualEvidenceActionResponse:
     """Attach advisory browser or dashboard evidence to one local changeset."""
 
+    repository = changeset_repository(context)
     try:
-        result = BrowserEvidenceActionService(
-            _repository(context),
-            context.repositories.artifacts,
-        ).attach(
+        result = browser_evidence_action_service(context, repository).attach(
             changeset_id,
             capture_kind=request.capture_kind,
             summary=request.summary,
@@ -347,15 +310,13 @@ async def attach_browser_evidence(
             skipped_cases=request.skipped_cases,
             limitations=request.limitations,
             actor=request.actor,
-            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_kind=manual_evidence_target_kind(request),
             target_id=request.target_id,
-            feedback_id=(
-                UUID(request.feedback_id) if request.feedback_id is not None else None
-            ),
-            freshness=ManualEvidenceFreshness(request.freshness),
+            feedback_id=optional_uuid(request.feedback_id),
+            freshness=manual_evidence_freshness(request),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_manual_evidence_action_response(result)
 
 
@@ -371,11 +332,9 @@ async def attach_accessibility_evidence(
 ) -> ManualEvidenceActionResponse:
     """Attach advisory accessibility evidence to one local changeset."""
 
+    repository = changeset_repository(context)
     try:
-        result = AccessibilityEvidenceActionService(
-            _repository(context),
-            context.repositories.artifacts,
-        ).attach(
+        result = accessibility_evidence_action_service(context, repository).attach(
             changeset_id,
             observation_kind=request.observation_kind,
             summary=request.summary,
@@ -392,15 +351,13 @@ async def attach_accessibility_evidence(
             skipped_cases=request.skipped_cases,
             limitations=request.limitations,
             actor=request.actor,
-            target_kind=ManualEvidenceTargetKind(request.target_kind),
+            target_kind=manual_evidence_target_kind(request),
             target_id=request.target_id,
-            feedback_id=(
-                UUID(request.feedback_id) if request.feedback_id is not None else None
-            ),
-            freshness=ManualEvidenceFreshness(request.freshness),
+            feedback_id=optional_uuid(request.feedback_id),
+            freshness=manual_evidence_freshness(request),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_manual_evidence_action_response(result)
 
 
@@ -415,14 +372,14 @@ async def get_changeset_detail(
 ) -> ChangesetDetailResponse:
     """Return one changeset with source and evidence references."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        detail = ChangesetQueryService(repository).get_detail(
+        detail = changeset_query_service(repository).get_detail(
             changeset_id,
-            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+            workspace_root=workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_changeset_detail_response(detail)
 
 
@@ -438,24 +395,25 @@ async def add_review_feedback(
 ) -> ReviewFeedbackActionResponse:
     """Record local review feedback evidence for one changeset."""
 
+    repository = changeset_repository(context)
     try:
-        result = ReviewFeedbackActionService(_repository(context)).add_feedback(
+        result = review_feedback_action_service(repository).add_feedback(
             changeset_id,
-            feedback_kind=ReviewFeedbackKind(request.feedback_kind),
-            provenance=ReviewFeedbackProvenance(request.provenance),
+            feedback_kind=review_feedback_kind(request),
+            provenance=review_feedback_provenance(request),
             summary=request.summary,
             body=request.body,
             source_label=request.source_label,
             reviewer_label=request.reviewer_label,
             created_by=request.actor,
-            scope_kind=ReviewFeedbackScopeKind(request.scope_kind),
+            scope_kind=review_feedback_scope_kind(request),
             scope_reason=request.scope_reason,
             file_path=request.file_path,
             line_start=request.line_start,
             line_end=request.line_end,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
 
 
@@ -471,15 +429,16 @@ async def resolve_review_feedback(
 ) -> ReviewFeedbackActionResponse:
     """Mark local review feedback as resolved locally."""
 
+    repository = changeset_repository(context)
     try:
-        result = ReviewFeedbackActionService(_repository(context)).resolve_feedback(
+        result = review_feedback_action_service(repository).resolve_feedback(
             feedback_id,
             resolution_summary=request.summary,
             residual_risk=request.residual_risk,
             resolved_by=request.actor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
 
 
@@ -495,14 +454,15 @@ async def reopen_review_feedback(
 ) -> ReviewFeedbackActionResponse:
     """Reopen local review feedback."""
 
+    repository = changeset_repository(context)
     try:
-        result = ReviewFeedbackActionService(_repository(context)).reopen_feedback(
+        result = review_feedback_action_service(repository).reopen_feedback(
             feedback_id,
             reason=request.reason,
             reopened_by=request.actor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
 
 
@@ -518,19 +478,16 @@ async def archive_review_feedback(
 ) -> ReviewFeedbackActionResponse:
     """Archive local review feedback after explicit operator intent."""
 
+    repository = changeset_repository(context)
     try:
-        result = ReviewFeedbackActionService(_repository(context)).archive_feedback(
+        result = review_feedback_action_service(repository).archive_feedback(
             feedback_id,
             reason=request.reason,
             archived_by=request.actor,
-            replacement_feedback_id=(
-                UUID(request.replacement_feedback_id)
-                if request.replacement_feedback_id is not None
-                else None
-            ),
+            replacement_feedback_id=optional_uuid(request.replacement_feedback_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
 
 
@@ -546,15 +503,16 @@ async def accept_review_feedback_risk(
 ) -> ReviewFeedbackActionResponse:
     """Mark local review feedback accepted with explicit residual risk."""
 
+    repository = changeset_repository(context)
     try:
-        result = ReviewFeedbackActionService(_repository(context)).accept_risk(
+        result = review_feedback_action_service(repository).accept_risk(
             feedback_id,
             risk_summary=request.risk_summary,
             acceptance_reason=request.reason,
             accepted_by=request.actor,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
 
 
@@ -570,22 +528,19 @@ async def refresh_changeset(
 ) -> ChangesetActionResponse:
     """Refresh structured inventory evidence for a changeset."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        result = await ChangesetActionService(
-            repository,
-            context.repositories.artifacts,
-        ).refresh_inventory(
+        result = await changeset_action_service(context, repository).refresh_inventory(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
+            workspace_root_for_changeset(repository, changeset_id),
             refreshed_by=request.actor,
         )
-        detail = ChangesetQueryService(repository).get_detail(
+        detail = changeset_query_service(repository).get_detail(
             changeset_id,
-            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+            workspace_root=workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return ChangesetActionResponse(
         changeset_id=str(changeset_id),
         status="refreshed",
@@ -605,17 +560,14 @@ async def preview_changeset_verification_plan(
 ) -> ChangesetVerificationPlanPreviewResponse:
     """Preview verification commands and retained evidence for a changeset."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        preview = ChangesetVerificationService(
-            repository,
-            context.repositories.artifacts,
-        ).preview_plan(
+        preview = changeset_verification_service(context, repository).preview_plan(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
+            workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_changeset_verification_plan_response(preview)
 
 
@@ -631,23 +583,19 @@ async def record_changeset_verification(
 ) -> ChangesetRecordVerificationResponse:
     """Record changeset verification posture from existing task evidence."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        result = ChangesetVerificationService(
+        result = changeset_verification_service(
+            context,
             repository,
-            context.repositories.artifacts,
         ).record_existing_evidence(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
-            task_id=UUID(request.task_id) if request.task_id is not None else None,
-            verification_id=(
-                UUID(request.verification_id)
-                if request.verification_id is not None
-                else None
-            ),
+            workspace_root_for_changeset(repository, changeset_id),
+            task_id=record_verification_task_id(request),
+            verification_id=record_verification_id(request),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return ChangesetRecordVerificationResponse(
         changeset_id=str(result.changeset_id),
         session_id=str(result.session_id),
@@ -674,23 +622,20 @@ async def generate_changeset_review_brief(
 ) -> ChangesetReviewBriefGenerateResponse:
     """Generate a reviewer-safe brief artifact for a changeset."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        workspace_root = _workspace_root_for_changeset(repository, changeset_id)
-        result = ChangesetReviewBriefService(
-            repository,
-            context.repositories.artifacts,
-        ).generate(
+        workspace_root = workspace_root_for_changeset(repository, changeset_id)
+        result = changeset_review_brief_service(context, repository).generate(
             changeset_id,
             workspace_root,
             created_by=request.actor,
         )
-        detail = ChangesetQueryService(repository).get_detail(
+        detail = changeset_query_service(repository).get_detail(
             changeset_id,
             workspace_root=workspace_root,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_changeset_review_brief_generate_response(
         result,
         detail,
@@ -710,18 +655,18 @@ async def suggest_changeset_commit_message(
 ) -> CommitMessageSuggestionResponse:
     """Suggest a deterministic commit message without committing."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        suggestion = await ChangesetCommitMessageSuggestionService(
+        suggestion = await commit_message_suggestion_service(
+            context,
             repository,
-            context.repositories.artifacts,
         ).suggest(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
+            workspace_root_for_changeset(repository, changeset_id),
             style=style,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_commit_message_suggestion_response(suggestion)
 
 
@@ -736,17 +681,14 @@ async def preview_changeset_commit_readiness(
 ) -> CommitReadinessResponse:
     """Preview commit readiness without staging or committing."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        readiness = await ChangesetCommitReadinessService(
-            repository,
-            context.repositories.artifacts,
-        ).preview(
+        readiness = await commit_readiness_service(context, repository).preview(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
+            workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_commit_readiness_response(readiness)
 
 
@@ -761,17 +703,14 @@ async def preview_changeset_handoff_readiness(
 ) -> HandoffReadinessResponse:
     """Preview final handoff readiness without publication mutation."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        readiness = await ChangesetHandoffReadinessService(
-            repository,
-            context.repositories.artifacts,
-        ).preview(
+        readiness = await handoff_readiness_service(context, repository).preview(
             changeset_id,
-            _workspace_root_for_changeset(repository, changeset_id),
+            workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return build_handoff_readiness_response(readiness)
 
 
@@ -787,51 +726,23 @@ async def archive_changeset(
 ) -> ChangesetActionResponse:
     """Archive a changeset after explicit operator intent."""
 
-    repository = _repository(context)
+    repository = changeset_repository(context)
     try:
-        event = ChangesetActionService(repository).archive_changeset(
+        event = changeset_action_service(context, repository).archive_changeset(
             changeset_id,
             reason=request.reason,
             archived_by=request.actor,
-            replacement_changeset_id=(
-                UUID(request.replacement_changeset_id)
-                if request.replacement_changeset_id is not None
-                else None
-            ),
+            replacement_changeset_id=optional_uuid(request.replacement_changeset_id),
         )
-        detail = ChangesetQueryService(repository).get_detail(
+        detail = changeset_query_service(repository).get_detail(
             changeset_id,
-            workspace_root=_workspace_root_for_changeset(repository, changeset_id),
+            workspace_root=workspace_root_for_changeset(repository, changeset_id),
         )
     except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        raise_not_found_from_value_error(exc)
     return ChangesetActionResponse(
         changeset_id=str(changeset_id),
         status="archived",
         event_sequence=event.sequence,
         detail=build_changeset_detail_response(detail),
     )
-
-
-def _workspace_root_for_changeset(
-    repository: ChangesetRepository,
-    changeset_id: UUID,
-):
-    changeset = repository.get_changeset(changeset_id)
-    if changeset is None:
-        raise ValueError(f"unknown changeset: {changeset_id}")
-    return _workspace_root_for_session(
-        repository=repository,
-        session_id=changeset.session_id,
-    )
-
-
-def _workspace_root_for_session(
-    *,
-    repository: ChangesetRepository,
-    session_id: UUID,
-):
-    session = repository.get_session(session_id)
-    if session is None:
-        raise ValueError(f"unknown session: {session_id}")
-    return session.cwd
