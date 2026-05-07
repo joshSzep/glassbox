@@ -347,6 +347,7 @@ class ReviewResponseState(StrEnum):
     IN_PROGRESS = "in_progress"
     RESPONDED = "responded"
     RESOLVED = "resolved"
+    READY_FOR_HANDOFF = "ready_for_handoff"
     REOPENED = "reopened"
     BLOCKED = "blocked"
     ACCEPTED_WITH_RISK = "accepted_with_risk"

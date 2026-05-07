@@ -27,6 +27,7 @@ from glassbox.core import TaskVerificationStatus
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import ChangeInventoryPathEntry
 from glassbox.runtime.changeset_safe_commands import changeset_feedback_show_command
+from glassbox.runtime.changeset_safe_commands import changeset_handoff_readiness_command
 from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
 from glassbox.runtime.changeset_safe_commands import show_changeset_command
 
@@ -221,7 +222,7 @@ def review_feedback_response_status(
         )
     )
     response_state = _response_state(
-        feedback.disposition,
+        feedback,
         has_fixup=latest is not None,
         stale=status_stale,
         verification_state=verification_state,
@@ -240,6 +241,10 @@ def review_feedback_response_status(
         changeset_verification_plan_command(feedback.changeset_id),
         *verification_actions,
     ]
+    if response_state == ReviewResponseState.READY_FOR_HANDOFF:
+        safe_next_actions.append(
+            changeset_handoff_readiness_command(feedback.changeset_id)
+        )
     return ReviewFeedbackResponseStatus(
         feedback_id=feedback.feedback_id,
         changeset_id=feedback.changeset_id,
@@ -310,6 +315,7 @@ def changeset_review_response_summary(
             in {
                 ReviewResponseState.RESPONDED,
                 ReviewResponseState.RESOLVED,
+                ReviewResponseState.READY_FOR_HANDOFF,
             }
         ),
         unresolved_count=sum(
@@ -392,12 +398,13 @@ def review_fixup_inventory_status(
 
 
 def _response_state(
-    disposition: ReviewFeedbackDisposition,
+    feedback: ReviewFeedbackRecord,
     *,
     has_fixup: bool,
     stale: bool,
     verification_state: ChangesetVerificationState,
 ) -> ReviewResponseState:
+    disposition = feedback.disposition
     if disposition == ReviewFeedbackDisposition.ACCEPTED_WITH_RISK:
         return ReviewResponseState.ACCEPTED_WITH_RISK
     if disposition == ReviewFeedbackDisposition.ARCHIVED:
@@ -409,7 +416,16 @@ def _response_state(
         ChangesetVerificationState.FAILED,
     }:
         return ReviewResponseState.BLOCKED
+    if verification_state == ChangesetVerificationState.MISSING and disposition in {
+        ReviewFeedbackDisposition.RESPONDED,
+        ReviewFeedbackDisposition.RESOLVED_LOCALLY,
+    }:
+        return ReviewResponseState.BLOCKED
+    if disposition == ReviewFeedbackDisposition.OPEN and feedback.reopened_count > 0:
+        return ReviewResponseState.REOPENED
     if disposition == ReviewFeedbackDisposition.RESOLVED_LOCALLY:
+        if has_fixup and verification_state == ChangesetVerificationState.PASSED:
+            return ReviewResponseState.READY_FOR_HANDOFF
         return (
             ReviewResponseState.RESOLVED if has_fixup else ReviewResponseState.BLOCKED
         )
@@ -444,6 +460,16 @@ def _response_blockers(
             verification_reason
             or f"response verification is {verification_state.value}"
         )
+    if (
+        verification_state == ChangesetVerificationState.MISSING
+        and latest is not None
+        and feedback.disposition
+        in {
+            ReviewFeedbackDisposition.RESPONDED,
+            ReviewFeedbackDisposition.RESOLVED_LOCALLY,
+        }
+    ):
+        blockers.append(verification_reason or "response verification is missing")
     if latest is None and feedback.disposition in {
         ReviewFeedbackDisposition.RESPONDED,
         ReviewFeedbackDisposition.RESOLVED_LOCALLY,
@@ -486,6 +512,13 @@ def _response_verification_state(
             or "response-linked fixup inventory is stale against workspace state",
             [f"fixup-inventory:{latest.artifact_id}"],
             [changeset_verification_plan_command(feedback.changeset_id)],
+        )
+    if latest.changed_path_count > 0 and latest.matched_scope_path_count == 0:
+        return (
+            ChangesetVerificationState.MISSING,
+            "fixup inventory has no path records matching feedback scope",
+            [f"fixup-inventory:{latest.artifact_id}"],
+            [changeset_feedback_show_command(feedback.feedback_id)],
         )
     if task_ledger is None:
         return (

@@ -114,6 +114,55 @@ describe("changeset console", () => {
     expect(markup).toContain("Glassbox did not merge");
     expect(markup).toContain("created from selected branch-search candidate");
   });
+
+  it("renders ready-for-handoff response status without implying approval", () => {
+    const changeset = makeChangesetSummary("changeset-ready");
+    const detail = makeChangesetDetail(changeset);
+    detail.review_feedback = [detail.review_feedback[1]];
+    detail.review_response_summary = {
+      ...detail.review_response_summary,
+      blocked_count: 0,
+      items: [
+        {
+          ...detail.review_response_summary.items[1],
+          blockers: [],
+          response_state: "ready_for_handoff",
+          stale: false,
+          stale_reason: null,
+          verification_reason: "focused response check is fresh",
+          verification_safe_next_actions: [],
+          verification_state: "passed",
+        },
+      ],
+      responded_count: 1,
+      stale_response_count: 0,
+      unresolved_count: 0,
+    };
+    const markup = renderToStaticMarkup(
+      React.createElement(ChangesetConsole, {
+        detail: {
+          branchSearchDetail: null,
+          detail,
+          error: null,
+          commitMessage: null,
+          commitReadiness: null,
+          handoffReadiness: makeHandoffReadiness("changeset-ready"),
+          lastActionMessage: null,
+          loadState: "loaded",
+          selectedChangesetId: "changeset-ready",
+          verificationPlan: makeVerificationPlan("changeset-ready"),
+        },
+        page: {
+          error: null,
+          items: [changeset],
+          loadState: "loaded",
+        },
+      }),
+    );
+
+    expect(markup).toContain("Response ready_for_handoff");
+    expect(markup).toContain("Review feedback is local evidence, not approval.");
+  });
 });
 
 function makeChangesetSummary(changesetId: string): ChangesetSummary {

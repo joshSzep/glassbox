@@ -200,6 +200,12 @@ Use cautious, inspect-first language for missing or stale evidence:
   local check before handoff.
 - Accepted risk: "operator accepted residual risk; this is not reviewer
   approval"; safe next action: inspect risk summary before publication.
+- Reopened feedback: "feedback was reopened after prior response evidence";
+  safe next action: inspect the feedback detail and record fresh fixup or risk
+  evidence before handoff.
+- Ready for handoff: "resolved feedback has response-linked inventory and
+  fresh retained verification"; safe next action: inspect handoff readiness.
+  This remains local evidence, not reviewer approval.
 
 Safe next actions should prefer:
 
@@ -208,6 +214,7 @@ glassbox changeset feedback status CHANGESET_ID --cwd .
 glassbox changeset feedback show FEEDBACK_ID --cwd .
 glassbox changeset show CHANGESET_ID --cwd .
 glassbox changeset verification-plan CHANGESET_ID --cwd .
+glassbox changeset handoff-readiness CHANGESET_ID --cwd .
 ```
 
 ## Stale Verification Rules
@@ -267,7 +274,8 @@ the current implemented surface. Response records will extend that model:
 - feedback `responded` should cite response evidence but avoid local
   resolution claims
 - feedback `resolved_locally` should cite the response, inventory, and
-  verification posture that support local resolution
+  verification posture that support local resolution; when that evidence is
+  fresh, response status may derive `ready_for_handoff`
 - feedback `accepted_with_risk` should cite residual risk and the reason the
   operator chose not to fully fix or verify the item
 - feedback `archived` should cite replacement feedback or not-applicable

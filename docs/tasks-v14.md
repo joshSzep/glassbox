@@ -519,7 +519,7 @@ supersedes it.
 
 ### GBX-1423: Improve Response Status With Fixup Inventory Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1422`
 - Goal: make feedback response status more useful once response-linked fixup
   inventory exists

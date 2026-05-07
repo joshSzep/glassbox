@@ -26,6 +26,10 @@ def changeset_feedback_status_command(changeset_id: ChangesetId | str) -> str:
     return f"glassbox changeset feedback status {changeset_id} --cwd ."
 
 
+def changeset_handoff_readiness_command(changeset_id: ChangesetId | str) -> str:
+    return f"glassbox changeset handoff-readiness {changeset_id} --cwd ."
+
+
 def changeset_evidence_list_command(changeset_id: ChangesetId | str) -> str:
     return f"glassbox changeset evidence list --changeset {changeset_id} --cwd ."
 

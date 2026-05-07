@@ -294,10 +294,13 @@ def test_response_status_marks_fresh_response_verification_passed() -> None:
         task_ledger=ledger,
     )
 
-    assert status.response_state == ReviewResponseState.RESOLVED
+    assert status.response_state == ReviewResponseState.READY_FOR_HANDOFF
     assert status.verification_state == ChangesetVerificationState.PASSED
     assert "fresh" in (status.verification_reason or "")
     assert status.verification_safe_next_actions == []
+    assert status.safe_next_actions[-1].startswith(
+        "glassbox changeset handoff-readiness"
+    )
 
 
 def test_response_status_does_not_invent_staleness_without_path_mapping() -> None:
@@ -324,6 +327,93 @@ def test_response_status_does_not_invent_staleness_without_path_mapping() -> Non
     assert status.verification_state == ChangesetVerificationState.MISSING
     assert "cannot be mapped" in (status.verification_reason or "")
     assert status.response_state == ReviewResponseState.RESPONDED
+
+
+def test_response_status_keeps_reopened_feedback_unresolved_with_prior_fixup() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    feedback = _feedback_record(session_id, changeset_id, feedback_id).model_copy(
+        update={"disposition": ReviewFeedbackDisposition.OPEN, "reopened_count": 1}
+    )
+    inventory = _fixup_inventory_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        last_sequence=10,
+    )
+    path = _fixup_path_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        path="app.py",
+        last_sequence=10,
+    )
+
+    status = review_feedback_response_status(
+        feedback=feedback,
+        inventories=[inventory],
+        paths=[path],
+        task_ledger=[],
+    )
+    summary = changeset_review_response_summary(
+        changeset_id=changeset_id,
+        items=[status],
+    )
+
+    assert status.response_state == ReviewResponseState.REOPENED
+    assert summary.unresolved_count == 1
+    assert summary.responded_count == 0
+
+
+def test_response_status_blocks_mismatched_fixup_inventory_scope() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    feedback = _feedback_record(session_id, changeset_id, feedback_id).model_copy(
+        update={"disposition": ReviewFeedbackDisposition.RESOLVED_LOCALLY}
+    )
+    inventory = _fixup_inventory_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        last_sequence=10,
+    ).model_copy(update={"matched_scope_path_count": 0})
+    path = _fixup_path_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        path="other.py",
+        last_sequence=10,
+    ).model_copy(update={"matches_feedback_scope": False})
+    ledger = [
+        _ledger(
+            session_id=session_id,
+            status=TaskVerificationStatus.PASSED,
+            changed_paths=["other.py"],
+            last_success_sequence=12,
+            last_sequence=12,
+        )
+    ]
+
+    status = review_feedback_response_status(
+        feedback=feedback,
+        inventories=[inventory],
+        paths=[path],
+        task_ledger=ledger,
+    )
+
+    assert status.response_state == ReviewResponseState.BLOCKED
+    assert status.verification_state == ChangesetVerificationState.MISSING
+    assert "no path records matching feedback scope" in (
+        status.verification_reason or ""
+    )
 
 
 def _feedback_record(session_id, changeset_id, feedback_id) -> ReviewFeedbackRecord:
