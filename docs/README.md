@@ -536,6 +536,10 @@ but they are not the first-run operator path.
 - [tasks-v2.md](./tasks-v2.md): v2 persistent runtime ownership,
   operator-console, upgrade safety, and workflow-hardening task graph
 - [tasks-v1.md](./tasks-v1.md): v1 implementation history and roadmap context
+- [refactor-v13.md](./refactor-v13.md): completed post-v13 review-loop
+  refactor roadmap for changeset runtime services, review feedback, manual
+  evidence, lifecycle briefs, CLI/TUI/web transports, dashboard console/store,
+  SQLite projections, repository adapters, and release-gate helper ownership
 - [refactor-v11.md](./refactor-v11.md): post-v11 confidence-surface
   refactor roadmap for recommendation, knowledge, branch-search, handoff, CLI,
   frontend, recovery, and projection boundaries

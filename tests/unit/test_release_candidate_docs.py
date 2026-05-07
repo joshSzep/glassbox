@@ -1499,6 +1499,44 @@ def test_v11_refactor_docs_describe_final_module_shape() -> None:
     assert "pnpm --dir frontend test" in roadmap
 
 
+def test_v13_refactor_docs_describe_final_module_shape() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    boundaries = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    roadmap = (REPO_ROOT / "docs" / "refactor-v13.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Current Post-v13 Review-Loop Refactor Shape",
+        "The completed post-v13 refactor keeps the current behavior",
+        "`frontend/stores/changeset-store.ts` remains the dashboard store facade",
+        "`scripts/v13_release_gate_helpers.py`",
+    ):
+        assert required_text in architecture
+
+    for required_text in (
+        "The post-v13 review-loop boundary map is implemented through Phase 87",
+        "### V13 Accepted Compatibility Shims",
+        "`frontend/components/console/changeset-console.tsx` delegates",
+        "`frontend/stores/changeset-store.ts` delegates API actions",
+        "`scripts/validate_v13_release_gate.py` delegates v13 release-gate",
+    ):
+        assert required_text in boundaries
+
+    for required_text in (
+        "GBX-R570: Extract V13 Release-Gate Helper Owners",
+        "GBX-R571: Refresh Refactor Documentation And Package Metadata Expectations",
+        "scripts/v13_release_gate_helpers.py",
+        "uv run python scripts/validate_package_contents.py",
+    ):
+        assert required_text in roadmap
+
+    assert "docs/refactor-v13.md" in root_readme
+    assert "refactor-v13.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

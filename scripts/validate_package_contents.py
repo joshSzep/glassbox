@@ -167,6 +167,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "scripts/validate_v11_release_gate.py",
     "scripts/validate_v12_release_gate.py",
     "scripts/validate_v13_release_gate.py",
+    "scripts/v13_release_gate_helpers.py",
     "src/glassbox/cli/autonomy_commands.py",
     "src/glassbox/cli/branch_search_commands.py",
     "src/glassbox/cli/chat_startup.py",

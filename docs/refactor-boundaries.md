@@ -45,14 +45,13 @@ command-guide surfaces, interactive command handlers, frontend session-store
 helpers, recovery helpers, compaction helpers, turn hooks, and task/background
 projection handlers now follow the helper boundaries described below.
 
-The post-v13 review-loop boundary map is defined but not yet implemented. The
-current v13 surfaces are stable compatibility entrypoints that should not grow
-new behavior while helper modules are extracted in [refactor-v13.md](./refactor-v13.md):
-`runtime/changesets.py`, `cli/changeset_commands.py`,
-`cli/parser_changesets.py`, `web/changeset_api.py`,
-`web/routes/changesets.py`, `frontend/components/console/changeset-console.tsx`,
-`frontend/stores/changeset-store.ts`, and
-`scripts/validate_v13_release_gate.py`.
+The post-v13 review-loop boundary map is implemented through Phase 87 of
+[refactor-v13.md](./refactor-v13.md). Runtime changesets, review feedback,
+manual evidence, verification preview, lifecycle briefs, handoff/commit
+readiness, CLI/TUI/plain review commands, web response builders, route helpers,
+dashboard console sections, frontend store actions/selectors, store projection
+families, repository adapter mixins, and release-gate helper ownership now
+follow the focused boundaries described below.
 
 ## Scope
 
@@ -1315,7 +1314,7 @@ The post-v13 refactor accepts these compatibility surfaces and intended owners:
   new API action groups and selectors belong in changeset store helper modules.
 - `scripts/validate_v13_release_gate.py`: operator entrypoint; new v13 gate
   stage construction, advisory evidence row shaping, dry-run planning, and
-  summary metadata belongs in release-gate helper code.
+  summary metadata belongs in `scripts/v13_release_gate_helpers.py`.
 
 For completed post-v13 extraction slices, guardrails now assert that:
 
@@ -1327,6 +1326,13 @@ For completed post-v13 extraction slices, guardrails now assert that:
   helpers without importing FastAPI.
 - `web/routes/changesets.py` delegates service construction, request coercion,
   workspace-root lookup, and common HTTP errors to route-local helpers.
+- `frontend/components/console/changeset-console.tsx` delegates review-loop
+  presentation sections to `components/console/changeset/`.
+- `frontend/stores/changeset-store.ts` delegates API actions and selectors to
+  focused store helper modules.
+- `scripts/validate_v13_release_gate.py` delegates v13 release-gate stage,
+  advisory-evidence, dry-run, evidence-dir, and summary metadata ownership to
+  `scripts/v13_release_gate_helpers.py`.
 
 ## Patterns That Must Not Become Permanent
 

@@ -1256,7 +1256,7 @@ Completion notes:
 
 ### GBX-R571: Refresh Refactor Documentation And Package Metadata Expectations
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R502, GBX-R570
 - Target files:
   - [README.md](../README.md)
@@ -1278,6 +1278,15 @@ Completion notes:
   - `uv run pytest tests/unit/test_release_candidate_docs.py -q`
   - `uv run pytest tests/unit/test_packaging_metadata.py`
   - `uv run python scripts/validate_package_contents.py`
+
+Completion notes:
+
+- Linked the completed post-v13 refactor roadmap from the root README and docs
+  hub while leaving historical v1/v8/v10/v11 refactor docs intact.
+- Updated architecture and refactor-boundary docs to describe the completed
+  post-v13 helper ownership, compatibility facades, and guardrail expectations.
+- Added `scripts/v13_release_gate_helpers.py` to sdist package-content
+  expectations because the shipped v13 release-gate script imports it.
 
 ### GBX-R572: Run Post-V13 Refactor Release Confidence Sweep
 

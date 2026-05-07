@@ -160,6 +160,7 @@ Start here based on what you need:
 - [docs/architecture.md](docs/architecture.md)
 - [docs/database.md](docs/database.md)
 - [docs/refactor-boundaries.md](docs/refactor-boundaries.md)
+- [docs/refactor-v13.md](docs/refactor-v13.md)
 
 Release evidence and milestone history remain available when you need them:
 

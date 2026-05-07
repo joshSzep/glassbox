@@ -108,8 +108,9 @@ still local-first and event-sourced: canonical events and managed artifacts stay
 authoritative, while projection tables, web payloads, CLI output, and dashboard
 state remain derived views.
 
-The post-v13 refactor keeps the current behavior and public entrypoints while
-splitting the review-loop surfaces that grew during the milestone:
+The completed post-v13 refactor keeps the current behavior and public
+entrypoints while splitting the review-loop surfaces that grew during the
+milestone:
 
 - `runtime/changesets.py` is the stable changeset runtime facade while
     source derivation, workspace diff helpers, query/detail assembly, feedback
@@ -127,12 +128,17 @@ splitting the review-loop surfaces that grew during the milestone:
     entrypoint while changeset list, detail, feedback, evidence, verification,
     handoff, commit-preparation, formatting, and shared rows move under
     `frontend/components/console/changeset/`
+- `frontend/stores/changeset-store.ts` remains the dashboard store facade while
+    action groups and selectors live in `changeset-store-actions.ts` and
+    `changeset-store-selectors.ts`
 - changeset/review-loop store projections and repository adapters continue to
-    derive from canonical events and projection tables, never from dashboard or
-    transport state
+    derive from canonical events and projection tables, with changeset
+    lifecycle, inventory, feedback, manual evidence, query-detail, readiness,
+    and repository adapter families split by owner
 - `scripts/validate_v13_release_gate.py` remains the operator command while
-    v13-specific gate stage construction and advisory evidence summaries move
-    into release-gate helpers
+    v13-specific gate stage construction, advisory evidence summaries, dry-run
+    planning, evidence-dir resolution, and release summary metadata live in
+    `scripts/v13_release_gate_helpers.py`
 
 These splits must preserve the v13 non-claims described in
 [v13-review-loop-contract.md](./v13-review-loop-contract.md) and
