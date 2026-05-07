@@ -10,9 +10,9 @@ Glassbox has two documentation layers:
 Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
-v12 reviewable-change contract is the current implemented review lifecycle, and
-the v13 review-loop contract scopes the next planning track after the v12
-release candidate.
+v13 review-loop contract is the current implemented review lifecycle, and the
+v14 review-loop maturity task graph scopes the next planning track after the
+v13 release candidate and post-v13 refactor.
 
 ## Start Here
 
@@ -52,6 +52,10 @@ release candidate.
 - [v13-release-candidate.md](./v13-release-candidate.md): v13
   release-candidate guide for the supported review-loop operating model,
   validation path, advisory evidence expectations, residual risks, and decision
+- [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
+  rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
+  advisory evidence, review-loop command discovery, fresh browser/accessibility
+  advisory evidence, evals, dogfooding, and release signoff
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -101,6 +105,10 @@ release candidate.
 - [v13-release-candidate.md](./v13-release-candidate.md): v13
   release-candidate guide for review-loop release authority, evidence
   expectations, advisory non-claims, accepted residual risks, and decision
+- [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
+  rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
+  advisory evidence, command discovery, advisory UX evidence, dogfooding, and
+  release signoff
 - [v12-dogfooding-summary.md](./v12-dogfooding-summary.md): sanitized v12
   dogfooding findings for changeset creation, review briefs, verification
   readiness, commit preparation, branch-candidate adoption, topology
