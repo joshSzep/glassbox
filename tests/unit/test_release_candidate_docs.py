@@ -1001,6 +1001,50 @@ def test_v14_advisory_dashboard_evidence_summary_is_bounded() -> None:
     assert "v14-advisory-dashboard-evidence.md" in docs_readme
 
 
+def test_v14_advisory_accessibility_evidence_summary_is_bounded() -> None:
+    content = (REPO_ROOT / "docs" / "v14-advisory-accessibility-evidence.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "# V14 Advisory Accessibility Evidence Summary",
+        "GBX-1452",
+        ".glassbox/releases/v14-advisory-review-evidence/accessibility/",
+        "## Observed Coverage",
+        "Keyboard path",
+        "Focus affordance",
+        "Responsive layout",
+        "Advisory copy",
+        "## Accessibility Evidence Fields",
+        "/app/changesets/changeset-1",
+        "local static server for the production frontend build",
+        "Chromium through Playwright",
+        "1440x900 landscape and 390x844 portrait",
+        "Keyboard path checked",
+        "Focus-visible observation",
+        "Console status: checked, no browser console errors or page errors observed",
+        "## Skipped Coverage",
+        "Screen-reader pairing",
+        "Automated contrast tooling",
+        "Complete tab-order audit",
+        "Live backend dogfooding changeset attachment",
+        "## Findings",
+        "## Non-Claims",
+        "accessibility evidence is not certification or WCAG conformance",
+        "no screen-reader behavior was certified",
+        "automated contrast tooling was not run",
+        "this pass is not a complete tab-order audit",
+        "advisory evidence is not deterministic release authority",
+        "Glassbox did not stage, commit, push, open a PR, merge, deploy, or publish",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-advisory-accessibility-evidence.md" in root_readme
+    assert "v14-advisory-accessibility-evidence.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"

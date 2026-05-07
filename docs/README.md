@@ -71,6 +71,10 @@ after the v13 release candidate and post-v13 refactor.
   fresh v14 advisory browser walkthrough summary for the changeset dashboard,
   feedback status, skipped-evidence copy, fixup action affordance, and handoff
   posture
+- [v14-advisory-accessibility-evidence.md](./v14-advisory-accessibility-evidence.md):
+  fresh v14 advisory accessibility pairing summary for keyboard focus,
+  focused action activation, responsive wrapping, skipped screen-reader checks,
+  skipped contrast tooling, and non-certification claims
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
@@ -138,6 +142,9 @@ after the v13 release candidate and post-v13 refactor.
 - [v14-advisory-dashboard-evidence.md](./v14-advisory-dashboard-evidence.md):
   retained v14 advisory dashboard browser evidence summary for the production
   static build and fixture-backed changeset route
+- [v14-advisory-accessibility-evidence.md](./v14-advisory-accessibility-evidence.md):
+  retained v14 advisory accessibility evidence summary for focused keyboard,
+  focus-visible, responsive layout, and skipped assistive-technology coverage
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, command discovery, advisory UX evidence, dogfooding, and

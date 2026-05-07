@@ -759,7 +759,7 @@ supersedes it.
 
 ### GBX-1452: Run Fresh Accessibility Pairing Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1450`
 - Goal: retain one fresh advisory accessibility pairing pass for the matured
   review-loop surfaces
