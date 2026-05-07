@@ -1108,7 +1108,7 @@ Completion notes:
 
 ### GBX-R560: Split Changeset Projection Event Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R500, GBX-R520, GBX-R521, GBX-R523
 - Target files:
   - `src/glassbox/store/sqlite_projection_changesets.py`
@@ -1129,6 +1129,22 @@ Completion notes:
   - `uv run pytest tests/integration/test_changeset_projection.py`
   - `uv run pytest tests/integration/test_review_loop_projection.py`
   - `uv run pytest tests/integration/test_sqlite_projections.py -k changeset`
+
+Completion notes:
+
+- Kept `sqlite_projection_changesets.py` as the stable projection coordinator
+  and moved lifecycle, source, readiness, review brief, adoption, and archive
+  handlers into `sqlite_projection_changeset_lifecycle.py`.
+- Moved changeset inventory and verification posture handlers into
+  `sqlite_projection_changeset_inventory.py`.
+- Kept `sqlite_projection_review_loop.py` as the stable projection coordinator
+  and moved feedback, scope, disposition, response, risk, and fixup inventory
+  handlers into `sqlite_projection_review_feedback.py`.
+- Moved manual evidence attach, reject, supersede, and archive handlers into
+  `sqlite_projection_manual_evidence.py`.
+- The documented `test_sqlite_projections.py -k changeset` selector currently
+  matches no tests, so the full `test_sqlite_projections.py` suite was run for
+  rebuild coverage.
 
 ### GBX-R561: Split Changeset Query Helpers
 
