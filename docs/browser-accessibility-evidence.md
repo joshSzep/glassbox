@@ -34,10 +34,15 @@ Every live review evidence record should carry:
 - attached target IDs, such as changeset, feedback, response, or brief IDs
 - source label
 - operator label
-- environment, including local, preview, fixture, or live workspace posture
-- browser, version when available, operating system, and device class
-- route or target URL label without secrets
-- viewport width and height, plus orientation when useful
+- capture state: `observed`, `not_run`, or `not_applicable`
+- environment, including local, preview, fixture, live workspace posture, or
+  `unknown` for skipped evidence
+- browser, version when available, operating system, and device class; skipped
+  evidence may record `unknown`
+- route or target URL label without secrets; skipped evidence may record
+  `unknown` when no route was opened
+- viewport width and height, plus orientation when useful; skipped evidence may
+  record `unknown` instead of inventing dimensions
 - date and observation time
 - input method, such as mouse, keyboard, touch, or screen reader pairing
 - screenshot metadata or local artifact reference when present
@@ -48,8 +53,14 @@ Every live review evidence record should carry:
 - redaction status
 - freshness posture
 
-If a required field is unknown, record `unknown` with a limitation instead of
-silently omitting it.
+If a field is unknown, record `unknown` with a limitation instead of silently
+omitting it. For `observed` browser or dashboard evidence, route, environment,
+and viewport are still required because a live browser claim must name what was
+actually opened. For skipped browser or dashboard evidence, route, environment,
+browser, viewport, console, and input-method details may be unknown. For
+`observed` accessibility evidence, environment and observed issue are required;
+for skipped accessibility evidence, environment, tool, route, reviewer, and
+assistive-technology details may be unknown.
 
 ## Skipped Advisory Evidence
 
@@ -64,12 +75,16 @@ covered. The record should name what was skipped, why it was skipped, which
 claims remain unmade, and which safe inspection command or protocol can collect
 fresh evidence later.
 
-Current browser and dashboard CLI/API surfaces still require concrete viewport
-dimensions. Until the v14 skipped-evidence model adds unknown or
-not-applicable environment fields, use a real captured viewport only when one
-was observed and add `--skipped-case` for every unobserved live case. Do not
-invent a live browser pass or call skipped evidence verified, accessible, or
-passed.
+The v14 skipped-evidence model supports `not_run` and `not_applicable` capture
+states without fake viewport dimensions, fake browser details, fake console
+checks, fake observed issues, or fake assistive-technology passes. A skipped
+record must include a skip reason or skipped cases. It must not include
+`observed_at`, screenshot metadata, a positive console-checked claim, an
+accessibility observed issue, paired tool output, or follow-up text that reads
+as though a live pass occurred. CLI and API flags for these states are added in
+the follow-on v14 task; until those operator surfaces are available, keep
+manual skipped evidence explicit and do not call it verified, accessible, or
+passed. Do not invent a live browser pass to satisfy a skipped evidence record.
 
 ## Live Dashboard Walkthrough Protocol
 

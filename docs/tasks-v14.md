@@ -549,7 +549,7 @@ supersedes it.
 
 ### GBX-1430: Define Skipped Browser, Dashboard, And Accessibility Evidence Model
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1401`, `GBX-1402`
 - Goal: make intentionally skipped advisory evidence a first-class, bounded
   local evidence shape

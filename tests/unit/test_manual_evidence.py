@@ -57,6 +57,36 @@ def test_manual_evidence_artifact_is_summary_first_and_local_only() -> None:
     assert str(evidence_id) in payload
 
 
+def test_manual_evidence_artifact_can_retain_skipped_advisory_non_claims() -> None:
+    artifact = manual_evidence_artifact(
+        evidence_id=new_manual_evidence_id(),
+        evidence_kind=ManualEvidenceKind.BROWSER_OBSERVATION,
+        summary="operator intentionally skipped dashboard walkthrough",
+        source_label="dashboard-local",
+        targets=[
+            ManualEvidenceTargetRef(
+                target_kind=ManualEvidenceTargetKind.CHANGESET,
+                target_id=str(new_changeset_id()),
+            )
+        ],
+        candidate_text=(
+            "capture_state: not_run\n"
+            "viewport: unknown\n"
+            "skip_reason: local server was not started"
+        ),
+        freshness=ManualEvidenceFreshness.UNKNOWN,
+        extra_limitations=[
+            "skipped browser/dashboard evidence is not a pass",
+            "viewport is unknown because no live pass was run",
+        ],
+        extra_non_claims=["skipped evidence is not passed evidence"],
+    )
+
+    assert artifact.freshness == ManualEvidenceFreshness.UNKNOWN
+    assert "skipped browser/dashboard evidence is not a pass" in artifact.limitations
+    assert "skipped evidence is not passed evidence" in artifact.non_claims
+
+
 @pytest.mark.parametrize(
     ("text", "code"),
     [
