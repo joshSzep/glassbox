@@ -1290,7 +1290,7 @@ Completion notes:
 
 ### GBX-R572: Run Post-V13 Refactor Release Confidence Sweep
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: all previous tasks
 - Target files:
   - [refactor-v13.md](./refactor-v13.md)
@@ -1318,6 +1318,19 @@ Completion notes:
   - `pnpm --dir frontend build`
   - `uv run python scripts/validate_v13_release_gate.py --dry-run`
 
+Completion notes:
+
+- Ran the post-refactor confidence sweep on May 7, 2026: Python format, lint,
+  typecheck, full pytest, frontend lint/typecheck/tests/build, v13 release-gate
+  dry run, and pre-commit all-files validation all passed.
+- Retained the v13 dry-run summary at
+  `.glassbox/releases/20260507T020828Z-v13-gate/summary.json`; it planned 62
+  blocking stages, skipped the three advisory provider/browser/accessibility
+  rows by default, and required no eval or replay baseline refresh.
+- Documented the remaining compatibility facades and intended owners below.
+- Product follow-up candidates remain bounded to dogfooding and release review
+  findings; none were promoted into refactor-only behavior changes.
+
 ## Accepted Product Follow-Up Candidates
 
 These findings came from v13 dogfooding and release-candidate evidence. They
@@ -1343,14 +1356,38 @@ contract explicitly changes them.
 The following facades are acceptable during this roadmap as long as they remain
 thin and delegate to owned helpers after the relevant phase completes:
 
-- `src/glassbox/runtime/changesets.py`
-- `src/glassbox/cli/changeset_commands.py`
-- `src/glassbox/cli/parser_changesets.py`
-- `src/glassbox/web/changeset_api.py`
-- `src/glassbox/web/routes/changesets.py`
-- `frontend/components/console/changeset-console.tsx`
-- `frontend/stores/dashboard-stores.ts`
-- `scripts/validate_v13_release_gate.py`
+- `src/glassbox/runtime/changesets.py`: stable runtime import facade over
+  changeset source, query, feedback, evidence, verification, command-evidence,
+  lifecycle brief, handoff, and commit-readiness helpers.
+- `src/glassbox/cli/changeset_commands.py`: scriptable command facade over
+  changeset service wiring, command handlers, payload shaping, and formatting
+  helpers.
+- `src/glassbox/cli/parser_changesets.py`: parser entrypoint over changeset,
+  feedback, evidence, review, handoff, and commit-preparation parser families.
+- TUI and plain interactive review entrypoints: stable user-facing command
+  surfaces over review-loop parsing and action-routing helpers.
+- `src/glassbox/web/changeset_api.py`: response-model facade over focused web
+  changeset/review-loop models and response builders.
+- `src/glassbox/web/routes/changesets.py`: FastAPI declaration surface over
+  route-local service factories, request coercion, workspace lookup, and HTTP
+  error helpers.
+- `frontend/components/console/changeset-console.tsx`: dashboard entrypoint
+  over focused changeset list, detail, feedback, evidence, verification,
+  handoff, and commit-preparation sections.
+- `frontend/stores/changeset-store.ts`: store factory facade over changeset API
+  actions and selector helpers.
+- `src/glassbox/store/sqlite_projection_changesets.py` and
+  `src/glassbox/store/sqlite_projection_review_loop.py`: projection
+  coordinator facades over lifecycle, inventory, feedback, and manual-evidence
+  event-family handlers.
+- `src/glassbox/store/sqlite_query_changesets.py` and
+  `src/glassbox/store/sqlite_query_review_loop.py`: query facades over
+  changeset detail, review-feedback, and manual-evidence read helpers.
+- `src/glassbox/store/repository_changesets.py` and
+  `src/glassbox/store/repository_review_loop.py`: repository adapter facades
+  over detail, readiness, feedback, and manual-evidence mixins.
+- `scripts/validate_v13_release_gate.py`: operator entrypoint over
+  `scripts/v13_release_gate_helpers.py`.
 
 Do not add new behavior to these facades once their helper owners exist. New
 behavior should land in the focused owner module and be re-exported only when a

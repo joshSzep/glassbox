@@ -208,6 +208,13 @@ The current retained v13 evidence shows:
 - browser/dashboard and accessibility evidence: optional and advisory; the v13
   gate retained explicit structured skips, while `GBX-1392` retained bounded
   skipped-evidence dogfooding notes
+- post-refactor confidence sweep: passed on May 7, 2026 after the post-v13
+  review-loop refactor, covering Python format/lint/typecheck, full pytest,
+  frontend lint/typecheck/tests/build, package-content validation, and a v13
+  release-gate dry run retained at
+  `.glassbox/releases/20260507T020828Z-v13-gate/summary.json`
+- replay/eval drift: none observed during the post-refactor confidence sweep;
+  no baseline refresh was required
 
 ## Known Residual Risks
 
@@ -277,6 +284,7 @@ Final pass/fail state:
 | Provider posture | advisory skipped | v13 gate advisory provider evidence section |
 | Browser/dashboard posture | advisory skipped | v13 gate advisory browser evidence section plus dogfooding notes |
 | Accessibility posture | advisory skipped | v13 gate advisory accessibility evidence section plus dogfooding notes |
+| Post-refactor confidence sweep | passed | `.glassbox/releases/20260507T020828Z-v13-gate/summary.json` plus local full-stack validation |
 | Residual risk review | accepted | known residual risks listed above |
 
 No deterministic blocker remains open for v13 release-candidate publication.
