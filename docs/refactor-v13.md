@@ -1224,7 +1224,7 @@ Completion notes:
 
 ### GBX-R570: Extract V13 Release-Gate Helper Owners
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R500
 - Target files:
   - `scripts/validate_v13_release_gate.py`
@@ -1243,6 +1243,16 @@ Completion notes:
 - Validation:
   - `uv run pytest tests/unit/test_v13_release_gate.py`
   - `uv run python scripts/validate_v13_release_gate.py --dry-run`
+
+Completion notes:
+
+- Added `scripts/v13_release_gate_helpers.py` for v13 stage construction,
+  dry-run planning, advisory provider relabeling, browser/accessibility
+  advisory rows, evidence-dir resolution, and summary metadata shaping.
+- Kept `scripts/validate_v13_release_gate.py` as the operator CLI entrypoint
+  with compatibility wrappers for existing tests/imports.
+- Added direct helper coverage for v13 release-authority metadata while
+  preserving dry-run summary shape and advisory/non-blocking evidence rows.
 
 ### GBX-R571: Refresh Refactor Documentation And Package Metadata Expectations
 

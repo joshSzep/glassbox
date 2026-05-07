@@ -5,6 +5,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts import v13_release_gate_helpers as v13_helpers
 from scripts import validate_v13_release_gate as v13_gate
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -139,3 +140,22 @@ def test_v13_advisory_browser_and_accessibility_evidence_is_structured(
             "required_for_release": False,
         },
     ]
+
+
+def test_v13_helper_summary_metadata_marks_review_loop_authority(
+    tmp_path: Path,
+) -> None:
+    summary = v13_helpers.new_evidence_summary(
+        tmp_path / "evidence",
+        include_provider_canaries=False,
+        dry_run=True,
+    )
+
+    assert summary["gate"] == "v13-release"
+    assert summary["artifacts"]["v13_review_loop_contract"] == (
+        "docs/v13-review-loop-contract.md"
+    )
+    assert (
+        "v13 review-loop eval smoke"
+        in summary["release_authority"]["blocking_evidence"]
+    )
