@@ -27,6 +27,8 @@ export type ChangesetDetailResponse = components["schemas"]["ChangesetDetailResp
 export type ChangesetListPageResponse = components["schemas"]["ChangesetListPageResponse"];
 export type ChangesetActionResponse = components["schemas"]["ChangesetActionResponse"];
 export type ReviewFeedbackActionResponse = components["schemas"]["ReviewFeedbackActionResponse"];
+export type ReviewFeedbackFixupInventoryActionResponse =
+  components["schemas"]["ReviewFeedbackFixupInventoryActionResponse"];
 export type ManualEvidenceActionResponse = components["schemas"]["ManualEvidenceActionResponse"];
 export type CommitReadinessResponse = components["schemas"]["CommitReadinessResponse"];
 export type HandoffReadinessResponse = components["schemas"]["HandoffReadinessResponse"];
@@ -638,6 +640,31 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
             scope_reason: input.scopeReason ?? null,
             source_label: input.sourceLabel ?? null,
             summary: input.summary,
+          },
+        },
+      ),
+
+    recordReviewFeedbackFixupInventory: (
+      input: {
+        actor?: string;
+        feedbackId: string;
+        fromWorkspace?: boolean;
+        paths?: string[];
+        sourceSummary?: string;
+      },
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<ReviewFeedbackFixupInventoryActionResponse>(
+        "POST",
+        `/changesets/feedback/${encodeURIComponent(input.feedbackId)}/fixup`,
+        {
+          ...requestOptions,
+          body: {
+            actor: input.actor ?? "operator",
+            from_workspace: input.fromWorkspace ?? true,
+            paths: input.paths ?? [],
+            source_summary:
+              input.sourceSummary ?? "dashboard recorded response-linked workspace inventory",
           },
         },
       ),

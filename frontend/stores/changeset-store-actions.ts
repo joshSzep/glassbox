@@ -216,6 +216,42 @@ export function createChangesetStoreActions({
         set({ action: createFailedActionStatus("preview-verification", error) });
       }
     },
+    recordFeedbackFixupInventory: async (feedbackId) => {
+      const currentDetail = get().detail.detail;
+      const selectedChangesetId = requireSelectedChangesetId(get().detail);
+      const response = currentDetail?.review_response_summary.items.find(
+        (item) => item.feedback_id === feedbackId,
+      );
+      set({ action: createPendingActionStatus("record-feedback-fixup") });
+      try {
+        if (response?.safe_next_actions[0]) {
+          set((state) => ({
+            detail: {
+              ...state.detail,
+              lastActionMessage: `Inspect first: ${response.safe_next_actions[0]}`,
+            },
+          }));
+        }
+        const fixup = await apiClient.recordReviewFeedbackFixupInventory({
+          feedbackId,
+          fromWorkspace: true,
+        });
+        await reloadSelectedChangeset(apiClient, fixup.changeset_id, set, {
+          lastActionMessage:
+            `Fixup inventory ${fixup.artifact_id} recorded for feedback ${feedbackId}; ` +
+            "reviewer approval is not implied.",
+        });
+        set({ action: createSucceededActionStatus("record-feedback-fixup") });
+        await get().loadChangesetPage();
+      } catch (error) {
+        set({ action: createFailedActionStatus("record-feedback-fixup", error) });
+        if (currentDetail !== null) {
+          await reloadSelectedChangeset(apiClient, selectedChangesetId, set, {
+            lastActionMessage: "Fixup inventory was not recorded.",
+          });
+        }
+      }
+    },
     refreshChangeset: async (changesetId) => {
       const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
       set({ action: createPendingActionStatus("refresh-changeset") });

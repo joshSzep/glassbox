@@ -208,6 +208,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/feedback/{feedback_id}/fixup": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Record Review Feedback Fixup Inventory
+     * @description Record response-linked fixup inventory for one feedback item.
+     */
+    post: operations["record_review_feedback_fixup_inventory_changesets_feedback__feedback_id__fixup_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/feedback/{feedback_id}/reopen": {
     parameters: {
       query?: never;
@@ -4433,6 +4453,70 @@ export interface components {
       /** Scopes */
       scopes: components["schemas"]["ReviewFeedbackScopeResponse"][];
     };
+    /** ReviewFeedbackFixupInventoryActionResponse */
+    ReviewFeedbackFixupInventoryActionResponse: {
+      /** Artifact Id */
+      artifact_id: string;
+      /** Artifact Path */
+      artifact_path: string;
+      /** Changed Path Count */
+      changed_path_count: number;
+      /** Changeset Id */
+      changeset_id: string;
+      /** Event Sequence */
+      event_sequence: number;
+      /** Feedback Id */
+      feedback_id: string;
+      /** Inventory Freshness */
+      inventory_freshness: string;
+      /** Matched Scope Path Count */
+      matched_scope_path_count: number;
+      /** Non Claims */
+      non_claims: string[];
+      /** Path Summaries */
+      path_summaries: string[];
+      response_status: components["schemas"]["ReviewFeedbackResponseStatusResponse"];
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Session Id */
+      session_id: string;
+      status: components["schemas"]["ReviewFeedbackFixupInventoryStatusResponse"];
+    };
+    /** ReviewFeedbackFixupInventoryRequest */
+    ReviewFeedbackFixupInventoryRequest: {
+      /**
+       * Actor
+       * @default operator
+       */
+      actor: string;
+      /**
+       * From Workspace
+       * @default true
+       */
+      from_workspace: boolean;
+      /** Paths */
+      paths?: string[];
+      /**
+       * Source Summary
+       * @default dashboard recorded response-linked workspace inventory
+       */
+      source_summary: string;
+    };
+    /** ReviewFeedbackFixupInventoryStatusResponse */
+    ReviewFeedbackFixupInventoryStatusResponse: {
+      /** Current Source Digest */
+      current_source_digest?: string | null;
+      /** Freshness */
+      freshness: string;
+      /** Reason */
+      reason?: string | null;
+      /** Recorded Source Digest */
+      recorded_source_digest?: string | null;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Stale */
+      stale: boolean;
+    };
     /** ReviewFeedbackListPageResponse */
     ReviewFeedbackListPageResponse: {
       /** Items */
@@ -6562,6 +6646,50 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ReviewFeedbackActionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  record_review_feedback_fixup_inventory_changesets_feedback__feedback_id__fixup_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        feedback_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ReviewFeedbackFixupInventoryRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ReviewFeedbackFixupInventoryActionResponse"];
         };
       };
       /** @description Not Found */

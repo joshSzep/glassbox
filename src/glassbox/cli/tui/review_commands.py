@@ -41,6 +41,10 @@ def review_slash_command(rest: str) -> TerminalSlashCommand:
         return TerminalSlashCommand(
             TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS, argument
         )
+    if subcommand in {"fixup", "fixup-inventory", "record-fixup"}:
+        return TerminalSlashCommand(
+            TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP, argument
+        )
     return TerminalSlashCommand(
         TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
         f"{subcommand} {argument}".strip() if argument else subcommand,
@@ -69,6 +73,7 @@ def review_disabled_reason(
         TerminalCommandId.REVIEW_PREVIEW_VERIFICATION,
         TerminalCommandId.REVIEW_INSPECT_HANDOFF,
         TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
+        TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP,
     }:
         if state.header.cwd is None:
             return "workspace unavailable"
@@ -222,4 +227,6 @@ def review_action_for_command(
         return ReviewLoopAction.INSPECT_HANDOFF
     if command_id == TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS:
         return ReviewLoopAction.SHOW_FEEDBACK_STATUS
+    if command_id == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP:
+        return ReviewLoopAction.RECORD_FEEDBACK_FIXUP
     return None

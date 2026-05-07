@@ -425,6 +425,7 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
       jsonResponse({ evidence: { evidence_id: "evidence/1" } }),
+      jsonResponse({ artifact_id: "fixup/1" }),
     ]);
     const client = createGlassboxApiClient({ fetch });
 
@@ -444,6 +445,11 @@ describe("createGlassboxApiClient", () => {
       sourceLabel: "operator note",
       summary: "manual note",
     });
+    await client.recordReviewFeedbackFixupInventory({
+      feedbackId: "feedback/1",
+      paths: ["src/app.py"],
+      fromWorkspace: false,
+    });
 
     expect(calls.map((call) => call.input)).toEqual([
       "/changesets?limit=10&session_id=session%2F1",
@@ -454,6 +460,7 @@ describe("createGlassboxApiClient", () => {
       "/changesets/changeset%2F1/brief",
       "/changesets/changeset%2F1/refresh",
       "/changesets/changeset%2F1/manual-evidence",
+      "/changesets/feedback/feedback%2F1/fixup",
     ]);
     expect(calls[5].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
     expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator" }));
@@ -468,6 +475,14 @@ describe("createGlassboxApiClient", () => {
         summary: "manual note",
         target_id: "changeset/1",
         target_kind: "changeset",
+      }),
+    );
+    expect(calls[8].init?.body).toBe(
+      JSON.stringify({
+        actor: "operator",
+        from_workspace: false,
+        paths: ["src/app.py"],
+        source_summary: "dashboard recorded response-linked workspace inventory",
       }),
     );
   });

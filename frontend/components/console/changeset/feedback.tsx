@@ -1,9 +1,11 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
-import type { ChangesetDetailState } from "@/stores/dashboard-stores";
+import type { ChangesetActionStatus, ChangesetDetailState } from "@/stores/dashboard-stores";
 
 import { readinessBadgeVariant } from "./format";
 import { Section } from "./shared";
+import type { ChangesetConsoleProps } from "./types";
 
 type ChangesetDetailRecord = NonNullable<ChangesetDetailState["detail"]>;
 
@@ -48,7 +50,15 @@ export function ReviewPanel({
   );
 }
 
-export function ReviewFeedbackPanel({ detail }: { detail: ChangesetDetailRecord }) {
+export function ReviewFeedbackPanel({
+  action,
+  detail,
+  onRecordFeedbackFixup,
+}: {
+  action: ChangesetActionStatus;
+  detail: ChangesetDetailRecord;
+  onRecordFeedbackFixup?: ChangesetConsoleProps["onRecordFeedbackFixup"];
+}) {
   const feedback = detail.review_feedback;
   const responseSummary = detail.review_response_summary;
   const responseByFeedbackId = new Map(
@@ -97,7 +107,20 @@ export function ReviewFeedbackPanel({ detail }: { detail: ChangesetDetailRecord 
               const response = responseByFeedbackId.get(item.feedback_id);
               return (
                 <DataListItem key={item.feedback_id}>
-                  <DataListLabel>{item.summary}</DataListLabel>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <DataListLabel>{item.summary}</DataListLabel>
+                    <Button
+                      disabled={action.state === "pending" || onRecordFeedbackFixup === undefined}
+                      onClick={() => onRecordFeedbackFixup?.(item.feedback_id)}
+                      size="sm"
+                      type="button"
+                      variant={
+                        response && response.fixup_inventory_count > 0 ? "outline" : "default"
+                      }
+                    >
+                      Fixup
+                    </Button>
+                  </div>
                   <DataListMeta>
                     {item.feedback_kind} - {item.disposition} - {item.provenance}
                     {item.reviewer_label ? ` - ${item.reviewer_label}` : ""}
@@ -119,9 +142,13 @@ export function ReviewFeedbackPanel({ detail }: { detail: ChangesetDetailRecord 
                       </DataListMeta>
                       {response.verification_safe_next_actions.slice(0, 1).map((action) => (
                         <DataListMeta className="break-all" key={action}>
-                          {action}
+                          Inspect first: {action}
                         </DataListMeta>
                       ))}
+                      <DataListMeta className="break-all">
+                        glassbox changeset feedback fixup {item.feedback_id} --from-workspace --cwd
+                        .
+                      </DataListMeta>
                       {response.path_summaries.slice(0, 2).map((summary) => (
                         <DataListMeta key={summary}>{summary}</DataListMeta>
                       ))}

@@ -3,12 +3,19 @@
 import asyncio
 import subprocess
 from pathlib import Path
+from typing import cast
+from uuid import UUID
 
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
 from glassbox.cli.interactive_client import ReviewLoopAction
 from glassbox.core import ChangesetSourceKind
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackScopeKind
 from glassbox.core import SessionConfig
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
+from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.changesets import ReviewFeedbackActionService
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
 
@@ -42,6 +49,22 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
         result = await client.create_review_changeset(
             objective="Review current terminal UX work"
         )
+        assert result.changeset_id is not None
+        feedback = ReviewFeedbackActionService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions)
+        ).add_feedback(
+            UUID(result.changeset_id),
+            feedback_kind=ReviewFeedbackKind.REQUESTED_CHANGE,
+            provenance=ReviewFeedbackProvenance.REVIEWER,
+            summary="Explain the terminal review copy",
+            created_by="tester",
+            scope_kind=ReviewFeedbackScopeKind.FILE,
+            file_path="app.py",
+        )
+        fixup = await client.run_review_action(
+            ReviewLoopAction.RECORD_FEEDBACK_FIXUP,
+            changeset_id=str(feedback.feedback.feedback_id),
+        )
         status = await client.run_review_action(
             ReviewLoopAction.STATUS,
             changeset_id=result.changeset_id,
@@ -57,7 +80,6 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
             changesets[0].changeset_id,
         )
 
-        assert result.changeset_id is not None
         assert "Created review changeset" in result.headline
         assert result.dashboard_path == f"/app/changesets/{result.changeset_id}"
         assert any("workspace diff has" in item for item in result.limitations)
@@ -67,6 +89,9 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
         assert sources[0].source_session_id == state.session_id
         assert status.changeset_id == result.changeset_id
         assert "Review status" in status.headline
+        assert fixup.changeset_id == result.changeset_id
+        assert "Recorded fixup inventory" in fixup.headline
+        assert any("No tests, staging" in detail for detail in fixup.details)
     finally:
         connection.close()
 

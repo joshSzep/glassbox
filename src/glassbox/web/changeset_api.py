@@ -28,6 +28,9 @@ from glassbox.web.changeset_api_builders import build_manual_evidence_action_res
 from glassbox.web.changeset_api_builders import build_manual_evidence_response
 from glassbox.web.changeset_api_builders import build_review_feedback_action_response
 from glassbox.web.changeset_api_builders import build_review_feedback_detail_response
+from glassbox.web.changeset_api_builders import (
+    build_review_feedback_fixup_inventory_action_response,
+)
 from glassbox.web.changeset_api_builders import build_review_feedback_response
 from glassbox.web.changeset_api_builders import (
     build_review_feedback_response_status_response,
@@ -86,6 +89,9 @@ from glassbox.web.review_loop_api import ReviewFeedbackActionResponse
 from glassbox.web.review_loop_api import ReviewFeedbackArchiveRequest
 from glassbox.web.review_loop_api import ReviewFeedbackCreateRequest
 from glassbox.web.review_loop_api import ReviewFeedbackDetailResponse
+from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryActionResponse
+from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryRequest
+from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryStatusResponse
 from glassbox.web.review_loop_api import ReviewFeedbackListPageResponse
 from glassbox.web.review_loop_api import ReviewFeedbackReopenRequest
 from glassbox.web.review_loop_api import ReviewFeedbackResolveRequest
@@ -116,6 +122,7 @@ __all__ = (
     "build_review_response_summary_response",
     "build_review_feedback_detail_response",
     "build_review_feedback_action_response",
+    "build_review_feedback_fixup_inventory_action_response",
     "build_changeset_readiness_response",
     "_optional_str",
     "_review_feedback_non_claims",
@@ -169,6 +176,9 @@ __all__ = (
     "ReviewFeedbackReopenRequest",
     "ReviewFeedbackArchiveRequest",
     "ReviewFeedbackAcceptRiskRequest",
+    "ReviewFeedbackFixupInventoryRequest",
+    "ReviewFeedbackFixupInventoryStatusResponse",
+    "ReviewFeedbackFixupInventoryActionResponse",
     "ReviewFeedbackListPageResponse",
     "ReviewFeedbackDetailResponse",
     "ReviewFeedbackActionResponse",

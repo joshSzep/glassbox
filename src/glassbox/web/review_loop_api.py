@@ -310,6 +310,43 @@ class ReviewFeedbackAcceptRiskRequest(BaseModel):
     actor: str = Field(default="operator", min_length=1, max_length=200)
 
 
+class ReviewFeedbackFixupInventoryRequest(BaseModel):
+    from_workspace: bool = True
+    paths: list[str] = Field(default_factory=list, max_length=100)
+    source_summary: str = Field(
+        default="dashboard recorded response-linked workspace inventory",
+        min_length=1,
+        max_length=2000,
+    )
+    actor: str = Field(default="operator", min_length=1, max_length=200)
+
+
+class ReviewFeedbackFixupInventoryStatusResponse(BaseModel):
+    freshness: str
+    stale: bool
+    reason: str | None = None
+    recorded_source_digest: str | None = None
+    current_source_digest: str | None = None
+    safe_next_actions: list[str]
+
+
+class ReviewFeedbackFixupInventoryActionResponse(BaseModel):
+    feedback_id: str
+    changeset_id: str
+    session_id: str
+    artifact_id: str
+    artifact_path: str
+    event_sequence: int
+    changed_path_count: int
+    matched_scope_path_count: int
+    inventory_freshness: str
+    path_summaries: list[str]
+    status: ReviewFeedbackFixupInventoryStatusResponse
+    response_status: ReviewFeedbackResponseStatusResponse
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
 class ReviewFeedbackListPageResponse(BaseModel):
     items: list[ReviewFeedbackResponse]
     response_summary: ChangesetReviewResponseSummaryResponse | None = None
@@ -347,6 +384,9 @@ __all__ = (
     "ReviewFeedbackReopenRequest",
     "ReviewFeedbackArchiveRequest",
     "ReviewFeedbackAcceptRiskRequest",
+    "ReviewFeedbackFixupInventoryRequest",
+    "ReviewFeedbackFixupInventoryStatusResponse",
+    "ReviewFeedbackFixupInventoryActionResponse",
     "ReviewFeedbackListPageResponse",
     "ReviewFeedbackDetailResponse",
     "ReviewFeedbackActionResponse",

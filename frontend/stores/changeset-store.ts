@@ -28,6 +28,7 @@ export type ChangesetActionKind =
   | "inspect-feedback"
   | "inspect-handoff"
   | "preview-verification"
+  | "record-feedback-fixup"
   | "refresh-changeset";
 
 export type ChangesetActionStatus = StoreActionStatus<ChangesetActionKind>;
@@ -71,6 +72,7 @@ export type ChangesetStoreActions = {
   inspectHandoff: (changesetId?: string) => Promise<void>;
   loadChangesetPage: (query?: { sessionId?: string | null }) => Promise<void>;
   previewVerification: (changesetId?: string) => Promise<void>;
+  recordFeedbackFixupInventory: (feedbackId: string) => Promise<void>;
   refreshChangeset: (changesetId?: string) => Promise<void>;
   reset: () => void;
   selectChangeset: (changesetId: string) => Promise<void>;

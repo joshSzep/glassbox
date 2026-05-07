@@ -32,6 +32,7 @@ export function ChangesetConsole({
   onInspectFeedbackStatus,
   onInspectHandoff,
   onPreviewVerification,
+  onRecordFeedbackFixup,
   onRefresh,
   onRefreshChangeset,
   onSelectChangeset,
@@ -76,6 +77,7 @@ export function ChangesetConsole({
             onInspectFeedbackStatus={onInspectFeedbackStatus}
             onInspectHandoff={onInspectHandoff}
             onPreviewVerification={onPreviewVerification}
+            onRecordFeedbackFixup={onRecordFeedbackFixup}
             onRefreshChangeset={onRefreshChangeset}
             onShowList={onShowList}
           />
@@ -93,6 +95,7 @@ function ChangesetDetail({
   onInspectFeedbackStatus,
   onInspectHandoff,
   onPreviewVerification,
+  onRecordFeedbackFixup,
   onRefreshChangeset,
   onShowList,
 }: {
@@ -103,6 +106,7 @@ function ChangesetDetail({
   onInspectFeedbackStatus?: () => void;
   onInspectHandoff?: () => void;
   onPreviewVerification?: () => void;
+  onRecordFeedbackFixup?: ChangesetConsoleProps["onRecordFeedbackFixup"];
   onRefreshChangeset?: () => void;
   onShowList?: () => void;
 }) {
@@ -170,7 +174,11 @@ function ChangesetDetail({
         latestBriefId={changeset.latest_review_brief_artifact_id ?? null}
         readiness={reviewReadiness}
       />
-      <ReviewFeedbackPanel detail={detail.detail} />
+      <ReviewFeedbackPanel
+        action={action}
+        detail={detail.detail}
+        onRecordFeedbackFixup={onRecordFeedbackFixup}
+      />
       <ManualEvidencePanel detail={detail.detail} />
       <InventoryPanel detail={detail.detail} />
       <TopologyPanel verificationPlan={verificationPlan} />

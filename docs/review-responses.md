@@ -149,7 +149,7 @@ next safe inspection command. The command must reject ambiguous ownership,
 unknown feedback IDs, empty path input, and bulk mode without an explicit
 `--all-eligible` flag.
 
-### API And Dashboard Inspection Contract
+### API, TUI, And Dashboard Contract
 
 API and dashboard read surfaces should continue to expose response-linked
 inventory through response status fields: `fixup_inventory_count`,
@@ -160,12 +160,26 @@ inventory is missing, attached, stale, mismatched, failed, skipped, accepted
 with risk, or ready for handoff, and should link back to the feedback detail
 and changeset verification plan before offering any mutation.
 
-If dashboard mutation is added in `GBX-1422`, the route should mirror the CLI
-contract rather than inventing a separate model. The minimum write shape is a
-single-feedback action equivalent to "record bounded fixup inventory for this
-feedback from current workspace or explicit paths." A changeset-wide dashboard
-action must require explicit confirmation and show the eligible feedback count
-before recording anything.
+`GBX-1422` adds the paired write path without introducing a separate approval
+model:
+
+- TUI slash and palette routing expose `/review fixup FEEDBACK_ID` and
+  `/changeset fixup FEEDBACK_ID`. The action records response-linked workspace
+  inventory for one feedback item, then prints artifact, path-count,
+  verification, safe-next-action, and non-claim summaries.
+- The dashboard exposes a compact `Fixup` action beside each feedback row and
+  shows the exact CLI fallback command. The workspace console asks for explicit
+  confirmation before recording inventory from the current workspace diff.
+- The HTTP route `POST /changesets/feedback/{feedback_id}/fixup` accepts either
+  `from_workspace: true` or explicit `paths`, returns the retained artifact
+  metadata, current fixup inventory status, derived response status, safe next
+  actions, and non-claims.
+
+These actions record evidence only. They do not hide unresolved feedback,
+claim reviewer acceptance, run verification, stage, commit, push, open a pull
+request, merge, deploy, or publish. A future changeset-wide dashboard action
+must require explicit confirmation and show the eligible feedback count before
+recording anything.
 
 ### Error And Safe-Next-Action Language
 

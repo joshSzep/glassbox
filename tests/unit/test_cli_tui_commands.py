@@ -49,6 +49,7 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.REVIEW_PREVIEW_VERIFICATION in command_ids
     assert TerminalCommandId.REVIEW_INSPECT_HANDOFF in command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in command_ids
+    assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in command_ids
     assert TerminalCommandId.QUIT in command_ids
 
 
@@ -106,6 +107,7 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
     ]
     assert TerminalCommandId.REVIEW_CREATE_CHANGESET in review_command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in review_command_ids
+    assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in review_command_ids
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:
@@ -191,6 +193,10 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
         command_from_slash("/changeset brief")
         == TerminalCommandId.REVIEW_GENERATE_BRIEF
     )
+    assert (
+        command_from_slash("/review fixup 11111111-1111-1111-1111-111111111111")
+        == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP
+    )
     assert command_from_slash("hello") is None
     assert command_from_slash("/unknown") is None
 
@@ -200,6 +206,9 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     brief = slash_command_from_text(
         "/changeset brief 11111111-1111-1111-1111-111111111111"
     )
+    fixup = slash_command_from_text(
+        "/review fixup 22222222-2222-2222-2222-222222222222"
+    )
 
     assert create is not None
     assert create.command_id == TerminalCommandId.REVIEW_CREATE_CHANGESET
@@ -207,6 +216,9 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     assert brief is not None
     assert brief.command_id == TerminalCommandId.REVIEW_GENERATE_BRIEF
     assert brief.argument == "11111111-1111-1111-1111-111111111111"
+    assert fixup is not None
+    assert fixup.command_id == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP
+    assert fixup.argument == "22222222-2222-2222-2222-222222222222"
 
 
 def _state(*, session_id=None, dashboard_url="http://127.0.0.1:8765/"):

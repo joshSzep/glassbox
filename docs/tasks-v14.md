@@ -492,7 +492,7 @@ supersedes it.
 
 ### GBX-1422: Add TUI And Dashboard Fixup Inventory Parity
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1421`
 - Goal: expose the same response-linked fixup inventory path in the paired
   operator surfaces

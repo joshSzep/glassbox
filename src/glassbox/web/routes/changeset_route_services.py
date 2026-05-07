@@ -14,6 +14,7 @@ from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.changesets import ManualEvidenceActionService
 from glassbox.runtime.changesets import ReviewFeedbackActionService
+from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.context import RuntimeContext
@@ -45,6 +46,15 @@ def review_feedback_action_service(
     repository: ChangesetRepository,
 ) -> ReviewFeedbackActionService:
     return ReviewFeedbackActionService(repository)
+
+
+def review_feedback_fixup_inventory_service(
+    context: RuntimeContext,
+    repository: ChangesetRepository,
+) -> ReviewFeedbackFixupInventoryService:
+    return ReviewFeedbackFixupInventoryService(
+        repository, context.repositories.artifacts
+    )
 
 
 def manual_evidence_action_service(
@@ -147,6 +157,7 @@ __all__ = [
     "handoff_readiness_service",
     "manual_evidence_action_service",
     "review_feedback_action_service",
+    "review_feedback_fixup_inventory_service",
     "workspace_root_for_changeset",
     "workspace_root_for_session",
 ]

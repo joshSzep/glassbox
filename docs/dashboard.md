@@ -84,9 +84,13 @@ artifacts, source evidence, limitations, and safe inspection commands.
 The quick-action row refreshes inventory, previews verification, refreshes
 feedback status, generates lifecycle briefs, and reloads handoff posture. The
 manual evidence form attaches an explicit local evidence record and reports the
-created evidence ID after the API returns. These actions are read-only or
-evidence-only: they do not run tests, stage, commit, push, open a PR, merge,
-deploy, publish, or imply reviewer approval.
+created evidence ID after the API returns. Feedback rows include a compact
+`Fixup` action for recording response-linked changed-path inventory from the
+current workspace diff, plus the equivalent `glassbox changeset feedback
+fixup FEEDBACK_ID --from-workspace --cwd .` command for terminal fallback. These
+actions are read-only or evidence-only: they do not run tests, stage, commit,
+push, open a PR, merge, deploy, publish, resolve feedback, or imply reviewer
+approval.
 
 The affected-subsystems panel names package/app components, topology freshness,
 matched paths, test roots, owner hints, and dependency hints without treating

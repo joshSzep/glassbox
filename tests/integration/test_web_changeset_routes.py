@@ -199,6 +199,15 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                     f"/changesets/{changeset_id}/refresh",
                     json={"actor": "qa"},
                 )
+                feedback_fixup_response = await client.post(
+                    f"/changesets/feedback/{feedback_id}/fixup",
+                    json={
+                        "from_workspace": False,
+                        "paths": ["app.py"],
+                        "source_summary": "API recorded response-linked path inventory",
+                        "actor": "qa",
+                    },
+                )
                 plan_response = await client.get(
                     f"/changesets/{changeset_id}/verification-plan"
                 )
@@ -401,6 +410,18 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert refresh_response.json()["status"] == "refreshed"
             assert (
                 refresh_response.json()["detail"]["inventory"]["freshness"] == "fresh"
+            )
+            assert feedback_fixup_response.status_code == 200
+            assert feedback_fixup_response.json()["feedback_id"] == feedback_id
+            assert feedback_fixup_response.json()["changed_path_count"] == 1
+            assert (
+                feedback_fixup_response.json()["response_status"][
+                    "fixup_inventory_count"
+                ]
+                == 1
+            )
+            assert "not reviewer acceptance" in " ".join(
+                feedback_fixup_response.json()["non_claims"]
             )
             assert plan_response.status_code == 200
             assert plan_response.json()["expected_scope"] == ["app.py"]

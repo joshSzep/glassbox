@@ -32,6 +32,8 @@ from glassbox.web.changeset_api import ReviewFeedbackActionResponse
 from glassbox.web.changeset_api import ReviewFeedbackArchiveRequest
 from glassbox.web.changeset_api import ReviewFeedbackCreateRequest
 from glassbox.web.changeset_api import ReviewFeedbackDetailResponse
+from glassbox.web.changeset_api import ReviewFeedbackFixupInventoryActionResponse
+from glassbox.web.changeset_api import ReviewFeedbackFixupInventoryRequest
 from glassbox.web.changeset_api import ReviewFeedbackListPageResponse
 from glassbox.web.changeset_api import ReviewFeedbackReopenRequest
 from glassbox.web.changeset_api import ReviewFeedbackResolveRequest
@@ -51,6 +53,9 @@ from glassbox.web.changeset_api import build_review_feedback_response
 from glassbox.web.changeset_api import build_review_response_summary_response
 from glassbox.web.routes.changeset_route_errors import raise_not_found_from_value_error
 from glassbox.web.routes.changeset_route_errors import raise_unknown_review_feedback
+from glassbox.web.routes.changeset_route_feedback import (
+    record_review_feedback_fixup_inventory_response,
+)
 from glassbox.web.routes.changeset_route_requests import create_changeset_from_request
 from glassbox.web.routes.changeset_route_requests import manual_evidence_freshness
 from glassbox.web.routes.changeset_route_requests import manual_evidence_kind
@@ -514,6 +519,25 @@ async def accept_review_feedback_risk(
     except ValueError as exc:
         raise_not_found_from_value_error(exc)
     return build_review_feedback_action_response(result)
+
+
+@router.post(
+    "/feedback/{feedback_id}/fixup",
+    response_model=ReviewFeedbackFixupInventoryActionResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def record_review_feedback_fixup_inventory(
+    feedback_id: UUID,
+    request: ReviewFeedbackFixupInventoryRequest,
+    context: RuntimeContextDep,
+) -> ReviewFeedbackFixupInventoryActionResponse:
+    """Record response-linked fixup inventory for one feedback item."""
+
+    return await record_review_feedback_fixup_inventory_response(
+        feedback_id=feedback_id,
+        request=request,
+        context=context,
+    )
 
 
 @router.post(

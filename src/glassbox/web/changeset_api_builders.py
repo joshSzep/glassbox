@@ -15,6 +15,7 @@ from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
+from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
@@ -54,6 +55,8 @@ from glassbox.web.review_loop_api import ManualEvidenceActionResponse
 from glassbox.web.review_loop_api import ManualEvidenceResponse
 from glassbox.web.review_loop_api import ReviewFeedbackActionResponse
 from glassbox.web.review_loop_api import ReviewFeedbackDetailResponse
+from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryActionResponse
+from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryStatusResponse
 from glassbox.web.review_loop_api import ReviewFeedbackResponse
 from glassbox.web.review_loop_api import ReviewFeedbackResponseStatusResponse
 from glassbox.web.review_loop_api import ReviewFeedbackScopeResponse
@@ -761,6 +764,42 @@ def build_review_feedback_action_response(
     )
 
 
+def build_review_feedback_fixup_inventory_action_response(
+    result: ReviewFeedbackFixupInventoryResult,
+    *,
+    response_status: ReviewFeedbackResponseStatus,
+) -> ReviewFeedbackFixupInventoryActionResponse:
+    return ReviewFeedbackFixupInventoryActionResponse(
+        feedback_id=str(result.feedback_id),
+        changeset_id=str(result.changeset_id),
+        session_id=str(result.session_id),
+        artifact_id=str(result.artifact.artifact_id),
+        artifact_path=result.artifact.relative_path.as_posix(),
+        event_sequence=result.event.sequence,
+        changed_path_count=result.inventory.changed_path_count,
+        matched_scope_path_count=result.inventory.matched_scope_path_count,
+        inventory_freshness=result.inventory.inventory_freshness.value,
+        path_summaries=[
+            (
+                f"{path.path}: {path.change_kind}; "
+                f"matches feedback scope {str(path.matches_feedback_scope).lower()}"
+            )
+            for path in result.inventory.paths[:20]
+        ],
+        status=ReviewFeedbackFixupInventoryStatusResponse(
+            freshness=result.status.freshness.value,
+            stale=result.status.stale,
+            reason=result.status.reason,
+            recorded_source_digest=result.status.recorded_source_digest,
+            current_source_digest=result.status.current_source_digest,
+            safe_next_actions=result.status.safe_next_actions,
+        ),
+        response_status=build_review_feedback_response_status_response(response_status),
+        safe_next_actions=response_status.safe_next_actions,
+        non_claims=result.inventory.non_claims,
+    )
+
+
 def build_changeset_readiness_response(
     readiness: ChangesetReadinessRecord,
 ) -> ChangesetReadinessResponse:
@@ -818,6 +857,7 @@ __all__ = (
     "build_review_response_summary_response",
     "build_review_feedback_detail_response",
     "build_review_feedback_action_response",
+    "build_review_feedback_fixup_inventory_action_response",
     "build_changeset_readiness_response",
     "_optional_str",
     "_review_feedback_non_claims",

@@ -253,6 +253,32 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       ],
       scopes: [],
     }),
+    recordReviewFeedbackFixupInventory: async (input) => ({
+      artifact_id: "fixup-artifact-1",
+      artifact_path: ".glassbox/sessions/session-1/artifacts/fixup-artifact-1.json",
+      changed_path_count: 1,
+      changeset_id: "changeset-1",
+      event_sequence: 10,
+      feedback_id: input.feedbackId,
+      inventory_freshness: "fresh",
+      matched_scope_path_count: 1,
+      non_claims: ["fixup inventory is response evidence, not reviewer acceptance"],
+      path_summaries: ["app.py: modified; matches feedback scope true"],
+      response_status: {
+        ...makeReviewResponseSummary("changeset-1").items[0],
+        fixup_inventory_count: 1,
+      },
+      safe_next_actions: ["glassbox changeset verification-plan changeset-1 --cwd ."],
+      session_id: "session-1",
+      status: {
+        current_source_digest: "sha256:current",
+        freshness: "fresh",
+        reason: null,
+        recorded_source_digest: "sha256:current",
+        safe_next_actions: ["glassbox changeset feedback show feedback-1 --cwd ."],
+        stale: false,
+      },
+    }),
     confirmWorkspaceMemory: async (input) => ({ entry: makeMemoryEntry(input.memoryId) }),
     continueTask: async () => ({
       job: {
@@ -825,6 +851,7 @@ describe("changeset store", () => {
       sourceLabel: "operator note",
       summary: "manual dashboard note",
     });
+    await store.getState().recordFeedbackFixupInventory("feedback-1");
     await store.getState().refreshChangeset();
     await store.getState().generateReviewBrief();
 

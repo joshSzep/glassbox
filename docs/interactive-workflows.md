@@ -35,7 +35,8 @@ Inside the full-screen session:
 - the command palette opens with `Ctrl+P` and exposes status, dashboard, copy, details, approval, answer, interrupt, and quit actions with contextual disabled reasons
 - review-loop palette actions expose changeset creation, inventory refresh,
   dashboard review handoff, lifecycle brief generation, verification preview,
-  handoff posture, and feedback status with contextual disabled reasons
+  handoff posture, feedback status, and response-linked fixup inventory with
+  contextual disabled reasons
 - `Ctrl+L` jumps to the latest activity, `Ctrl+E` toggles details, `Ctrl+D` opens the dashboard, `Alt+D` copies the dashboard URL, and `Ctrl+G` returns focus to the composer
 - `Escape` closes transient UI first, including the command palette or details pane, without mutating runtime state
 - `Ctrl+C` follows the interruption contract: it closes transient UI first and never silently abandons a live turn, approval, or question
@@ -58,6 +59,7 @@ command. `/changeset` is a compatibility alias for the same workflow.
 /review verify
 /review handoff
 /review feedback
+/review fixup FEEDBACK_ID
 /review dashboard
 ```
 
@@ -65,6 +67,10 @@ command. `/changeset` is a compatibility alias for the same workflow.
 diff and anchors it to the active chat session. It is an evidence mutation, not
 a git mutation. Glassbox prints the created changeset ID, first limitation,
 safe next inspection command, and dashboard handoff when available.
+
+`/review fixup FEEDBACK_ID` records response-linked workspace inventory for
+one feedback item. It is evidence-only: it does not run verification, resolve
+feedback, stage, commit, push, open a pull request, or imply reviewer approval.
 
 The other `/review` actions target the latest changeset for the current
 session by default. You may pass an explicit changeset ID after the action:

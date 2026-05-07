@@ -31,6 +31,7 @@ class TerminalCommandId(StrEnum):
     REVIEW_PREVIEW_VERIFICATION = "review_preview_verification"
     REVIEW_INSPECT_HANDOFF = "review_inspect_handoff"
     REVIEW_SHOW_FEEDBACK_STATUS = "review_show_feedback_status"
+    REVIEW_RECORD_FEEDBACK_FIXUP = "review_record_feedback_fixup"
     QUIT = "quit"
 
 
@@ -202,6 +203,12 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
             "/changeset status",
             "/changeset feedback",
         ),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP,
+        "Review: Record Fixup Inventory",
+        "Record response-linked changed-path inventory for one feedback item",
+        slash_aliases=("/review fixup", "/changeset fixup"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.QUIT,

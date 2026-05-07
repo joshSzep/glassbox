@@ -21,6 +21,7 @@ export type ChangesetConsoleProps = {
   onInspectFeedbackStatus?: () => void;
   onInspectHandoff?: () => void;
   onPreviewVerification?: () => void;
+  onRecordFeedbackFixup?: (feedbackId: string) => void;
   onRefresh?: () => void;
   onRefreshChangeset?: () => void;
   onSelectChangeset?: (changesetId: string) => void;

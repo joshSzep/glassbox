@@ -54,6 +54,16 @@ export function changesetConsoleActions({
       }
       void changesetStore.getState().attachManualEvidence(input);
     },
+    onRecordFeedbackFixup: (feedbackId: string) => {
+      if (
+        !confirmAction(
+          "Record response-linked fixup inventory from the current workspace diff? Inspect feedback detail first if scope is unclear.",
+        )
+      ) {
+        return;
+      }
+      void changesetStore.getState().recordFeedbackFixupInventory(feedbackId);
+    },
     onSelectChangeset: (changesetId: string) => {
       navigate(selectChangesetRoute(route, changesetId));
       void changesetStore.getState().selectChangeset(changesetId);

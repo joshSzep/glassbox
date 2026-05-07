@@ -630,7 +630,8 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
         review_responses
     )
     assert "--all-eligible" in review_responses
-    assert "### API And Dashboard Inspection Contract" in review_responses
+    assert "### API, TUI, And Dashboard Contract" in review_responses
+    assert "POST /changesets/feedback/{feedback_id}/fixup" in review_responses
     assert "### Error And Safe-Next-Action Language" in review_responses
     assert "workspace diff source digest changed since fixup inventory" in (
         review_responses

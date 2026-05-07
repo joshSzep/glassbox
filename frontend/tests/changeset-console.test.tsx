@@ -60,6 +60,7 @@ describe("changeset console", () => {
     expect(markup).toContain("Actions inspect state or record explicit local evidence only");
     expect(markup).toContain("ready");
     expect(markup).toContain("Review Feedback");
+    expect(markup).toContain("Fixup");
     expect(markup).toContain("Clarify feedback copy");
     expect(markup).toContain("Manual Evidence Inbox");
     expect(markup).toContain("operator says external CI passed");
@@ -81,6 +82,8 @@ describe("changeset console", () => {
     expect(markup).toContain("Response planned");
     expect(markup).toContain("Verification stale");
     expect(markup).toContain("predates response-linked fixups");
+    expect(markup).toContain("Inspect first:");
+    expect(markup).toContain("glassbox changeset feedback fixup feedback-1 --from-workspace");
     expect(markup).toContain("app.py: matches feedback scope");
     expect(markup).toContain("Review feedback is local evidence, not approval.");
     expect(markup).toContain("Brief Artifacts");

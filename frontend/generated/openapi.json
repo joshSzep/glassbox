@@ -8315,6 +8315,179 @@
         "title": "ReviewFeedbackDetailResponse",
         "type": "object"
       },
+      "ReviewFeedbackFixupInventoryActionResponse": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "string"
+          },
+          "artifact_path": {
+            "title": "Artifact Path",
+            "type": "string"
+          },
+          "changed_path_count": {
+            "title": "Changed Path Count",
+            "type": "integer"
+          },
+          "changeset_id": {
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "event_sequence": {
+            "title": "Event Sequence",
+            "type": "integer"
+          },
+          "feedback_id": {
+            "title": "Feedback Id",
+            "type": "string"
+          },
+          "inventory_freshness": {
+            "title": "Inventory Freshness",
+            "type": "string"
+          },
+          "matched_scope_path_count": {
+            "title": "Matched Scope Path Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "path_summaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Path Summaries",
+            "type": "array"
+          },
+          "response_status": {
+            "$ref": "#/components/schemas/ReviewFeedbackResponseStatusResponse"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewFeedbackFixupInventoryStatusResponse"
+          }
+        },
+        "required": [
+          "feedback_id",
+          "changeset_id",
+          "session_id",
+          "artifact_id",
+          "artifact_path",
+          "event_sequence",
+          "changed_path_count",
+          "matched_scope_path_count",
+          "inventory_freshness",
+          "path_summaries",
+          "status",
+          "response_status",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ReviewFeedbackFixupInventoryActionResponse",
+        "type": "object"
+      },
+      "ReviewFeedbackFixupInventoryRequest": {
+        "properties": {
+          "actor": {
+            "default": "operator",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Actor",
+            "type": "string"
+          },
+          "from_workspace": {
+            "default": true,
+            "title": "From Workspace",
+            "type": "boolean"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Paths",
+            "type": "array"
+          },
+          "source_summary": {
+            "default": "dashboard recorded response-linked workspace inventory",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source Summary",
+            "type": "string"
+          }
+        },
+        "title": "ReviewFeedbackFixupInventoryRequest",
+        "type": "object"
+      },
+      "ReviewFeedbackFixupInventoryStatusResponse": {
+        "properties": {
+          "current_source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Source Digest"
+          },
+          "freshness": {
+            "title": "Freshness",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "recorded_source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded Source Digest"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "stale": {
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": ["freshness", "stale", "safe_next_actions"],
+        "title": "ReviewFeedbackFixupInventoryStatusResponse",
+        "type": "object"
+      },
       "ReviewFeedbackListPageResponse": {
         "properties": {
           "items": {
@@ -14649,6 +14822,67 @@
           }
         },
         "summary": "Archive Review Feedback"
+      }
+    },
+    "/changesets/feedback/{feedback_id}/fixup": {
+      "post": {
+        "description": "Record response-linked fixup inventory for one feedback item.",
+        "operationId": "record_review_feedback_fixup_inventory_changesets_feedback__feedback_id__fixup_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feedback_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Feedback Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewFeedbackFixupInventoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewFeedbackFixupInventoryActionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Review Feedback Fixup Inventory"
       }
     },
     "/changesets/feedback/{feedback_id}/reopen": {
