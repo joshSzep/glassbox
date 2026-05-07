@@ -32,6 +32,7 @@ from glassbox.runtime.context import RuntimeRepositories
 from glassbox.runtime.context import RuntimeServices
 from glassbox.runtime.provider_config import RuntimeProviderConfig
 from glassbox.services import ArtifactRepository
+from glassbox.services import ChangesetReadRepository
 from glassbox.services import SessionRepository
 from glassbox.services import SessionService
 from glassbox.store.artifacts import StoredArtifact
@@ -425,6 +426,7 @@ class FakeSessionService:
 
 def test_runtime_contract_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeSessionRepository(), SessionRepository)
+    assert isinstance(FakeSessionRepository(), ChangesetReadRepository)
     assert isinstance(FakeArtifactRepository(), ArtifactRepository)
     assert isinstance(FakeSessionService(), SessionService)
 
@@ -434,6 +436,7 @@ def test_service_contract_public_import_surfaces_remain_stable() -> None:
     contracts = import_module("glassbox.services.contracts")
 
     assert services.SessionRepository is contracts.SessionRepository
+    assert services.ChangesetReadRepository is contracts.ChangesetReadRepository
     assert services.ArtifactRepository is contracts.ArtifactRepository
     assert services.SessionService is contracts.SessionService
     assert services.StoredArtifact is contracts.StoredArtifact

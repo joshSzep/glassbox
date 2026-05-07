@@ -17,7 +17,22 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
     "glassbox.store.repository_workspace_memory": {"_SQLiteWorkspaceMemoryMethods"},
     "glassbox.store.repository_tasks": {"_SQLiteTaskMethods"},
     "glassbox.store.repository_branch_search": {"_SQLiteBranchSearchMethods"},
-    "glassbox.store.repository_changesets": {"_SQLiteChangesetMethods"},
+    "glassbox.store.repository_changeset_detail": {"_SQLiteChangesetDetailMethods"},
+    "glassbox.store.repository_changeset_readiness": {
+        "_SQLiteChangesetReviewReadinessMethods"
+    },
+    "glassbox.store.repository_changesets": {
+        "_SQLiteChangesetDetailMethods",
+        "_SQLiteChangesetMethods",
+        "_SQLiteChangesetReviewReadinessMethods",
+    },
+    "glassbox.store.repository_manual_evidence": {"_SQLiteManualEvidenceMethods"},
+    "glassbox.store.repository_review_feedback": {"_SQLiteReviewFeedbackMethods"},
+    "glassbox.store.repository_review_loop": {
+        "_SQLiteManualEvidenceMethods",
+        "_SQLiteReviewFeedbackMethods",
+        "_SQLiteReviewLoopMethods",
+    },
     "glassbox.store.repository_artifacts": {"FilesystemArtifactRepository"},
 }
 
@@ -84,6 +99,40 @@ def test_sqlite_session_repository_inherits_domain_method_families() -> None:
     assert issubclass(
         SQLiteSessionRepository,
         loaded_modules["glassbox.store.repository_changesets"]._SQLiteChangesetMethods,
+    )
+    assert issubclass(
+        loaded_modules["glassbox.store.repository_changesets"]._SQLiteChangesetMethods,
+        loaded_modules[
+            "glassbox.store.repository_changeset_detail"
+        ]._SQLiteChangesetDetailMethods,
+    )
+    assert issubclass(
+        loaded_modules["glassbox.store.repository_changesets"]._SQLiteChangesetMethods,
+        loaded_modules[
+            "glassbox.store.repository_changesets"
+        ]._SQLiteChangesetReviewReadinessMethods,
+    )
+    assert issubclass(
+        SQLiteSessionRepository,
+        loaded_modules[
+            "glassbox.store.repository_review_loop"
+        ]._SQLiteReviewLoopMethods,
+    )
+    assert issubclass(
+        loaded_modules[
+            "glassbox.store.repository_review_loop"
+        ]._SQLiteReviewLoopMethods,
+        loaded_modules[
+            "glassbox.store.repository_review_feedback"
+        ]._SQLiteReviewFeedbackMethods,
+    )
+    assert issubclass(
+        loaded_modules[
+            "glassbox.store.repository_review_loop"
+        ]._SQLiteReviewLoopMethods,
+        loaded_modules[
+            "glassbox.store.repository_manual_evidence"
+        ]._SQLiteManualEvidenceMethods,
     )
 
 

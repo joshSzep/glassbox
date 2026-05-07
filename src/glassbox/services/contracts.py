@@ -11,7 +11,6 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import ArtifactId
 from glassbox.core.ids import BackgroundJobId
-from glassbox.core.ids import ChangesetId
 from glassbox.core.ids import ContextCompactionId
 from glassbox.core.ids import MessageId
 from glassbox.core.ids import QuestionId
@@ -26,12 +25,6 @@ from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import BackgroundJobRecord
-from glassbox.core.models import ChangesetInventoryRecord
-from glassbox.core.models import ChangesetReadinessRecord
-from glassbox.core.models import ChangesetRecord
-from glassbox.core.models import ChangesetReviewBriefRecord
-from glassbox.core.models import ChangesetSourceRecord
-from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import ProjectionHealth
@@ -57,6 +50,7 @@ from glassbox.core.types import ToolAttemptStatus
 from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemoryState
+from glassbox.services.changeset_contracts import ChangesetReadRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,7 +66,7 @@ class StoredArtifact:
 
 
 @runtime_checkable
-class SessionRepository(Protocol):
+class SessionRepository(ChangesetReadRepository, Protocol):
     """Persistence contract for session metadata, events, and projections."""
 
     def create_session(
@@ -174,46 +168,6 @@ class SessionRepository(Protocol):
         self,
         session_id: SessionId,
     ) -> ProjectionHealth: ...
-
-    def list_changesets(
-        self,
-        *,
-        session_id: SessionId | None = None,
-        include_archived: bool = False,
-        limit: int | None = None,
-    ) -> list[ChangesetRecord]: ...
-
-    def get_changeset(self, changeset_id: ChangesetId) -> ChangesetRecord | None: ...
-
-    def list_changeset_sources(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetSourceRecord]: ...
-
-    def get_changeset_inventory(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> ChangesetInventoryRecord | None: ...
-
-    def get_changeset_verification_posture(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> ChangesetVerificationPostureRecord | None: ...
-
-    def list_changeset_review_briefs(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetReviewBriefRecord]: ...
-
-    def list_changeset_readiness(
-        self,
-        session_id: SessionId,
-        changeset_id: ChangesetId,
-    ) -> list[ChangesetReadinessRecord]: ...
     def list_tool_calls(
         self,
         session_id: SessionId,

@@ -1182,7 +1182,7 @@ Completion notes:
 
 ### GBX-R562: Split Repository Adapter Mixins By Review-Loop Domain
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R561
 - Target files:
   - `src/glassbox/store/repository_changesets.py`
@@ -1203,6 +1203,20 @@ Completion notes:
   - `uv run pytest tests/integration/test_changeset_projection.py`
   - `uv run pytest tests/integration/test_review_loop_projection.py`
   - `uv run pytest tests/unit/test_architecture_guardrails.py`
+
+Completion notes:
+
+- Kept `repository_changesets.py` and `repository_review_loop.py` as
+  compatibility facades for existing adapter mixin imports.
+- Split changeset repository ownership into
+  `repository_changeset_detail.py` and `repository_changeset_readiness.py`.
+- Split review-loop repository ownership into
+  `repository_review_feedback.py` and `repository_manual_evidence.py`.
+- Added `services/changeset_contracts.py` for the stable changeset read
+  protocol and kept it available through `glassbox.services`.
+- Updated repository boundary and service contract tests for the focused
+  mixin/protocol owners while preserving `SQLiteSessionRepository`
+  compatibility.
 
 ---
 
