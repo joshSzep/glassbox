@@ -1,0 +1,33 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.lifecycle-rich-evidence",
+  "title": "V14 lifecycle brief keeps rich review evidence summarized",
+  "bundle_path": "../bundles/changeset.lifecycle-rich-evidence.json",
+  "tags": [
+    "v14-review-loop",
+    "changeset",
+    "review",
+    "lifecycle-brief"
+  ],
+  "notes": "Compact deterministic v14 fixture evidence for lifecycle briefs that summarize feedback responses, fixup inventory, manual evidence, skipped advisory evidence, limitations, and non-claims without promoting live UX evidence into release authority.",
+  "release_contract": {
+    "owner": "runtime.changesets",
+    "capabilities": [
+      "review_lifecycle_rich_evidence"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-07T06:20:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000146001",
+      "rationale": "Promoted for GBX-1460 to retain deterministic v14 evidence that lifecycle briefs summarize mature review-loop evidence while preserving advisory and publication boundaries."
+    }
+  ]
+}

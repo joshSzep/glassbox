@@ -1,0 +1,151 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Generate a v14 lifecycle brief that summarizes rich review evidence without claiming approval"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v14 rich lifecycle brief evidence",
+        "turn_id": "00000000-0000-0000-0000-000000146101"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v14 rich lifecycle brief evidence",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000146101"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "ReviewFeedbackCreated",
+      "ReviewFeedbackResolved",
+      "ReviewFeedbackFixupInventoryAttached",
+      "ManualEvidenceAttached",
+      "ChangesetVerificationPostureUpdated",
+      "ChangesetReviewBriefCreated",
+      "ChangesetReadinessDecided",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Generate a v14 lifecycle brief that summarizes rich review evidence without claiming approval"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 4,
+        "goal": "Keep the v14 lifecycle brief rich enough for review while preserving advisory boundaries.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Summarize review feedback and local response state separately from reviewer approval.",
+            "order": 0,
+            "status": "completed",
+            "title": "Summarize feedback responses"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Include response-linked fixup inventory counts, scoped paths, freshness, and verification posture.",
+            "order": 1,
+            "status": "completed",
+            "title": "Summarize fixup inventory"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Summarize manual and skipped advisory evidence with limitations and capture state.",
+            "order": 2,
+            "status": "completed",
+            "title": "Summarize advisory evidence"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Preserve non-claims for approval, accessibility certification, release authority, and publication actions.",
+            "order": 3,
+            "status": "completed",
+            "title": "Preserve non-claims"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Retain safe next actions for inspection before handoff.",
+            "order": 4,
+            "status": "completed",
+            "title": "Retain inspection actions"
+          }
+        ],
+        "title": "V14 rich lifecycle brief evidence",
+        "verifications": [
+          {
+            "check_name": "v14 rich lifecycle brief",
+            "status": "passed",
+            "step_order": 4,
+            "summary": "lifecycle brief summarizes feedback, responses, fixup inventory, advisory evidence, limitations, non-claims, and safe inspection actions"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Generate a v14 lifecycle brief that summarizes rich review evidence without claiming approval"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000146001",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "changeset.lifecycle-rich-evidence"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

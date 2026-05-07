@@ -787,7 +787,7 @@ supersedes it.
 
 ### GBX-1460: Add Deterministic V14 Review-Loop Maturity Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1412`, `GBX-1423`, `GBX-1432`, `GBX-1441`
 - Goal: promote stable review-loop maturity behavior into replay/eval coverage
   without making live advisory evidence blocking

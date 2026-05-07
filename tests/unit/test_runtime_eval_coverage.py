@@ -8,6 +8,9 @@ import pytest
 from glassbox.runtime.eval_coverage import EvalCoverageManifest
 from glassbox.runtime.eval_coverage import audit_eval_coverage
 from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
+from glassbox.runtime.evals import load_eval_suite
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_load_eval_coverage_manifest_supports_multi_case_capabilities(
@@ -162,6 +165,37 @@ def test_audit_eval_coverage_rejects_unknown_expected_case_id(tmp_path: Path) ->
 
     with pytest.raises(ValueError, match="unknown eval case id"):
         audit_eval_coverage(tmp_path)
+
+
+def test_v14_review_loop_maturity_cases_are_release_candidate_covered() -> None:
+    release_cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    release_case_ids = {case.case_id for case in release_cases}
+    expected_case_ids = {
+        "changeset.lifecycle-rich-evidence",
+        "changeset.response-linked-fixup-inventory",
+        "changeset.skipped-advisory-evidence-posture",
+    }
+
+    assert expected_case_ids.issubset(release_case_ids)
+
+    result = audit_eval_coverage(REPO_ROOT, profile_id="release-candidate")
+    statuses = {status.capability_id: status for status in result.capability_statuses}
+
+    for capability_id, case_id in (
+        ("review_lifecycle_rich_evidence", "changeset.lifecycle-rich-evidence"),
+        (
+            "response_linked_fixup_inventory",
+            "changeset.response-linked-fixup-inventory",
+        ),
+        (
+            "skipped_advisory_evidence_posture",
+            "changeset.skipped-advisory-evidence-posture",
+        ),
+    ):
+        status = statuses[capability_id]
+        assert status.covered is True
+        assert status.expected_case_ids == [case_id]
+        assert status.selected_case_ids == [case_id]
 
 
 def _write_eval_case(

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.skipped-advisory-evidence-posture",
+  "title": "V14 skipped advisory evidence remains non-passing",
+  "bundle_path": "../bundles/changeset.skipped-advisory-evidence-posture.json",
+  "tags": [
+    "v14-review-loop",
+    "changeset",
+    "review",
+    "advisory-evidence"
+  ],
+  "notes": "Compact deterministic v14 fixture evidence that skipped browser, dashboard, and accessibility evidence is explicit, source-labeled, bounded by skip reasons, and never treated as a pass or release gate.",
+  "release_contract": {
+    "owner": "runtime.manual_evidence",
+    "capabilities": [
+      "skipped_advisory_evidence_posture"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-07T06:20:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000146003",
+      "rationale": "Promoted for GBX-1460 to retain deterministic v14 evidence that skipped advisory UX evidence stays explicit and non-passing."
+    }
+  ]
+}

@@ -422,7 +422,7 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
     assert profiles["release-candidate"].budget is not None
-    assert profiles["release-candidate"].budget.max_selected_case_count == 22
+    assert profiles["release-candidate"].budget.max_selected_case_count == 25
     assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
@@ -559,7 +559,29 @@ def test_repository_release_candidate_profile_includes_v13_review_loop_cases() -
         "in_session_review_entrypoints",
         "dashboard_review_quick_actions",
     }.issubset(capabilities)
-    assert len(cases) == 22
+    assert len(cases) >= 22
+
+
+def test_repository_release_candidate_profile_includes_v14_maturity_cases() -> None:
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+    capabilities = {
+        capability
+        for case in cases
+        for capability in case.release_contract.capabilities
+    }
+
+    assert {
+        "changeset.lifecycle-rich-evidence",
+        "changeset.response-linked-fixup-inventory",
+        "changeset.skipped-advisory-evidence-posture",
+    }.issubset(case_ids)
+    assert {
+        "review_lifecycle_rich_evidence",
+        "response_linked_fixup_inventory",
+        "skipped_advisory_evidence_posture",
+    }.issubset(capabilities)
+    assert len(cases) == 25
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

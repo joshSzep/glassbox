@@ -476,6 +476,36 @@
       "notes": "GBX-1390 makes no automatic staging, committing, pushing, pull request, merge, deploy, or publication behavior a deterministic release-candidate boundary."
     },
     {
+      "capability_id": "review_lifecycle_rich_evidence",
+      "title": "Review lifecycle rich evidence",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.lifecycle-rich-evidence"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1460 retains deterministic v14 evidence that lifecycle briefs summarize feedback responses, response-linked fixup inventory, manual and skipped advisory evidence, limitations, non-claims, and safe inspection actions without promoting live UX evidence into release authority."
+    },
+    {
+      "capability_id": "response_linked_fixup_inventory",
+      "title": "Response-linked fixup inventory",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.response-linked-fixup-inventory"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1460 retains deterministic v14 evidence that feedback responses and fixup inventories stay linked to scoped paths, freshness, verification posture, inspect-first commands, and non-approval claims."
+    },
+    {
+      "capability_id": "skipped_advisory_evidence_posture",
+      "title": "Skipped advisory evidence posture",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["changeset.skipped-advisory-evidence-posture"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1460 retains deterministic v14 evidence that skipped browser, dashboard, and accessibility evidence carries capture state, skip reason, source label, non-passing posture, non-claims, and follow-up commands."
+    },
+    {
       "capability_id": "in_session_review_entrypoints",
       "title": "In-session review entry points",
       "kind": "operator_workflow",

@@ -1,0 +1,33 @@
+{
+  "manifest_version": 1,
+  "case_id": "changeset.response-linked-fixup-inventory",
+  "title": "V14 response-linked fixup inventory stays reviewable",
+  "bundle_path": "../bundles/changeset.response-linked-fixup-inventory.json",
+  "tags": [
+    "v14-review-loop",
+    "changeset",
+    "review",
+    "fixup-inventory"
+  ],
+  "notes": "Compact deterministic v14 fixture evidence that response-linked fixup inventory remains tied to feedback responses with scoped paths, freshness, verification posture, and inspect-first safe commands.",
+  "release_contract": {
+    "owner": "runtime.review_feedback",
+    "capabilities": [
+      "response_linked_fixup_inventory"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-07T06:20:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000146002",
+      "rationale": "Promoted for GBX-1460 to retain deterministic v14 evidence that feedback responses and their fixup inventories remain local review evidence, not approval."
+    }
+  ]
+}

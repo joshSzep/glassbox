@@ -1,0 +1,147 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Record skipped advisory dashboard and accessibility evidence without treating it as a pass"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v14 skipped advisory evidence posture",
+        "turn_id": "00000000-0000-0000-0000-000000146103"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v14 skipped advisory evidence posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000146103"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "ManualEvidenceAttached",
+      "ChangesetVerificationPostureUpdated",
+      "ChangesetReadinessDecided",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Record skipped advisory dashboard and accessibility evidence without treating it as a pass"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 4,
+        "goal": "Keep skipped advisory UX evidence explicit, bounded, and non-passing.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Record capture state as not_run or not_applicable instead of fabricating browser or accessibility details.",
+            "order": 0,
+            "status": "completed",
+            "title": "Retain capture state"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Retain skip reason, skipped cases, and source label for reviewer inspection.",
+            "order": 1,
+            "status": "completed",
+            "title": "Retain skip context"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Keep skipped browser, dashboard, or accessibility evidence out of pass counts.",
+            "order": 2,
+            "status": "completed",
+            "title": "Preserve non-passing posture"
+          },
+          {
+            "blocked_reason": null,
+            "description": "State that skipped advisory evidence is not certification, WCAG conformance, or release authority.",
+            "order": 3,
+            "status": "completed",
+            "title": "Preserve advisory non-claims"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Retain safe commands for collecting fresh evidence later.",
+            "order": 4,
+            "status": "completed",
+            "title": "Retain follow-up commands"
+          }
+        ],
+        "title": "V14 skipped advisory evidence posture",
+        "verifications": [
+          {
+            "check_name": "v14 skipped advisory evidence posture",
+            "status": "passed",
+            "step_order": 4,
+            "summary": "skipped advisory evidence retains capture state, skip reason, source label, non-passing posture, non-claims, and follow-up commands"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Record skipped advisory dashboard and accessibility evidence without treating it as a pass"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000146003",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "changeset.skipped-advisory-evidence-posture"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}
