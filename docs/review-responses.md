@@ -5,8 +5,10 @@ review feedback. A response can cite workspace edits, task work, verification,
 manual notes, branch candidates, worktrees, or accepted risk, but it does not
 prove that a reviewer accepted the answer.
 
-This contract defines the v13 response and fixup model before implementation
-adds response-linked inventory deltas and dashboard mutation flows.
+This contract defines the response and fixup model carried from v13 into v14
+maturity work. v14 makes response-linked fixup inventory easier to record and
+inspect, but that inventory remains local evidence rather than reviewer
+approval or acceptance.
 
 ## Lifecycle States
 
@@ -67,10 +69,11 @@ Avoid these claims:
 - "verified" without fresh retained verification evidence
 - "fixed" when only an operator note or manual observation exists
 
-## Inventory And Delta Rules
+## Response-Linked Fixup Inventory Rules
 
-GBX-1321 will attach response-linked inventory deltas. Until then, the
-contract for those deltas is:
+Response-linked fixup inventory answers a narrow operator question: "which
+changed paths appear to respond to this feedback?" The contract for that
+inventory is:
 
 - use the existing changeset inventory artifact as the baseline where possible
 - record response-linked inventory as bounded path summaries, not raw diff
@@ -84,7 +87,7 @@ contract for those deltas is:
 - preserve redaction rules for paths, artifacts, provider output, local state,
   and logs
 
-A response-linked inventory delta can support "what changed after feedback."
+A response-linked fixup inventory can support "what changed after feedback."
 It cannot prove why every change was made unless source evidence links each
 path to a turn, task step, manual note, candidate, worktree, or artifact.
 

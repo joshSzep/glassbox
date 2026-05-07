@@ -64,10 +64,10 @@ describe("changeset console", () => {
     expect(markup).toContain("Manual Evidence Inbox");
     expect(markup).toContain("operator says external CI passed");
     expect(markup).toContain("dashboard walkthrough rendered manual evidence");
-    expect(markup).toContain("Live evidence is advisory and local-only");
-    expect(markup).toContain("browser and dashboard evidence is advisory");
+    expect(markup).toContain("Browser/dashboard evidence is advisory and local-only");
+    expect(markup).toContain("skipped browser or dashboard evidence is not a pass");
     expect(markup).toContain("focus order issue remains open");
-    expect(markup).toContain("Accessibility observation is advisory");
+    expect(markup).toContain("Accessibility evidence is advisory, not certification");
     expect(markup).toContain("accessibility evidence is advisory");
     expect(markup).toContain("manual evidence is not retained command evidence");
     expect(markup).toContain("1 requested");

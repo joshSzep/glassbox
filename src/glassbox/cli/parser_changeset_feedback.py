@@ -106,7 +106,8 @@ def _add_changeset_feedback_parsers(
         help="show response status for feedback on one changeset",
         description=(
             "Show open, responded, unresolved, stale, blocked, and accepted-risk "
-            "review response status without mutating git."
+            "review response status, including response-linked fixup inventory "
+            "posture, without mutating git or claiming reviewer approval."
         ),
     )
     feedback_status_parser.add_argument("changeset_id", type=_parse_uuid)
@@ -115,7 +116,15 @@ def _add_changeset_feedback_parsers(
 
     feedback_resolve_parser = feedback_subparsers.add_parser(
         "resolve",
-        help="mark feedback resolved locally with retained response text",
+        help=(
+            "mark feedback resolved locally with retained response text, "
+            "not reviewer approval"
+        ),
+        description=(
+            "Record local response text for one feedback item. Response-linked "
+            "fixup inventory remains separate evidence and no git, PR, or "
+            "publication action is performed."
+        ),
     )
     feedback_resolve_parser.add_argument("feedback_id", type=_parse_uuid)
     feedback_resolve_parser.add_argument("--summary", required=True)

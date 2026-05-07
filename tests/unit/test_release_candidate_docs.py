@@ -598,6 +598,38 @@ def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:
     assert "v14-review-loop-maturity-audit.md" in docs_readme
 
 
+def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
+    command_guide = (
+        REPO_ROOT / "src" / "glassbox" / "cli" / "command_guide_review.py"
+    ).read_text(encoding="utf-8")
+    review_responses = (REPO_ROOT / "docs" / "review-responses.md").read_text(
+        encoding="utf-8"
+    )
+    browser_accessibility = (
+        REPO_ROOT / "docs" / "browser-accessibility-evidence.md"
+    ).read_text(encoding="utf-8")
+    daily_workflow = (REPO_ROOT / "docs" / "daily-workflow-quickstart.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "response-linked fixup inventory posture",
+        "Record local response text; attach fixup inventory separately",
+        "Record advisory dashboard evidence or an explicit skipped case",
+        "without calling it a pass",
+    ):
+        assert required_text in command_guide
+
+    assert "## Response-Linked Fixup Inventory Rules" in review_responses
+    assert "local evidence" in review_responses
+    assert "approval or acceptance" in review_responses
+    assert "## Skipped Advisory Evidence" in browser_accessibility
+    assert "invent a live browser pass" in browser_accessibility
+    assert "## Review A Local Change" in daily_workflow
+    assert "not review approval" in daily_workflow
+    assert "rather than passed" in daily_workflow
+
+
 def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v13-review-loop-audit.md").read_text(
         encoding="utf-8"

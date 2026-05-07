@@ -28,7 +28,9 @@ def _add_changeset_evidence_parsers(
         help="attach and inspect manual review-loop evidence",
         description=(
             "Attach local manual evidence to a changeset without claiming "
-            "Glassbox ran the command, check, or observation."
+            "Glassbox ran the command, check, or observation. Skipped advisory "
+            "browser, dashboard, and accessibility evidence must stay distinct "
+            "from passed or verified evidence."
         ),
     )
     evidence_subparsers = evidence_parser.add_subparsers(
@@ -148,6 +150,11 @@ def _add_changeset_evidence_parsers(
     evidence_browser_parser = evidence_subparsers.add_parser(
         "browser",
         help="attach advisory browser observation evidence to a changeset",
+        description=(
+            "Attach advisory browser evidence. Use --skipped-case for not-run "
+            "or untested cases; this command does not create deterministic "
+            "verification or accessibility claims."
+        ),
     )
     add_browser_dashboard_arguments(
         evidence_browser_parser,
@@ -157,6 +164,10 @@ def _add_changeset_evidence_parsers(
     evidence_dashboard_parser = evidence_subparsers.add_parser(
         "dashboard",
         help="attach advisory dashboard walkthrough evidence to a changeset",
+        description=(
+            "Attach advisory dashboard walkthrough evidence. Use --skipped-case "
+            "for not-run or untested cases; skipped evidence is not a pass."
+        ),
     )
     add_browser_dashboard_arguments(
         evidence_dashboard_parser,
@@ -166,6 +177,11 @@ def _add_changeset_evidence_parsers(
     evidence_accessibility_parser = evidence_subparsers.add_parser(
         "accessibility",
         help="attach advisory accessibility observation evidence to a changeset",
+        description=(
+            "Attach advisory accessibility evidence with covered checks, "
+            "skipped cases, limitations, and non-claims. This is not "
+            "certification or WCAG conformance."
+        ),
     )
     evidence_accessibility_parser.add_argument("changeset_id", type=_parse_uuid)
     evidence_accessibility_parser.add_argument(

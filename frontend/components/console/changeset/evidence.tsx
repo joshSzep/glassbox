@@ -202,14 +202,14 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
                 {item.evidence_kind === "browser_observation" ||
                 item.evidence_kind === "screenshot" ? (
                   <DataListMeta>
-                    Live evidence is advisory and local-only - inspect target {item.target_kind}{" "}
-                    {item.target_id}
+                    Browser/dashboard evidence is advisory and local-only, including skipped cases -
+                    inspect target {item.target_kind} {item.target_id}
                   </DataListMeta>
                 ) : null}
                 {item.evidence_kind === "accessibility_note" ? (
                   <DataListMeta>
-                    Accessibility observation is advisory - inspect target {item.target_kind}{" "}
-                    {item.target_id}
+                    Accessibility evidence is advisory, not certification - inspect target{" "}
+                    {item.target_kind} {item.target_id}
                   </DataListMeta>
                 ) : null}
                 {item.rejected_reason ? (
@@ -231,7 +231,9 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
             --environment local --viewport WIDTHxHEIGHT --cwd .
           </li>
           <li>manual evidence is not retained command evidence or review approval</li>
-          <li>browser and dashboard evidence is advisory, local-only, and not release authority</li>
+          <li>
+            skipped browser or dashboard evidence is not a pass, verification, or release authority
+          </li>
           <li>accessibility evidence is advisory and not certification or WCAG conformance</li>
         </ul>
       </div>

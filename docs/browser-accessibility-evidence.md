@@ -51,6 +51,26 @@ Every live review evidence record should carry:
 If a required field is unknown, record `unknown` with a limitation instead of
 silently omitting it.
 
+## Skipped Advisory Evidence
+
+Skipped advisory evidence is honest local evidence that a live pass was not
+run, was unknown, or was not applicable. It is not failed evidence, passed
+evidence, deterministic verification, accessibility certification, or release
+authority.
+
+Use skipped-case language when a browser, dashboard, viewport, console,
+keyboard, responsive, contrast, or screen-reader check was intentionally not
+covered. The record should name what was skipped, why it was skipped, which
+claims remain unmade, and which safe inspection command or protocol can collect
+fresh evidence later.
+
+Current browser and dashboard CLI/API surfaces still require concrete viewport
+dimensions. Until the v14 skipped-evidence model adds unknown or
+not-applicable environment fields, use a real captured viewport only when one
+was observed and add `--skipped-case` for every unobserved live case. Do not
+invent a live browser pass or call skipped evidence verified, accessible, or
+passed.
+
 ## Live Dashboard Walkthrough Protocol
 
 Before starting, choose the changeset or feedback target that the walkthrough

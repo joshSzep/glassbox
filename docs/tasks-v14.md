@@ -333,7 +333,7 @@ supersedes it.
 
 ### GBX-1402: Refresh Review-Loop Vocabulary And Safe Command Copy
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1400`, `GBX-1401`
 - Goal: make the maturity language consistent across docs, CLI help, dashboard
   copy, API descriptions, tests, and eval fixtures

@@ -80,6 +80,31 @@ cues. If you started without the co-hosted dashboard, run:
 uv run glassbox dashboard serve --cwd .
 ```
 
+## Review A Local Change
+
+Start with inspection before mutation:
+
+```bash
+uv run glassbox command guide
+uv run glassbox changeset show CHANGESET_ID --cwd .
+uv run glassbox changeset verification-plan CHANGESET_ID --cwd .
+uv run glassbox changeset feedback status CHANGESET_ID --cwd .
+```
+
+Record review-loop evidence with bounded claims:
+
+```bash
+uv run glassbox changeset feedback add CHANGESET_ID --kind requested_change --summary "..." --cwd .
+uv run glassbox changeset evidence attach CHANGESET_ID --kind external_check --summary "..." --source-label local --cwd .
+uv run glassbox changeset feedback resolve FEEDBACK_ID --summary "..." --cwd .
+uv run glassbox changeset brief CHANGESET_ID --cwd .
+uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
+```
+
+Response-linked inventory is not review approval; it is local evidence about
+changed paths. Browser, dashboard, and accessibility evidence is advisory;
+skipped cases should stay visible as skipped or not run rather than passed.
+
 ## Approve, Deny, Or Answer
 
 Use the terminal UI when it is active. For scriptable control, copy identifiers

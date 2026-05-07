@@ -8,6 +8,12 @@ honest about provenance and limits.
 Manual evidence is not verification proof by itself, not command evidence, not
 review approval, and not publication authority.
 
+For v14 review-loop maturity, skipped advisory browser, dashboard, and
+accessibility evidence is a manual evidence posture unless a deterministic
+fixture-backed check is explicitly retained. Record skipped cases as skipped,
+unknown, not run, or not applicable; do not describe them as passed,
+verified, accessible, certified, or release-blocking proof.
+
 ## Evidence Kinds
 
 Use these kinds when later tasks add events, artifacts, CLI commands, API

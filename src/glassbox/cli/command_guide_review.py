@@ -7,8 +7,8 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
     key="review-loop",
     title="Review Loop",
     summary=(
-        "Create and continue local changeset review evidence without "
-        "publishing mutations."
+        "Inspect and continue local changeset review evidence without "
+        "claiming approval or publishing mutations."
     ),
     entries=(
         CommandGuideEntry(
@@ -31,7 +31,20 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
         ),
         CommandGuideEntry(
             "glassbox changeset feedback status CHANGESET_ID --cwd .",
-            ("Inspect feedback responses, stale checks, blockers, and accepted risks."),
+            (
+                "Inspect response-linked fixup inventory posture, stale checks, "
+                "blockers, accepted risks, and non-approval claims."
+            ),
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset feedback resolve FEEDBACK_ID "
+                "--summary SUMMARY --cwd ."
+            ),
+            (
+                "Record local response text; attach fixup inventory separately "
+                "before treating the response as ready for handoff."
+            ),
         ),
         CommandGuideEntry(
             (
@@ -39,6 +52,24 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
                 "--summary SUMMARY --source-label LABEL --cwd ."
             ),
             "Attach manual evidence as local evidence, not retained command proof.",
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset evidence dashboard CHANGESET_ID "
+                "--route ROUTE --viewport WIDTHxHEIGHT --skipped-case REASON "
+                "--cwd ."
+            ),
+            (
+                "Record advisory dashboard evidence or an explicit skipped case "
+                "without calling it a pass."
+            ),
+        ),
+        CommandGuideEntry(
+            "glassbox changeset brief CHANGESET_ID --cwd .",
+            (
+                "Generate a reviewer-safe lifecycle brief after inspecting "
+                "feedback, evidence, and verification posture."
+            ),
         ),
         CommandGuideEntry(
             "glassbox changeset handoff-readiness CHANGESET_ID --cwd .",
