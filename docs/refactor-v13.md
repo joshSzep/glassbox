@@ -397,7 +397,7 @@ Completion notes:
 
 ### GBX-R502: Add V13 Facade Guardrails After First Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R510, GBX-R520, GBX-R540
 - Target files:
   - [test_architecture_guardrails.py](../tests/unit/test_architecture_guardrails.py)
@@ -413,6 +413,18 @@ Completion notes:
     facades
 - Validation:
   - `uv run pytest tests/unit/test_architecture_guardrails.py`
+
+Completion notes:
+
+- Added post-extraction facade size and import-prefix guardrails for
+  `runtime/changesets.py`, `cli/changeset_commands.py`,
+  `cli/parser_changesets.py`, `web/changeset_api.py`, and
+  `web/routes/changesets.py`.
+- Added delegate-import guardrails that require the v13 runtime, CLI, parser,
+  web API, and changeset route facades to import their intended helper owners.
+- Refreshed `refactor-boundaries.md` to document the active post-extraction
+  guardrails and note that frontend changeset entrypoints remain under
+  pre-split growth/dependency guardrails until Phase 85 helpers exist.
 
 ---
 

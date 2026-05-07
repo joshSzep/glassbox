@@ -1168,9 +1168,11 @@ The guardrails are intentionally narrow:
   every failure message a concrete destination module
 - v13 guardrails initially freeze the known review-loop pressure points against
   further growth before extraction, block the clearest cross-layer imports, and
-  document the future facade/helper expectations. After the first runtime, web,
-  CLI, and frontend helper modules exist, [refactor-v13.md](./refactor-v13.md)
-  calls for tighter delegate-import and facade-size checks.
+  document the future facade/helper expectations. Now that runtime, CLI, parser,
+  web API, and changeset-route helpers exist, the corresponding Python facades
+  also have explicit delegate-import and facade-size checks. Frontend changeset
+  entrypoints remain under pre-split growth and dependency-direction guardrails
+  until the Phase 85 component and store helper modules exist.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1314,6 +1316,17 @@ The post-v13 refactor accepts these compatibility surfaces and intended owners:
 - `scripts/validate_v13_release_gate.py`: operator entrypoint; new v13 gate
   stage construction, advisory evidence row shaping, dry-run planning, and
   summary metadata belongs in release-gate helper code.
+
+For completed post-v13 extraction slices, guardrails now assert that:
+
+- `runtime/changesets.py` imports the runtime-owned changeset, review-feedback,
+  evidence, verification, and brief helper modules it re-exports.
+- `cli/changeset_commands.py` and `cli/parser_changesets.py` delegate to their
+  command-handler and workflow-family parser helpers.
+- `web/changeset_api.py` delegates to transport model and response-builder
+  helpers without importing FastAPI.
+- `web/routes/changesets.py` delegates service construction, request coercion,
+  workspace-root lookup, and common HTTP errors to route-local helpers.
 
 ## Patterns That Must Not Become Permanent
 

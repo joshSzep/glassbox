@@ -2411,6 +2411,123 @@ V11_COMPATIBILITY_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...
     ),
 )
 
+V13_PYTHON_FACADE_RULES: tuple[tuple[Path, tuple[str, ...], int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changesets.py",
+        ("glassbox.runtime.",),
+        90,
+        (
+            "v13 changesets runtime facade should stay a thin public re-export "
+            "surface over extracted review-loop helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "changeset_commands.py",
+        (
+            "argparse",
+            "glassbox.cli.changeset_command_handlers",
+        ),
+        100,
+        (
+            "v13 changeset CLI facade should stay a thin command dispatcher "
+            "over command handler helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_changesets.py",
+        (
+            "argparse",
+            "glassbox.cli.parser_changeset_",
+            "glassbox.cli.parser_common",
+        ),
+        220,
+        (
+            "v13 changeset parser facade should stay a parser entrypoint over "
+            "workflow-family parser helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api.py",
+        (
+            "glassbox.web.changeset_api_builders",
+            "glassbox.web.changeset_api_models",
+            "glassbox.web.review_loop_api",
+        ),
+        220,
+        (
+            "v13 changeset API facade should stay a compatibility import "
+            "surface over model and builder helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changesets.py",
+        (
+            "typing",
+            "uuid",
+            "fastapi",
+            "glassbox.web.app",
+            "glassbox.web.changeset_api",
+            "glassbox.web.routes.changeset_route_",
+            "glassbox.web.session_api",
+        ),
+        800,
+        (
+            "v13 changeset routes should stay a FastAPI declaration surface "
+            "over route-local service, request, and error helpers"
+        ),
+    ),
+)
+
+V13_COMPATIBILITY_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changesets.py",
+        (
+            "glassbox.runtime.changeset_actions",
+            "glassbox.runtime.changeset_derivation",
+            "glassbox.runtime.changeset_models",
+            "glassbox.runtime.changeset_queries",
+            "glassbox.runtime.changeset_repository_contracts",
+            "glassbox.runtime.changeset_review_brief_service",
+            "glassbox.runtime.changeset_verification",
+            "glassbox.runtime.manual_evidence_actions",
+            "glassbox.runtime.review_feedback_actions",
+        ),
+        "v13 changesets runtime facade should delegate to runtime helpers",
+    ),
+    (
+        SRC_ROOT / "cli" / "changeset_commands.py",
+        ("glassbox.cli.changeset_command_handlers",),
+        "v13 changeset CLI facade should delegate to command handlers",
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_changesets.py",
+        (
+            "glassbox.cli.parser_changeset_evidence",
+            "glassbox.cli.parser_changeset_feedback",
+            "glassbox.cli.parser_changeset_review",
+        ),
+        "v13 changeset parser facade should delegate to parser helpers",
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api.py",
+        (
+            "glassbox.web.changeset_api_builders",
+            "glassbox.web.changeset_api_models",
+            "glassbox.web.review_loop_api",
+        ),
+        "v13 changeset API facade should delegate to model and builder helpers",
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changesets.py",
+        (
+            "glassbox.web.routes.changeset_route_errors",
+            "glassbox.web.routes.changeset_route_requests",
+            "glassbox.web.routes.changeset_route_services",
+        ),
+        "v13 changeset routes should delegate to route-local helpers",
+    ),
+)
+
 V13_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     (
         SRC_ROOT / "runtime" / "changesets.py",
@@ -2802,6 +2919,62 @@ def test_v11_compatibility_facades_delegate_to_intended_owners() -> None:
 
 def test_v13_python_pressure_points_do_not_grow_before_split() -> None:
     violations = _line_count_violations(V13_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v13_extracted_python_facades_stay_thin_and_import_owned_helpers() -> None:
+    violations: list[str] = []
+
+    for file_path, allowed_prefixes, max_lines, message in V13_PYTHON_FACADE_RULES:
+        modules = _python_import_modules(file_path)
+        disallowed = [
+            module
+            for module in modules
+            if module != "__future__"
+            and not _matches_any_prefix(module, allowed_prefixes)
+        ]
+        if disallowed:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"unexpected imports {disallowed}",
+                )
+            )
+        line_count = _line_count(file_path)
+        if line_count > max_lines:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"{line_count} lines exceeds {max_lines}",
+                )
+            )
+
+    assert violations == []
+
+
+def test_v13_compatibility_facades_delegate_to_intended_owners() -> None:
+    violations: list[str] = []
+
+    for file_path, required_prefixes, message in V13_COMPATIBILITY_FACADE_DELEGATES:
+        modules = _python_import_modules(file_path)
+        missing = [
+            required_prefix
+            for required_prefix in required_prefixes
+            if not any(
+                _matches_any_prefix(module, (required_prefix,)) for module in modules
+            )
+        ]
+        if missing:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"missing delegate imports {missing}",
+                )
+            )
 
     assert violations == []
 
