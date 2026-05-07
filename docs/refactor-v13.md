@@ -1073,7 +1073,7 @@ Completion notes:
 
 ### GBX-R553: Split Changeset Store Actions And Selectors
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R543, GBX-R552
 - Target files:
   - `frontend/stores/changeset-store.ts`
@@ -1091,6 +1091,16 @@ Completion notes:
   - `pnpm --dir frontend test -- dashboard-stores.test.ts changeset-console.test.tsx`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+
+Completion notes:
+
+- Kept `frontend/stores/changeset-store.ts` as the compatibility facade for
+  public changeset store state/types and `createChangesetStore`.
+- Moved async changeset transport/action handlers into
+  `frontend/stores/changeset-store-actions.ts`.
+- Moved initial detail/page state builders and selected changeset lookup into
+  `frontend/stores/changeset-store-selectors.ts`.
+- Preserved dashboard-store exports and kept API transport in the store layer.
 
 ---
 
