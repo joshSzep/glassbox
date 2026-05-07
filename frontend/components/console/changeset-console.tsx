@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ChevronLeft,
   ClipboardCheck,
   FileText,
   GitBranch,
@@ -18,11 +17,8 @@ import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/component
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
-import type {
-  ChangesetActionStatus,
-  ChangesetDetailState,
-  ChangesetPageState,
-} from "@/stores/dashboard-stores";
+import type { ChangesetActionStatus, ChangesetDetailState } from "@/stores/dashboard-stores";
+import { ChangesetDetailHeader } from "./changeset/detail";
 import {
   candidateBadgeVariant,
   formatVerificationState,
@@ -30,6 +26,7 @@ import {
   readinessBadgeVariant,
   verificationBadgeVariant,
 } from "./changeset/format";
+import { ChangesetList } from "./changeset/list";
 import { Fact, Section, StateLine } from "./changeset/shared";
 import type { ChangesetConsoleProps } from "./changeset/types";
 
@@ -96,46 +93,6 @@ export function ChangesetConsole({
   );
 }
 
-function ChangesetList({
-  detail,
-  onSelectChangeset,
-  page,
-}: {
-  detail: ChangesetDetailState;
-  onSelectChangeset?: (changesetId: string) => void;
-  page: ChangesetPageState;
-}) {
-  if (page.loadState === "failed") {
-    return <StateLine tone="destructive" value={page.error ?? "Unable to load changesets."} />;
-  }
-  if (page.items.length === 0) {
-    return <StateLine value="No changesets found." />;
-  }
-  return (
-    <DataList density="compact">
-      {page.items.map((changeset) => (
-        <DataListItem
-          className={
-            changeset.changeset_id === detail.selectedChangesetId ? "bg-surface-raised" : ""
-          }
-          key={changeset.changeset_id}
-        >
-          <button
-            className="grid min-w-0 gap-1 text-left"
-            onClick={() => onSelectChangeset?.(changeset.changeset_id)}
-            type="button"
-          >
-            <DataListLabel className="truncate">{changeset.objective}</DataListLabel>
-            <DataListMeta className="truncate">
-              {changeset.status} - risk {changeset.risk_level} - {changeset.changeset_id}
-            </DataListMeta>
-          </button>
-        </DataListItem>
-      ))}
-    </DataList>
-  );
-}
-
 function ChangesetDetail({
   action,
   detail,
@@ -167,7 +124,6 @@ function ChangesetDetail({
     return <StateLine value="Loading changeset evidence." />;
   }
   const { changeset } = detail.detail;
-  const highRisk = changeset.risk_level === "high";
   const inventoryStatus = detail.detail.inventory_status;
   const staleInventory = inventoryStatus.stale || inventoryStatus.freshness === "stale";
   const verificationPlan = detail.verificationPlan;
@@ -179,55 +135,16 @@ function ChangesetDetail({
   const briefCount = detail.detail.review_briefs.length;
   return (
     <article className="rounded-md border border-border/80 bg-card p-4 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-            {changeset.status}
-          </p>
-          <h2 className="mt-1 text-base font-semibold tracking-normal">{changeset.objective}</h2>
-          <p className="mt-1 break-all text-console text-muted-foreground">
-            {changeset.changeset_id}
-          </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant={highRisk ? "warning" : "muted"}>Risk {changeset.risk_level}</Badge>
-            <Badge variant={staleInventory ? "warning" : "muted"}>
-              Inventory {inventoryStatus.freshness}
-            </Badge>
-            <Badge variant={verificationBadgeVariant(verificationState)}>
-              Verification {formatVerificationState(verificationState)}
-            </Badge>
-            {changeset.unresolved_risk_count > 0 ? (
-              <Badge variant="outline">{changeset.unresolved_risk_count} unresolved</Badge>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={onShowList} size="sm" type="button" variant="ghost">
-            <ChevronLeft className={operatorIconSizeClass} aria-hidden="true" />
-            List
-          </Button>
-          <Button
-            disabled={action.state === "pending"}
-            onClick={onGenerateReviewBrief}
-            size="sm"
-            type="button"
-            variant={briefCount > 0 ? "outline" : "default"}
-          >
-            <FileText className={operatorIconSizeClass} aria-hidden="true" />
-            Brief
-          </Button>
-          <Button
-            disabled={action.state === "pending"}
-            onClick={onRefreshChangeset}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <RefreshCcw className={operatorIconSizeClass} aria-hidden="true" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+      <ChangesetDetailHeader
+        action={action}
+        briefCount={briefCount}
+        changeset={changeset}
+        inventoryStatus={inventoryStatus}
+        onGenerateReviewBrief={onGenerateReviewBrief}
+        onRefreshChangeset={onRefreshChangeset}
+        onShowList={onShowList}
+        verificationState={verificationState}
+      />
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
         <Fact label="Session" value={changeset.session_id} />
         <Fact label="Task" value={changeset.task_id ?? "None"} />

@@ -1001,7 +1001,7 @@ Completion notes:
 
 ### GBX-R551: Split Changeset List And Detail Shell
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R550
 - Target files:
   - `frontend/components/console/changeset-console.tsx`
@@ -1019,6 +1019,17 @@ Completion notes:
   - `pnpm --dir frontend test -- changeset-console.test.tsx`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+
+Completion notes:
+
+- Moved changeset list rendering, empty state, and list load-error state into
+  `frontend/components/console/changeset/list.tsx`.
+- Moved detail header status badges into
+  `frontend/components/console/changeset/detail.tsx`.
+- Moved detail header action buttons into
+  `frontend/components/console/changeset/actions.tsx`.
+- Kept the deeper feedback, evidence, verification, handoff, and commit-prep
+  panels in `changeset-console.tsx` for the dedicated `GBX-R552` section split.
 
 ### GBX-R552: Split Evidence, Feedback, Verification, And Handoff Sections
 
