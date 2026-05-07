@@ -139,6 +139,7 @@ Start here based on what you need:
 - [docs/v14-review-loop-maturity-contract.md](docs/v14-review-loop-maturity-contract.md)
 - [docs/v14-review-loop-maturity-audit.md](docs/v14-review-loop-maturity-audit.md)
 - [docs/v14-advisory-review-evidence.md](docs/v14-advisory-review-evidence.md)
+- [docs/v14-advisory-dashboard-evidence.md](docs/v14-advisory-dashboard-evidence.md)
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

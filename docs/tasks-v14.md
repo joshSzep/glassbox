@@ -734,7 +734,7 @@ supersedes it.
 
 ### GBX-1451: Run Fresh Dashboard Browser Walkthrough Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1450`
 - Goal: retain one fresh advisory browser/dashboard walkthrough for the
   matured review-loop surfaces

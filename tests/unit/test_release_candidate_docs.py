@@ -960,6 +960,47 @@ def test_v14_advisory_review_evidence_protocol_is_repeatable() -> None:
     assert "v14-advisory-review-evidence.md" in docs_readme
 
 
+def test_v14_advisory_dashboard_evidence_summary_is_bounded() -> None:
+    content = (REPO_ROOT / "docs" / "v14-advisory-dashboard-evidence.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "# V14 Advisory Dashboard Evidence Summary",
+        "GBX-1451",
+        ".glassbox/releases/v14-advisory-review-evidence/browser/",
+        "## Observed Coverage",
+        "Dashboard changeset detail",
+        "Feedback status",
+        "Skipped evidence display",
+        "Fixup inventory action state",
+        "Handoff readiness",
+        "## Browser Evidence",
+        "/app/changesets/changeset-1",
+        "local static server for the production frontend build",
+        "Chromium through Playwright",
+        "Viewport: 1440x900 landscape",
+        "Console status: checked, no browser console errors or page errors observed",
+        "## Skipped Coverage",
+        "Mobile dashboard viewport",
+        "Accessibility pairing",
+        "Live backend dogfooding changeset attachment",
+        "## Findings",
+        "EMFILE",
+        "## Non-Claims",
+        "advisory evidence is not deterministic release authority",
+        "skipped browser, dashboard, or accessibility evidence is not a pass",
+        "response-linked fixup inventory is not reviewer approval",
+        "Glassbox did not stage, commit, push, open a PR, merge, deploy, or publish",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-advisory-dashboard-evidence.md" in root_readme
+    assert "v14-advisory-dashboard-evidence.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"
