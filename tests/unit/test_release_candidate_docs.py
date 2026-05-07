@@ -917,6 +917,49 @@ def test_browser_accessibility_evidence_protocol_bounds_live_claims() -> None:
     assert "browser-accessibility-evidence.md" in docs_readme
 
 
+def test_v14_advisory_review_evidence_protocol_is_repeatable() -> None:
+    content = (REPO_ROOT / "docs" / "v14-advisory-review-evidence.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "# V14 Advisory Review Evidence Protocol",
+        "## Scope",
+        "## Retained Evidence Location",
+        ".glassbox/releases/v14-advisory-review-evidence/",
+        "## Scenario List",
+        "Dashboard changeset detail",
+        "Feedback status",
+        "Skipped evidence display",
+        "Fixup inventory action state",
+        "Handoff readiness",
+        "## Browser Evidence Fields",
+        "viewport width, height, and orientation",
+        "console status",
+        "## Accessibility Pairing Fields",
+        "keyboard path checked",
+        "screen-reader certified",
+        "## Manual Run Steps",
+        "The protocol can be run manually even if Playwright is unavailable.",
+        "## Skipped-Case Template",
+        "Capture state: not_run | not_applicable",
+        "## Non-Claim Template",
+        "skipped browser, dashboard, or accessibility evidence is not a pass",
+        "response-linked fixup inventory is not reviewer approval",
+        "Glassbox did not stage, commit, push, open a PR, merge, deploy, or publish",
+        "## Summary Shape",
+        "## Release Boundary",
+        "does not become a release gate",
+        "fixture-backed contract and pass/fail policy",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-advisory-review-evidence.md" in root_readme
+    assert "v14-advisory-review-evidence.md" in docs_readme
+
+
 def test_v12_change_lifecycle_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v12-change-lifecycle-audit.md").read_text(
         encoding="utf-8"

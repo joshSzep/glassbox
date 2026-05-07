@@ -708,7 +708,7 @@ supersedes it.
 
 ### GBX-1450: Define A Repeatable Advisory Evidence Protocol For V14
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1432`, `GBX-1442`
 - Goal: define how v14 collects fresh live browser/dashboard and accessibility
   evidence without making it blocking release authority

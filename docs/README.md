@@ -62,6 +62,11 @@ after the v13 release candidate and post-v13 refactor.
   fixup inventory, skipped browser/dashboard evidence, skipped accessibility
   evidence, command discovery, dashboard surfaces, release-gate advisory
   posture, and dogfooding provider-prefix cleanup
+- [v14-advisory-review-evidence.md](./v14-advisory-review-evidence.md):
+  repeatable v14 advisory dashboard browser and accessibility evidence
+  protocol for changeset detail, feedback status, skipped evidence, fixup
+  action states, handoff readiness, retained local evidence, skipped-case
+  templates, and non-claims
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
@@ -123,6 +128,9 @@ after the v13 release candidate and post-v13 refactor.
   v14 maturity audit connecting v13 dogfooding findings to source-linked
   implementation targets, accepted risks, documentation-only cleanup, and
   non-goals
+- [v14-advisory-review-evidence.md](./v14-advisory-review-evidence.md):
+  v14 advisory UX evidence protocol for fresh or explicitly skipped dashboard
+  browser and accessibility passes without turning them into release authority
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, command discovery, advisory UX evidence, dogfooding, and
