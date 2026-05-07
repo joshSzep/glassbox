@@ -5,9 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
-import pytest
-from pydantic import ValidationError
-
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessState
@@ -366,7 +363,7 @@ def test_review_brief_generation_includes_review_loop_evidence(
     )
 
 
-def test_review_brief_generation_currently_fails_when_limitations_overflow(
+def test_review_brief_generation_summarizes_limitations_before_validation(
     tmp_path: Path,
 ) -> None:
     repository = _FakeReviewBriefRepository(tmp_path)
@@ -400,19 +397,21 @@ def test_review_brief_generation_currently_fails_when_limitations_overflow(
         for index in range(25)
     ]
 
-    with pytest.raises(ValidationError) as exc_info:
-        ChangesetReviewBriefService(
-            cast(ChangesetRepository, repository),
-            cast(ArtifactRepository, artifacts),
-        ).generate(
-            repository.changeset.changeset_id,
-            tmp_path,
-            created_by="qa",
-        )
+    result = ChangesetReviewBriefService(
+        cast(ChangesetRepository, repository),
+        cast(ArtifactRepository, artifacts),
+    ).generate(
+        repository.changeset.changeset_id,
+        tmp_path,
+        created_by="qa",
+    )
 
-    assert "limitations" in str(exc_info.value)
-    assert "at most 20 items" in str(exc_info.value)
-    assert repository.events == []
+    assert len(result.limitations) == 20
+    assert result.limitations[-1].startswith("rich-evidence limitations summarized")
+    assert "verification readiness is missing" in result.limitations
+    assert result.brief.limitations == result.limitations
+    assert result.event.payload.event_type == "ChangesetReviewBriefCreated"
+    assert repository.events
 
 
 def _brief(

@@ -635,13 +635,14 @@ def test_review_briefs_document_rich_evidence_overflow_contract() -> None:
 
     for required_text in (
         "## Rich-Evidence Limitation Overflow",
-        "`GBX-1410` characterizes the current v13/v14-start failure mode",
+        "`GBX-1410` characterized the v13/v14-start failure mode",
         "more than 20 retained",
-        "`GBX-1411` should replace that brittle behavior",
+        "`GBX-1411` replaces that brittle behavior",
         "deduplicate repeated limitations",
         "keep high-severity blockers visible",
         "add an overflow summary",
         "ordering deterministic",
+        "brief artifact",
     ):
         assert required_text in content
 

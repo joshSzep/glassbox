@@ -26,6 +26,9 @@ from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
 from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 
+_REVIEW_BRIEF_LIMITATION_CAP = 20
+_REVIEW_BRIEF_OVERFLOW_SUMMARY_SLOT = 1
+
 
 def _review_brief_artifact(
     *,
@@ -751,7 +754,52 @@ def _review_brief_limitations(
             f"{review_response_summary.stale_response_count} review response(s) "
             "need fresh verification"
         )
-    return list(dict.fromkeys(limitations))
+    return _summarize_review_brief_limitations(limitations)
+
+
+def _summarize_review_brief_limitations(limitations: list[str]) -> list[str]:
+    """Keep reviewer-safe limitations within the artifact cap."""
+
+    deduped = list(dict.fromkeys(limitations))
+    if len(deduped) <= _REVIEW_BRIEF_LIMITATION_CAP:
+        return deduped
+
+    visible_limit = _REVIEW_BRIEF_LIMITATION_CAP - _REVIEW_BRIEF_OVERFLOW_SUMMARY_SLOT
+    prioritized = sorted(
+        enumerate(deduped),
+        key=lambda item: (_review_brief_limitation_priority(item[1]), item[0]),
+    )
+    visible_indexes = {index for index, _limitation in prioritized[:visible_limit]}
+    visible = [
+        limitation
+        for index, limitation in enumerate(deduped)
+        if index in visible_indexes
+    ]
+    overflow_count = len(deduped) - len(visible)
+    visible.append(
+        "rich-evidence limitations summarized: "
+        f"{overflow_count} additional retained limitation(s) are summarized "
+        "to keep the reviewer-safe brief within the 20-item artifact cap; "
+        "inspect retained changeset evidence for the full limitation set"
+    )
+    return visible
+
+
+def _review_brief_limitation_priority(limitation: str) -> int:
+    lowered = limitation.lower()
+    high_priority_terms = (
+        "blocker",
+        "failed",
+        "failure",
+        "unresolved",
+        "verification readiness",
+        "need fresh verification",
+        "stale",
+        "accepted risk",
+    )
+    if any(term in lowered for term in high_priority_terms):
+        return 0
+    return 1
 
 
 def _review_readiness_state(

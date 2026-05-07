@@ -386,7 +386,7 @@ supersedes it.
 
 ### GBX-1411: Summarize Lifecycle Brief Limitations Before Artifact Validation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1410`
 - Goal: make lifecycle brief generation degrade gracefully for rich
   review-loop evidence
