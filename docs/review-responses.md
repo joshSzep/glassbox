@@ -113,6 +113,89 @@ and response-linked inventory remains explicit operator action, and response
 status is not folded into commit readiness until publication-boundary tasks
 define that relationship.
 
+## GBX-1420 Operator UX Contract
+
+The v14 operator path for response-linked fixup inventory must stay under the
+`glassbox changeset feedback` family. It should make one workflow obvious:
+inspect feedback, record bounded changed-path evidence, rerun or cite local
+verification, then decide whether the feedback is resolved locally or accepted
+with risk. None of those steps stage, commit, push, open a pull request, merge,
+deploy, publish, or claim reviewer approval.
+
+### CLI Contract
+
+`GBX-1421` should add a focused fixup action with this shape:
+
+```bash
+glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd .
+glassbox changeset feedback fixup FEEDBACK_ID --from-latest-inventory --cwd .
+glassbox changeset feedback fixup FEEDBACK_ID --path src/app.py --path tests/test_app.py --cwd .
+```
+
+The command records fixup inventory for one feedback record after validating
+that the feedback belongs to the changeset being inspected. It should also
+support a changeset-scoped bulk mode for eligible feedback when the operator
+asks explicitly:
+
+```bash
+glassbox changeset feedback fixup --changeset CHANGESET_ID --all-eligible --from-workspace --cwd .
+```
+
+The command response must include the feedback ID, changeset ID, artifact ID,
+source kind, changed-path count, matched feedback-scope path count, stale
+posture, safe next actions, and non-claims. JSON output should expose the same
+fields plus bounded path rows; human output should stay compact and name the
+next safe inspection command. The command must reject ambiguous ownership,
+unknown feedback IDs, empty path input, and bulk mode without an explicit
+`--all-eligible` flag.
+
+### API And Dashboard Inspection Contract
+
+API and dashboard read surfaces should continue to expose response-linked
+inventory through response status fields: `fixup_inventory_count`,
+`latest_fixup_inventory_artifact_id`, `latest_fixup_inventory_sequence`,
+`latest_fixup_inventory_at`, verification state, blockers, stale reason, safe
+next actions, and non-claims. Dashboard feedback rows should show whether
+inventory is missing, attached, stale, mismatched, failed, skipped, accepted
+with risk, or ready for handoff, and should link back to the feedback detail
+and changeset verification plan before offering any mutation.
+
+If dashboard mutation is added in `GBX-1422`, the route should mirror the CLI
+contract rather than inventing a separate model. The minimum write shape is a
+single-feedback action equivalent to "record bounded fixup inventory for this
+feedback from current workspace or explicit paths." A changeset-wide dashboard
+action must require explicit confirmation and show the eligible feedback count
+before recording anything.
+
+### Error And Safe-Next-Action Language
+
+Use cautious, inspect-first language for missing or stale evidence:
+
+- Missing inventory: "feedback has no response-linked fixup inventory yet";
+  safe next action: inspect feedback status, inspect the changeset, then record
+  bounded fixup inventory if the workspace changes are intended.
+- Stale inventory: "workspace diff source digest changed since fixup inventory
+  was recorded"; safe next action: refresh or rerecord fixup inventory and
+  rerun the named local verification command.
+- Mismatched inventory: "fixup inventory has no path records matching feedback
+  scope"; safe next action: inspect feedback scopes and attach explicit paths
+  or accepted-risk rationale.
+- Missing verification: "feedback has no response-linked fixup inventory to
+  verify" or "no retained verification check targets response-linked fixup
+  paths"; safe next action: preview the changeset verification plan and run a
+  local check before handoff.
+- Accepted risk: "operator accepted residual risk; this is not reviewer
+  approval"; safe next action: inspect risk summary before publication.
+
+Safe next actions should prefer:
+
+```bash
+glassbox changeset feedback status CHANGESET_ID --cwd .
+glassbox changeset feedback show FEEDBACK_ID --cwd .
+glassbox changeset show CHANGESET_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+```
+
 ## Stale Verification Rules
 
 Each response status now includes a response-level verification state:

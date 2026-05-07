@@ -614,13 +614,30 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
 
     for required_text in (
         "response-linked fixup inventory posture",
-        "Record local response text; attach fixup inventory separately",
+        "non-approval claims before",
+        "recording fixup evidence",
+        "Record local response text; attach response-linked fixup",
+        "inventory separately before treating the response as ready",
         "Record advisory dashboard evidence or an explicit skipped case",
         "without calling it a pass",
     ):
         assert required_text in command_guide
 
     assert "## Response-Linked Fixup Inventory Rules" in review_responses
+    assert "## GBX-1420 Operator UX Contract" in review_responses
+    assert "### CLI Contract" in review_responses
+    assert "glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd ." in (
+        review_responses
+    )
+    assert "--all-eligible" in review_responses
+    assert "### API And Dashboard Inspection Contract" in review_responses
+    assert "### Error And Safe-Next-Action Language" in review_responses
+    assert "workspace diff source digest changed since fixup inventory" in (
+        review_responses
+    )
+    assert "was recorded" in review_responses
+    assert "fixup inventory has no path records matching feedback" in review_responses
+    assert "scope" in review_responses
     assert "local evidence" in review_responses
     assert "approval or acceptance" in review_responses
     assert "## Skipped Advisory Evidence" in browser_accessibility

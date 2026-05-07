@@ -440,7 +440,7 @@ supersedes it.
 
 ### GBX-1420: Define Response-Linked Fixup Inventory UX Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1401`, `GBX-1402`
 - Goal: define the concrete operator path for attaching changed-path evidence
   to a review response

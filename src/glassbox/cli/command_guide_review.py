@@ -33,7 +33,8 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             "glassbox changeset feedback status CHANGESET_ID --cwd .",
             (
                 "Inspect response-linked fixup inventory posture, stale checks, "
-                "blockers, accepted risks, and non-approval claims."
+                "blockers, accepted risks, and non-approval claims before "
+                "recording fixup evidence."
             ),
         ),
         CommandGuideEntry(
@@ -42,8 +43,9 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
                 "--summary SUMMARY --cwd ."
             ),
             (
-                "Record local response text; attach fixup inventory separately "
-                "before treating the response as ready for handoff."
+                "Record local response text; attach response-linked fixup "
+                "inventory separately before treating the response as ready "
+                "for handoff."
             ),
         ),
         CommandGuideEntry(
