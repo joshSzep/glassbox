@@ -3,6 +3,7 @@
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionResult
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
+from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.precommit_evidence import PreCommitEvidenceRecordResult
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
@@ -71,6 +72,26 @@ def _feedback_result_payload(result: ReviewFeedbackRecordResult) -> dict[str, ob
         "events": [event.model_dump(mode="json") for event in result.events],
         "safe_next_actions": result.safe_next_actions,
         "non_claims": result.non_claims,
+    }
+
+
+def _fixup_inventory_payload(
+    result: ReviewFeedbackFixupInventoryResult,
+    *,
+    response_status: ReviewFeedbackResponseStatus,
+) -> dict[str, object]:
+    return {
+        "feedback_id": str(result.feedback_id),
+        "changeset_id": str(result.changeset_id),
+        "session_id": str(result.session_id),
+        "artifact_id": str(result.artifact.artifact_id),
+        "artifact_path": result.artifact.relative_path.as_posix(),
+        "inventory": result.inventory.model_dump(mode="json"),
+        "event": result.event.model_dump(mode="json"),
+        "status": result.status.model_dump(mode="json"),
+        "response_status": response_status.model_dump(mode="json"),
+        "safe_next_actions": response_status.safe_next_actions,
+        "non_claims": result.inventory.non_claims,
     }
 
 

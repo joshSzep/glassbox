@@ -35,6 +35,8 @@ def _parse_review_command(text: str) -> _ParsedReviewCommand:
         return _ParsedReviewCommand("create", argument)
     if subcommand in {"status", "feedback", "responses"}:
         return _ParsedReviewCommand(ReviewLoopAction.SHOW_FEEDBACK_STATUS, argument)
+    if subcommand in {"fixup", "record-fixup"}:
+        return _ParsedReviewCommand(ReviewLoopAction.RECORD_FEEDBACK_FIXUP, argument)
     if subcommand == "refresh":
         return _ParsedReviewCommand(ReviewLoopAction.REFRESH_INVENTORY, argument)
     if subcommand in {"brief", "lifecycle-brief"}:

@@ -133,6 +133,37 @@ def _add_changeset_feedback_parsers(
     feedback_resolve_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(feedback_resolve_parser)
 
+    feedback_fixup_parser = feedback_subparsers.add_parser(
+        "fixup",
+        help="record response-linked fixup inventory for one feedback item",
+        description=(
+            "Attach bounded changed-path evidence to one local feedback response. "
+            "By default this derives summary-only inventory from the current "
+            "workspace diff. Use repeated --path values to record explicit "
+            "operator-selected paths. No git, PR, or publication action is "
+            "performed."
+        ),
+    )
+    feedback_fixup_parser.add_argument("feedback_id", type=_parse_uuid)
+    feedback_fixup_parser.add_argument(
+        "--from-workspace",
+        action="store_true",
+        help="derive fixup inventory from the current workspace diff",
+    )
+    feedback_fixup_parser.add_argument(
+        "--path",
+        action="append",
+        dest="paths",
+        help="record an explicit relative path; may be repeated",
+    )
+    feedback_fixup_parser.add_argument(
+        "--source-summary",
+        default="operator recorded response-linked workspace inventory",
+    )
+    feedback_fixup_parser.add_argument("--actor", default="operator")
+    feedback_fixup_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(feedback_fixup_parser)
+
     feedback_reopen_parser = feedback_subparsers.add_parser(
         "reopen",
         help="reopen previously handled local review feedback",

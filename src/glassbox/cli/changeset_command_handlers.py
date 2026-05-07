@@ -14,6 +14,7 @@ from glassbox.cli.changeset_command_formatters import _print_commit_prep
 from glassbox.cli.changeset_command_formatters import _print_feedback_detail
 from glassbox.cli.changeset_command_formatters import _print_feedback_list
 from glassbox.cli.changeset_command_formatters import _print_feedback_result
+from glassbox.cli.changeset_command_formatters import _print_fixup_inventory_result
 from glassbox.cli.changeset_command_formatters import _print_handoff_readiness
 from glassbox.cli.changeset_command_formatters import _print_limitations
 from glassbox.cli.changeset_command_formatters import _print_manual_evidence_list
@@ -49,6 +50,7 @@ from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.changesets import ManualEvidenceActionService
 from glassbox.runtime.changesets import ReviewFeedbackActionService
+from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryService
 from glassbox.runtime.commit_messages import ChangesetCommitMessageSuggestionService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
@@ -472,6 +474,8 @@ def _changeset_feedback_command(args: argparse.Namespace) -> int:
         return _feedback_status_command(args)
     if command == "resolve":
         return _feedback_resolve_command(args)
+    if command == "fixup":
+        return _feedback_fixup_command(args)
     if command == "reopen":
         return _feedback_reopen_command(args)
     if command == "archive":
@@ -583,6 +587,46 @@ def _feedback_resolve_command(args: argparse.Namespace) -> int:
             resolved_by=args.actor,
         )
     return _print_feedback_result(result, args.json, "Resolved review feedback locally")
+
+
+def _feedback_fixup_command(args: argparse.Namespace) -> int:
+    if args.from_workspace and args.paths:
+        raise ValueError("feedback fixup accepts either --from-workspace or --path")
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        service = ReviewFeedbackFixupInventoryService(
+            repository,
+            runtime_context.repositories.artifacts,
+        )
+        if args.paths:
+            result = service.record_explicit_paths(
+                args.feedback_id,
+                cwd,
+                paths=args.paths,
+                source_summary=args.source_summary,
+                recorded_by=args.actor,
+            )
+        else:
+            result = asyncio.run(
+                service.record_workspace_inventory(
+                    args.feedback_id,
+                    cwd,
+                    source_summary=args.source_summary,
+                    recorded_by=args.actor,
+                )
+            )
+        response_status = ChangesetQueryService(
+            repository
+        ).get_review_feedback_response_status(
+            result.feedback_id,
+            workspace_root=cwd,
+        )
+    return _print_fixup_inventory_result(
+        result,
+        response_status=response_status,
+        as_json=args.json,
+    )
 
 
 def _feedback_reopen_command(args: argparse.Namespace) -> int:

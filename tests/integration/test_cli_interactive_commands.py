@@ -218,6 +218,95 @@ def test_cli_chat_plain_supports_review_shortcuts(
     assert "No tests, staging, commit, push, PR, or merge was run." in captured.out
 
 
+def test_cli_chat_plain_supports_review_fixup_shortcut(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / "app.py").write_text("print('plain fixup')\n", encoding="utf-8")
+    db_path, session_id = _run_baseline_session(tmp_path, prompt="prepare fixup")
+    capsys.readouterr()
+    create_exit = main(
+        [
+            "changeset",
+            "create",
+            "--from",
+            "workspace-diff",
+            "--session",
+            str(session_id),
+            "--objective",
+            "Plain fixup parity",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    created = json.loads(capsys.readouterr().out)
+    feedback_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "add",
+            created["changeset_id"],
+            "--kind",
+            "requested_change",
+            "--summary",
+            "Wire the plain review fixup shortcut",
+            "--provenance",
+            "reviewer",
+            "--file",
+            "app.py",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    feedback = json.loads(capsys.readouterr().out)
+    feedback_id = feedback["feedback"]["feedback_id"]
+    interactive_inputs = iter([f"/review fixup {feedback_id}", "/exit"])
+
+    monkeypatch.setattr(
+        "glassbox.cli.interactive_session._read_interactive_input",
+        lambda prompt: next(interactive_inputs),
+    )
+
+    exit_code = main(
+        [
+            "session",
+            "chat",
+            "--plain",
+            "--no-dashboard",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        inventories = repository.list_review_feedback_fixup_inventories(
+            UUID(created["session_id"]),
+            UUID(feedback_id),
+        )
+    finally:
+        connection.close()
+
+    assert create_exit == 0
+    assert feedback_exit == 0
+    assert exit_code == 0
+    assert len(inventories) == 1
+    assert "Recorded fixup inventory for feedback" in captured.out
+    assert "No tests, staging, commit, push, PR, or merge was run." in captured.out
+
+
 def test_cli_chat_tui_flag_rejects_non_interactive_environment(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

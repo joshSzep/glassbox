@@ -382,6 +382,24 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     recorded = json.loads(capsys.readouterr().out)
+    fixup_exit = main(
+        [
+            "changeset",
+            "feedback",
+            "fixup",
+            feedback_id,
+            "--source-summary",
+            "operator recorded bounded fixup inventory from CLI",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    fixup_output = capsys.readouterr()
+    assert fixup_exit == 0, fixup_output.err
+    fixup = json.loads(fixup_output.out)
     brief_exit = main(
         [
             "changeset",
@@ -625,6 +643,14 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert record_exit == 0
     assert recorded["readiness"]["state"] == "passed"
     assert recorded["retained_artifact_ids"] == [str(artifact_id)]
+    assert fixup_exit == 0
+    assert fixup["feedback_id"] == feedback_id
+    assert fixup["changeset_id"] == changeset_id
+    assert fixup["inventory"]["changed_path_count"] >= 1
+    assert fixup["inventory"]["matched_scope_path_count"] >= 1
+    assert fixup["response_status"]["fixup_inventory_count"] == 1
+    assert "not reviewer acceptance" in " ".join(fixup["non_claims"])
+    assert any("feedback show" in action for action in fixup["safe_next_actions"])
     assert brief_exit == 0
     assert brief["brief"]["artifact_kind"] == "changeset_review_brief"
     assert brief["brief"]["verification"]["body"].startswith("Readiness is passed")
@@ -637,6 +663,10 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert (
         brief_detail["changeset"]["latest_review_brief_artifact_id"]
         == (brief["artifact_id"])
+    )
+    assert (
+        brief_detail["review_response_summary"]["items"][0]["fixup_inventory_count"]
+        == 1
     )
     assert brief_detail["review_briefs"][0]["artifact_id"] == brief["artifact_id"]
     assert brief_detail["readiness"][0]["readiness_kind"] == "review"

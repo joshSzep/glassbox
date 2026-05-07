@@ -49,6 +49,14 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             ),
         ),
         CommandGuideEntry(
+            "glassbox changeset feedback fixup FEEDBACK_ID --cwd .",
+            (
+                "Record bounded response-linked fixup inventory from the current "
+                "workspace or repeated --path values; this is evidence, not "
+                "reviewer approval."
+            ),
+        ),
+        CommandGuideEntry(
             (
                 "glassbox changeset evidence attach CHANGESET_ID "
                 "--summary SUMMARY --source-label LABEL --cwd ."

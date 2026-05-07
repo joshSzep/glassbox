@@ -124,7 +124,7 @@ deploy, publish, or claim reviewer approval.
 
 ### CLI Contract
 
-`GBX-1421` should add a focused fixup action with this shape:
+`GBX-1421` adds a focused fixup action with this shape:
 
 ```bash
 glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd .

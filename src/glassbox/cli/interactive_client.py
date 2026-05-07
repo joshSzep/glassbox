@@ -48,6 +48,7 @@ class ReviewLoopAction(StrEnum):
     PREVIEW_VERIFICATION = "preview_verification"
     INSPECT_HANDOFF = "inspect_handoff"
     SHOW_FEEDBACK_STATUS = "show_feedback_status"
+    RECORD_FEEDBACK_FIXUP = "record_feedback_fixup"
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +236,54 @@ class LocalInteractiveSessionClient:
         *,
         changeset_id: str | None = None,
     ) -> ReviewLoopActionResult:
+        if action == ReviewLoopAction.RECORD_FEEDBACK_FIXUP:
+            if changeset_id is None:
+                raise InteractiveClientError(
+                    InteractiveClientErrorKind.VALIDATION_ERROR,
+                    "Usage: /review fixup FEEDBACK_ID",
+                )
+            feedback_id = UUID(changeset_id)
+            workspace_root = self._workspace_root()
+            repository = self._changeset_repository()
+            artifact_repository = self.runtime_context.repositories.artifacts
+            from glassbox.runtime.changesets import ChangesetQueryService
+            from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryService
+
+            result = await ReviewFeedbackFixupInventoryService(
+                repository,
+                artifact_repository,
+            ).record_workspace_inventory(
+                feedback_id,
+                workspace_root,
+                source_summary=(
+                    "terminal /review fixup recorded response-linked workspace "
+                    "inventory"
+                ),
+                recorded_by="terminal",
+            )
+            response_status = ChangesetQueryService(
+                repository
+            ).get_review_feedback_response_status(
+                result.feedback_id,
+                workspace_root=workspace_root,
+            )
+            return ReviewLoopActionResult(
+                action=action,
+                headline=f"Recorded fixup inventory for feedback {feedback_id}",
+                changeset_id=str(result.changeset_id),
+                details=(
+                    f"Artifact: {result.artifact.artifact_id}",
+                    (
+                        f"Paths: {result.inventory.changed_path_count} changed, "
+                        f"{result.inventory.matched_scope_path_count} scoped matches."
+                    ),
+                    f"Verification: {response_status.verification_state.value}.",
+                    "No tests, staging, commit, push, PR, or merge was run.",
+                ),
+                limitations=tuple(result.inventory.limitations),
+                safe_next_actions=tuple(response_status.safe_next_actions),
+                dashboard_path=f"/app/changesets/{result.changeset_id}",
+            )
         resolved_changeset_id = UUID(changeset_id) if changeset_id else None
         if resolved_changeset_id is None:
             resolved_changeset_id = self._latest_changeset_id()
@@ -727,6 +776,12 @@ class DaemonInteractiveSessionClient:
                 ),
                 safe_next_actions=_string_tuple(summary.get("safe_next_actions", [])),
                 dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            )
+        if action == ReviewLoopAction.RECORD_FEEDBACK_FIXUP:
+            raise InteractiveClientError(
+                InteractiveClientErrorKind.VALIDATION_ERROR,
+                "Remote /review fixup is not available yet; use "
+                "glassbox changeset feedback fixup FEEDBACK_ID --cwd .",
             )
         raise InteractiveClientError(
             InteractiveClientErrorKind.VALIDATION_ERROR,

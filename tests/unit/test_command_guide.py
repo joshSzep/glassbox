@@ -17,6 +17,7 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert "glassbox changeset feedback status CHANGESET_ID --cwd ." in rendered
     assert "response-linked fixup inventory posture" in rendered
     assert "before recording fixup evidence" in rendered
+    assert "glassbox changeset feedback fixup FEEDBACK_ID --cwd ." in rendered
     assert "skipped case" in rendered
     assert "without calling it a pass" in rendered
     assert "Use `glassbox command tree`" in rendered

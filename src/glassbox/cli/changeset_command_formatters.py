@@ -1,6 +1,7 @@
 """Changeset CLI terminal formatters."""
 
 from glassbox.cli.changeset_command_payloads import _feedback_result_payload
+from glassbox.cli.changeset_command_payloads import _fixup_inventory_payload
 from glassbox.cli.json_output import print_json_output
 from glassbox.core import ChangesetRecord
 from glassbox.core import ManualEvidenceRecord
@@ -9,6 +10,7 @@ from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPr
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
+from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
@@ -517,4 +519,46 @@ def _print_feedback_result(
         for action in result.safe_next_actions:
             print(f"  - {action}")
         print("Glassbox did not stage, commit, push, open a PR, or merge.")
+    return 0
+
+
+def _print_fixup_inventory_result(
+    result: ReviewFeedbackFixupInventoryResult,
+    *,
+    response_status: ReviewFeedbackResponseStatus,
+    as_json: bool,
+) -> int:
+    if as_json:
+        print_json_output(
+            _fixup_inventory_payload(result, response_status=response_status)
+        )
+    else:
+        print(f"Recorded response-linked fixup inventory: {result.feedback_id}")
+        print(f"Changeset: {result.changeset_id}")
+        print(f"Artifact: {result.artifact.relative_path.as_posix()}")
+        print(
+            "Paths: "
+            f"{result.inventory.changed_path_count} changed, "
+            f"{result.inventory.matched_scope_path_count} scoped matches"
+        )
+        print(f"Freshness: {result.status.freshness.value}")
+        if result.status.reason is not None:
+            print(f"Freshness reason: {result.status.reason}")
+        print(f"Verification: {response_status.verification_state.value}")
+        if response_status.verification_reason is not None:
+            print(f"Verification reason: {response_status.verification_reason}")
+        if result.inventory.paths:
+            print("Path summaries:")
+            for path in result.inventory.paths[:5]:
+                matches_scope = str(path.matches_feedback_scope).lower()
+                print(
+                    f"  - {path.path}: {path.change_kind}; "
+                    f"matches feedback scope: {matches_scope}"
+                )
+        print("Safe next actions:")
+        for action in response_status.safe_next_actions:
+            print(f"  - {action}")
+        print("Non-claims:")
+        for non_claim in result.inventory.non_claims:
+            print(f"  - {non_claim}")
     return 0

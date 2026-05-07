@@ -466,7 +466,7 @@ supersedes it.
 
 ### GBX-1421: Add CLI And Plain Interactive Fixup Inventory Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1420`
 - Goal: make response-linked fixup inventory easy to record from terminal
   workflows
