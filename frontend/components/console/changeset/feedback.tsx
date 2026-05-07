@@ -1,0 +1,163 @@
+import { Badge } from "@/components/ui/badge";
+import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import type { ChangesetDetailState } from "@/stores/dashboard-stores";
+
+import { readinessBadgeVariant } from "./format";
+import { Section } from "./shared";
+
+type ChangesetDetailRecord = NonNullable<ChangesetDetailState["detail"]>;
+
+export function ReviewPanel({
+  briefCount,
+  latestBriefId,
+  readiness,
+}: {
+  briefCount: number;
+  latestBriefId: string | null;
+  readiness: ChangesetDetailRecord["readiness"][number] | undefined;
+}) {
+  const state = readiness?.state ?? "needs_review";
+  const blockers = readiness?.blockers ?? [];
+  return (
+    <Section title="Review Readiness">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={readinessBadgeVariant(state)}>{state.replaceAll("_", " ")}</Badge>
+          <Badge variant={briefCount > 0 ? "success" : "warning"}>{briefCount} brief</Badge>
+          {latestBriefId ? <Badge variant="outline">Latest brief attached</Badge> : null}
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {readiness?.reason ??
+            "Generate a brief after inventory and verification evidence settle."}
+        </p>
+        {latestBriefId ? (
+          <p className="break-all text-console text-muted-foreground">{latestBriefId}</p>
+        ) : null}
+        {blockers.length > 0 ? (
+          <DataList density="compact">
+            {blockers.map((blocker) => (
+              <DataListItem key={blocker}>
+                <DataListLabel>Blocker</DataListLabel>
+                <DataListMeta>{blocker}</DataListMeta>
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
+      </div>
+    </Section>
+  );
+}
+
+export function ReviewFeedbackPanel({ detail }: { detail: ChangesetDetailRecord }) {
+  const feedback = detail.review_feedback;
+  const responseSummary = detail.review_response_summary;
+  const responseByFeedbackId = new Map(
+    responseSummary.items.map((item) => [item.feedback_id, item]),
+  );
+  const openItems = feedback.filter(
+    (item) => item.disposition === "open" || item.disposition === "in_progress",
+  );
+  const questions = feedback.filter((item) => item.feedback_kind === "reviewer_question");
+  const requestedChanges = feedback.filter((item) => item.feedback_kind === "requested_change");
+  const acceptedRisks = feedback.filter((item) => item.disposition === "accepted_with_risk");
+  const resolved = feedback.filter((item) => item.disposition === "resolved_locally");
+  return (
+    <Section title="Review Feedback">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={openItems.length > 0 ? "warning" : "muted"}>
+            {openItems.length} open
+          </Badge>
+          <Badge variant={requestedChanges.length > 0 ? "warning" : "muted"}>
+            {requestedChanges.length} requested
+          </Badge>
+          <Badge variant={questions.length > 0 ? "info" : "muted"}>
+            {questions.length} questions
+          </Badge>
+          <Badge variant={resolved.length > 0 ? "success" : "muted"}>
+            {resolved.length} resolved locally
+          </Badge>
+          <Badge variant={acceptedRisks.length > 0 ? "outline" : "muted"}>
+            {acceptedRisks.length} accepted risks
+          </Badge>
+          <Badge variant={responseSummary.responded_count > 0 ? "success" : "muted"}>
+            {responseSummary.responded_count} responded
+          </Badge>
+          <Badge variant={responseSummary.stale_response_count > 0 ? "warning" : "muted"}>
+            {responseSummary.stale_response_count} stale responses
+          </Badge>
+        </div>
+        {feedback.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No local review feedback is attached to this changeset.
+          </p>
+        ) : (
+          <DataList density="compact">
+            {feedback.slice(0, 8).map((item) => {
+              const response = responseByFeedbackId.get(item.feedback_id);
+              return (
+                <DataListItem key={item.feedback_id}>
+                  <DataListLabel>{item.summary}</DataListLabel>
+                  <DataListMeta>
+                    {item.feedback_kind} - {item.disposition} - {item.provenance}
+                    {item.reviewer_label ? ` - ${item.reviewer_label}` : ""}
+                  </DataListMeta>
+                  {response ? (
+                    <>
+                      <DataListMeta>
+                        Response {response.response_state} - {response.fixup_inventory_count}{" "}
+                        inventories - {response.changed_path_count} paths -{" "}
+                        {response.matched_scope_path_count} scoped matches
+                      </DataListMeta>
+                      <DataListMeta>
+                        Freshness {response.inventory_freshness}
+                        {response.stale_reason ? ` - ${response.stale_reason}` : ""}
+                      </DataListMeta>
+                      <DataListMeta>
+                        Verification {response.verification_state}
+                        {response.verification_reason ? ` - ${response.verification_reason}` : ""}
+                      </DataListMeta>
+                      {response.verification_safe_next_actions.slice(0, 1).map((action) => (
+                        <DataListMeta className="break-all" key={action}>
+                          {action}
+                        </DataListMeta>
+                      ))}
+                      {response.path_summaries.slice(0, 2).map((summary) => (
+                        <DataListMeta key={summary}>{summary}</DataListMeta>
+                      ))}
+                      {response.blockers.slice(0, 2).map((blocker) => (
+                        <DataListMeta key={blocker}>Blocker: {blocker}</DataListMeta>
+                      ))}
+                    </>
+                  ) : null}
+                  {item.resolution_summary ? (
+                    <DataListMeta>Resolution: {item.resolution_summary}</DataListMeta>
+                  ) : null}
+                  {item.risk_summary ? (
+                    <DataListMeta>Accepted risk: {item.risk_summary}</DataListMeta>
+                  ) : null}
+                  {item.residual_risk ? (
+                    <DataListMeta>Residual risk: {item.residual_risk}</DataListMeta>
+                  ) : null}
+                </DataListItem>
+              );
+            })}
+          </DataList>
+        )}
+        <ul className="grid gap-2 text-console text-muted-foreground">
+          {responseSummary.safe_next_actions.map((action) => (
+            <li className="break-all" key={action}>
+              {action}
+            </li>
+          ))}
+          <li className="break-all">
+            glassbox changeset feedback list --changeset {detail.changeset.changeset_id} --cwd .
+          </li>
+          {responseSummary.non_claims.slice(0, 1).map((claim) => (
+            <li key={claim}>{claim}</li>
+          ))}
+        </ul>
+      </div>
+    </Section>
+  );
+}

@@ -1033,7 +1033,7 @@ Completion notes:
 
 ### GBX-R552: Split Evidence, Feedback, Verification, And Handoff Sections
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R551
 - Target files:
   - `frontend/components/console/changeset-console.tsx`
@@ -1054,6 +1054,22 @@ Completion notes:
   - `pnpm --dir frontend test -- changeset-console.test.tsx dashboard-stores.test.ts`
   - `pnpm --dir frontend typecheck`
   - `pnpm --dir frontend lint`
+
+Completion notes:
+
+- Split review readiness and feedback rows into
+  `frontend/components/console/changeset/feedback.tsx`.
+- Split read-only review-loop actions, local manual-evidence capture state,
+  and manual evidence advisory rows into
+  `frontend/components/console/changeset/evidence.tsx`.
+- Split inventory, topology, verification preview, and retained command
+  evidence rows into `frontend/components/console/changeset/verification.tsx`.
+- Split handoff readiness and candidate-adoption provenance into
+  `frontend/components/console/changeset/handoff.tsx`.
+- Split commit readiness and suggested commit message presentation into
+  `frontend/components/console/changeset/commit-prep.tsx`.
+- Preserved existing advisory/non-claim copy and local-only manual evidence
+  form behavior.
 
 ### GBX-R553: Split Changeset Store Actions And Selectors
 
