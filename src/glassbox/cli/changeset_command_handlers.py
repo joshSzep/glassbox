@@ -290,6 +290,12 @@ def _changeset_brief_command(args: argparse.Namespace) -> int:
         print(f"Artifact: {result.artifact.relative_path.as_posix()}")
         print(f"Event sequence: {result.event.sequence}")
         print(f"Review readiness sequence: {result.readiness_event.sequence}")
+        if result.limitation_summary is not None:
+            print(
+                "Limitations summarized: "
+                f"{result.limitation_summary.overflow_count} overflow item(s) "
+                f"of {result.limitation_summary.total_count} retained limitation(s)"
+            )
         _print_limitations(result.limitations)
     return 0
 

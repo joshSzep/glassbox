@@ -10,6 +10,7 @@ from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefCreated
+from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
@@ -33,6 +34,7 @@ from glassbox.core import new_manual_evidence_id
 from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_verification_id
+from glassbox.runtime.changeset_export import build_changeset_export_payload
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.review_briefs import REVIEW_BRIEF_ARTIFACT_KIND
@@ -410,6 +412,39 @@ def test_review_brief_generation_summarizes_limitations_before_validation(
     assert result.limitations[-1].startswith("rich-evidence limitations summarized")
     assert "verification readiness is missing" in result.limitations
     assert result.brief.limitations == result.limitations
+    assert result.limitation_summary is not None
+    assert result.limitation_summary.summarized is True
+    assert result.limitation_summary.total_count > 20
+    assert result.limitation_summary.visible_count == 20
+    assert result.limitation_summary.overflow_count == (
+        result.limitation_summary.total_count - 19
+    )
+    assert result.brief.limitation_summary == result.limitation_summary
+
+    repository.review_briefs = [
+        ChangesetReviewBriefRecord(
+            session_id=repository.changeset.session_id,
+            changeset_id=repository.changeset.changeset_id,
+            artifact_id=result.artifact.artifact_id,
+            artifact_schema_version=result.brief.schema_version,
+            render_targets=list(result.brief.render_targets),
+            created_by="qa",
+            redacted=result.brief.redacted,
+            local_only=result.brief.local_only,
+            created_at=now,
+            last_sequence=20,
+        )
+    ]
+    export_payload = build_changeset_export_payload(
+        repository.changeset.changeset_id,
+        repository=cast(ChangesetRepository, repository),
+        artifact_repository=cast(ArtifactRepository, artifacts),
+        workspace_root=tmp_path,
+    )
+    assert export_payload.review_brief is not None
+    assert export_payload.review_brief["limitation_summary"] == (
+        result.limitation_summary.model_dump(mode="json")
+    )
     assert result.event.payload.event_type == "ChangesetReviewBriefCreated"
     assert repository.events
 
@@ -540,6 +575,7 @@ class _FakeReviewBriefRepository:
             )
         ]
         self.feedback: list[ReviewFeedbackRecord] = []
+        self.review_briefs: list[ChangesetReviewBriefRecord] = []
         self.fixup_inventories: dict[
             object,
             list[ReviewFeedbackFixupInventoryRecord],
@@ -565,7 +601,7 @@ class _FakeReviewBriefRepository:
 
     def list_changeset_review_briefs(self, session_id, changeset_id):
         del session_id, changeset_id
-        return []
+        return list(self.review_briefs)
 
     def list_changeset_readiness(self, session_id, changeset_id):
         del session_id, changeset_id

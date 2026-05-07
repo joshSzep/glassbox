@@ -628,6 +628,8 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert brief_exit == 0
     assert brief["brief"]["artifact_kind"] == "changeset_review_brief"
     assert brief["brief"]["verification"]["body"].startswith("Readiness is passed")
+    assert brief["limitation_summary"] is None
+    assert brief["brief"]["limitation_summary"] is None
     assert brief["event"]["payload"]["event_type"] == "ChangesetReviewBriefCreated"
     assert brief["readiness_event"]["payload"]["state"] == "ready"
     assert Path(tmp_path / brief["artifact_path"]).exists()
@@ -682,6 +684,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert export_payload["changeset"]["changeset_id"] == changeset_id
     assert export_payload["review_brief"]["artifact_id"] == brief["artifact_id"]
     assert export_payload["review_brief"]["schema_version"] == 2
+    assert export_payload["review_brief"]["limitation_summary"] is None
     assert export_payload["review_brief"]["review_feedback"] is not None
     assert export_payload["review_brief"]["manual_evidence"] is not None
     assert export_payload["review_brief"]["publication_boundary"] is not None

@@ -2578,6 +2578,7 @@ export interface components {
       detail: components["schemas"]["ChangesetDetailResponse"];
       /** Event Sequence */
       event_sequence: number;
+      limitation_summary?: components["schemas"]["ReviewBriefLimitationSummaryResponse"] | null;
       /** Limitations */
       limitations: string[];
       /** Markdown */
@@ -4335,6 +4336,19 @@ export interface components {
      */
     ResolveApprovalRequest: {
       decision: components["schemas"]["ApprovalDecision"];
+    };
+    /** ReviewBriefLimitationSummaryResponse */
+    ReviewBriefLimitationSummaryResponse: {
+      /** Overflow Count */
+      overflow_count: number;
+      /** Reason */
+      reason?: string | null;
+      /** Summarized */
+      summarized: boolean;
+      /** Total Count */
+      total_count: number;
+      /** Visible Count */
+      visible_count: number;
     };
     /** ReviewFeedbackAcceptRiskRequest */
     ReviewFeedbackAcceptRiskRequest: {

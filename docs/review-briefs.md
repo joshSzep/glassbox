@@ -203,6 +203,14 @@ verification evidence can therefore produce a valid reviewer-safe brief even
 when the retained limitation set exceeds the artifact cap. The summary item is
 not a claim that raw retained limitations disappeared; it is a bounded display
 compression for the brief artifact.
+
+`GBX-1412` exposes that compression as structured `limitation_summary` state in
+the reviewer-safe JSON artifact, CLI JSON response, API response, generated
+OpenAPI/frontend types, dashboard action copy, and review export payloads. The
+summary carries `summarized`, `total_count`, `visible_count`, `overflow_count`,
+and `reason` fields so downstream surfaces can distinguish a naturally short
+limitation list from one that was deliberately compressed.
+
 Missing inventory, unloaded artifacts, unresolved feedback, stale response
 verification, stale workspace digests, stale topology, missing verification,
 failed checks, missing command evidence, failed command attempts, local-only

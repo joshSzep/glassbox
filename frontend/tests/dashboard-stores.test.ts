@@ -845,6 +845,49 @@ describe("changeset store", () => {
     expect(store.getState().action.kind).toBe("generate-brief");
   });
 
+  it("reports summarized lifecycle limitations after generating a review brief", async () => {
+    const store = createChangesetStore(
+      createApiClient({
+        generateChangesetReviewBrief: async (input) => ({
+          artifact_id: "brief-artifact-2",
+          artifact_path: ".glassbox/sessions/session-1/artifacts/brief-artifact-2.json",
+          brief: {
+            artifact_kind: "changeset_review_brief",
+            limitation_summary: {
+              overflow_count: 6,
+              reason: "rich-evidence limitations exceeded the reviewer-safe cap",
+              summarized: true,
+              total_count: 25,
+              visible_count: 20,
+            },
+          },
+          changeset_id: input.changesetId,
+          detail: makeChangesetDetail(input.changesetId, {
+            latest_review_brief_artifact_id: "brief-artifact-2",
+          }),
+          event_sequence: 8,
+          limitation_summary: {
+            overflow_count: 6,
+            reason: "rich-evidence limitations exceeded the reviewer-safe cap",
+            summarized: true,
+            total_count: 25,
+            visible_count: 20,
+          },
+          limitations: ["rich-evidence limitations summarized: 6 more item(s)"],
+          markdown: null,
+          readiness_event_sequence: 9,
+          session_id: "session-1",
+        }),
+      }),
+    );
+
+    await store.getState().generateReviewBrief("changeset-1");
+
+    expect(store.getState().detail.lastActionMessage).toBe(
+      "Lifecycle brief brief-artifact-2 generated with 6 summarized limitations.",
+    );
+  });
+
   it("loads branch-search decision support for adopted candidates", async () => {
     const calls: string[] = [];
     const store = createChangesetStore(

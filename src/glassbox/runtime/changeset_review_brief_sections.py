@@ -23,6 +23,7 @@ from glassbox.runtime.changeset_safe_commands import changeset_verification_plan
 from glassbox.runtime.changeset_safe_commands import show_changeset_command
 from glassbox.runtime.review_briefs import ReviewBriefArtifact
 from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
+from glassbox.runtime.review_briefs import ReviewBriefLimitationSummary
 from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 
@@ -44,6 +45,7 @@ def _review_brief_artifact(
     review_response_summary: ChangesetReviewResponseSummary,
     manual_evidence: list[ManualEvidenceRecord],
     limitations: list[str],
+    limitation_summary: ReviewBriefLimitationSummary | None,
 ) -> ReviewBriefArtifact:
     return ReviewBriefArtifact(
         changeset_id=changeset.changeset_id,
@@ -108,6 +110,7 @@ def _review_brief_artifact(
             verification_plan,
         ),
         limitations=limitations,
+        limitation_summary=limitation_summary,
     )
 
 
@@ -726,7 +729,7 @@ def _review_brief_limitations(
     command_evidence: ChangesetCommandEvidenceSummary,
     review_response_summary: ChangesetReviewResponseSummary,
     manual_evidence: list[ManualEvidenceRecord],
-) -> list[str]:
+) -> tuple[list[str], ReviewBriefLimitationSummary | None]:
     limitations = [
         source.limitation for source in sources if source.limitation is not None
     ]
@@ -757,12 +760,14 @@ def _review_brief_limitations(
     return _summarize_review_brief_limitations(limitations)
 
 
-def _summarize_review_brief_limitations(limitations: list[str]) -> list[str]:
+def _summarize_review_brief_limitations(
+    limitations: list[str],
+) -> tuple[list[str], ReviewBriefLimitationSummary | None]:
     """Keep reviewer-safe limitations within the artifact cap."""
 
     deduped = list(dict.fromkeys(limitations))
     if len(deduped) <= _REVIEW_BRIEF_LIMITATION_CAP:
-        return deduped
+        return deduped, None
 
     visible_limit = _REVIEW_BRIEF_LIMITATION_CAP - _REVIEW_BRIEF_OVERFLOW_SUMMARY_SLOT
     prioritized = sorted(
@@ -776,13 +781,20 @@ def _summarize_review_brief_limitations(limitations: list[str]) -> list[str]:
         if index in visible_indexes
     ]
     overflow_count = len(deduped) - len(visible)
+    reason = "rich-evidence limitations exceeded the reviewer-safe 20-item artifact cap"
     visible.append(
         "rich-evidence limitations summarized: "
         f"{overflow_count} additional retained limitation(s) are summarized "
         "to keep the reviewer-safe brief within the 20-item artifact cap; "
         "inspect retained changeset evidence for the full limitation set"
     )
-    return visible
+    return visible, ReviewBriefLimitationSummary(
+        summarized=True,
+        total_count=len(deduped),
+        visible_count=len(visible),
+        overflow_count=overflow_count,
+        reason=reason,
+    )
 
 
 def _review_brief_limitation_priority(limitation: str) -> int:

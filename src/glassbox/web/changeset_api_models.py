@@ -346,6 +346,14 @@ class ChangesetReviewBriefRequest(BaseModel):
     include_markdown: bool = False
 
 
+class ReviewBriefLimitationSummaryResponse(BaseModel):
+    summarized: bool
+    total_count: int = Field(ge=0)
+    visible_count: int = Field(ge=0)
+    overflow_count: int = Field(ge=0)
+    reason: str | None = None
+
+
 class ChangesetReviewBriefGenerateResponse(BaseModel):
     changeset_id: str
     session_id: str
@@ -356,6 +364,7 @@ class ChangesetReviewBriefGenerateResponse(BaseModel):
     brief: dict[str, object]
     markdown: str | None = None
     limitations: list[str]
+    limitation_summary: ReviewBriefLimitationSummaryResponse | None = None
     detail: ChangesetDetailResponse
 
 
@@ -495,6 +504,7 @@ __all__ = (
     "ChangesetRecordVerificationRequest",
     "ChangesetRecordVerificationResponse",
     "ChangesetReviewBriefRequest",
+    "ReviewBriefLimitationSummaryResponse",
     "ChangesetReviewBriefGenerateResponse",
     "CommitMessageEvidenceLineResponse",
     "CommitMessageSuggestionResponse",

@@ -320,6 +320,11 @@ def build_changeset_review_brief_generate_response(
         brief=result.brief.model_dump(mode="json"),
         markdown=result.markdown if include_markdown else None,
         limitations=result.limitations,
+        limitation_summary=(
+            result.limitation_summary.model_dump(mode="json")
+            if result.limitation_summary is not None
+            else None
+        ),
         detail=build_changeset_detail_response(detail),
     )
 

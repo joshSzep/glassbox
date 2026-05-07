@@ -100,7 +100,7 @@ class ChangesetReviewBriefService:
             workspace_root=workspace_root,
         )
         manual_evidence = _manual_evidence_for_preview(self._repository, changeset)
-        limitations = _review_brief_limitations(
+        limitations, limitation_summary = _review_brief_limitations(
             sources=sources,
             inventory=inventory,
             inventory_status=inventory_status,
@@ -129,6 +129,7 @@ class ChangesetReviewBriefService:
             review_response_summary=review_response_summary,
             manual_evidence=manual_evidence,
             limitations=limitations,
+            limitation_summary=limitation_summary,
         )
         content = review_brief_artifact_json(brief)
         artifact = self._artifact_repository.write_text_artifact(
@@ -201,6 +202,7 @@ class ChangesetReviewBriefService:
             event=stored[0],
             readiness_event=stored[1],
             limitations=limitations,
+            limitation_summary=limitation_summary,
         )
 
     def _load_inventory_artifact(

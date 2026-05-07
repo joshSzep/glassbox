@@ -85,6 +85,23 @@ class ReviewBriefSection(BaseModel):
         return redact_review_brief_text(value) if isinstance(value, str) else value
 
 
+class ReviewBriefLimitationSummary(BaseModel):
+    """Structured summary when rich limitations are compressed for display."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summarized: bool = False
+    total_count: int = Field(default=0, ge=0)
+    visible_count: int = Field(default=0, ge=0)
+    overflow_count: int = Field(default=0, ge=0)
+    reason: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def redact_reason(cls, value: object) -> object:
+        return redact_review_brief_text(value) if isinstance(value, str) else value
+
+
 class ReviewBriefArtifact(BaseModel):
     """Stable artifact shape for a reviewer-safe local changeset brief."""
 
@@ -136,6 +153,7 @@ class ReviewBriefArtifact(BaseModel):
         max_length=20,
     )
     limitations: list[str] = Field(default_factory=list, max_length=20)
+    limitation_summary: ReviewBriefLimitationSummary | None = None
 
     @field_validator(
         "objective",
@@ -277,6 +295,7 @@ __all__ = [
     "REVIEW_BRIEF_REDACTION",
     "ReviewBriefArtifact",
     "ReviewBriefEvidenceRef",
+    "ReviewBriefLimitationSummary",
     "ReviewBriefSection",
     "redact_review_brief_text",
     "review_brief_artifact_json",

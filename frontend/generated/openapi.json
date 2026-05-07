@@ -2737,6 +2737,16 @@
             "title": "Event Sequence",
             "type": "integer"
           },
+          "limitation_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewBriefLimitationSummaryResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "limitations": {
             "items": {
               "type": "string"
@@ -8016,6 +8026,43 @@
         },
         "required": ["decision"],
         "title": "ResolveApprovalRequest",
+        "type": "object"
+      },
+      "ReviewBriefLimitationSummaryResponse": {
+        "properties": {
+          "overflow_count": {
+            "minimum": 0.0,
+            "title": "Overflow Count",
+            "type": "integer"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "summarized": {
+            "title": "Summarized",
+            "type": "boolean"
+          },
+          "total_count": {
+            "minimum": 0.0,
+            "title": "Total Count",
+            "type": "integer"
+          },
+          "visible_count": {
+            "minimum": 0.0,
+            "title": "Visible Count",
+            "type": "integer"
+          }
+        },
+        "required": ["summarized", "total_count", "visible_count", "overflow_count"],
+        "title": "ReviewBriefLimitationSummaryResponse",
         "type": "object"
       },
       "ReviewFeedbackAcceptRiskRequest": {

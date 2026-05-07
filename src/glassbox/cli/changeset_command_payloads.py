@@ -21,6 +21,11 @@ def _review_brief_payload(
         "event": result.event.model_dump(mode="json"),
         "readiness_event": result.readiness_event.model_dump(mode="json"),
         "limitations": result.limitations,
+        "limitation_summary": (
+            result.limitation_summary.model_dump(mode="json")
+            if result.limitation_summary is not None
+            else None
+        ),
     }
 
 

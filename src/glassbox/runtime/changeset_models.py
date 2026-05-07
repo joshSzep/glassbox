@@ -28,6 +28,7 @@ from glassbox.runtime.changeset_verification_readiness import (
 )
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReasonGroup
 from glassbox.runtime.review_briefs import ReviewBriefArtifact
+from glassbox.runtime.review_briefs import ReviewBriefLimitationSummary
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFixupInventoryArtifact
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
@@ -227,6 +228,7 @@ class ChangesetReviewBriefGenerationResult(BaseModel):
     event: EventEnvelope
     readiness_event: EventEnvelope
     limitations: list[str] = Field(default_factory=list)
+    limitation_summary: ReviewBriefLimitationSummary | None = None
 
 
 class ReviewFeedbackRecordResult(BaseModel):

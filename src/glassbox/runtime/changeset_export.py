@@ -295,6 +295,7 @@ def _review_brief_summary(
         summary["publication_boundary"] = artifact.get("publication_boundary")
         summary["non_claims"] = artifact.get("non_claims", [])
         summary["limitations"] = artifact.get("limitations", [])
+        summary["limitation_summary"] = artifact.get("limitation_summary")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         summary["limitations"] = [f"review brief artifact could not be read: {exc}"]
     return summary

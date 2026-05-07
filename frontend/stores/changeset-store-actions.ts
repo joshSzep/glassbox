@@ -1,6 +1,7 @@
 import type {
   BranchSearchDetailResponse,
   ChangesetDetailResponse,
+  ChangesetReviewBriefGenerateResponse,
   GlassboxApiClient,
   ManualEvidenceActionResponse,
 } from "@/api/client";
@@ -97,7 +98,7 @@ export function createChangesetStoreActions({
             detail: response.detail,
             error: null,
             handoffReadiness,
-            lastActionMessage: `Lifecycle brief ${response.artifact_id} generated.`,
+            lastActionMessage: reviewBriefActionMessage(response),
             loadState: "loaded",
             selectedChangesetId,
             verificationPlan,
@@ -339,6 +340,17 @@ async function reloadSelectedChangeset(
 
 function manualEvidenceActionMessage(response: ManualEvidenceActionResponse): string {
   return `Manual evidence ${response.evidence.evidence_id} attached.`;
+}
+
+function reviewBriefActionMessage(response: ChangesetReviewBriefGenerateResponse): string {
+  const summary = response.limitation_summary;
+  if (summary?.summarized === true && typeof summary.overflow_count === "number") {
+    return (
+      `Lifecycle brief ${response.artifact_id} generated with ` +
+      `${summary.overflow_count} summarized limitation${summary.overflow_count === 1 ? "" : "s"}.`
+    );
+  }
+  return `Lifecycle brief ${response.artifact_id} generated.`;
 }
 
 async function loadBranchSearchForChangeset(

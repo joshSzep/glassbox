@@ -421,6 +421,7 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 brief_response.json()["brief"]["artifact_kind"]
                 == "changeset_review_brief"
             )
+            assert "limitation_summary" in brief_response.json()
             assert brief_response.json()["markdown"].startswith("# Review Brief:")
             assert (
                 brief_response.json()["detail"]["command_evidence"]["failed_count"] == 1

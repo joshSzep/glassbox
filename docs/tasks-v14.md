@@ -412,7 +412,7 @@ supersedes it.
 
 ### GBX-1412: Surface Rich-Evidence Summary State In Dashboard And Exports
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1411`
 - Goal: make summarized lifecycle limitations visible to dashboard and export
   consumers instead of hiding the compression behind the artifact
