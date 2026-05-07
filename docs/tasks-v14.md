@@ -307,7 +307,7 @@ supersedes it.
 
 ### GBX-1401: Audit V13 Dogfooding Findings Against Current Implementation
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1400`
 - Goal: turn the accepted v13 product follow-up candidates into source-linked
   implementation targets and accepted non-goals

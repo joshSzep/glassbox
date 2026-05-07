@@ -553,6 +553,51 @@ def test_v14_review_loop_maturity_contract_covers_product_boundary() -> None:
     assert "tasks-v14.md" in docs_readme
 
 
+def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:
+    content = (REPO_ROOT / "docs" / "v14-review-loop-maturity-audit.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Summary",
+        "## Classification Legend",
+        "## Audit Entries",
+        "## Accepted Non-Goals",
+        "## Test Inventory",
+        "## Disposition",
+        "Fix now",
+        "Document only",
+        "Accepted risk",
+        "Not v14",
+        "Lifecycle Brief Limitation Handling",
+        "Response-Linked Fixup Inventory Paths",
+        "Skipped Browser And Dashboard Evidence",
+        "Skipped Accessibility Evidence",
+        "Command Discovery And In-Session Guidance",
+        "Dashboard Review-Loop Surfaces",
+        "Release-Gate Advisory Evidence Posture",
+        "Stale Dogfooding Provider Prefixes",
+        "Fresh Browser And Accessibility Evidence",
+        "src/glassbox/runtime/changeset_review_brief_sections.py:716",
+        "src/glassbox/runtime/review_fixup_actions.py:44",
+        "src/glassbox/cli/parser_changeset_evidence.py:103",
+        "scripts/v13_release_gate_helpers.py:168",
+        "GBX-1410",
+        "GBX-1420",
+        "GBX-1430",
+        "GBX-1440",
+        "GBX-1450",
+        "GBX-1460",
+        "No audited finding requires hosted review",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-review-loop-maturity-audit.md" in root_readme
+    assert "v14-review-loop-maturity-audit.md" in docs_readme
+
+
 def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v13-review-loop-audit.md").read_text(
         encoding="utf-8"
