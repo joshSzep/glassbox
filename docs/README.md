@@ -75,6 +75,10 @@ after the v13 release candidate and post-v13 refactor.
   fresh v14 advisory accessibility pairing summary for keyboard focus,
   focused action activation, responsive wrapping, skipped screen-reader checks,
   skipped contrast tooling, and non-certification claims
+- [v14-dogfooding-summary.md](./v14-dogfooding-summary.md): sanitized
+  `GBX-1462` dogfooding findings for command discovery, response-linked fixup
+  inventory, skipped advisory evidence, lifecycle brief summarization,
+  dashboard action states, handoff readiness, and v14 release validation
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
@@ -145,6 +149,8 @@ after the v13 release candidate and post-v13 refactor.
 - [v14-advisory-accessibility-evidence.md](./v14-advisory-accessibility-evidence.md):
   retained v14 advisory accessibility evidence summary for focused keyboard,
   focus-visible, responsive layout, and skipped assistive-technology coverage
+- [v14-dogfooding-summary.md](./v14-dogfooding-summary.md): sanitized v14
+  dogfooding evidence and friction findings from local review-loop maturity use
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, command discovery, advisory UX evidence, dogfooding, and

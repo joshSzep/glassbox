@@ -840,7 +840,7 @@ supersedes it.
 
 ### GBX-1462: Run V14 Review-Loop Maturity Dogfooding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1461`
 - Goal: use the matured review-loop path on real local work and record friction
   before release signoff

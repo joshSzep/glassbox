@@ -1171,6 +1171,43 @@ def test_v13_dogfooding_summary_records_review_loop_passes() -> None:
     assert "v13-dogfooding-summary.md" in docs_readme
 
 
+def test_v14_dogfooding_summary_records_maturity_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v14-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Disposition",
+        ".glassbox/releases/gbx-1462-v14-dogfooding/",
+        "Command discovery with runtime flags",
+        "Command discovery supported shape",
+        "Changeset create without session",
+        "Response-linked fixup inventory",
+        "Skipped dashboard evidence",
+        "Skipped browser evidence",
+        "Skipped accessibility evidence",
+        "Lifecycle brief generation",
+        "Verification preview",
+        "Handoff readiness",
+        "rich-evidence limitations summarized",
+        "14 additional retained limitation(s)",
+        "--from-workspace",
+        "--session is required for --from workspace-diff",
+        "skipped accessibility evidence",
+        "no review approval, staging, commit, push, pull request, merge",
+        "GBX-1451",
+        "GBX-1452",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-dogfooding-summary.md" in root_readme
+    assert "v14-dogfooding-summary.md" in docs_readme
+
+
 def test_v13_release_candidate_guide_covers_review_loop_model() -> None:
     content = (REPO_ROOT / "docs" / "v13-release-candidate.md").read_text(
         encoding="utf-8"
