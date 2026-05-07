@@ -159,7 +159,7 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_REFRESH_INVENTORY,
         "Review: Refresh Inventory",
-        "Refresh structured change inventory for the current review changeset",
+        "Refresh inventory before fixup, verification, brief, or handoff checks",
         slash_aliases=("/review refresh", "/changeset refresh"),
     ),
     TerminalCommandSpec(
@@ -171,13 +171,13 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_GENERATE_BRIEF,
         "Review: Generate Lifecycle Brief",
-        "Generate a reviewer-safe lifecycle brief for the review changeset",
+        "Generate the missing reviewer-safe lifecycle brief for handoff",
         slash_aliases=("/review brief", "/changeset brief"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_PREVIEW_VERIFICATION,
         "Review: Preview Verification",
-        "Preview review-loop-aware verification without running commands",
+        "Preview stale or missing review-loop verification without running commands",
         slash_aliases=(
             "/review verify",
             "/review verification",
@@ -188,13 +188,13 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_INSPECT_HANDOFF,
         "Review: Inspect Handoff",
-        "Inspect advisory final handoff posture without publishing",
+        "Inspect blockers, missing brief, skipped evidence, and handoff posture",
         slash_aliases=("/review handoff", "/changeset handoff"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
         "Review: Show Feedback Status",
-        "Inspect feedback, response, and stale verification status",
+        "Inspect missing fixup inventory, skipped evidence, and stale verification",
         slash_aliases=(
             "/review",
             "/review status",
@@ -207,7 +207,7 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP,
         "Review: Record Fixup Inventory",
-        "Record response-linked changed-path inventory for one feedback item",
+        "Record response-linked changed-path inventory for one feedback ID",
         slash_aliases=("/review fixup", "/changeset fixup"),
     ),
     TerminalCommandSpec(

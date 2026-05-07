@@ -72,6 +72,23 @@ safe next inspection command, and dashboard handoff when available.
 one feedback item. It is evidence-only: it does not run verification, resolve
 feedback, stage, commit, push, open a pull request, or imply reviewer approval.
 
+Review status and handoff results include short evidence-guidance lines when
+the local review loop is missing response-linked fixup inventory, has stale
+response verification, lacks a lifecycle brief, contains skipped advisory live
+evidence, or has handoff blockers. The guidance names the exact lower-level
+inspection or evidence command, such as:
+
+```text
+glassbox changeset feedback fixup FEEDBACK_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+glassbox changeset brief CHANGESET_ID --cwd .
+glassbox changeset evidence list --changeset CHANGESET_ID --cwd .
+```
+
+These guidance lines remain inspect-first and evidence-only. They do not mark
+skipped browser, dashboard, or accessibility evidence as passed, and they do
+not imply reviewer approval or publication readiness.
+
 The other `/review` actions target the latest changeset for the current
 session by default. You may pass an explicit changeset ID after the action:
 

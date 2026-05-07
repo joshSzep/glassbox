@@ -212,6 +212,8 @@ def test_cli_chat_plain_supports_review_shortcuts(
     assert "Created review changeset" in captured.out
     assert "Feedback status for" in captured.out
     assert "Previewed verification for" in captured.out
+    assert "Evidence guidance: Missing lifecycle brief" in captured.out
+    assert "Evidence guidance: Live evidence: none recorded" in captured.out
     assert (
         "Dashboard: unavailable; run glassbox dashboard serve --cwd ." in captured.out
     )
@@ -268,7 +270,13 @@ def test_cli_chat_plain_supports_review_fixup_shortcut(
     )
     feedback = json.loads(capsys.readouterr().out)
     feedback_id = feedback["feedback"]["feedback_id"]
-    interactive_inputs = iter([f"/review fixup {feedback_id}", "/exit"])
+    interactive_inputs = iter(
+        [
+            f"/review status {created['changeset_id']}",
+            f"/review fixup {feedback_id}",
+            "/exit",
+        ]
+    )
 
     monkeypatch.setattr(
         "glassbox.cli.interactive_session._read_interactive_input",
@@ -303,6 +311,8 @@ def test_cli_chat_plain_supports_review_fixup_shortcut(
     assert feedback_exit == 0
     assert exit_code == 0
     assert len(inventories) == 1
+    assert "Evidence guidance: Missing fixup inventory" in captured.out
+    assert f"glassbox changeset feedback fixup {feedback_id} --cwd ." in captured.out
     assert "Recorded fixup inventory for feedback" in captured.out
     assert "No tests, staging, commit, push, PR, or merge was run." in captured.out
 

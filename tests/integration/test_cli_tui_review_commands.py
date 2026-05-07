@@ -61,6 +61,10 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
             scope_kind=ReviewFeedbackScopeKind.FILE,
             file_path="app.py",
         )
+        missing_status = await client.run_review_action(
+            ReviewLoopAction.SHOW_FEEDBACK_STATUS,
+            changeset_id=result.changeset_id,
+        )
         fixup = await client.run_review_action(
             ReviewLoopAction.RECORD_FEEDBACK_FIXUP,
             changeset_id=str(feedback.feedback.feedback_id),
@@ -89,6 +93,12 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
         assert sources[0].source_session_id == state.session_id
         assert status.changeset_id == result.changeset_id
         assert "Review status" in status.headline
+        assert any("Missing fixup inventory" in item for item in missing_status.details)
+        assert any(
+            f"glassbox changeset feedback fixup {feedback.feedback.feedback_id} --cwd ."
+            in item
+            for item in missing_status.details
+        )
         assert fixup.changeset_id == result.changeset_id
         assert "Recorded fixup inventory" in fixup.headline
         assert any("No tests, staging" in detail for detail in fixup.details)

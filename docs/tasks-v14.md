@@ -655,7 +655,7 @@ supersedes it.
 
 ### GBX-1441: Improve In-Session Review Guidance For Missing Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1423`, `GBX-1432`, `GBX-1440`
 - Goal: make `/review`, `/changeset`, TUI palette actions, and plain
   interactive mode explain missing evidence and safe next actions directly

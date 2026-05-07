@@ -108,6 +108,10 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
     assert TerminalCommandId.REVIEW_CREATE_CHANGESET in review_command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in review_command_ids
     assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in review_command_ids
+    missing_fixup_command_ids = [
+        item.spec.command_id for item in filter_command_items(items, "missing fixup")
+    ]
+    assert missing_fixup_command_ids == [TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS]
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:

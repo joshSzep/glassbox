@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 from typing import Protocol
 from typing import cast
 from uuid import UUID
@@ -303,6 +304,9 @@ class LocalInteractiveSessionClient:
                 workspace_root=workspace_root,
             )
             summary = detail.review_response_summary
+            skipped_total, skipped_browser, skipped_accessibility = (
+                _local_skipped_evidence_counts(detail.manual_evidence)
+            )
             return ReviewLoopActionResult(
                 action=action,
                 headline=f"Review status for changeset {resolved_changeset_id}",
@@ -312,6 +316,15 @@ class LocalInteractiveSessionClient:
                     f"{summary.unresolved_count} unresolved, "
                     f"{summary.stale_response_count} stale response check(s).",
                     f"Inventory: {detail.inventory_status.freshness.value}.",
+                    *_review_evidence_guidance(
+                        changeset_id=str(resolved_changeset_id),
+                        missing_fixup_feedback_ids=_missing_fixup_feedback_ids(summary),
+                        stale_response_count=summary.stale_response_count,
+                        review_brief_count=len(detail.review_briefs),
+                        skipped_live_evidence_count=skipped_total,
+                        skipped_browser_evidence_count=skipped_browser,
+                        skipped_accessibility_evidence_count=skipped_accessibility,
+                    ),
                 ),
                 limitations=tuple(detail.limitations),
                 safe_next_actions=tuple(detail.safe_next_actions),
@@ -404,6 +417,7 @@ class LocalInteractiveSessionClient:
                     f"State: {readiness.state}",
                     readiness.reason,
                     f"{len(readiness.blockers)} blocker(s).",
+                    *_handoff_evidence_guidance(readiness),
                 ),
                 limitations=tuple(readiness.limitations),
                 safe_next_actions=tuple(readiness.safe_next_actions),
@@ -424,6 +438,15 @@ class LocalInteractiveSessionClient:
                     f"{summary.total_feedback_count} feedback item(s), "
                     f"{summary.unresolved_count} unresolved.",
                     f"{summary.stale_response_count} stale response check(s).",
+                    *_review_evidence_guidance(
+                        changeset_id=str(resolved_changeset_id),
+                        missing_fixup_feedback_ids=_missing_fixup_feedback_ids(summary),
+                        stale_response_count=summary.stale_response_count,
+                        review_brief_count=None,
+                        skipped_live_evidence_count=None,
+                        skipped_browser_evidence_count=None,
+                        skipped_accessibility_evidence_count=None,
+                    ),
                 ),
                 safe_next_actions=tuple(summary.safe_next_actions),
                 dashboard_path=f"/app/changesets/{resolved_changeset_id}",
@@ -636,6 +659,9 @@ class DaemonInteractiveSessionClient:
             payload = response.json()
             review_summary = payload["review_response_summary"]
             inventory_status = payload["inventory_status"]
+            skipped_total, skipped_browser, skipped_accessibility = (
+                _payload_skipped_evidence_counts(payload.get("manual_evidence", []))
+            )
             return ReviewLoopActionResult(
                 action=action,
                 headline=f"Review status for changeset {resolved_changeset_id}",
@@ -648,6 +674,19 @@ class DaemonInteractiveSessionClient:
                         "check(s)."
                     ),
                     f"Inventory: {inventory_status['freshness']}.",
+                    *_review_evidence_guidance(
+                        changeset_id=resolved_changeset_id,
+                        missing_fixup_feedback_ids=(
+                            _payload_missing_fixup_feedback_ids(review_summary)
+                        ),
+                        stale_response_count=int(
+                            review_summary.get("stale_response_count", 0)
+                        ),
+                        review_brief_count=len(payload.get("review_briefs", [])),
+                        skipped_live_evidence_count=skipped_total,
+                        skipped_browser_evidence_count=skipped_browser,
+                        skipped_accessibility_evidence_count=skipped_accessibility,
+                    ),
                 ),
                 limitations=_string_tuple(payload.get("limitations", [])),
                 safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
@@ -744,6 +783,7 @@ class DaemonInteractiveSessionClient:
                     f"State: {payload.get('state', 'unknown')}",
                     str(payload.get("reason", "No reason returned.")),
                     f"{len(blockers)} blocker(s).",
+                    *_payload_handoff_evidence_guidance(payload),
                 ),
                 limitations=_string_tuple(payload.get("limitations", [])),
                 safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
@@ -772,6 +812,19 @@ class DaemonInteractiveSessionClient:
                     (
                         f"{summary.get('stale_response_count', 0)} stale response "
                         "check(s)."
+                    ),
+                    *_review_evidence_guidance(
+                        changeset_id=resolved_changeset_id,
+                        missing_fixup_feedback_ids=(
+                            _payload_missing_fixup_feedback_ids(summary)
+                        ),
+                        stale_response_count=int(
+                            summary.get("stale_response_count", 0)
+                        ),
+                        review_brief_count=None,
+                        skipped_live_evidence_count=None,
+                        skipped_browser_evidence_count=None,
+                        skipped_accessibility_evidence_count=None,
                     ),
                 ),
                 safe_next_actions=_string_tuple(summary.get("safe_next_actions", [])),
@@ -941,3 +994,160 @@ def _string_tuple(items: object) -> tuple[str, ...]:
     if not isinstance(items, list):
         return ()
     return tuple(str(item) for item in items)
+
+
+def _missing_fixup_feedback_ids(summary: Any) -> tuple[str, ...]:
+    ids: list[str] = []
+    for item in getattr(summary, "items", ()):
+        response_state = getattr(item, "response_state", "")
+        if str(response_state) in {"accepted_with_risk", "not_applicable"}:
+            continue
+        if getattr(item, "fixup_inventory_count", 0) == 0:
+            ids.append(str(item.feedback_id))
+    return tuple(ids)
+
+
+def _payload_missing_fixup_feedback_ids(summary: Any) -> tuple[str, ...]:
+    if not isinstance(summary, dict):
+        return ()
+    ids: list[str] = []
+    for item in summary.get("items", []):
+        if not isinstance(item, dict):
+            continue
+        if item.get("response_state") in {"accepted_with_risk", "not_applicable"}:
+            continue
+        if int(item.get("fixup_inventory_count", 0)) == 0:
+            ids.append(str(item.get("feedback_id")))
+    return tuple(ids)
+
+
+def _local_skipped_evidence_counts(manual_evidence: Any) -> tuple[int, int, int]:
+    from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
+
+    return skipped_live_evidence_counts(manual_evidence)
+
+
+def _payload_skipped_evidence_counts(items: Any) -> tuple[int, int, int]:
+    if not isinstance(items, list):
+        return (0, 0, 0)
+    evidence_items = [
+        cast(dict[str, Any], item) for item in items if isinstance(item, dict)
+    ]
+    skipped = [
+        item
+        for item in evidence_items
+        if item.get("evidence_kind")
+        in {"browser_observation", "screenshot", "accessibility_note"}
+        and _payload_is_skipped_evidence(item)
+    ]
+    skipped_browser = [
+        item
+        for item in skipped
+        if item.get("evidence_kind") in {"browser_observation", "screenshot"}
+    ]
+    skipped_accessibility = [
+        item for item in skipped if item.get("evidence_kind") == "accessibility_note"
+    ]
+    return (len(skipped), len(skipped_browser), len(skipped_accessibility))
+
+
+def _payload_is_skipped_evidence(item: dict[str, Any]) -> bool:
+    text = [
+        *[str(value) for value in item.get("limitations", []) if value is not None],
+        *[str(value) for value in item.get("non_claims", []) if value is not None],
+    ]
+    normalized = {value.strip().lower() for value in text}
+    return bool(
+        {
+            "capture state: not_run",
+            "capture state: not_applicable",
+        }
+        & normalized
+    )
+
+
+def _review_evidence_guidance(
+    *,
+    changeset_id: str,
+    missing_fixup_feedback_ids: tuple[str, ...],
+    stale_response_count: int,
+    review_brief_count: int | None,
+    skipped_live_evidence_count: int | None,
+    skipped_browser_evidence_count: int | None,
+    skipped_accessibility_evidence_count: int | None,
+) -> tuple[str, ...]:
+    guidance: list[str] = []
+    if missing_fixup_feedback_ids:
+        first = missing_fixup_feedback_ids[0]
+        guidance.append(
+            "Missing fixup inventory: run "
+            f"glassbox changeset feedback fixup {first} --cwd ."
+        )
+    if stale_response_count > 0:
+        guidance.append(
+            "Stale verification: run "
+            f"glassbox changeset verification-plan {changeset_id} --cwd ."
+        )
+    if review_brief_count == 0:
+        guidance.append(
+            "Missing lifecycle brief: run "
+            f"glassbox changeset brief {changeset_id} --cwd ."
+        )
+    if skipped_live_evidence_count is not None:
+        if skipped_live_evidence_count > 0:
+            guidance.append(
+                "Skipped live evidence: "
+                f"{skipped_live_evidence_count} skipped "
+                f"({skipped_browser_evidence_count or 0} browser/dashboard, "
+                f"{skipped_accessibility_evidence_count or 0} accessibility); "
+                "this is not a pass."
+            )
+        else:
+            guidance.append(
+                "Live evidence: none recorded; record observed or skipped "
+                f"advisory evidence for {changeset_id} when relevant."
+            )
+    return tuple(f"Evidence guidance: {item}" for item in guidance)
+
+
+def _handoff_evidence_guidance(readiness: Any) -> tuple[str, ...]:
+    guidance = []
+    blockers = tuple(getattr(readiness, "blockers", ()))
+    if blockers:
+        guidance.append(f"Handoff blocker: {blockers[0]}")
+    evidence = getattr(readiness, "evidence", None)
+    if evidence is not None and getattr(evidence, "skipped_live_evidence_count", 0):
+        guidance.append(
+            "Skipped live evidence remains advisory and not a pass; inspect "
+            "glassbox changeset evidence list --changeset "
+            f"{readiness.changeset_id} --cwd ."
+        )
+    if getattr(readiness, "review_brief_artifact_id", None) is None:
+        guidance.append(
+            "Missing lifecycle brief: run "
+            f"glassbox changeset brief {readiness.changeset_id} --cwd ."
+        )
+    return tuple(f"Evidence guidance: {item}" for item in guidance)
+
+
+def _payload_handoff_evidence_guidance(payload: dict[str, Any]) -> tuple[str, ...]:
+    guidance = []
+    blockers = payload.get("blockers", [])
+    if isinstance(blockers, list) and blockers:
+        guidance.append(f"Handoff blocker: {blockers[0]}")
+    evidence = payload.get("evidence", {})
+    if (
+        isinstance(evidence, dict)
+        and int(evidence.get("skipped_live_evidence_count", 0)) > 0
+    ):
+        guidance.append(
+            "Skipped live evidence remains advisory and not a pass; inspect "
+            "glassbox changeset evidence list --changeset "
+            f"{payload.get('changeset_id')} --cwd ."
+        )
+    if payload.get("review_brief_artifact_id") is None:
+        guidance.append(
+            "Missing lifecycle brief: run "
+            f"glassbox changeset brief {payload.get('changeset_id')} --cwd ."
+        )
+    return tuple(f"Evidence guidance: {item}" for item in guidance)
