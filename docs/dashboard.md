@@ -87,12 +87,17 @@ skip reason, so the row reads as a limitation instead of a pass.
 The quick-action row refreshes inventory, previews verification, refreshes
 feedback status, generates lifecycle briefs, and reloads handoff posture. The
 manual evidence form attaches an explicit local evidence record and reports the
-created evidence ID after the API returns. Feedback rows include a compact
-`Fixup` action for recording response-linked changed-path inventory from the
-current workspace diff, plus the equivalent `glassbox changeset feedback
-fixup FEEDBACK_ID --from-workspace --cwd .` command for terminal fallback. These
-actions are read-only or evidence-only: they do not run tests, stage, commit,
-push, open a PR, merge, deploy, publish, resolve feedback, or imply reviewer
+created evidence ID after the API returns. Pending, succeeded, and failed
+review-loop actions render inline state near the changeset header, and failed
+fixup actions preserve the non-claim that reviewer approval was not recorded.
+Feedback rows include compact `Record fixup` or `Refresh fixup` actions for
+recording response-linked changed-path inventory from the current workspace
+diff, plus the equivalent `glassbox changeset feedback fixup FEEDBACK_ID
+--from-workspace --cwd .` command for terminal fallback. Feedback and manual
+evidence rows expose stable `#feedback-...` and `#evidence-...` anchors so a
+dashboard handoff can deep-link to the exact local evidence row. These actions
+are read-only or evidence-only: they do not run tests, stage, commit, push,
+open a PR, merge, deploy, publish, resolve feedback, or imply reviewer
 approval.
 
 The affected-subsystems panel names package/app components, topology freshness,

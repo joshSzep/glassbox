@@ -60,9 +60,11 @@ describe("changeset console", () => {
     expect(markup).toContain("Actions inspect state or record explicit local evidence only");
     expect(markup).toContain("ready");
     expect(markup).toContain("Review Feedback");
-    expect(markup).toContain("Fixup");
+    expect(markup).toContain("Record fixup");
+    expect(markup).toContain('href="#feedback-feedback-1"');
     expect(markup).toContain("Clarify feedback copy");
     expect(markup).toContain("Manual Evidence Inbox");
+    expect(markup).toContain('href="#evidence-manual-evidence-1"');
     expect(markup).toContain("operator says external CI passed");
     expect(markup).toContain("dashboard walkthrough rendered manual evidence");
     expect(markup).toContain("1 skipped live");
@@ -116,6 +118,61 @@ describe("changeset console", () => {
     expect(markup).toContain("Workspace mutation performed: false");
     expect(markup).toContain("Glassbox did not merge");
     expect(markup).toContain("created from selected branch-search candidate");
+  });
+
+  it("renders dashboard action states for pending, success, and failed review actions", () => {
+    const changeset = makeChangesetSummary("changeset-actions");
+    const detail = makeChangesetDetail(changeset);
+    const baseDetailState = {
+      branchSearchDetail: null,
+      detail,
+      error: null,
+      commitMessage: null,
+      commitReadiness: null,
+      handoffReadiness: makeHandoffReadiness("changeset-actions"),
+      lastActionMessage: null,
+      loadState: "loaded" as const,
+      selectedChangesetId: "changeset-actions",
+      verificationPlan: makeVerificationPlan("changeset-actions"),
+    };
+    const page = {
+      error: null,
+      items: [changeset],
+      loadState: "loaded" as const,
+    };
+
+    const pendingMarkup = renderToStaticMarkup(
+      React.createElement(ChangesetConsole, {
+        action: { error: null, kind: "record-feedback-fixup", state: "pending" },
+        detail: baseDetailState,
+        page,
+      }),
+    );
+    const failedMarkup = renderToStaticMarkup(
+      React.createElement(ChangesetConsole, {
+        action: {
+          error: "network unavailable; use the CLI fallback",
+          kind: "record-feedback-fixup",
+          state: "failed",
+        },
+        detail: baseDetailState,
+        page,
+      }),
+    );
+    const successMarkup = renderToStaticMarkup(
+      React.createElement(ChangesetConsole, {
+        action: { error: null, kind: "inspect-feedback", state: "succeeded" },
+        detail: baseDetailState,
+        page,
+      }),
+    );
+
+    expect(pendingMarkup).toContain("record-feedback-fixup pending");
+    expect(pendingMarkup).toContain("Recording");
+    expect(failedMarkup).toContain("record-feedback-fixup failed");
+    expect(failedMarkup).toContain("reviewer approval was not recorded");
+    expect(successMarkup).toContain("inspect-feedback succeeded");
+    expect(successMarkup).toContain("inspect refreshed evidence before relying on it");
   });
 
   it("renders ready-for-handoff response status without implying approval", () => {

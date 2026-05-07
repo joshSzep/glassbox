@@ -198,8 +198,18 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
               const skippedState = skippedEvidenceState(item);
               const skipReason = skippedEvidenceReason(item);
               return (
-                <DataListItem key={item.evidence_id}>
-                  <DataListLabel>{item.summary}</DataListLabel>
+                <DataListItem id={evidenceRowId(item.evidence_id)} key={item.evidence_id}>
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <DataListLabel>{item.summary}</DataListLabel>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {skippedState ? (
+                        <Badge variant="warning">{skippedState.replaceAll("_", " ")}</Badge>
+                      ) : null}
+                      <Button asChild size="sm" variant="ghost">
+                        <a href={`#${evidenceRowId(item.evidence_id)}`}>Link</a>
+                      </Button>
+                    </div>
+                  </div>
                   <DataListMeta>
                     {item.evidence_kind} - {item.state} - {item.redaction_status} - {item.freshness}
                   </DataListMeta>
@@ -211,8 +221,7 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
                   ) : null}
                   {skippedState ? (
                     <DataListMeta>
-                      <Badge variant="warning">{skippedState.replaceAll("_", " ")}</Badge> Skipped
-                      live evidence remains a limitation, not a pass
+                      Skipped live evidence remains a limitation, not a pass
                       {skipReason ? ` - ${skipReason}` : ""}
                     </DataListMeta>
                   ) : null}
@@ -279,4 +288,8 @@ function skippedEvidenceReason(item: ManualEvidenceItem): string | null {
       .find((limitation) => limitation.toLowerCase().startsWith("skip reason: "))
       ?.split(": ", 2)[1] ?? null
   );
+}
+
+function evidenceRowId(evidenceId: string) {
+  return `evidence-${evidenceId}`;
 }

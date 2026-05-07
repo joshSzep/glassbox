@@ -679,7 +679,7 @@ supersedes it.
 
 ### GBX-1442: Polish Dashboard Review-Loop Action States
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1422`, `GBX-1432`
 - Goal: make dashboard review-loop actions feel complete and understandable
   under pending, success, failed, skipped, stale, and blocked states

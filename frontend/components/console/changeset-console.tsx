@@ -159,6 +159,7 @@ function ChangesetDetail({
       {inventoryStatus.reason ? (
         <StateLine tone={staleInventory ? "destructive" : "muted"} value={inventoryStatus.reason} />
       ) : null}
+      <ChangesetActionStateLine action={action} />
       {detail.lastActionMessage ? <StateLine value={detail.lastActionMessage} /> : null}
       <ReviewQuickActionsPanel
         action={action}
@@ -243,5 +244,31 @@ function ChangesetDetail({
         </Section>
       ) : null}
     </article>
+  );
+}
+
+function ChangesetActionStateLine({ action }: { action: ChangesetActionStatus }) {
+  if (action.state === "idle") {
+    return null;
+  }
+  if (action.state === "pending") {
+    return (
+      <StateLine
+        value={`${action.kind ?? "changeset action"} pending; controls pause until local evidence refresh completes.`}
+      />
+    );
+  }
+  if (action.state === "failed") {
+    return (
+      <StateLine
+        tone="destructive"
+        value={`${action.kind ?? "changeset action"} failed: ${action.error ?? "inspect the safe fallback command before retrying."}`}
+      />
+    );
+  }
+  return (
+    <StateLine
+      value={`${action.kind ?? "changeset action"} succeeded; inspect refreshed evidence before relying on it.`}
+    />
   );
 }

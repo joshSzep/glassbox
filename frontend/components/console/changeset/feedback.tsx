@@ -105,21 +105,39 @@ export function ReviewFeedbackPanel({
           <DataList density="compact">
             {feedback.slice(0, 8).map((item) => {
               const response = responseByFeedbackId.get(item.feedback_id);
+              const fixupPending =
+                action.state === "pending" && action.kind === "record-feedback-fixup";
+              const fixupFailed =
+                action.state === "failed" && action.kind === "record-feedback-fixup";
+              const fixupAttached = response !== undefined && response.fixup_inventory_count > 0;
               return (
-                <DataListItem key={item.feedback_id}>
+                <DataListItem id={feedbackRowId(item.feedback_id)} key={item.feedback_id}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <DataListLabel>{item.summary}</DataListLabel>
-                    <Button
-                      disabled={action.state === "pending" || onRecordFeedbackFixup === undefined}
-                      onClick={() => onRecordFeedbackFixup?.(item.feedback_id)}
-                      size="sm"
-                      type="button"
-                      variant={
-                        response && response.fixup_inventory_count > 0 ? "outline" : "default"
-                      }
-                    >
-                      Fixup
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {response ? (
+                        <Badge variant={responseBadgeVariant(response.response_state)}>
+                          {response.response_state.replaceAll("_", " ")}
+                        </Badge>
+                      ) : null}
+                      <Button asChild size="sm" variant="ghost">
+                        <a href={`#${feedbackRowId(item.feedback_id)}`}>Link</a>
+                      </Button>
+                      <Button
+                        aria-label={`Record fixup inventory for feedback ${item.feedback_id}`}
+                        disabled={action.state === "pending" || onRecordFeedbackFixup === undefined}
+                        onClick={() => onRecordFeedbackFixup?.(item.feedback_id)}
+                        size="sm"
+                        type="button"
+                        variant={fixupAttached ? "outline" : "default"}
+                      >
+                        {fixupPending
+                          ? "Recording"
+                          : fixupAttached
+                            ? "Refresh fixup"
+                            : "Record fixup"}
+                      </Button>
+                    </div>
                   </div>
                   <DataListMeta>
                     {item.feedback_kind} - {item.disposition} - {item.provenance}
@@ -136,6 +154,11 @@ export function ReviewFeedbackPanel({
                         Freshness {response.inventory_freshness}
                         {response.stale_reason ? ` - ${response.stale_reason}` : ""}
                       </DataListMeta>
+                      {response.fixup_inventory_count === 0 ? (
+                        <DataListMeta>
+                          Missing fixup inventory; inspect feedback status before recording.
+                        </DataListMeta>
+                      ) : null}
                       <DataListMeta>
                         Verification {response.verification_state}
                         {response.verification_reason ? ` - ${response.verification_reason}` : ""}
@@ -155,6 +178,11 @@ export function ReviewFeedbackPanel({
                       {response.blockers.slice(0, 2).map((blocker) => (
                         <DataListMeta key={blocker}>Blocker: {blocker}</DataListMeta>
                       ))}
+                      {fixupFailed ? (
+                        <DataListMeta>
+                          Fixup action failed; reviewer approval was not recorded.
+                        </DataListMeta>
+                      ) : null}
                     </>
                   ) : null}
                   {item.resolution_summary ? (
@@ -187,4 +215,21 @@ export function ReviewFeedbackPanel({
       </div>
     </Section>
   );
+}
+
+function feedbackRowId(feedbackId: string) {
+  return `feedback-${feedbackId}`;
+}
+
+function responseBadgeVariant(state: string): "default" | "outline" | "success" | "warning" {
+  if (state === "ready_for_handoff" || state === "resolved") {
+    return "success";
+  }
+  if (state === "blocked" || state === "reopened") {
+    return "warning";
+  }
+  if (state === "accepted_with_risk") {
+    return "outline";
+  }
+  return "default";
 }
