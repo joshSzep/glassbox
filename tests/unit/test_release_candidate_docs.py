@@ -630,6 +630,22 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
     assert "rather than passed" in daily_workflow
 
 
+def test_review_briefs_document_rich_evidence_overflow_contract() -> None:
+    content = (REPO_ROOT / "docs" / "review-briefs.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Rich-Evidence Limitation Overflow",
+        "`GBX-1410` characterizes the current v13/v14-start failure mode",
+        "more than 20 retained",
+        "`GBX-1411` should replace that brittle behavior",
+        "deduplicate repeated limitations",
+        "keep high-severity blockers visible",
+        "add an overflow summary",
+        "ordering deterministic",
+    ):
+        assert required_text in content
+
+
 def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     content = (REPO_ROOT / "docs" / "v13-review-loop-audit.md").read_text(
         encoding="utf-8"

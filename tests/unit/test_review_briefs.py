@@ -5,6 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
+import pytest
+from pydantic import ValidationError
+
 from glassbox.core import ChangesetInventoryFreshness
 from glassbox.core import ChangesetReadinessDecided
 from glassbox.core import ChangesetReadinessState
@@ -361,6 +364,55 @@ def test_review_brief_generation_includes_review_loop_evidence(
         "need fresh verification" in blocker
         for blocker in repository.events[1].payload.blockers
     )
+
+
+def test_review_brief_generation_currently_fails_when_limitations_overflow(
+    tmp_path: Path,
+) -> None:
+    repository = _FakeReviewBriefRepository(tmp_path)
+    artifacts = _FakeArtifactRepository(tmp_path)
+    now = datetime.now(UTC)
+    repository.manual_evidence = [
+        ManualEvidenceRecord(
+            session_id=repository.session_id,
+            evidence_id=new_manual_evidence_id(),
+            evidence_kind=ManualEvidenceKind.OPERATOR_ASSERTION,
+            state=ManualEvidenceState.ATTACHED,
+            target_kind=ManualEvidenceTargetKind.CHANGESET,
+            target_id=str(repository.changeset.changeset_id),
+            changeset_id=repository.changeset.changeset_id,
+            feedback_id=None,
+            artifact_id=new_artifact_id(),
+            artifact_schema_version=1,
+            summary=f"Retained rich evidence item {index}",
+            source_label="gbx-1410-characterization",
+            observed_at=now,
+            created_by="operator",
+            local_only=True,
+            redaction_status=ManualEvidenceRedactionStatus.PASSED,
+            freshness=ManualEvidenceFreshness.NEEDS_INSPECTION,
+            limitations=[f"retained limitation {index:02d}"],
+            non_claims=["manual evidence is not deterministic proof"],
+            created_at=now,
+            updated_at=now,
+            last_sequence=10 + index,
+        )
+        for index in range(25)
+    ]
+
+    with pytest.raises(ValidationError) as exc_info:
+        ChangesetReviewBriefService(
+            cast(ChangesetRepository, repository),
+            cast(ArtifactRepository, artifacts),
+        ).generate(
+            repository.changeset.changeset_id,
+            tmp_path,
+            created_by="qa",
+        )
+
+    assert "limitations" in str(exc_info.value)
+    assert "at most 20 items" in str(exc_info.value)
+    assert repository.events == []
 
 
 def _brief(

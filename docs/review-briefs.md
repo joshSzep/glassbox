@@ -178,6 +178,29 @@ evidence, browser/dashboard/accessibility observations, retained verification
 posture, response-level verification freshness, verification readiness, command
 evidence summaries, branch-candidate evidence when present,
 publication-boundary posture, risks, limitations, and safe inspection commands.
+
+## Rich-Evidence Limitation Overflow
+
+`GBX-1410` characterizes the current v13/v14-start failure mode: lifecycle brief
+generation deduplicates limitations, but a changeset with more than 20 retained
+limitations still fails artifact validation because the reviewer-safe
+`limitations` field is capped at 20 items.
+
+`GBX-1411` should replace that brittle behavior with deterministic
+summarization before artifact validation:
+
+- preserve raw retained limitations in canonical events and managed artifacts
+- deduplicate repeated limitations before counting overflow
+- keep high-severity blockers visible ahead of lower-priority advisory notes
+- cap the reviewer-safe `limitations` list at the artifact limit
+- add an overflow summary that names how many limitations were summarized and
+  why
+- keep ordering deterministic so replay, eval, API, dashboard, and export
+  artifacts remain stable
+
+Until that fix lands, rich manual, browser/dashboard, accessibility, response,
+command, inventory, or verification evidence can make brief generation fail
+when the retained limitation set exceeds the artifact cap.
 Missing inventory, unloaded artifacts, unresolved feedback, stale response
 verification, stale workspace digests, stale topology, missing verification,
 failed checks, missing command evidence, failed command attempts, local-only

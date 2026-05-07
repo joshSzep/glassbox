@@ -363,7 +363,7 @@ supersedes it.
 
 ### GBX-1410: Characterize Lifecycle Brief Limitation Overflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1401`
 - Goal: reproduce and lock down the rich-evidence lifecycle brief failure found
   during v13 dogfooding
