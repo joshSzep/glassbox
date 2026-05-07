@@ -81,10 +81,11 @@ checks, fake observed issues, or fake assistive-technology passes. A skipped
 record must include a skip reason or skipped cases. It must not include
 `observed_at`, screenshot metadata, a positive console-checked claim, an
 accessibility observed issue, paired tool output, or follow-up text that reads
-as though a live pass occurred. CLI and API flags for these states are added in
-the follow-on v14 task; until those operator surfaces are available, keep
-manual skipped evidence explicit and do not call it verified, accessible, or
-passed. Do not invent a live browser pass to satisfy a skipped evidence record.
+as though a live pass occurred. CLI and API clients record skipped posture with
+`capture_state` / `--capture-state` values of `not_run` or `not_applicable` and
+must include `skip_reason` / `--skip-reason` or skipped cases. Keep skipped
+evidence explicit and do not call it verified, accessible, or passed. Do not
+invent a live browser pass to satisfy a skipped evidence record.
 
 ## Live Dashboard Walkthrough Protocol
 
@@ -113,6 +114,20 @@ glassbox changeset evidence dashboard CHANGESET_ID \
   --browser chromium \
   --viewport 1440x900 \
   --skipped-case "mobile viewport" \
+  --freshness needs_inspection \
+  --cwd .
+```
+
+Record an intentionally skipped dashboard walkthrough without placeholder
+viewport or environment values with:
+
+```bash
+glassbox changeset evidence dashboard CHANGESET_ID \
+  --summary "dashboard walkthrough intentionally skipped" \
+  --source-label dashboard-local \
+  --capture-state not_run \
+  --skip-reason "local dashboard server was not started" \
+  --skipped-case "unknown viewport" \
   --freshness needs_inspection \
   --cwd .
 ```
@@ -178,6 +193,12 @@ The response is a manual evidence action response, so dashboard and API readers
 see the same evidence ID, artifact ID, target links, limitations, non-claims,
 and safe next actions as other manual evidence.
 
+Skipped browser or dashboard API evidence uses the same endpoint with
+`capture_state` set to `not_run` or `not_applicable`, omits fabricated
+`viewport_width`, `viewport_height`, `environment`, and `route_label` values,
+and supplies `skip_reason` or `skipped_cases`. Contradictory live-pass claims
+such as `console_checked: true` on skipped evidence are rejected.
+
 ## Keyboard Navigation Protocol
 
 Keyboard notes should record the starting point, expected tab path, observed tab
@@ -229,6 +250,20 @@ glassbox changeset evidence accessibility CHANGESET_ID \
   --cwd .
 ```
 
+Record intentionally skipped accessibility evidence without fake assistive
+technology observations with:
+
+```bash
+glassbox changeset evidence accessibility CHANGESET_ID \
+  --kind screen_reader_note \
+  --summary "screen reader pass not applicable to this backend-only change" \
+  --source-label accessibility-review \
+  --capture-state not_applicable \
+  --skip-reason "no user-facing route changed" \
+  --skipped-case "screen reader pass" \
+  --cwd .
+```
+
 API clients can attach the same evidence through:
 
 ```http
@@ -237,9 +272,9 @@ POST /changesets/{changeset_id}/accessibility-evidence
 
 Use `--kind` values for `keyboard_pass`, `screen_reader_note`,
 `focus_order_issue`, `wrapping_issue`, `contrast_observation`, and
-`responsive_review`. The command requires the observed issue, environment, tool,
-severity, disposition, and follow-up posture to stay visible instead of
-flattening accessibility review into a generic note.
+`responsive_review`. Observed evidence requires the observed issue,
+environment, tool, severity, disposition, and follow-up posture to stay visible
+instead of flattening accessibility review into a generic note.
 
 ## Advisory Versus Blocking Policy
 

@@ -1616,6 +1616,12 @@ export interface components {
        */
       actor: string;
       /**
+       * Capture State
+       * @default observed
+       * @enum {string}
+       */
+      capture_state: "observed" | "not_run" | "not_applicable";
+      /**
        * Disposition
        * @default open
        * @enum {string}
@@ -1627,7 +1633,7 @@ export interface components {
         | "accepted_with_risk"
         | "needs_follow_up";
       /** Environment */
-      environment: string;
+      environment?: string | null;
       /** Feedback Id */
       feedback_id?: string | null;
       /** Follow Up */
@@ -1651,7 +1657,7 @@ export interface components {
         | "contrast_observation"
         | "responsive_review";
       /** Observed Issue */
-      observed_issue: string;
+      observed_issue?: string | null;
       /** Paired Tool Output Label */
       paired_tool_output_label?: string | null;
       /** Reviewer Label */
@@ -1664,6 +1670,8 @@ export interface components {
        * @enum {string}
        */
       severity: "info" | "low" | "medium" | "high" | "blocker";
+      /** Skip Reason */
+      skip_reason?: string | null;
       /** Skipped Cases */
       skipped_cases?: string[];
       /** Source Label */
@@ -1681,7 +1689,7 @@ export interface components {
        * Tool
        * @default manual
        */
-      tool: string;
+      tool: string | null;
     };
     /** ActionAcceptedResponse */
     ActionAcceptedResponse: {
@@ -2256,16 +2264,22 @@ export interface components {
        * Browser
        * @default unknown
        */
-      browser: string;
+      browser: string | null;
       /**
        * Capture Kind
        * @enum {string}
        */
       capture_kind: "browser_check" | "dashboard_walkthrough";
+      /**
+       * Capture State
+       * @default observed
+       * @enum {string}
+       */
+      capture_state: "observed" | "not_run" | "not_applicable";
       /** Console Checked */
       console_checked?: boolean | null;
       /** Environment */
-      environment: string;
+      environment?: string | null;
       /** Feedback Id */
       feedback_id?: string | null;
       /**
@@ -2277,13 +2291,13 @@ export interface components {
        * Input Method
        * @default unknown
        */
-      input_method: string;
+      input_method: string | null;
       /** Limitations */
       limitations?: string[];
       /** Observed At */
       observed_at?: string | null;
       /** Route Label */
-      route_label: string;
+      route_label?: string | null;
       /** Screenshot Height */
       screenshot_height?: number | null;
       /**
@@ -2302,6 +2316,8 @@ export interface components {
       screenshot_size_bytes?: number | null;
       /** Screenshot Width */
       screenshot_width?: number | null;
+      /** Skip Reason */
+      skip_reason?: string | null;
       /** Skipped Cases */
       skipped_cases?: string[];
       /** Source Label */
@@ -2316,9 +2332,9 @@ export interface components {
        */
       target_kind: string;
       /** Viewport Height */
-      viewport_height: number;
+      viewport_height?: number | null;
       /** Viewport Width */
-      viewport_width: number;
+      viewport_width?: number | null;
     };
     /** CancelSessionTurnRequest */
     CancelSessionTurnRequest: {

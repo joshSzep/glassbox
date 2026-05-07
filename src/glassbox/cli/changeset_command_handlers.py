@@ -362,7 +362,10 @@ def _evidence_attach_command(args: argparse.Namespace) -> int:
 
 
 def _evidence_browser_dashboard_command(args: argparse.Namespace) -> int:
-    width, height = args.viewport
+    width: int | None = None
+    height: int | None = None
+    if args.viewport is not None:
+        width, height = args.viewport
     cwd, db_path = resolve_runtime_location(args)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         result = BrowserEvidenceActionService(
@@ -370,6 +373,7 @@ def _evidence_browser_dashboard_command(args: argparse.Namespace) -> int:
             runtime_context.repositories.artifacts,
         ).attach(
             args.changeset_id,
+            capture_state=args.capture_state,
             capture_kind=args.evidence_capture_kind,
             summary=args.summary,
             source_label=args.source_label,
@@ -381,6 +385,7 @@ def _evidence_browser_dashboard_command(args: argparse.Namespace) -> int:
             observed_at=_parse_optional_datetime(args.observed_at),
             input_method=args.input_method,
             console_checked=args.console_checked,
+            skip_reason=args.skip_reason,
             screenshot_path_hint=args.screenshot_path_hint,
             screenshot_label=args.screenshot_label,
             screenshot_media_type=args.screenshot_media_type,
@@ -406,6 +411,7 @@ def _evidence_accessibility_command(args: argparse.Namespace) -> int:
             runtime_context.repositories.artifacts,
         ).attach(
             args.changeset_id,
+            capture_state=args.capture_state,
             observation_kind=args.observation_kind,
             summary=args.summary,
             source_label=args.source_label,
@@ -418,6 +424,7 @@ def _evidence_accessibility_command(args: argparse.Namespace) -> int:
             disposition=args.disposition,
             follow_up=args.follow_up,
             paired_tool_output_label=args.paired_tool_output_label,
+            skip_reason=args.skip_reason,
             skipped_cases=args.skipped_case,
             limitations=args.limitation,
             actor=args.actor,

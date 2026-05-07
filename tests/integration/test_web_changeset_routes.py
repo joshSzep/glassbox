@@ -509,6 +509,153 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
     asyncio.run(scenario())
 
 
+def test_changeset_routes_record_skipped_live_evidence_without_placeholders(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        connection = _open_initialized_db(tmp_path)
+        try:
+            _init_git_repo(tmp_path)
+            app = _make_app(tmp_path, connection)
+            session_id = new_session_id()
+            task_id = new_task_id()
+            repository = SQLiteSessionRepository(connection)
+            repository.append_events(
+                [
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=SessionStarted(
+                            cwd=str(tmp_path),
+                            model_name="openai:gpt-5.4",
+                            approval_mode="confirm",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskCreated(
+                            task_id=task_id,
+                            title="API skipped evidence task",
+                            goal="Record skipped advisory evidence",
+                        ),
+                    ),
+                    EventEnvelope(
+                        session_id=session_id,
+                        sequence=0,
+                        payload=TaskStatusChanged(
+                            task_id=task_id,
+                            status=TaskPlanStatus.COMPLETED,
+                        ),
+                    ),
+                ]
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                create_response = await client.post(
+                    "/changesets",
+                    json={
+                        "source_kind": "task",
+                        "task_id": str(task_id),
+                        "objective": "Skipped evidence API support",
+                    },
+                )
+                changeset_id = create_response.json()["changeset_id"]
+                skipped_browser_response = await client.post(
+                    f"/changesets/{changeset_id}/browser-evidence",
+                    json={
+                        "capture_state": "not_run",
+                        "capture_kind": "dashboard_walkthrough",
+                        "summary": "dashboard walkthrough intentionally skipped",
+                        "source_label": "dashboard-local",
+                        "skip_reason": "local dashboard server was not started",
+                        "skipped_cases": ["unknown viewport"],
+                        "freshness": "needs_inspection",
+                    },
+                )
+                contradictory_browser_response = await client.post(
+                    f"/changesets/{changeset_id}/browser-evidence",
+                    json={
+                        "capture_state": "not_run",
+                        "capture_kind": "browser_check",
+                        "summary": "contradictory skipped browser evidence",
+                        "source_label": "local-browser",
+                        "skip_reason": "browser was not opened",
+                        "console_checked": True,
+                    },
+                )
+                skipped_accessibility_response = await client.post(
+                    f"/changesets/{changeset_id}/accessibility-evidence",
+                    json={
+                        "capture_state": "not_applicable",
+                        "observation_kind": "screen_reader_note",
+                        "summary": (
+                            "screen reader pass not applicable to backend-only change"
+                        ),
+                        "source_label": "accessibility-review",
+                        "skip_reason": "no user-facing route changed",
+                        "skipped_cases": ["screen reader pass"],
+                    },
+                )
+                contradictory_accessibility_response = await client.post(
+                    f"/changesets/{changeset_id}/accessibility-evidence",
+                    json={
+                        "capture_state": "not_applicable",
+                        "observation_kind": "keyboard_pass",
+                        "summary": "contradictory skipped accessibility evidence",
+                        "source_label": "keyboard-review",
+                        "skip_reason": "keyboard pass was not run",
+                        "observed_issue": "Tab order looked correct.",
+                    },
+                )
+                evidence_list_response = await client.get(
+                    "/changesets/manual-evidence",
+                    params={"changeset_id": changeset_id},
+                )
+
+            assert create_response.status_code == 200
+            assert skipped_browser_response.status_code == 200
+            browser_payload = skipped_browser_response.json()
+            assert (
+                "capture state: not_run" in browser_payload["evidence"]["limitations"]
+            )
+            assert (
+                "skipped browser/dashboard evidence is not a pass"
+                in browser_payload["evidence"]["non_claims"]
+            )
+            assert contradictory_browser_response.status_code == 422
+            assert (
+                "cannot claim console was checked"
+                in (contradictory_browser_response.json()["detail"])
+            )
+            assert skipped_accessibility_response.status_code == 200
+            accessibility_payload = skipped_accessibility_response.json()
+            assert (
+                "capture state: not_applicable"
+                in accessibility_payload["evidence"]["limitations"]
+            )
+            assert (
+                "skipped accessibility evidence is not a pass"
+                in accessibility_payload["evidence"]["non_claims"]
+            )
+            assert contradictory_accessibility_response.status_code == 422
+            assert (
+                "cannot include an observed issue"
+                in (contradictory_accessibility_response.json()["detail"])
+            )
+            assert evidence_list_response.status_code == 200
+            assert [
+                item["evidence_kind"] for item in evidence_list_response.json()["items"]
+            ] == ["accessibility_note", "browser_observation"]
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def _init_git_repo(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(

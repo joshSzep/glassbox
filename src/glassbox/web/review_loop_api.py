@@ -189,17 +189,19 @@ class ManualEvidenceAttachRequest(BaseModel):
 
 
 class BrowserEvidenceAttachRequest(BaseModel):
+    capture_state: Literal["observed", "not_run", "not_applicable"] = "observed"
     capture_kind: Literal["browser_check", "dashboard_walkthrough"]
     summary: str = Field(min_length=1, max_length=1000)
     source_label: str = Field(min_length=1, max_length=200)
-    route_label: str = Field(min_length=1, max_length=300)
-    environment: str = Field(min_length=1, max_length=200)
-    browser: str = Field(default="unknown", min_length=1, max_length=200)
-    viewport_width: int = Field(ge=1, le=10000)
-    viewport_height: int = Field(ge=1, le=10000)
+    route_label: str | None = Field(default=None, min_length=1, max_length=300)
+    environment: str | None = Field(default=None, min_length=1, max_length=200)
+    browser: str | None = Field(default="unknown", min_length=1, max_length=200)
+    viewport_width: int | None = Field(default=None, ge=1, le=10000)
+    viewport_height: int | None = Field(default=None, ge=1, le=10000)
     observed_at: datetime | None = None
-    input_method: str = Field(default="unknown", min_length=1, max_length=100)
+    input_method: str | None = Field(default="unknown", min_length=1, max_length=100)
     console_checked: bool | None = None
+    skip_reason: str | None = Field(default=None, max_length=1000)
     screenshot_path_hint: str | None = Field(default=None, max_length=500)
     screenshot_label: str = Field(
         default="local screenshot metadata",
@@ -231,6 +233,7 @@ class BrowserEvidenceAttachRequest(BaseModel):
 
 
 class AccessibilityEvidenceAttachRequest(BaseModel):
+    capture_state: Literal["observed", "not_run", "not_applicable"] = "observed"
     observation_kind: Literal[
         "keyboard_pass",
         "screen_reader_note",
@@ -241,9 +244,9 @@ class AccessibilityEvidenceAttachRequest(BaseModel):
     ]
     summary: str = Field(min_length=1, max_length=1000)
     source_label: str = Field(min_length=1, max_length=200)
-    environment: str = Field(min_length=1, max_length=200)
-    observed_issue: str = Field(min_length=1, max_length=2000)
-    tool: str = Field(default="manual", min_length=1, max_length=200)
+    environment: str | None = Field(default=None, min_length=1, max_length=200)
+    observed_issue: str | None = Field(default=None, min_length=1, max_length=2000)
+    tool: str | None = Field(default="manual", min_length=1, max_length=200)
     route_label: str | None = Field(default=None, max_length=300)
     reviewer_label: str | None = Field(default=None, max_length=200)
     severity: Literal["info", "low", "medium", "high", "blocker"] = "medium"
@@ -256,6 +259,7 @@ class AccessibilityEvidenceAttachRequest(BaseModel):
     ] = "open"
     follow_up: str | None = Field(default=None, max_length=2000)
     paired_tool_output_label: str | None = Field(default=None, max_length=300)
+    skip_reason: str | None = Field(default=None, max_length=1000)
     skipped_cases: list[str] = Field(default_factory=list, max_length=20)
     limitations: list[str] = Field(default_factory=list, max_length=20)
     actor: str = Field(default="operator", min_length=1, max_length=200)

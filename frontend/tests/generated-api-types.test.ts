@@ -49,6 +49,7 @@ describe("generated OpenAPI types", () => {
       actor: "operator",
       browser: "chromium",
       capture_kind: "dashboard_walkthrough",
+      capture_state: "observed",
       environment: "local-dev",
       freshness: "needs_inspection",
       input_method: "keyboard",
@@ -64,6 +65,7 @@ describe("generated OpenAPI types", () => {
     const browserEvidenceKey: keyof BrowserEvidenceResponse = "safe_next_actions";
     const accessibilityEvidenceBody: components["schemas"]["AccessibilityEvidenceAttachRequest"] = {
       actor: "operator",
+      capture_state: "observed",
       disposition: "paired_with_feedback",
       environment: "local-dev",
       freshness: "needs_inspection",

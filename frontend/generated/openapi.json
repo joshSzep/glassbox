@@ -10,6 +10,12 @@
             "title": "Actor",
             "type": "string"
           },
+          "capture_state": {
+            "default": "observed",
+            "enum": ["observed", "not_run", "not_applicable"],
+            "title": "Capture State",
+            "type": "string"
+          },
           "disposition": {
             "default": "open",
             "enum": [
@@ -23,10 +29,17 @@
             "type": "string"
           },
           "environment": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Environment",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment"
           },
           "feedback_id": {
             "anyOf": [
@@ -78,10 +91,17 @@
             "type": "string"
           },
           "observed_issue": {
-            "maxLength": 2000,
-            "minLength": 1,
-            "title": "Observed Issue",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Issue"
           },
           "paired_tool_output_label": {
             "anyOf": [
@@ -125,6 +145,18 @@
             "title": "Severity",
             "type": "string"
           },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
           "skipped_cases": {
             "items": {
               "type": "string"
@@ -164,20 +196,21 @@
             "type": "string"
           },
           "tool": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": "manual",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Tool",
-            "type": "string"
+            "title": "Tool"
           }
         },
-        "required": [
-          "observation_kind",
-          "summary",
-          "source_label",
-          "environment",
-          "observed_issue"
-        ],
+        "required": ["observation_kind", "summary", "source_label"],
         "title": "AccessibilityEvidenceAttachRequest",
         "type": "object"
       },
@@ -1645,15 +1678,28 @@
             "type": "string"
           },
           "browser": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": "unknown",
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Browser",
-            "type": "string"
+            "title": "Browser"
           },
           "capture_kind": {
             "enum": ["browser_check", "dashboard_walkthrough"],
             "title": "Capture Kind",
+            "type": "string"
+          },
+          "capture_state": {
+            "default": "observed",
+            "enum": ["observed", "not_run", "not_applicable"],
+            "title": "Capture State",
             "type": "string"
           },
           "console_checked": {
@@ -1668,10 +1714,17 @@
             "title": "Console Checked"
           },
           "environment": {
-            "maxLength": 200,
-            "minLength": 1,
-            "title": "Environment",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment"
           },
           "feedback_id": {
             "anyOf": [
@@ -1691,11 +1744,18 @@
             "type": "string"
           },
           "input_method": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "default": "unknown",
-            "maxLength": 100,
-            "minLength": 1,
-            "title": "Input Method",
-            "type": "string"
+            "title": "Input Method"
           },
           "limitations": {
             "items": {
@@ -1718,10 +1778,17 @@
             "title": "Observed At"
           },
           "route_label": {
-            "maxLength": 300,
-            "minLength": 1,
-            "title": "Route Label",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Route Label"
           },
           "screenshot_height": {
             "anyOf": [
@@ -1787,6 +1854,18 @@
             ],
             "title": "Screenshot Width"
           },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
           "skipped_cases": {
             "items": {
               "type": "string"
@@ -1826,27 +1905,33 @@
             "type": "string"
           },
           "viewport_height": {
-            "maximum": 10000.0,
-            "minimum": 1.0,
-            "title": "Viewport Height",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewport Height"
           },
           "viewport_width": {
-            "maximum": 10000.0,
-            "minimum": 1.0,
-            "title": "Viewport Width",
-            "type": "integer"
+            "anyOf": [
+              {
+                "maximum": 10000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Viewport Width"
           }
         },
-        "required": [
-          "capture_kind",
-          "summary",
-          "source_label",
-          "route_label",
-          "environment",
-          "viewport_width",
-          "viewport_height"
-        ],
+        "required": ["capture_kind", "summary", "source_label"],
         "title": "BrowserEvidenceAttachRequest",
         "type": "object"
       },

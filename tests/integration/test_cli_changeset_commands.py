@@ -750,6 +750,139 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert archived["payload"]["event_type"] == "ChangesetArchived"
 
 
+def test_changeset_evidence_records_skipped_live_evidence_without_placeholders(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    _init_git_repo(tmp_path)
+    _seed_task(db_path, tmp_path, session_id, task_id)
+
+    create_exit = main(
+        [
+            "changeset",
+            "create",
+            "--from",
+            "task",
+            "--task",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    changeset_id = json.loads(capsys.readouterr().out)["changeset_id"]
+    dashboard_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "dashboard",
+            changeset_id,
+            "--summary",
+            "dashboard walkthrough intentionally skipped",
+            "--source-label",
+            "dashboard-local",
+            "--capture-state",
+            "not_run",
+            "--skip-reason",
+            "local dashboard server was not started",
+            "--skipped-case",
+            "unknown viewport",
+            "--freshness",
+            "needs_inspection",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    dashboard = json.loads(capsys.readouterr().out)
+    contradiction_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "browser",
+            changeset_id,
+            "--summary",
+            "contradictory skipped browser evidence",
+            "--source-label",
+            "local-browser",
+            "--capture-state",
+            "not_run",
+            "--skip-reason",
+            "browser was not opened",
+            "--console-checked",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    contradiction_error = capsys.readouterr().err
+    accessibility_exit = main(
+        [
+            "changeset",
+            "evidence",
+            "accessibility",
+            changeset_id,
+            "--kind",
+            "screen_reader_note",
+            "--summary",
+            "screen reader pass not applicable to this backend-only change",
+            "--source-label",
+            "accessibility-review",
+            "--capture-state",
+            "not_applicable",
+            "--skip-reason",
+            "no user-facing route changed",
+            "--skipped-case",
+            "screen reader pass",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    accessibility = json.loads(capsys.readouterr().out)
+
+    assert create_exit == 0
+    assert dashboard_exit == 0
+    assert dashboard["evidence"]["evidence_kind"] == "browser_observation"
+    assert "capture state: not_run" in dashboard["evidence"]["limitations"]
+    assert (
+        "skip reason: local dashboard server was not started"
+        in (dashboard["evidence"]["limitations"])
+    )
+    assert (
+        "skipped browser/dashboard evidence is not a pass"
+        in (dashboard["evidence"]["non_claims"])
+    )
+    assert "browser/dashboard evidence is advisory" in " ".join(dashboard["non_claims"])
+    assert any(
+        "browser/dashboard route" in action for action in dashboard["safe_next_actions"]
+    )
+    assert contradiction_exit == 1
+    assert "cannot claim console was checked" in contradiction_error
+    assert accessibility_exit == 0
+    assert accessibility["evidence"]["evidence_kind"] == "accessibility_note"
+    assert "capture state: not_applicable" in accessibility["evidence"]["limitations"]
+    assert (
+        "skip reason: no user-facing route changed"
+        in (accessibility["evidence"]["limitations"])
+    )
+    assert (
+        "skipped accessibility evidence is not a pass"
+        in (accessibility["evidence"]["non_claims"])
+    )
+
+
 def _init_git_repo(tmp_path: Path) -> None:
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(

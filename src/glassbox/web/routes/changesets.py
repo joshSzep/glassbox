@@ -53,6 +53,9 @@ from glassbox.web.changeset_api import build_review_feedback_response
 from glassbox.web.changeset_api import build_review_response_summary_response
 from glassbox.web.routes.changeset_route_errors import raise_not_found_from_value_error
 from glassbox.web.routes.changeset_route_errors import raise_unknown_review_feedback
+from glassbox.web.routes.changeset_route_errors import (
+    raise_validation_or_not_found_from_value_error,
+)
 from glassbox.web.routes.changeset_route_feedback import (
     record_review_feedback_fixup_inventory_response,
 )
@@ -295,6 +298,7 @@ async def attach_browser_evidence(
     try:
         result = browser_evidence_action_service(context, repository).attach(
             changeset_id,
+            capture_state=request.capture_state,
             capture_kind=request.capture_kind,
             summary=request.summary,
             source_label=request.source_label,
@@ -306,6 +310,7 @@ async def attach_browser_evidence(
             observed_at=request.observed_at,
             input_method=request.input_method,
             console_checked=request.console_checked,
+            skip_reason=request.skip_reason,
             screenshot_path_hint=request.screenshot_path_hint,
             screenshot_label=request.screenshot_label,
             screenshot_media_type=request.screenshot_media_type,
@@ -321,7 +326,7 @@ async def attach_browser_evidence(
             freshness=manual_evidence_freshness(request),
         )
     except ValueError as exc:
-        raise_not_found_from_value_error(exc)
+        raise_validation_or_not_found_from_value_error(exc)
     return build_manual_evidence_action_response(result)
 
 
@@ -341,6 +346,7 @@ async def attach_accessibility_evidence(
     try:
         result = accessibility_evidence_action_service(context, repository).attach(
             changeset_id,
+            capture_state=request.capture_state,
             observation_kind=request.observation_kind,
             summary=request.summary,
             source_label=request.source_label,
@@ -353,6 +359,7 @@ async def attach_accessibility_evidence(
             disposition=request.disposition,
             follow_up=request.follow_up,
             paired_tool_output_label=request.paired_tool_output_label,
+            skip_reason=request.skip_reason,
             skipped_cases=request.skipped_cases,
             limitations=request.limitations,
             actor=request.actor,
@@ -362,7 +369,7 @@ async def attach_accessibility_evidence(
             freshness=manual_evidence_freshness(request),
         )
     except ValueError as exc:
-        raise_not_found_from_value_error(exc)
+        raise_validation_or_not_found_from_value_error(exc)
     return build_manual_evidence_action_response(result)
 
 

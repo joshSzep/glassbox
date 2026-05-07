@@ -9,6 +9,7 @@ from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackId
 from glassbox.runtime.accessibility_evidence import AccessibilityDisposition
 from glassbox.runtime.accessibility_evidence import AccessibilityEvidenceCapture
+from glassbox.runtime.accessibility_evidence import AccessibilityEvidenceCaptureState
 from glassbox.runtime.accessibility_evidence import AccessibilityObservationKind
 from glassbox.runtime.accessibility_evidence import AccessibilitySeverity
 from glassbox.runtime.accessibility_evidence import accessibility_evidence_limitations
@@ -37,18 +38,20 @@ class AccessibilityEvidenceActionService:
         self,
         changeset_id: ChangesetId,
         *,
+        capture_state: AccessibilityEvidenceCaptureState = "observed",
         observation_kind: AccessibilityObservationKind,
         summary: str,
         source_label: str,
-        environment: str,
-        observed_issue: str,
-        tool: str = "manual",
+        environment: str | None = None,
+        observed_issue: str | None = None,
+        tool: str | None = "manual",
         route_label: str | None = None,
         reviewer_label: str | None = None,
         severity: AccessibilitySeverity = "medium",
         disposition: AccessibilityDisposition = "open",
         follow_up: str | None = None,
         paired_tool_output_label: str | None = None,
+        skip_reason: str | None = None,
         skipped_cases: Sequence[str] = (),
         limitations: Sequence[str] = (),
         actor: str = "operator",
@@ -58,6 +61,7 @@ class AccessibilityEvidenceActionService:
         freshness: ManualEvidenceFreshness = ManualEvidenceFreshness.UNKNOWN,
     ) -> ManualEvidenceRecordResult:
         capture = AccessibilityEvidenceCapture(
+            capture_state=capture_state,
             observation_kind=observation_kind,
             summary=summary,
             source_label=source_label,
@@ -70,6 +74,7 @@ class AccessibilityEvidenceActionService:
             disposition=disposition,
             follow_up=follow_up,
             paired_tool_output_label=paired_tool_output_label,
+            skip_reason=skip_reason,
             skipped_cases=list(skipped_cases),
             limitations=list(limitations),
         )

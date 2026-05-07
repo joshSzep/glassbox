@@ -10,6 +10,7 @@ from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceTargetKind
 from glassbox.core import ReviewFeedbackId
 from glassbox.runtime.browser_evidence import BrowserEvidenceCapture
+from glassbox.runtime.browser_evidence import BrowserEvidenceCaptureState
 from glassbox.runtime.browser_evidence import browser_evidence_limitations
 from glassbox.runtime.browser_evidence import browser_evidence_local_reference
 from glassbox.runtime.browser_evidence import browser_evidence_non_claims
@@ -37,17 +38,19 @@ class BrowserEvidenceActionService:
         self,
         changeset_id: ChangesetId,
         *,
+        capture_state: BrowserEvidenceCaptureState = "observed",
         capture_kind: Literal["browser_check", "dashboard_walkthrough"],
         summary: str,
         source_label: str,
-        route_label: str,
-        environment: str,
-        viewport_width: int,
-        viewport_height: int,
-        browser: str = "unknown",
+        route_label: str | None = None,
+        environment: str | None = None,
+        viewport_width: int | None = None,
+        viewport_height: int | None = None,
+        browser: str | None = "unknown",
         observed_at: datetime | None = None,
-        input_method: str = "unknown",
+        input_method: str | None = "unknown",
         console_checked: bool | None = None,
+        skip_reason: str | None = None,
         screenshot_path_hint: str | None = None,
         screenshot_label: str = "local screenshot metadata",
         screenshot_media_type: str = "image/png",
@@ -63,6 +66,7 @@ class BrowserEvidenceActionService:
         freshness: ManualEvidenceFreshness = ManualEvidenceFreshness.UNKNOWN,
     ) -> ManualEvidenceRecordResult:
         capture = BrowserEvidenceCapture(
+            capture_state=capture_state,
             capture_kind=capture_kind,
             summary=summary,
             source_label=source_label,
@@ -74,6 +78,7 @@ class BrowserEvidenceActionService:
             observed_at=observed_at,
             input_method=input_method,
             console_checked=console_checked,
+            skip_reason=skip_reason,
             screenshot_path_hint=screenshot_path_hint,
             screenshot_label=screenshot_label,
             screenshot_media_type=screenshot_media_type,

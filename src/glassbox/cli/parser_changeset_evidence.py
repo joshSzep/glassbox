@@ -99,10 +99,15 @@ def _add_changeset_evidence_parsers(
         parser.add_argument("changeset_id", type=_parse_uuid)
         parser.add_argument("--summary", required=True)
         parser.add_argument("--source-label", required=True)
-        parser.add_argument("--route", dest="route_label", required=True)
-        parser.add_argument("--environment", required=True)
+        parser.add_argument(
+            "--capture-state",
+            choices=("observed", "not_run", "not_applicable"),
+            default="observed",
+        )
+        parser.add_argument("--route", dest="route_label")
+        parser.add_argument("--environment")
         parser.add_argument("--browser", default="unknown")
-        parser.add_argument("--viewport", type=_parse_viewport, required=True)
+        parser.add_argument("--viewport", type=_parse_viewport)
         parser.add_argument("--observed-at")
         parser.add_argument("--input-method", default="unknown")
         parser.add_argument("--console-checked", action="store_true", default=None)
@@ -111,6 +116,7 @@ def _add_changeset_evidence_parsers(
             action="store_false",
             dest="console_checked",
         )
+        parser.add_argument("--skip-reason")
         parser.add_argument("--screenshot-file", dest="screenshot_path_hint")
         parser.add_argument(
             "--screenshot-label",
@@ -199,8 +205,13 @@ def _add_changeset_evidence_parsers(
     )
     evidence_accessibility_parser.add_argument("--summary", required=True)
     evidence_accessibility_parser.add_argument("--source-label", required=True)
-    evidence_accessibility_parser.add_argument("--environment", required=True)
-    evidence_accessibility_parser.add_argument("--observed-issue", required=True)
+    evidence_accessibility_parser.add_argument(
+        "--capture-state",
+        choices=("observed", "not_run", "not_applicable"),
+        default="observed",
+    )
+    evidence_accessibility_parser.add_argument("--environment")
+    evidence_accessibility_parser.add_argument("--observed-issue")
     evidence_accessibility_parser.add_argument("--tool", default="manual")
     evidence_accessibility_parser.add_argument("--route", dest="route_label")
     evidence_accessibility_parser.add_argument("--reviewer-label")
@@ -222,6 +233,7 @@ def _add_changeset_evidence_parsers(
     )
     evidence_accessibility_parser.add_argument("--follow-up")
     evidence_accessibility_parser.add_argument("--paired-tool-output-label")
+    evidence_accessibility_parser.add_argument("--skip-reason")
     evidence_accessibility_parser.add_argument(
         "--skipped-case", action="append", default=[]
     )

@@ -575,7 +575,7 @@ supersedes it.
 
 ### GBX-1431: Add Skipped Evidence CLI And API Support
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1430`
 - Goal: let operators record skipped advisory evidence without awkward
   placeholder values
