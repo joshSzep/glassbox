@@ -813,7 +813,7 @@ supersedes it.
 
 ### GBX-1461: Add A V14 Release Gate Or V13 Gate Extension
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1460`
 - Goal: collect v14 maturity evidence in an automated gate while preserving
   advisory evidence boundaries
