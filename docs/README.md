@@ -79,6 +79,10 @@ after the v13 release candidate and post-v13 refactor.
   `GBX-1462` dogfooding findings for command discovery, response-linked fixup
   inventory, skipped advisory evidence, lifecycle brief summarization,
   dashboard action states, handoff readiness, and v14 release validation
+- [v14-release-candidate.md](./v14-release-candidate.md): v14
+  release-candidate guide for the supported review-loop maturity operating
+  model, validation path, advisory evidence expectations, residual risks, and
+  decision
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
@@ -151,6 +155,10 @@ after the v13 release candidate and post-v13 refactor.
   focus-visible, responsive layout, and skipped assistive-technology coverage
 - [v14-dogfooding-summary.md](./v14-dogfooding-summary.md): sanitized v14
   dogfooding evidence and friction findings from local review-loop maturity use
+- [v14-release-candidate.md](./v14-release-candidate.md): v14
+  release-candidate narrative tying the maturity contract, gate, dogfooding,
+  advisory UX evidence, evals, package, provider, publication boundary, and
+  residual-risk evidence together
 - [tasks-v14.md](./tasks-v14.md): v14 review-loop maturity task graph for
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, command discovery, advisory UX evidence, dogfooding, and

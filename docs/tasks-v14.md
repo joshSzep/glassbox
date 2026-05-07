@@ -867,7 +867,7 @@ supersedes it.
 
 ### GBX-1463: Publish V14 Review-Loop Maturity Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1462`
 - Goal: publish the operator-facing v14 maturity guide and final milestone
   decision

@@ -147,6 +147,28 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v13-release-gate.md" in problems
     assert "sdist missing required file: docs/v13-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/v13-release-candidate.md" in problems
+    assert (
+        "sdist missing required file: "
+        "docs/v14-review-loop-maturity-contract.md" in problems
+    )
+    assert (
+        "sdist missing required file: docs/v14-review-loop-maturity-audit.md"
+        in problems
+    )
+    assert (
+        "sdist missing required file: docs/v14-advisory-review-evidence.md" in problems
+    )
+    assert (
+        "sdist missing required file: docs/v14-advisory-dashboard-evidence.md"
+        in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "docs/v14-advisory-accessibility-evidence.md" in problems
+    )
+    assert "sdist missing required file: docs/v14-dogfooding-summary.md" in problems
+    assert "sdist missing required file: docs/v14-release-candidate.md" in problems
+    assert "sdist missing required file: docs/tasks-v14.md" in problems
     assert "sdist missing required file: docs/tasks-v13.md" in problems
     assert "sdist missing required file: docs/review-feedback.md" in problems
     assert "sdist missing required file: docs/manual-evidence.md" in problems
@@ -401,6 +423,14 @@ def _write_sdist(
                 "docs/v13-release-gate.md",
                 "docs/v13-dogfooding-summary.md",
                 "docs/v13-release-candidate.md",
+                "docs/v14-review-loop-maturity-contract.md",
+                "docs/v14-review-loop-maturity-audit.md",
+                "docs/v14-advisory-review-evidence.md",
+                "docs/v14-advisory-dashboard-evidence.md",
+                "docs/v14-advisory-accessibility-evidence.md",
+                "docs/v14-dogfooding-summary.md",
+                "docs/v14-release-candidate.md",
+                "docs/tasks-v14.md",
                 "docs/review-feedback.md",
                 "docs/review-responses.md",
                 "docs/manual-evidence.md",

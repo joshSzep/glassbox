@@ -142,6 +142,7 @@ Start here based on what you need:
 - [docs/v14-advisory-dashboard-evidence.md](docs/v14-advisory-dashboard-evidence.md)
 - [docs/v14-advisory-accessibility-evidence.md](docs/v14-advisory-accessibility-evidence.md)
 - [docs/v14-dogfooding-summary.md](docs/v14-dogfooding-summary.md)
+- [docs/v14-release-candidate.md](docs/v14-release-candidate.md)
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

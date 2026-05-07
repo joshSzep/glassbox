@@ -1208,6 +1208,49 @@ def test_v14_dogfooding_summary_records_maturity_passes() -> None:
     assert "v14-dogfooding-summary.md" in docs_readme
 
 
+def test_v14_release_candidate_guide_covers_maturity_model() -> None:
+    content = (REPO_ROOT / "docs" / "v14-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Release Decision",
+        "Decision: GO for v14 release candidate publication.",
+        ".glassbox/releases/gbx-1463-v14-release-candidate/",
+        ".glassbox/evals/gbx-1463-v14-release-candidate/",
+        ".glassbox/releases/gbx-1462-v14-dogfooding/",
+        ".glassbox/releases/v14-advisory-review-evidence/",
+        "91\n  passing blocking stages",
+        "| Automated v14 gate | passed |",
+        "| Package and installed smoke | passed |",
+        "25 selected",
+        "changeset.lifecycle-rich-evidence",
+        "changeset.response-linked-fixup-inventory",
+        "changeset.skipped-advisory-evidence-posture",
+        "68 planned blocking stages",
+        "response-linked fixup inventory",
+        "skipped advisory evidence",
+        "rich lifecycle briefs",
+        "20-item artifact cap",
+        "command-discovery friction",
+        "GBX-1451",
+        "GBX-1452",
+        "0.10.0",
+        "automatic pull request creation",
+        "No deterministic blocker remains open",
+    ):
+        assert required_text in content
+
+    assert "docs/v14-release-candidate.md" in root_readme
+    assert "v14-release-candidate.md" in docs_readme
+
+
 def test_v13_release_candidate_guide_covers_review_loop_model() -> None:
     content = (REPO_ROOT / "docs" / "v13-release-candidate.md").read_text(
         encoding="utf-8"
