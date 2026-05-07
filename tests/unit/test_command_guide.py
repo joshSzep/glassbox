@@ -13,13 +13,18 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert rendered.startswith("Glassbox command guide")
     assert "Start Work" in rendered
     assert "glassbox readiness check --cwd ." in rendered
-    assert "Review Loop" in rendered
+    assert "Review Loop Maturity" in rendered
+    assert "glassbox changeset create --from workspace-diff" in rendered
+    assert "does not stage, commit, push, or open a PR" in rendered
+    assert "glassbox changeset refresh CHANGESET_ID --cwd ." in rendered
+    assert "glassbox changeset feedback add CHANGESET_ID" in rendered
     assert "glassbox changeset feedback status CHANGESET_ID --cwd ." in rendered
     assert "response-linked fixup inventory posture" in rendered
     assert "before recording fixup evidence" in rendered
     assert "glassbox changeset feedback fixup FEEDBACK_ID --cwd ." in rendered
-    assert "skipped case" in rendered
-    assert "without calling it a pass" in rendered
+    assert "glassbox changeset feedback accept-risk FEEDBACK_ID" in rendered
+    assert "--capture-state not_run --skip-reason REASON" in rendered
+    assert "without inventing a viewport or calling it a pass" in rendered
     assert "Use `glassbox command tree`" in rendered
 
 

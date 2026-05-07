@@ -22,8 +22,9 @@ uv run glassbox command guide --json
 
 The guide is organized around daily paths: long-run recovery, compaction, tool
 attempts, checkpoint inspection, verification recommendations, provider
-posture, knowledge freshness, branch-search review, workspace recovery, and
-release evidence. It is intentionally workflow-oriented; use
+posture, knowledge freshness, branch-search review, review-loop maturity,
+workspace recovery, and release evidence. It is intentionally
+workflow-oriented; use
 `uv run glassbox command tree` when you need the exhaustive structural command
 surface.
 
@@ -86,7 +87,9 @@ Start with inspection before mutation:
 
 ```bash
 uv run glassbox command guide
+uv run glassbox changeset create --from workspace-diff --objective "Review local changes" --cwd .
 uv run glassbox changeset show CHANGESET_ID --cwd .
+uv run glassbox changeset refresh CHANGESET_ID --cwd .
 uv run glassbox changeset verification-plan CHANGESET_ID --cwd .
 uv run glassbox changeset feedback status CHANGESET_ID --cwd .
 ```
@@ -96,14 +99,19 @@ Record review-loop evidence with bounded claims:
 ```bash
 uv run glassbox changeset feedback add CHANGESET_ID --kind requested_change --summary "..." --cwd .
 uv run glassbox changeset evidence attach CHANGESET_ID --kind external_check --summary "..." --source-label local --cwd .
+uv run glassbox changeset evidence dashboard CHANGESET_ID --summary "dashboard walkthrough not run" --source-label local-dashboard --capture-state not_run --skip-reason "local dashboard server was not started" --skipped-case "unknown viewport" --cwd .
+uv run glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd .
 uv run glassbox changeset feedback resolve FEEDBACK_ID --summary "..." --cwd .
+uv run glassbox changeset feedback accept-risk FEEDBACK_ID --risk-summary "..." --reason "..." --cwd .
 uv run glassbox changeset brief CHANGESET_ID --cwd .
 uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
 ```
 
 Response-linked inventory is not review approval; it is local evidence about
-changed paths. Browser, dashboard, and accessibility evidence is advisory;
-skipped cases should stay visible as skipped or not run rather than passed.
+changed paths. Use either `feedback resolve` or `feedback accept-risk` for the
+same feedback item according to the local posture you want to retain. Browser,
+dashboard, and accessibility evidence is advisory; skipped cases should stay
+visible as skipped or not run rather than passed.
 
 ## Approve, Deny, Or Answer
 

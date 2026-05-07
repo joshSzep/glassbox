@@ -618,8 +618,8 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
         "recording fixup evidence",
         "Record local response text; attach response-linked fixup",
         "inventory separately before treating the response as ready",
-        "Record advisory dashboard evidence or an explicit skipped case",
-        "without calling it a pass",
+        "Record an explicit skipped dashboard case",
+        "viewport or calling it a pass",
     ):
         assert required_text in command_guide
 
@@ -629,6 +629,9 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
     assert "glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd ." in (
         review_responses
     )
+    assert "### GBX-1440 Happy Path" in review_responses
+    assert "glassbox changeset refresh CHANGESET_ID --cwd ." in review_responses
+    assert "neither records reviewer approval" in review_responses
     assert "--all-eligible" in review_responses
     assert "### API, TUI, And Dashboard Contract" in review_responses
     assert "POST /changesets/feedback/{feedback_id}/fixup" in review_responses
@@ -644,6 +647,9 @@ def test_v14_review_loop_vocabulary_copy_stays_bounded() -> None:
     assert "## Skipped Advisory Evidence" in browser_accessibility
     assert "invent a live browser pass" in browser_accessibility
     assert "## Review A Local Change" in daily_workflow
+    assert "review-loop maturity" in daily_workflow
+    assert "glassbox changeset create --from workspace-diff" in daily_workflow
+    assert "feedback fixup FEEDBACK_ID --from-workspace" in daily_workflow
     assert "not review approval" in daily_workflow
     assert "rather than passed" in daily_workflow
 

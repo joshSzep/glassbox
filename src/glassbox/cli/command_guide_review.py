@@ -5,9 +5,9 @@ from glassbox.cli.command_guide_models import CommandGuideSection
 
 REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
     key="review-loop",
-    title="Review Loop",
+    title="Review Loop Maturity",
     summary=(
-        "Inspect and continue local changeset review evidence without "
+        "Inspect, record, and hand off local changeset review evidence without "
         "claiming approval or publishing mutations."
     ),
     entries=(
@@ -19,6 +19,16 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             ),
         ),
         CommandGuideEntry(
+            (
+                "glassbox changeset create --from workspace-diff "
+                "--objective OBJECTIVE --cwd ."
+            ),
+            (
+                "Create local changeset evidence from the current workspace "
+                "diff; this does not stage, commit, push, or open a PR."
+            ),
+        ),
+        CommandGuideEntry(
             "glassbox changeset show CHANGESET_ID --cwd .",
             (
                 "Inspect changeset evidence, feedback, verification, and "
@@ -26,8 +36,25 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             ),
         ),
         CommandGuideEntry(
+            "glassbox changeset refresh CHANGESET_ID --cwd .",
+            (
+                "Refresh structured inventory evidence before relying on "
+                "feedback, fixup, brief, or handoff posture."
+            ),
+        ),
+        CommandGuideEntry(
             "glassbox changeset verification-plan CHANGESET_ID --cwd .",
             "Preview review-loop-aware verification without running commands.",
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset feedback add CHANGESET_ID "
+                "--kind requested_change --summary SUMMARY --cwd ."
+            ),
+            (
+                "Record local review feedback as evidence, not a hosted review "
+                "decision or approval state."
+            ),
         ),
         CommandGuideEntry(
             "glassbox changeset feedback status CHANGESET_ID --cwd .",
@@ -58,20 +85,30 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
         ),
         CommandGuideEntry(
             (
-                "glassbox changeset evidence attach CHANGESET_ID "
-                "--summary SUMMARY --source-label LABEL --cwd ."
+                "glassbox changeset evidence attach CHANGESET_ID --kind "
+                "external_check --summary SUMMARY --source-label LABEL --cwd ."
             ),
             "Attach manual evidence as local evidence, not retained command proof.",
         ),
         CommandGuideEntry(
             (
                 "glassbox changeset evidence dashboard CHANGESET_ID "
-                "--route ROUTE --viewport WIDTHxHEIGHT --skipped-case REASON "
-                "--cwd ."
+                "--capture-state not_run --skip-reason REASON "
+                "--skipped-case CASE --cwd ."
             ),
             (
-                "Record advisory dashboard evidence or an explicit skipped case "
-                "without calling it a pass."
+                "Record an explicit skipped dashboard case without inventing a "
+                "viewport or calling it a pass."
+            ),
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset feedback accept-risk FEEDBACK_ID "
+                "--risk-summary SUMMARY --reason REASON --cwd ."
+            ),
+            (
+                "Record an explicit local residual-risk disposition when the "
+                "response should not be treated as fully resolved."
             ),
         ),
         CommandGuideEntry(

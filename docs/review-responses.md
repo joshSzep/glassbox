@@ -149,6 +149,27 @@ next safe inspection command. The command must reject ambiguous ownership,
 unknown feedback IDs, empty path input, and bulk mode without an explicit
 `--all-eligible` flag.
 
+### GBX-1440 Happy Path
+
+For daily terminal work, prefer the concrete inspect-first sequence exposed by
+`glassbox command guide`:
+
+```bash
+glassbox changeset show CHANGESET_ID --cwd .
+glassbox changeset refresh CHANGESET_ID --cwd .
+glassbox changeset feedback status CHANGESET_ID --cwd .
+glassbox changeset feedback show FEEDBACK_ID --cwd .
+glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+glassbox changeset feedback resolve FEEDBACK_ID --summary "..." --cwd .
+glassbox changeset handoff-readiness CHANGESET_ID --cwd .
+```
+
+Use explicit `--path` values when the current workspace diff contains
+unrelated edits. Use `feedback accept-risk` instead of `feedback resolve` when
+the retained response should stay in an accepted-risk posture. Both choices
+remain local response evidence; neither records reviewer approval.
+
 ### API, TUI, And Dashboard Contract
 
 API and dashboard read surfaces should continue to expose response-linked

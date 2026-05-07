@@ -13,6 +13,15 @@ deploy, or publish.
 
 ## Command Workflow
 
+Start by inspecting the local changeset and response posture:
+
+```bash
+glassbox changeset show CHANGESET_ID --cwd .
+glassbox changeset refresh CHANGESET_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+glassbox changeset feedback status CHANGESET_ID --cwd .
+```
+
 Create feedback against an existing changeset:
 
 ```bash
@@ -44,6 +53,17 @@ Record local resolution evidence:
 glassbox changeset feedback resolve FEEDBACK_ID \
   --summary "The verification summary now names retained evidence." \
   --residual-risk "Reviewer acceptance is not implied." \
+  --cwd .
+```
+
+Attach bounded changed-path evidence to a response before treating the
+feedback as ready for handoff:
+
+```bash
+glassbox changeset feedback fixup FEEDBACK_ID --from-workspace --cwd .
+glassbox changeset feedback fixup FEEDBACK_ID \
+  --path src/glassbox/runtime/changesets.py \
+  --path tests/unit/test_changeset_derivation.py \
   --cwd .
 ```
 
@@ -90,14 +110,17 @@ The API surfaces are:
 - `GET /changesets/feedback/{feedback_id}`
 - `POST /changesets/{changeset_id}/feedback`
 - `POST /changesets/feedback/{feedback_id}/resolve`
+- `POST /changesets/feedback/{feedback_id}/fixup`
 - `POST /changesets/feedback/{feedback_id}/reopen`
 - `POST /changesets/feedback/{feedback_id}/archive`
 - `POST /changesets/feedback/{feedback_id}/accept-risk`
 
-The dashboard remains read-oriented for this slice. Integrated dashboard
-mutation controls are intentionally deferred to the later v13 UX phase, after
-fixup responses, manual evidence, browser evidence, and lifecycle briefs have
-settled.
+The dashboard keeps review-loop actions explicit and inspect-first. Feedback
+rows expose response status, safe next actions, fixup-inventory posture, and
+the terminal fallback command before any local evidence mutation. Recording
+fixup inventory from the dashboard remains local evidence; it does not hide
+unresolved feedback, run verification, stage, commit, push, open a pull
+request, merge, deploy, or publish.
 
 ## Evidence Boundaries
 
@@ -112,6 +135,17 @@ Use feedback dispositions carefully:
 
 These states are local evidence posture. They do not mean a reviewer approved
 the changeset, accepted the response, or cleared the work for publication.
+
+Response-linked fixup inventory is the changed-path evidence that explains
+which files appear to answer a feedback item. It can make a local response
+easier to review, but it does not prove reviewer acceptance. If the inventory
+is missing, stale, or mismatched with feedback scopes, start with:
+
+```bash
+glassbox changeset feedback status CHANGESET_ID --cwd .
+glassbox changeset feedback show FEEDBACK_ID --cwd .
+glassbox changeset verification-plan CHANGESET_ID --cwd .
+```
 
 Feedback scope metadata may name a changeset, file, task, turn, artifact,
 verification, or branch candidate. File scopes store paths and optional line

@@ -628,7 +628,7 @@ supersedes it.
 
 ### GBX-1440: Refresh Command Guide Around The Review-Loop Happy Path
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1421`, `GBX-1431`
 - Goal: make the ordinary review-loop sequence discoverable from
   `glassbox command guide`, command help, and docs

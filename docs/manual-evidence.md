@@ -259,6 +259,29 @@ glassbox changeset evidence accessibility CHANGESET_ID \
   --cwd .
 ```
 
+Skipped advisory evidence uses the same evidence family, but it should name
+what was not run instead of fabricating live environment details:
+
+```bash
+glassbox changeset evidence dashboard CHANGESET_ID \
+  --summary "dashboard walkthrough intentionally skipped" \
+  --source-label dashboard-local \
+  --capture-state not_run \
+  --skip-reason "local dashboard server was not started" \
+  --skipped-case "unknown viewport" \
+  --freshness needs_inspection \
+  --cwd .
+
+glassbox changeset evidence accessibility CHANGESET_ID \
+  --kind screen_reader_note \
+  --summary "screen reader pairing not applicable to this backend-only change" \
+  --source-label accessibility-review \
+  --capture-state not_applicable \
+  --skip-reason "no user-facing route changed" \
+  --skipped-case "screen reader pass" \
+  --cwd .
+```
+
 Inspect retained manual evidence before relying on it:
 
 ```bash
