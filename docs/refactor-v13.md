@@ -1148,7 +1148,7 @@ Completion notes:
 
 ### GBX-R561: Split Changeset Query Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R560
 - Target files:
   - `src/glassbox/store/sqlite_query_changesets.py`
@@ -1167,6 +1167,18 @@ Completion notes:
   - `uv run pytest tests/integration/test_changeset_projection.py`
   - `uv run pytest tests/integration/test_review_loop_projection.py`
   - `uv run pytest tests/unit/test_sqlite_query_boundaries.py`
+
+Completion notes:
+
+- Kept `sqlite_query_changesets.py` as a compatibility facade and moved
+  changeset detail, source, inventory, verification, review brief, and
+  readiness reads into `sqlite_query_changeset_detail.py`.
+- Kept `sqlite_query_review_loop.py` as a compatibility facade and moved
+  review feedback, scope, and fixup inventory/path reads into
+  `sqlite_query_review_feedback.py`.
+- Moved manual evidence reads into `sqlite_query_manual_evidence.py`.
+- Updated the SQLite query boundary test to assert both the stable facade
+  exports and the new focused query-module owners.
 
 ### GBX-R562: Split Repository Adapter Mixins By Review-Loop Domain
 

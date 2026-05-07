@@ -40,6 +40,15 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "list_branch_candidates",
         "list_branch_searches",
     },
+    "glassbox.store.sqlite_query_changeset_detail": {
+        "get_changeset",
+        "get_changeset_inventory",
+        "get_changeset_verification_posture",
+        "list_changeset_readiness",
+        "list_changeset_review_briefs",
+        "list_changeset_sources",
+        "list_changesets",
+    },
     "glassbox.store.sqlite_query_changesets": {
         "get_changeset",
         "get_changeset_inventory",
@@ -48,6 +57,17 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "list_changeset_review_briefs",
         "list_changeset_sources",
         "list_changesets",
+    },
+    "glassbox.store.sqlite_query_manual_evidence": {
+        "get_manual_evidence",
+        "list_manual_evidence",
+    },
+    "glassbox.store.sqlite_query_review_feedback": {
+        "get_review_feedback",
+        "list_review_feedback_fixup_inventories",
+        "list_review_feedback_fixup_paths",
+        "list_review_feedback",
+        "list_review_feedback_scopes",
     },
     "glassbox.store.sqlite_query_review_loop": {
         "get_manual_evidence",
@@ -92,5 +112,8 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_compactions"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_tasks"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_branch_search"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_changeset_detail"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_changesets"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_manual_evidence"].__doc__
+    assert loaded_modules["glassbox.store.sqlite_query_review_feedback"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_review_loop"].__doc__
