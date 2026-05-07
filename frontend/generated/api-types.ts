@@ -3009,6 +3009,12 @@ export interface components {
       retained_verification_state: string;
       /** Safe Next Actions */
       safe_next_actions: string[];
+      /** Skipped Accessibility Evidence Count */
+      skipped_accessibility_evidence_count: number;
+      /** Skipped Browser Evidence Count */
+      skipped_browser_evidence_count: number;
+      /** Skipped Live Evidence Count */
+      skipped_live_evidence_count: number;
       /** Stale Check Count */
       stale_check_count: number;
       /** Stale Response Count */
@@ -3512,6 +3518,12 @@ export interface components {
       needs_inspection_evidence_count: number;
       /** Review Brief Count */
       review_brief_count: number;
+      /** Skipped Accessibility Evidence Count */
+      skipped_accessibility_evidence_count: number;
+      /** Skipped Browser Evidence Count */
+      skipped_browser_evidence_count: number;
+      /** Skipped Live Evidence Count */
+      skipped_live_evidence_count: number;
       /** Stale Manual Evidence Count */
       stale_manual_evidence_count: number;
       /** Stale Response Count */

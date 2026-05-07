@@ -26,6 +26,10 @@ from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
 from glassbox.runtime.review_briefs import ReviewBriefLimitationSummary
 from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
+from glassbox.runtime.skipped_evidence import skipped_evidence_label
+from glassbox.runtime.skipped_evidence import skipped_evidence_reason
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_summary
 
 _REVIEW_BRIEF_LIMITATION_CAP = 20
 _REVIEW_BRIEF_OVERFLOW_SUMMARY_SLOT = 1
@@ -269,6 +273,13 @@ def _review_brief_lifecycle_section(
     verification_plan: ChangesetVerificationPlanPreview,
 ) -> ReviewBriefSection:
     review_loop = verification_plan.review_loop_summary
+    skipped_live_count = review_loop.skipped_live_evidence_count
+    skipped_sentence = (
+        f" {skipped_live_count} live evidence item(s) were explicitly skipped "
+        "and remain limitations, not passes."
+        if skipped_live_count
+        else ""
+    )
     body = (
         f"Lifecycle summary for changeset {changeset.changeset_id}: "
         f"{response_summary.total_feedback_count} feedback item(s), "
@@ -276,7 +287,7 @@ def _review_brief_lifecycle_section(
         f"{response_summary.stale_response_count} stale response(s), "
         f"{response_summary.accepted_risk_count} accepted-risk response(s), "
         f"{len(manual_evidence)} manual evidence item(s), and verification "
-        f"readiness {verification_plan.readiness.state.value}. "
+        f"readiness {verification_plan.readiness.state.value}.{skipped_sentence} "
         "The lifecycle brief summarizes retained local evidence and does not "
         "claim reviewer approval or publication."
     )
@@ -414,12 +425,26 @@ def _review_brief_live_evidence_section(
     if not live_evidence:
         return None
     kind_counts = _value_counts(item.evidence_kind.value for item in live_evidence)
+    skipped_evidence = [
+        item for item in live_evidence if is_skipped_live_evidence(item)
+    ]
+    skipped_sentence = (
+        f" {len(skipped_evidence)} item(s) are explicitly skipped/not applicable "
+        "and must remain visible as limitations, not passes."
+        if skipped_evidence
+        else ""
+    )
     body = (
         f"Live review evidence includes {len(live_evidence)} browser, dashboard, "
         f"screenshot, or accessibility item(s). Kind counts: "
         f"{_format_counts(kind_counts)}. These observations are advisory unless a "
-        "deterministic fixture-backed gate separately promotes them."
+        f"deterministic fixture-backed gate separately promotes them.{skipped_sentence}"
     )
+    if skipped_evidence:
+        skipped_summaries = [
+            skipped_live_evidence_summary(item) for item in skipped_evidence[:5]
+        ]
+        body = f"{body} Skipped live evidence: {'; '.join(skipped_summaries)}."
     return ReviewBriefSection(
         title="Live Review Evidence",
         body=body,
@@ -428,7 +453,7 @@ def _review_brief_live_evidence_section(
                 kind=_manual_evidence_ref_kind(item),
                 identifier=str(item.evidence_id),
                 artifact_id=item.artifact_id,
-                summary=f"{item.evidence_kind.value}: {item.summary}",
+                summary=_live_evidence_ref_summary(item),
                 local_only=item.local_only,
             )
             for item in live_evidence[:8]
@@ -687,6 +712,17 @@ def _manual_evidence_ref_kind(
     if evidence.evidence_kind == ManualEvidenceKind.SCREENSHOT:
         return "browser_evidence"
     return "manual_evidence"
+
+
+def _live_evidence_ref_summary(evidence: ManualEvidenceRecord) -> str:
+    if not is_skipped_live_evidence(evidence):
+        return f"{evidence.evidence_kind.value}: {evidence.summary}"
+    reason = skipped_evidence_reason(evidence)
+    reason_suffix = f"; reason: {reason}" if reason else ""
+    return (
+        f"{evidence.evidence_kind.value}/{skipped_evidence_label(evidence)}: "
+        f"{evidence.summary}{reason_suffix}"
+    )
 
 
 def _value_counts(values: Iterable[str]) -> dict[str, int]:

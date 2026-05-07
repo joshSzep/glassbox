@@ -19,6 +19,7 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
 
 
 def inventory_paths_for_preview(
@@ -161,6 +162,11 @@ def review_loop_verification_summary(
         for item in manual_evidence
         if item.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE
     )
+    (
+        skipped_live_evidence_count,
+        skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count,
+    ) = skipped_live_evidence_counts(manual_evidence)
     safe_next_actions = [
         *response_summary.safe_next_actions,
         (
@@ -180,6 +186,11 @@ def review_loop_verification_summary(
             "one or more review responses lack retained verification mapped to "
             "their fixup paths"
         )
+    if skipped_live_evidence_count:
+        limitations.append(
+            f"{skipped_live_evidence_count} skipped live evidence item(s) are "
+            "limitations, not passes"
+        )
     return ChangesetVerificationReviewLoopSummary(
         feedback_count=response_summary.total_feedback_count,
         open_feedback_count=response_summary.open_count,
@@ -192,6 +203,9 @@ def review_loop_verification_summary(
         manual_evidence_kind_counts=manual_evidence_kind_counts,
         browser_evidence_count=browser_evidence_count,
         accessibility_evidence_count=accessibility_evidence_count,
+        skipped_live_evidence_count=skipped_live_evidence_count,
+        skipped_browser_evidence_count=skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count=skipped_accessibility_evidence_count,
         stale_check_count=readiness.stale_count,
         topology_impact_count=len(topology_impacts),
         retained_verification_state=readiness.state,

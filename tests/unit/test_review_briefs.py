@@ -327,7 +327,39 @@ def test_review_brief_generation_includes_review_loop_evidence(
             created_at=now,
             updated_at=now,
             last_sequence=5,
-        )
+        ),
+        ManualEvidenceRecord(
+            session_id=repository.session_id,
+            evidence_id=new_manual_evidence_id(),
+            evidence_kind=ManualEvidenceKind.BROWSER_OBSERVATION,
+            state=ManualEvidenceState.ATTACHED,
+            target_kind=ManualEvidenceTargetKind.CHANGESET,
+            target_id=str(repository.changeset.changeset_id),
+            changeset_id=repository.changeset.changeset_id,
+            feedback_id=None,
+            artifact_id=new_artifact_id(),
+            artifact_schema_version=1,
+            summary="Dashboard walkthrough intentionally skipped",
+            source_label="dashboard-local",
+            observed_at=None,
+            created_by="operator",
+            local_only=True,
+            redaction_status=ManualEvidenceRedactionStatus.PASSED,
+            freshness=ManualEvidenceFreshness.NEEDS_INSPECTION,
+            limitations=[
+                "browser/dashboard evidence is advisory live evidence",
+                "capture state: not_run",
+                "skip reason: local dashboard server was not started",
+                "skipped browser/dashboard evidence is not a pass",
+            ],
+            non_claims=[
+                "not deterministic release authority",
+                "skipped browser/dashboard evidence is not a pass",
+            ],
+            created_at=now,
+            updated_at=now,
+            last_sequence=6,
+        ),
     ]
 
     result = ChangesetReviewBriefService(
@@ -354,6 +386,8 @@ def test_review_brief_generation_includes_review_loop_evidence(
     assert result.brief.local_only is True
     assert "Review Feedback" in result.markdown
     assert "Live Review Evidence" in result.markdown
+    assert "Skipped live evidence" in result.brief.live_review_evidence.body
+    assert "local dashboard server was not started" in result.markdown
     assert "Publication Boundary" in result.markdown
     assert isinstance(repository.events[1].payload, ChangesetReadinessDecided)
     assert repository.events[1].payload.state == (
@@ -362,6 +396,31 @@ def test_review_brief_generation_includes_review_loop_evidence(
     assert any(
         "need fresh verification" in blocker
         for blocker in repository.events[1].payload.blockers
+    )
+    repository.review_briefs = [
+        ChangesetReviewBriefRecord(
+            session_id=repository.changeset.session_id,
+            changeset_id=repository.changeset.changeset_id,
+            artifact_id=result.artifact.artifact_id,
+            artifact_schema_version=result.brief.schema_version,
+            render_targets=list(result.brief.render_targets),
+            created_by="qa",
+            redacted=result.brief.redacted,
+            local_only=result.brief.local_only,
+            created_at=now,
+            last_sequence=20,
+        )
+    ]
+    export_payload = build_changeset_export_payload(
+        repository.changeset.changeset_id,
+        repository=cast(ChangesetRepository, repository),
+        artifact_repository=cast(ArtifactRepository, artifacts),
+        workspace_root=Path(__file__).resolve().parents[2],
+    )
+    assert export_payload.live_review_evidence["skipped_live_evidence_count"] == 1
+    assert export_payload.live_review_evidence["skipped_browser_evidence_count"] == 1
+    assert export_payload.live_review_evidence["skipped_items"][0]["capture_state"] == (
+        "not_run"
     )
 
 

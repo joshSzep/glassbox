@@ -146,6 +146,35 @@ def test_handoff_readiness_surfaces_local_only_accepted_risk() -> None:
     assert any(signal.signal_id == "accepted-risk" for signal in assessment.signals)
 
 
+def test_handoff_readiness_surfaces_skipped_live_evidence_as_limitation() -> None:
+    fixture = _fixture()
+
+    assessment = derive_handoff_readiness(
+        changeset=fixture.changeset,
+        inventory=fixture.inventory,
+        inventory_status=_fresh_inventory_status(),
+        verification_plan=_verification_plan(
+            fixture,
+            state=ChangesetVerificationState.PASSED,
+        ),
+        review_briefs=[_review_brief(fixture)],
+        review_response_summary=_response_summary(fixture),
+        manual_evidence=[_skipped_browser_evidence(fixture)],
+        readiness=[_readiness(fixture, ChangesetReadinessState.READY)],
+        commit_readiness=_commit_readiness(fixture, ChangesetReadinessState.READY),
+    )
+
+    assert assessment.evidence.skipped_live_evidence_count == 1
+    assert assessment.evidence.skipped_browser_evidence_count == 1
+    assert assessment.evidence.skipped_accessibility_evidence_count == 0
+    assert any(
+        signal.signal_id == "skipped-live-evidence" and not signal.blocking
+        for signal in assessment.signals
+    )
+    assert any("skipped browser" in limitation for limitation in assessment.limitations)
+    assert "skipped live evidence" in " ".join(assessment.non_claims)
+
+
 class _Fixture:
     def __init__(self, *, accepted_risk_count: int = 0) -> None:
         now = datetime.now(UTC)
@@ -324,4 +353,26 @@ def _manual_evidence(fixture: _Fixture) -> ManualEvidenceRecord:
         created_at=now,
         updated_at=now,
         last_sequence=15,
+    )
+
+
+def _skipped_browser_evidence(fixture: _Fixture) -> ManualEvidenceRecord:
+    evidence = _manual_evidence(fixture)
+    return evidence.model_copy(
+        update={
+            "evidence_kind": ManualEvidenceKind.BROWSER_OBSERVATION,
+            "summary": "dashboard walkthrough intentionally skipped",
+            "source_label": "dashboard-local",
+            "freshness": ManualEvidenceFreshness.NEEDS_INSPECTION,
+            "limitations": [
+                "browser/dashboard evidence is advisory live evidence",
+                "capture state: not_run",
+                "skip reason: local dashboard server was not started",
+                "skipped browser/dashboard evidence is not a pass",
+            ],
+            "non_claims": [
+                "not deterministic release authority",
+                "skipped browser/dashboard evidence is not a pass",
+            ],
+        }
     )

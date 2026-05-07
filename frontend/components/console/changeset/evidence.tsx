@@ -22,6 +22,7 @@ import { Section } from "./shared";
 import type { ChangesetConsoleProps } from "./types";
 
 type ChangesetDetailRecord = NonNullable<ChangesetDetailState["detail"]>;
+type ManualEvidenceItem = ChangesetDetailRecord["manual_evidence"][number];
 
 export function ReviewQuickActionsPanel({
   action,
@@ -167,6 +168,7 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
   const accessibilityEvidence = evidence.filter(
     (item) => item.evidence_kind === "accessibility_note",
   );
+  const skippedLiveEvidence = evidence.filter((item) => skippedEvidenceState(item) !== null);
   return (
     <Section title="Manual Evidence Inbox">
       <div className="grid gap-3">
@@ -182,6 +184,9 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
           <Badge variant={accessibilityEvidence.length > 0 ? "warning" : "muted"}>
             {accessibilityEvidence.length} accessibility
           </Badge>
+          <Badge variant={skippedLiveEvidence.length > 0 ? "warning" : "muted"}>
+            {skippedLiveEvidence.length} skipped live
+          </Badge>
         </div>
         {evidence.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -189,37 +194,50 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
           </p>
         ) : (
           <DataList density="compact">
-            {evidence.slice(0, 8).map((item) => (
-              <DataListItem key={item.evidence_id}>
-                <DataListLabel>{item.summary}</DataListLabel>
-                <DataListMeta>
-                  {item.evidence_kind} - {item.state} - {item.redaction_status} - {item.freshness}
-                </DataListMeta>
-                <DataListMeta>
-                  Target {item.target_kind} {item.target_id} - source {item.source_label}
-                </DataListMeta>
-                {item.artifact_id ? <DataListMeta>Artifact {item.artifact_id}</DataListMeta> : null}
-                {item.evidence_kind === "browser_observation" ||
-                item.evidence_kind === "screenshot" ? (
+            {evidence.slice(0, 8).map((item) => {
+              const skippedState = skippedEvidenceState(item);
+              const skipReason = skippedEvidenceReason(item);
+              return (
+                <DataListItem key={item.evidence_id}>
+                  <DataListLabel>{item.summary}</DataListLabel>
                   <DataListMeta>
-                    Browser/dashboard evidence is advisory and local-only, including skipped cases -
-                    inspect target {item.target_kind} {item.target_id}
+                    {item.evidence_kind} - {item.state} - {item.redaction_status} - {item.freshness}
                   </DataListMeta>
-                ) : null}
-                {item.evidence_kind === "accessibility_note" ? (
                   <DataListMeta>
-                    Accessibility evidence is advisory, not certification - inspect target{" "}
-                    {item.target_kind} {item.target_id}
+                    Target {item.target_kind} {item.target_id} - source {item.source_label}
                   </DataListMeta>
-                ) : null}
-                {item.rejected_reason ? (
-                  <DataListMeta>Rejected: {item.rejected_reason}</DataListMeta>
-                ) : null}
-                {item.limitations.slice(0, 2).map((limitation) => (
-                  <DataListMeta key={limitation}>Limitation: {limitation}</DataListMeta>
-                ))}
-              </DataListItem>
-            ))}
+                  {item.artifact_id ? (
+                    <DataListMeta>Artifact {item.artifact_id}</DataListMeta>
+                  ) : null}
+                  {skippedState ? (
+                    <DataListMeta>
+                      <Badge variant="warning">{skippedState.replaceAll("_", " ")}</Badge> Skipped
+                      live evidence remains a limitation, not a pass
+                      {skipReason ? ` - ${skipReason}` : ""}
+                    </DataListMeta>
+                  ) : null}
+                  {item.evidence_kind === "browser_observation" ||
+                  item.evidence_kind === "screenshot" ? (
+                    <DataListMeta>
+                      Browser/dashboard evidence is advisory and local-only, including skipped cases
+                      - inspect target {item.target_kind} {item.target_id}
+                    </DataListMeta>
+                  ) : null}
+                  {item.evidence_kind === "accessibility_note" ? (
+                    <DataListMeta>
+                      Accessibility evidence is advisory, not certification - inspect target{" "}
+                      {item.target_kind} {item.target_id}
+                    </DataListMeta>
+                  ) : null}
+                  {item.rejected_reason ? (
+                    <DataListMeta>Rejected: {item.rejected_reason}</DataListMeta>
+                  ) : null}
+                  {item.limitations.slice(0, 2).map((limitation) => (
+                    <DataListMeta key={limitation}>Limitation: {limitation}</DataListMeta>
+                  ))}
+                </DataListItem>
+              );
+            })}
           </DataList>
         )}
         <ul className="grid gap-2 text-console text-muted-foreground">
@@ -230,6 +248,10 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
             glassbox changeset evidence browser {detail.changeset.changeset_id} --route ROUTE
             --environment local --viewport WIDTHxHEIGHT --cwd .
           </li>
+          <li className="break-all">
+            glassbox changeset evidence dashboard {detail.changeset.changeset_id} --capture-state
+            not_run --skip-reason REASON --cwd .
+          </li>
           <li>manual evidence is not retained command evidence or review approval</li>
           <li>
             skipped browser or dashboard evidence is not a pass, verification, or release authority
@@ -238,5 +260,23 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
         </ul>
       </div>
     </Section>
+  );
+}
+
+function skippedEvidenceState(item: ManualEvidenceItem): string | null {
+  const captureState = item.limitations
+    .find((limitation) => limitation.toLowerCase().startsWith("capture state: "))
+    ?.split(": ", 2)[1];
+  if (captureState === "not_run" || captureState === "not_applicable") {
+    return captureState;
+  }
+  return null;
+}
+
+function skippedEvidenceReason(item: ManualEvidenceItem): string | null {
+  return (
+    item.limitations
+      .find((limitation) => limitation.toLowerCase().startsWith("skip reason: "))
+      ?.split(": ", 2)[1] ?? null
   );
 }

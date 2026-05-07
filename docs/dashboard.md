@@ -80,6 +80,9 @@ verification readiness and retained artifacts, affected topology subsystems
 when available, handoff posture, commit preparation, candidate-adoption
 comparisons when a branch-search candidate is attached, generated review brief
 artifacts, source evidence, limitations, and safe inspection commands.
+Skipped browser, dashboard, and accessibility evidence is shown as skipped live
+evidence with its retained `not_run`, `not_applicable`, or skipped posture and
+skip reason, so the row reads as a limitation instead of a pass.
 
 The quick-action row refreshes inventory, previews verification, refreshes
 feedback status, generates lifecycle briefs, and reloads handoff posture. The

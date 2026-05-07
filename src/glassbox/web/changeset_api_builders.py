@@ -263,6 +263,11 @@ def build_verification_review_loop_summary_response(
         manual_evidence_kind_counts=summary.manual_evidence_kind_counts,
         browser_evidence_count=summary.browser_evidence_count,
         accessibility_evidence_count=summary.accessibility_evidence_count,
+        skipped_live_evidence_count=summary.skipped_live_evidence_count,
+        skipped_browser_evidence_count=summary.skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count=(
+            summary.skipped_accessibility_evidence_count
+        ),
         stale_check_count=summary.stale_check_count,
         topology_impact_count=summary.topology_impact_count,
         retained_verification_state=summary.retained_verification_state.value,
@@ -439,6 +444,15 @@ def build_handoff_readiness_response(
             browser_evidence_count=readiness.evidence.browser_evidence_count,
             accessibility_evidence_count=(
                 readiness.evidence.accessibility_evidence_count
+            ),
+            skipped_live_evidence_count=(
+                readiness.evidence.skipped_live_evidence_count
+            ),
+            skipped_browser_evidence_count=(
+                readiness.evidence.skipped_browser_evidence_count
+            ),
+            skipped_accessibility_evidence_count=(
+                readiness.evidence.skipped_accessibility_evidence_count
             ),
             review_brief_count=readiness.evidence.review_brief_count,
             accepted_risk_count=readiness.evidence.accepted_risk_count,

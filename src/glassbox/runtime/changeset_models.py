@@ -166,6 +166,9 @@ class ChangesetVerificationReviewLoopSummary(BaseModel):
     manual_evidence_kind_counts: dict[str, int] = Field(default_factory=dict)
     browser_evidence_count: int = Field(default=0, ge=0)
     accessibility_evidence_count: int = Field(default=0, ge=0)
+    skipped_live_evidence_count: int = Field(default=0, ge=0)
+    skipped_browser_evidence_count: int = Field(default=0, ge=0)
+    skipped_accessibility_evidence_count: int = Field(default=0, ge=0)
     stale_check_count: int = Field(default=0, ge=0)
     topology_impact_count: int = Field(default=0, ge=0)
     retained_verification_state: ChangesetVerificationState

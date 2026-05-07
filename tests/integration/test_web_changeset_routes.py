@@ -434,6 +434,12 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 plan_response.json()["review_loop_summary"]["browser_evidence_count"]
                 == 1
             )
+            assert (
+                plan_response.json()["review_loop_summary"][
+                    "skipped_live_evidence_count"
+                ]
+                == 0
+            )
             assert record_response.status_code == 200
             assert record_response.json()["readiness"]["state"] == "passed"
             assert record_response.json()["retained_artifact_ids"] == [str(artifact_id)]
@@ -615,6 +621,12 @@ def test_changeset_routes_record_skipped_live_evidence_without_placeholders(
                     "/changesets/manual-evidence",
                     params={"changeset_id": changeset_id},
                 )
+                plan_response = await client.get(
+                    f"/changesets/{changeset_id}/verification-plan"
+                )
+                handoff_response = await client.get(
+                    f"/changesets/{changeset_id}/handoff-readiness"
+                )
 
             assert create_response.status_code == 200
             assert skipped_browser_response.status_code == 200
@@ -650,6 +662,33 @@ def test_changeset_routes_record_skipped_live_evidence_without_placeholders(
             assert [
                 item["evidence_kind"] for item in evidence_list_response.json()["items"]
             ] == ["accessibility_note", "browser_observation"]
+            assert plan_response.status_code == 200
+            assert (
+                plan_response.json()["review_loop_summary"][
+                    "skipped_live_evidence_count"
+                ]
+                == 2
+            )
+            assert (
+                plan_response.json()["review_loop_summary"][
+                    "skipped_browser_evidence_count"
+                ]
+                == 1
+            )
+            assert (
+                plan_response.json()["review_loop_summary"][
+                    "skipped_accessibility_evidence_count"
+                ]
+                == 1
+            )
+            assert handoff_response.status_code == 200
+            assert (
+                handoff_response.json()["evidence"]["skipped_live_evidence_count"] == 2
+            )
+            assert any(
+                signal["signal_id"] == "skipped-live-evidence"
+                for signal in handoff_response.json()["signals"]
+            )
         finally:
             connection.close()
 

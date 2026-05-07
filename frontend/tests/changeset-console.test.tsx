@@ -65,6 +65,9 @@ describe("changeset console", () => {
     expect(markup).toContain("Manual Evidence Inbox");
     expect(markup).toContain("operator says external CI passed");
     expect(markup).toContain("dashboard walkthrough rendered manual evidence");
+    expect(markup).toContain("1 skipped live");
+    expect(markup).toContain("not run");
+    expect(markup).toContain("local dashboard server was not started");
     expect(markup).toContain("Browser/dashboard evidence is advisory and local-only");
     expect(markup).toContain("skipped browser or dashboard evidence is not a pass");
     expect(markup).toContain("focus order issue remains open");
@@ -437,9 +440,16 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         feedback_id: "feedback-1",
         freshness: "needs_inspection",
         last_sequence: 14,
-        limitations: ["browser/dashboard evidence is advisory live evidence"],
+        limitations: [
+          "browser/dashboard evidence is advisory live evidence",
+          "capture state: not_run",
+          "skip reason: local dashboard server was not started",
+        ],
         local_only: true,
-        non_claims: ["not deterministic release authority"],
+        non_claims: [
+          "not deterministic release authority",
+          "skipped browser/dashboard evidence is not a pass",
+        ],
         observed_at: "2026-05-01T00:06:00Z",
         redaction_status: "passed",
         rejected_reason: null,
@@ -757,6 +767,9 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
       accepted_risk_response_count: 1,
       accessibility_evidence_count: 1,
       browser_evidence_count: 1,
+      skipped_accessibility_evidence_count: 0,
+      skipped_browser_evidence_count: 1,
+      skipped_live_evidence_count: 1,
       failed_response_verification_count: 0,
       feedback_count: 3,
       manual_evidence_count: 3,
@@ -894,6 +907,9 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
       manual_evidence_count: 3,
       needs_inspection_evidence_count: 2,
       review_brief_count: 1,
+      skipped_accessibility_evidence_count: 0,
+      skipped_browser_evidence_count: 1,
+      skipped_live_evidence_count: 1,
       stale_manual_evidence_count: 0,
       stale_response_count: 1,
       unresolved_feedback_count: 1,

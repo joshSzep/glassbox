@@ -4110,6 +4110,18 @@
             "title": "Safe Next Actions",
             "type": "array"
           },
+          "skipped_accessibility_evidence_count": {
+            "title": "Skipped Accessibility Evidence Count",
+            "type": "integer"
+          },
+          "skipped_browser_evidence_count": {
+            "title": "Skipped Browser Evidence Count",
+            "type": "integer"
+          },
+          "skipped_live_evidence_count": {
+            "title": "Skipped Live Evidence Count",
+            "type": "integer"
+          },
           "stale_check_count": {
             "title": "Stale Check Count",
             "type": "integer"
@@ -4135,6 +4147,9 @@
           "manual_evidence_kind_counts",
           "browser_evidence_count",
           "accessibility_evidence_count",
+          "skipped_live_evidence_count",
+          "skipped_browser_evidence_count",
+          "skipped_accessibility_evidence_count",
           "stale_check_count",
           "topology_impact_count",
           "retained_verification_state",
@@ -5515,6 +5530,18 @@
             "title": "Review Brief Count",
             "type": "integer"
           },
+          "skipped_accessibility_evidence_count": {
+            "title": "Skipped Accessibility Evidence Count",
+            "type": "integer"
+          },
+          "skipped_browser_evidence_count": {
+            "title": "Skipped Browser Evidence Count",
+            "type": "integer"
+          },
+          "skipped_live_evidence_count": {
+            "title": "Skipped Live Evidence Count",
+            "type": "integer"
+          },
           "stale_manual_evidence_count": {
             "title": "Stale Manual Evidence Count",
             "type": "integer"
@@ -5538,6 +5565,9 @@
           "needs_inspection_evidence_count",
           "browser_evidence_count",
           "accessibility_evidence_count",
+          "skipped_live_evidence_count",
+          "skipped_browser_evidence_count",
+          "skipped_accessibility_evidence_count",
           "review_brief_count",
           "accepted_risk_count"
         ],

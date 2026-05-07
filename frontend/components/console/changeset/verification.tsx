@@ -129,6 +129,9 @@ export function VerificationPanel({
           <Badge variant={reviewLoop.stale_response_count > 0 ? "warning" : "muted"}>
             {reviewLoop.stale_response_count} stale responses
           </Badge>
+          <Badge variant={reviewLoop.skipped_live_evidence_count > 0 ? "warning" : "muted"}>
+            {reviewLoop.skipped_live_evidence_count} skipped live
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{readiness.summary}</p>
         <DataList density="compact">
@@ -142,6 +145,7 @@ export function VerificationPanel({
             <DataListMeta>
               {reviewLoop.browser_evidence_count} browser/dashboard -{" "}
               {reviewLoop.accessibility_evidence_count} accessibility -{" "}
+              {reviewLoop.skipped_live_evidence_count} skipped live -{" "}
               {reviewLoop.topology_impact_count} topology impacts
             </DataListMeta>
           </DataListItem>

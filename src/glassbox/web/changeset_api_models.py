@@ -299,6 +299,9 @@ class ChangesetVerificationReviewLoopSummaryResponse(BaseModel):
     manual_evidence_kind_counts: dict[str, int]
     browser_evidence_count: int
     accessibility_evidence_count: int
+    skipped_live_evidence_count: int
+    skipped_browser_evidence_count: int
+    skipped_accessibility_evidence_count: int
     stale_check_count: int
     topology_impact_count: int
     retained_verification_state: str
@@ -454,6 +457,9 @@ class HandoffReadinessEvidenceSummaryResponse(BaseModel):
     needs_inspection_evidence_count: int
     browser_evidence_count: int
     accessibility_evidence_count: int
+    skipped_live_evidence_count: int
+    skipped_browser_evidence_count: int
+    skipped_accessibility_evidence_count: int
     review_brief_count: int
     accepted_risk_count: int
 

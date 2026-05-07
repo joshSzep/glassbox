@@ -35,6 +35,9 @@ export function HandoffReadinessPanel({ detail }: { detail: ChangesetDetailState
           <Badge variant={readiness.evidence.local_only_evidence_count > 0 ? "info" : "muted"}>
             {readiness.evidence.local_only_evidence_count} local-only evidence
           </Badge>
+          <Badge variant={readiness.evidence.skipped_live_evidence_count > 0 ? "warning" : "muted"}>
+            {readiness.evidence.skipped_live_evidence_count} skipped live
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{readiness.reason}</p>
         {blockingSignals.length > 0 ? (

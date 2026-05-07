@@ -24,6 +24,10 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
+from glassbox.runtime.skipped_evidence import skipped_evidence_reason
+from glassbox.runtime.skipped_evidence import skipped_evidence_state
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
 from glassbox.services import ArtifactRepository
 
 CHANGESET_EXPORT_KIND = "changeset_review_export"
@@ -360,6 +364,11 @@ def _live_review_evidence_summary(
             ManualEvidenceKind.ACCESSIBILITY_NOTE,
         }
     ]
+    (
+        skipped_live_evidence_count,
+        skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count,
+    ) = skipped_live_evidence_counts(live_evidence)
     return {
         "total_count": len(live_evidence),
         "browser_evidence_count": sum(
@@ -376,12 +385,21 @@ def _live_review_evidence_summary(
             for item in live_evidence
             if item.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE
         ),
+        "skipped_live_evidence_count": skipped_live_evidence_count,
+        "skipped_browser_evidence_count": skipped_browser_evidence_count,
+        "skipped_accessibility_evidence_count": skipped_accessibility_evidence_count,
         "kind_counts": _value_counts(
             item.evidence_kind.value for item in live_evidence
         ),
+        "skipped_items": [
+            _manual_evidence_item(item)
+            for item in live_evidence
+            if is_skipped_live_evidence(item)
+        ][:20],
         "items": [_manual_evidence_item(item) for item in live_evidence[:20]],
         "non_claims": [
             "live browser, dashboard, and accessibility evidence is advisory",
+            "skipped live evidence is not a pass or release authority",
             (
                 "raw screenshots, browser traces, and accessibility transcripts "
                 "are not included"
@@ -404,6 +422,9 @@ def _manual_evidence_item(item: ManualEvidenceRecord) -> dict[str, Any]:
         "local_only": item.local_only,
         "redaction_status": item.redaction_status.value,
         "freshness": item.freshness.value,
+        "capture_state": skipped_evidence_state(item),
+        "skip_reason": skipped_evidence_reason(item),
+        "skipped_live_evidence": is_skipped_live_evidence(item),
         "limitations": item.limitations,
         "non_claims": item.non_claims,
         "last_sequence": item.last_sequence,

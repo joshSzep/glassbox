@@ -600,7 +600,7 @@ supersedes it.
 
 ### GBX-1432: Surface Skipped Evidence Clearly In Dashboard, Briefs, And Handoff
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1431`
 - Goal: make skipped advisory evidence visible wherever review-loop evidence is
   summarized

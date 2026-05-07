@@ -40,6 +40,8 @@ from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
+from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
 from glassbox.services import ArtifactRepository
 
 HandoffReadinessState = Literal[
@@ -81,6 +83,9 @@ class HandoffReadinessEvidenceSummary(BaseModel):
     needs_inspection_evidence_count: int = Field(ge=0)
     browser_evidence_count: int = Field(ge=0)
     accessibility_evidence_count: int = Field(ge=0)
+    skipped_live_evidence_count: int = Field(ge=0)
+    skipped_browser_evidence_count: int = Field(ge=0)
+    skipped_accessibility_evidence_count: int = Field(ge=0)
     review_brief_count: int = Field(ge=0)
     accepted_risk_count: int = Field(ge=0)
 
@@ -230,6 +235,7 @@ def derive_handoff_readiness(
                 "manual, browser, dashboard, and accessibility evidence remains "
                 "bounded by its retained summary"
             ),
+            "skipped live evidence is retained as a limitation, not a pass",
             (
                 "Glassbox did not stage, commit, push, open a pull request, "
                 "merge, deploy, or publish"
@@ -515,6 +521,7 @@ def _manual_evidence_signals(
             )
         )
     local_only = [item for item in attached if item.local_only]
+    skipped_live = [item for item in attached if is_skipped_live_evidence(item)]
     if local_only:
         signals.append(
             HandoffReadinessSignal(
@@ -523,6 +530,19 @@ def _manual_evidence_signals(
                 summary=(
                     f"{len(local_only)} local-only evidence item"
                     f"{'' if len(local_only) == 1 else 's'} must remain labeled"
+                ),
+                blocking=False,
+            )
+        )
+    if skipped_live:
+        signals.append(
+            HandoffReadinessSignal(
+                signal_id="skipped-live-evidence",
+                state="handoff_ready",
+                summary=(
+                    f"{len(skipped_live)} skipped live evidence item"
+                    f"{'' if len(skipped_live) == 1 else 's'} remain visible "
+                    "as limitations, not passes"
                 ),
                 blocking=False,
             )
@@ -617,6 +637,8 @@ def _safe_next_actions(
         actions.append(f"glassbox changeset commit-prep {changeset_id} --cwd .")
     if "local-only-evidence" in signal_ids:
         actions.append(changeset_evidence_list_command(changeset_id))
+    if "skipped-live-evidence" in signal_ids:
+        actions.append(changeset_evidence_list_command(changeset_id))
     return list(dict.fromkeys(actions))[:20]
 
 
@@ -647,6 +669,11 @@ def _limitations(signals: Sequence[HandoffReadinessSignal]) -> list[str]:
         limitations.append(
             "no retained manual evidence exists; external checks or "
             "observations are not claimed"
+        )
+    if any(signal.signal_id == "skipped-live-evidence" for signal in signals):
+        limitations.append(
+            "skipped browser, dashboard, or accessibility evidence remains "
+            "advisory context and is not a pass"
         )
     return limitations[:20]
 
@@ -694,6 +721,11 @@ def _evidence_summary(
     attached = [
         item for item in manual_evidence if item.state == ManualEvidenceState.ATTACHED
     ]
+    (
+        skipped_live_evidence_count,
+        skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count,
+    ) = skipped_live_evidence_counts(attached)
     return HandoffReadinessEvidenceSummary(
         feedback_count=review_response_summary.total_feedback_count,
         unresolved_feedback_count=review_response_summary.unresolved_count,
@@ -719,6 +751,9 @@ def _evidence_summary(
             for item in attached
             if item.evidence_kind == ManualEvidenceKind.ACCESSIBILITY_NOTE
         ),
+        skipped_live_evidence_count=skipped_live_evidence_count,
+        skipped_browser_evidence_count=skipped_browser_evidence_count,
+        skipped_accessibility_evidence_count=skipped_accessibility_evidence_count,
         review_brief_count=len(review_briefs),
         accepted_risk_count=(
             changeset.accepted_risk_count
