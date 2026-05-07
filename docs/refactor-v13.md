@@ -877,7 +877,7 @@ Completion notes:
 
 ### GBX-R543: Split Changeset Web Response Models And Builders
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R512, GBX-R520, GBX-R521, GBX-R530, GBX-R531, GBX-R533
 - Target files:
   - `src/glassbox/web/changeset_api.py`
@@ -898,6 +898,20 @@ Completion notes:
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `pnpm --dir frontend api:generate`
   - `pnpm --dir frontend typecheck`
+
+Completion notes:
+
+- Kept `src/glassbox/web/changeset_api.py` as the compatibility facade for
+  existing route imports.
+- Moved changeset, verification, commit-readiness, and handoff transport models
+  into `src/glassbox/web/changeset_api_models.py`.
+- Moved review feedback, manual evidence, browser evidence, and accessibility
+  evidence transport models into `src/glassbox/web/review_loop_api.py`.
+- Moved response conversion helpers into
+  `src/glassbox/web/changeset_api_builders.py` without adding FastAPI imports
+  to builder modules.
+- Regenerated frontend API artifacts; no generated OpenAPI or API type diff was
+  produced.
 
 ### GBX-R544: Split Changeset Route Service Factories And HTTP Errors
 
