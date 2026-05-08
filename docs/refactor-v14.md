@@ -599,7 +599,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R630: Extract Shared Readiness Signal Models And Aggregation Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620
 - Target files:
   - `src/glassbox/runtime/commit_readiness.py`

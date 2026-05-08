@@ -32,7 +32,13 @@ from glassbox.runtime.changeset_verification_readiness import (
 )
 from glassbox.runtime.changesets import ChangesetInventoryStatus
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.commit_readiness import CommitReadinessSignal
 from glassbox.runtime.commit_readiness import derive_commit_readiness
+from glassbox.runtime.review_readiness_signals import blocking_signal_summaries
+from glassbox.runtime.review_readiness_signals import dedupe_actions
+from glassbox.runtime.review_readiness_signals import first_blocking_state
+from glassbox.runtime.review_readiness_signals import has_signal_prefix
+from glassbox.runtime.review_readiness_signals import latest_readiness
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 from glassbox.tools.workflow import DiffFileSummary
@@ -236,6 +242,54 @@ def test_commit_readiness_surfaces_policy_sensitive_paths_and_accepted_risk() ->
     ]
     assert any(signal.signal_id == "accepted-risk" for signal in assessment.signals)
     assert any(signal.signal_id == "generated-paths" for signal in assessment.signals)
+
+
+def test_shared_readiness_signal_helpers_preserve_commit_signal_semantics() -> None:
+    fixture = _fixture()
+    signals = [
+        CommitReadinessSignal(
+            signal_id="accepted-risk",
+            state=ChangesetReadinessState.ACCEPTED_WITH_RISK,
+            summary="accepted risk remains visible",
+            blocking=False,
+        ),
+        CommitReadinessSignal(
+            signal_id="review-feedback-unresolved",
+            state=ChangesetReadinessState.NEEDS_REVIEW,
+            summary="feedback needs response",
+        ),
+        CommitReadinessSignal(
+            signal_id="verification-readiness",
+            state=ChangesetReadinessState.FAILED_CHECKS,
+            summary="pytest failed",
+        ),
+    ]
+    readiness = [
+        _commit_readiness_record(fixture, ChangesetReadinessState.BLOCKED),
+        _review_readiness(fixture, ChangesetReadinessState.READY),
+    ]
+
+    assert blocking_signal_summaries(signals) == [
+        "feedback needs response",
+        "pytest failed",
+    ]
+    assert (
+        first_blocking_state(
+            signals,
+            (
+                ChangesetReadinessState.FAILED_CHECKS,
+                ChangesetReadinessState.NEEDS_REVIEW,
+            ),
+        )
+        == ChangesetReadinessState.FAILED_CHECKS
+    )
+    assert has_signal_prefix(signals, "review-feedback")
+    assert dedupe_actions(["git status --short", "", "git status --short"]) == [
+        "git status --short"
+    ]
+    latest_review_readiness = latest_readiness(readiness, ChangesetReadinessKind.REVIEW)
+    assert latest_review_readiness is not None
+    assert latest_review_readiness.state == ChangesetReadinessState.READY
 
 
 def test_commit_readiness_cites_failed_retained_precommit_evidence() -> None:

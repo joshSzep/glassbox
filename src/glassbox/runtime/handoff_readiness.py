@@ -39,6 +39,13 @@ from glassbox.runtime.changeset_verification import ChangesetVerificationService
 from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
+from glassbox.runtime.review_readiness_signals import blocking_signal_summaries
+from glassbox.runtime.review_readiness_signals import dedupe_actions
+from glassbox.runtime.review_readiness_signals import first_blocking_state
+from glassbox.runtime.review_readiness_signals import has_signal_state
+from glassbox.runtime.review_readiness_signals import latest_readiness
+from glassbox.runtime.review_readiness_signals import limitations_for_signal_ids
+from glassbox.runtime.review_readiness_signals import signal_ids
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
 from glassbox.runtime.skipped_evidence import skipped_live_evidence_items
@@ -191,7 +198,7 @@ def derive_handoff_readiness(
     signals.extend(_manual_evidence_signals(changeset, manual_evidence))
     signals.extend(_prior_readiness_signals(readiness))
 
-    blockers = [signal.summary for signal in signals if signal.blocking]
+    blockers = blocking_signal_summaries(signals)
     latest_brief = review_briefs[0] if review_briefs else None
     state = _aggregate_handoff_state(signals, commit_readiness)
     safe_next_actions = _safe_next_actions(
@@ -566,14 +573,7 @@ def _prior_readiness_signals(
     readiness: Sequence[ChangesetReadinessRecord],
 ) -> list[HandoffReadinessSignal]:
     signals: list[HandoffReadinessSignal] = []
-    review = next(
-        (
-            item
-            for item in readiness
-            if item.readiness_kind == ChangesetReadinessKind.REVIEW
-        ),
-        None,
-    )
+    review = latest_readiness(readiness, ChangesetReadinessKind.REVIEW)
     if review is not None and review.state != ChangesetReadinessState.READY:
         signals.append(
             HandoffReadinessSignal(
@@ -591,19 +591,20 @@ def _aggregate_handoff_state(
     signals: Sequence[HandoffReadinessSignal],
     commit_readiness: CommitReadinessAssessment,
 ) -> HandoffReadinessState:
-    blocking_states = [signal.state for signal in signals if signal.blocking]
-    precedence: list[HandoffReadinessState] = [
-        "publication_blocked",
-        "stale_inventory",
-        "needs_review_response",
-        "needs_verification",
-        "not_ready",
-        "unresolved_risk",
-    ]
-    for state in precedence:
-        if state in blocking_states:
-            return state
-    if any(signal.state == "accepted_with_risk" for signal in signals):
+    blocking_state = first_blocking_state(
+        signals,
+        (
+            "publication_blocked",
+            "stale_inventory",
+            "needs_review_response",
+            "needs_verification",
+            "not_ready",
+            "unresolved_risk",
+        ),
+    )
+    if blocking_state is not None:
+        return blocking_state
+    if has_signal_state(signals, "accepted_with_risk"):
         return "accepted_with_risk"
     if commit_readiness.state == ChangesetReadinessState.READY:
         return "commit_prep_ready"
@@ -620,8 +621,8 @@ def _safe_next_actions(
     actions = [
         show_changeset_command(changeset_id),
     ]
-    signal_ids = {signal.signal_id for signal in signals}
-    if state == "stale_inventory" or "dirty-workspace-ambiguity" in signal_ids:
+    ids = signal_ids(signals)
+    if state == "stale_inventory" or "dirty-workspace-ambiguity" in ids:
         actions.append("git status --short")
         actions.append(changeset_refresh_command(changeset_id))
     if state == "needs_review_response":
@@ -630,52 +631,48 @@ def _safe_next_actions(
     if state == "needs_verification":
         actions.append(changeset_verification_plan_command(changeset_id))
         actions.extend(verification_actions)
-    if "lifecycle-brief-missing" in signal_ids or state == "not_ready":
+    if "lifecycle-brief-missing" in ids or state == "not_ready":
         actions.append(changeset_brief_command(changeset_id))
     if state in {"handoff_ready", "commit_prep_ready", "accepted_with_risk"}:
         actions.append(f"glassbox changeset handoff-readiness {changeset_id} --cwd .")
         actions.append(f"glassbox changeset commit-prep {changeset_id} --cwd .")
-    if "local-only-evidence" in signal_ids:
+    if "local-only-evidence" in ids:
         actions.append(changeset_evidence_list_command(changeset_id))
-    if "skipped-live-evidence" in signal_ids:
+    if "skipped-live-evidence" in ids:
         actions.append(changeset_evidence_list_command(changeset_id))
-    return list(dict.fromkeys(actions))[:20]
+    return dedupe_actions(actions)
 
 
 def _limitations(signals: Sequence[HandoffReadinessSignal]) -> list[str]:
-    limitations: list[str] = []
-    if any(signal.signal_id == "local-only-evidence" for signal in signals):
-        limitations.append(
-            "local-only evidence can support local handoff context but must be "
-            "reviewed before export or publication"
-        )
-    if any(signal.signal_id == "stale-manual-evidence" for signal in signals):
-        limitations.append(
-            "stale manual evidence is advisory context and should be inspected "
-            "before it is reused outside the local handoff"
-        )
-    if any(
-        signal.signal_id == "manual-evidence-needs-inspection" for signal in signals
-    ):
-        limitations.append(
-            "manual evidence marked needs-inspection is advisory context, not "
-            "fresh deterministic verification"
-        )
-    if any(signal.signal_id == "no-review-feedback" for signal in signals):
-        limitations.append(
-            "no retained review feedback exists; handoff must not claim reviewer input"
-        )
-    if any(signal.signal_id == "no-manual-evidence" for signal in signals):
-        limitations.append(
-            "no retained manual evidence exists; external checks or "
-            "observations are not claimed"
-        )
-    if any(signal.signal_id == "skipped-live-evidence" for signal in signals):
-        limitations.append(
-            "skipped browser, dashboard, or accessibility evidence remains "
-            "advisory context and is not a pass"
-        )
-    return limitations[:20]
+    return limitations_for_signal_ids(
+        signals,
+        {
+            "local-only-evidence": (
+                "local-only evidence can support local handoff context but must be "
+                "reviewed before export or publication"
+            ),
+            "stale-manual-evidence": (
+                "stale manual evidence is advisory context and should be inspected "
+                "before it is reused outside the local handoff"
+            ),
+            "manual-evidence-needs-inspection": (
+                "manual evidence marked needs-inspection is advisory context, not "
+                "fresh deterministic verification"
+            ),
+            "no-review-feedback": (
+                "no retained review feedback exists; handoff must not claim "
+                "reviewer input"
+            ),
+            "no-manual-evidence": (
+                "no retained manual evidence exists; external checks or "
+                "observations are not claimed"
+            ),
+            "skipped-live-evidence": (
+                "skipped browser, dashboard, or accessibility evidence remains "
+                "advisory context and is not a pass"
+            ),
+        }.items(),
+    )
 
 
 def _handoff_reason(

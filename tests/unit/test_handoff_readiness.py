@@ -31,7 +31,10 @@ from glassbox.runtime.changesets import ChangesetInventoryStatus
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
+from glassbox.runtime.handoff_readiness import HandoffReadinessSignal
 from glassbox.runtime.handoff_readiness import derive_handoff_readiness
+from glassbox.runtime.review_readiness_signals import first_blocking_state
+from glassbox.runtime.review_readiness_signals import limitations_for_signal_ids
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 
 
@@ -173,6 +176,42 @@ def test_handoff_readiness_surfaces_skipped_live_evidence_as_limitation() -> Non
     )
     assert any("skipped browser" in limitation for limitation in assessment.limitations)
     assert "skipped live evidence" in " ".join(assessment.non_claims)
+
+
+def test_shared_readiness_signal_helpers_preserve_handoff_signal_semantics() -> None:
+    signals = [
+        HandoffReadinessSignal(
+            signal_id="local-only-evidence",
+            state="handoff_ready",
+            summary="local-only evidence remains labeled",
+            blocking=False,
+        ),
+        HandoffReadinessSignal(
+            signal_id="unresolved-review-feedback",
+            state="needs_review_response",
+            summary="feedback still needs response",
+        ),
+        HandoffReadinessSignal(
+            signal_id="stale-inventory",
+            state="stale_inventory",
+            summary="inventory is stale",
+        ),
+    ]
+
+    assert (
+        first_blocking_state(
+            signals,
+            ("stale_inventory", "needs_review_response"),
+        )
+        == "stale_inventory"
+    )
+    assert limitations_for_signal_ids(
+        signals,
+        (
+            ("local-only-evidence", "local evidence must stay labeled"),
+            ("skipped-live-evidence", "skipped evidence is advisory"),
+        ),
+    ) == ["local evidence must stay labeled"]
 
 
 class _Fixture:

@@ -31,6 +31,13 @@ from glassbox.runtime.changeset_safe_commands import changeset_evidence_list_com
 from glassbox.runtime.changeset_safe_commands import changeset_feedback_status_command
 from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
 from glassbox.runtime.changeset_verification import ChangesetVerificationService
+from glassbox.runtime.review_readiness_signals import blocking_signal_summaries
+from glassbox.runtime.review_readiness_signals import dedupe_actions
+from glassbox.runtime.review_readiness_signals import first_blocking_state
+from glassbox.runtime.review_readiness_signals import has_signal_prefix
+from glassbox.runtime.review_readiness_signals import has_signal_state
+from glassbox.runtime.review_readiness_signals import latest_readiness
+from glassbox.runtime.review_readiness_signals import signal_ids
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.services import ArtifactRepository
 from glassbox.tools.workflow import DiffSummaryArgs
@@ -181,7 +188,7 @@ def derive_commit_readiness(
     )
 
     state = _aggregate_commit_state(signals)
-    blockers = [signal.summary for signal in signals if signal.blocking]
+    blockers = blocking_signal_summaries(signals)
     latest_brief = review_briefs[0] if review_briefs else None
     verification_id = (
         verification_plan.readiness.requirements[0].verification_id
@@ -444,7 +451,7 @@ def _review_signals(
                 ),
             )
         )
-    review_decision = _latest_readiness(readiness, ChangesetReadinessKind.REVIEW)
+    review_decision = latest_readiness(readiness, ChangesetReadinessKind.REVIEW)
     if review_decision is not None and review_decision.state not in {
         ChangesetReadinessState.READY,
         ChangesetReadinessState.ACCEPTED_WITH_RISK,
@@ -567,7 +574,7 @@ def _manual_evidence_signals(
 def _recorded_commit_evidence_signals(
     readiness: Sequence[ChangesetReadinessRecord],
 ) -> list[CommitReadinessSignal]:
-    commit_decision = _latest_readiness(readiness, ChangesetReadinessKind.COMMIT)
+    commit_decision = latest_readiness(readiness, ChangesetReadinessKind.COMMIT)
     if commit_decision is None:
         return []
     blocking = commit_decision.state not in {
@@ -640,22 +647,22 @@ def _accepted_risk_signals(
 def _aggregate_commit_state(
     signals: Sequence[CommitReadinessSignal],
 ) -> ChangesetReadinessState:
-    blocking_states = [signal.state for signal in signals if signal.blocking]
-    for state in (
-        ChangesetReadinessState.BLOCKED,
-        ChangesetReadinessState.STALE_INVENTORY,
-        ChangesetReadinessState.DIRTY_UNTRACKED_RISK,
-        ChangesetReadinessState.FAILED_CHECKS,
-        ChangesetReadinessState.NEEDS_VERIFICATION,
-        ChangesetReadinessState.MISSING_PROVENANCE,
-        ChangesetReadinessState.NEEDS_REVIEW,
-        ChangesetReadinessState.NOT_READY,
-    ):
-        if state in blocking_states:
-            return state
-    if any(
-        signal.state == ChangesetReadinessState.ACCEPTED_WITH_RISK for signal in signals
-    ):
+    blocking_state = first_blocking_state(
+        signals,
+        (
+            ChangesetReadinessState.BLOCKED,
+            ChangesetReadinessState.STALE_INVENTORY,
+            ChangesetReadinessState.DIRTY_UNTRACKED_RISK,
+            ChangesetReadinessState.FAILED_CHECKS,
+            ChangesetReadinessState.NEEDS_VERIFICATION,
+            ChangesetReadinessState.MISSING_PROVENANCE,
+            ChangesetReadinessState.NEEDS_REVIEW,
+            ChangesetReadinessState.NOT_READY,
+        ),
+    )
+    if blocking_state is not None:
+        return blocking_state
+    if has_signal_state(signals, ChangesetReadinessState.ACCEPTED_WITH_RISK):
         return ChangesetReadinessState.ACCEPTED_WITH_RISK
     return ChangesetReadinessState.READY
 
@@ -679,30 +686,31 @@ def _safe_next_actions(
     verification_actions: Sequence[str],
 ) -> list[str]:
     actions: list[str] = []
-    signal_ids = {signal.signal_id for signal in signals}
-    if "inventory-missing" in signal_ids or "inventory-stale" in signal_ids:
+    ids = signal_ids(signals)
+    if "inventory-missing" in ids or "inventory-stale" in ids:
         actions.append(changeset_refresh_command("CHANGESET"))
-    if "verification-readiness" in signal_ids:
+    if "verification-readiness" in ids:
         actions.extend(verification_actions)
-    if any(signal.signal_id.startswith("review-feedback") for signal in signals):
+    if has_signal_prefix(signals, "review-feedback"):
         actions.append(changeset_feedback_status_command("CHANGESET"))
-    if any(signal.signal_id.startswith("review-response") for signal in signals):
+    if has_signal_prefix(signals, "review-response"):
         actions.extend(verification_actions)
         actions.append(changeset_feedback_status_command("CHANGESET"))
-    if "manual-evidence-needs-inspection" in signal_ids:
+    if "manual-evidence-needs-inspection" in ids:
         actions.append(changeset_evidence_list_command("CHANGESET"))
-    if "review-brief-missing" in signal_ids or any(
-        signal.signal_id.startswith("review-brief-stale") for signal in signals
+    if "review-brief-missing" in ids or has_signal_prefix(
+        signals,
+        "review-brief-stale",
     ):
         actions.append(changeset_brief_command("CHANGESET"))
-    if "dirty-worktree" in signal_ids or "staged-empty" in signal_ids:
+    if "dirty-worktree" in ids or "staged-empty" in ids:
         actions.append("git status --short")
     if state in {
         ChangesetReadinessState.READY,
         ChangesetReadinessState.ACCEPTED_WITH_RISK,
     }:
         actions.append("git status --short")
-    return list(dict.fromkeys(action for action in actions if action))[:20]
+    return dedupe_actions(actions)
 
 
 def _git_summary(
@@ -729,16 +737,6 @@ def _git_summary(
         clean=git_status.clean,
         error=git_status.error or workspace_diff.error,
     )
-
-
-def _latest_readiness(
-    readiness: Sequence[ChangesetReadinessRecord],
-    kind: ChangesetReadinessKind,
-) -> ChangesetReadinessRecord | None:
-    for item in readiness:
-        if item.readiness_kind == kind:
-            return item
-    return None
 
 
 __all__ = [
