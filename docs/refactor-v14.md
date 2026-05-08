@@ -520,7 +520,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R620: Split Review Response Models From Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R601
 - Target files:
   - `src/glassbox/runtime/review_responses.py`
