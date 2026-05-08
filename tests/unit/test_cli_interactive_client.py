@@ -19,6 +19,7 @@ from glassbox.cli.interactive_client import InteractiveClientError
 from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
 from glassbox.cli.interactive_client import ReviewLoopAction
+from glassbox.cli.interactive_client import iter_sse_events
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
@@ -185,6 +186,36 @@ def test_daemon_client_maps_conflict_response_to_common_error() -> None:
     assert str(exc_info.value) == "session is busy"
 
 
+def test_iter_sse_events_ignores_status_events_and_yields_envelopes() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    envelope = EventEnvelope(
+        session_id=session_id,
+        sequence=8,
+        payload=UserQuestionAsked(
+            question_id=new_question_id(),
+            turn_id=turn_id,
+            tool_call_id=new_tool_call_id(),
+            provider_tool_call_id="provider-ask-8",
+            question="Continue?",
+        ),
+    )
+    response = httpx.Response(
+        200,
+        text=(
+            ": keepalive\n"
+            "event: glassbox.stream.status\n"
+            'data: {"status":"connected"}\n\n'
+            "event: glassbox.event\n"
+            f"data: {json.dumps(envelope.model_dump(mode='json'))}\n\n"
+        ),
+    )
+
+    events = asyncio.run(_collect_events(response))
+
+    assert events == [envelope]
+
+
 def test_daemon_review_fixup_characterizes_current_parity_gap() -> None:
     session_id = new_session_id()
 
@@ -216,6 +247,10 @@ def test_daemon_review_fixup_characterizes_current_parity_gap() -> None:
     assert "glassbox changeset feedback fixup FEEDBACK_ID --cwd ." in str(
         exc_info.value
     )
+
+
+async def _collect_events(response: httpx.Response) -> list[EventEnvelope]:
+    return [event async for event in iter_sse_events(response)]
 
 
 def _now() -> datetime:

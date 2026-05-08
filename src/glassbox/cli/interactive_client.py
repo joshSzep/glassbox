@@ -1,133 +1,48 @@
 """Runtime-agnostic client boundary for interactive terminal sessions."""
 
-import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 from typing import Any
-from typing import Protocol
 from typing import cast
 from uuid import UUID
 
 import httpx
 
+from glassbox.cli.interactive_client_models import InteractiveClientError
+from glassbox.cli.interactive_client_models import InteractiveClientErrorKind
+from glassbox.cli.interactive_client_models import InteractiveSessionClient
+from glassbox.cli.interactive_client_models import InteractiveSessionSnapshot
+from glassbox.cli.interactive_client_models import ReviewLoopAction
+from glassbox.cli.interactive_client_models import ReviewLoopActionResult
+from glassbox.cli.interactive_client_sse import interactive_snapshot_from_response
+from glassbox.cli.interactive_client_sse import iter_sse_events
+from glassbox.cli.interactive_client_sse import (
+    raise_for_action_error as _raise_for_action_error,
+)
+from glassbox.cli.interactive_client_sse import request_runtime as _request_runtime
 from glassbox.cli.status_formatters import _pending_question_text_from_events
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import TurnId
-from glassbox.core.models import SessionState
 from glassbox.core.types import ApprovalDecision
-from glassbox.core.types import SessionStatus
 from glassbox.runtime.context import RuntimeContext
 from glassbox.web.session_api import SessionSnapshotResponse
 
-
-class InteractiveClientErrorKind(StrEnum):
-    UNKNOWN_SESSION = "unknown_session"
-    HISTORICAL_ONLY = "historical_only"
-    CONFLICT = "conflict"
-    VALIDATION_ERROR = "validation_error"
-    RUNTIME_UNAVAILABLE = "runtime_unavailable"
-    STREAM_UNAVAILABLE = "stream_unavailable"
-
-
-class InteractiveClientError(ValueError):
-    """Normalized error raised by interactive session clients."""
-
-    def __init__(self, kind: InteractiveClientErrorKind, message: str) -> None:
-        super().__init__(message)
-        self.kind = kind
-
-
-class ReviewLoopAction(StrEnum):
-    STATUS = "status"
-    REFRESH_INVENTORY = "refresh_inventory"
-    GENERATE_BRIEF = "generate_brief"
-    PREVIEW_VERIFICATION = "preview_verification"
-    INSPECT_HANDOFF = "inspect_handoff"
-    SHOW_FEEDBACK_STATUS = "show_feedback_status"
-    RECORD_FEEDBACK_FIXUP = "record_feedback_fixup"
-
-
-@dataclass(frozen=True, slots=True)
-class ReviewLoopActionResult:
-    """Terminal-friendly summary of one review-loop action."""
-
-    action: ReviewLoopAction | str
-    headline: str
-    changeset_id: str | None = None
-    details: tuple[str, ...] = ()
-    limitations: tuple[str, ...] = ()
-    safe_next_actions: tuple[str, ...] = ()
-    dashboard_path: str | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class InteractiveSessionSnapshot:
-    """Client-neutral session state used by terminal UI entrypoints."""
-
-    state: SessionState
-    cwd: str | None = None
-    model_name: str | None = None
-    approval_mode: str | None = None
-    dashboard_url: str | None = None
-    pending_question_text: str | None = None
-
-    @property
-    def session_id(self) -> SessionId:
-        return self.state.session_id
-
-    @property
-    def last_sequence(self) -> int:
-        return self.state.last_sequence
-
-
-class InteractiveSessionClient(Protocol):
-    """Common mutation and event-stream boundary for terminal clients."""
-
-    @property
-    def session_id(self) -> SessionId: ...
-
-    async def fetch_snapshot(self) -> InteractiveSessionSnapshot: ...
-
-    async def submit_message(self, text: str) -> None: ...
-
-    async def submit_answer(self, question_id: QuestionId, answer: str) -> None: ...
-
-    async def resolve_approval(
-        self,
-        approval_id: ApprovalId,
-        decision: ApprovalDecision,
-    ) -> None: ...
-
-    async def cancel_turn(
-        self,
-        turn_id: TurnId | None = None,
-        *,
-        reason: str | None = None,
-    ) -> None: ...
-
-    async def create_review_changeset(
-        self,
-        *,
-        objective: str | None = None,
-    ) -> ReviewLoopActionResult: ...
-
-    async def run_review_action(
-        self,
-        action: ReviewLoopAction,
-        *,
-        changeset_id: str | None = None,
-    ) -> ReviewLoopActionResult: ...
-
-    def stream_events(
-        self, *, after_sequence: int = 0
-    ) -> AsyncIterator[EventEnvelope]: ...
-
-    async def aclose(self) -> None: ...
+__all__ = [
+    "DaemonInteractiveSessionClient",
+    "InteractiveClientError",
+    "InteractiveClientErrorKind",
+    "InteractiveSessionClient",
+    "InteractiveSessionSnapshot",
+    "LocalInteractiveSessionClient",
+    "ReviewLoopAction",
+    "ReviewLoopActionResult",
+    "interactive_snapshot_from_response",
+    "iter_sse_events",
+]
 
 
 @dataclass(slots=True)
@@ -882,112 +797,6 @@ class DaemonInteractiveSessionClient:
         if not items:
             return None
         return str(items[0]["changeset_id"])
-
-
-def interactive_snapshot_from_response(
-    snapshot: SessionSnapshotResponse,
-) -> InteractiveSessionSnapshot:
-    state = SessionState(
-        session_id=UUID(snapshot.session_id),
-        status=SessionStatus(snapshot.status),
-        current_turn_id=(
-            UUID(snapshot.current_turn_id)
-            if snapshot.current_turn_id is not None
-            else None
-        ),
-        last_sequence=snapshot.last_sequence,
-        pending_approval_id=(
-            UUID(snapshot.pending_approval_id)
-            if snapshot.pending_approval_id is not None
-            else None
-        ),
-        pending_question_id=(
-            UUID(snapshot.pending_question_id)
-            if snapshot.pending_question_id is not None
-            else None
-        ),
-    )
-    return InteractiveSessionSnapshot(
-        state=state,
-        cwd=snapshot.cwd,
-        model_name=snapshot.model_name,
-        approval_mode=snapshot.approval_mode,
-        dashboard_url=snapshot.dashboard_url,
-        pending_question_text=snapshot.pending_question_text,
-    )
-
-
-async def iter_sse_events(response: httpx.Response) -> AsyncIterator[EventEnvelope]:
-    data_lines: list[str] = []
-    event_type: str | None = None
-
-    async for line in response.aiter_lines():
-        if line.startswith(":"):
-            continue
-        if line == "":
-            if data_lines:
-                if event_type != "glassbox.stream.status":
-                    payload = json.loads("\n".join(data_lines))
-                    yield EventEnvelope.model_validate(payload)
-            data_lines = []
-            event_type = None
-            continue
-        if line.startswith("event:"):
-            event_type = line[len("event:") :].strip()
-            continue
-        if line.startswith("id:"):
-            continue
-        if line.startswith("data:"):
-            data_lines.append(line[len("data:") :].strip())
-
-    if data_lines:
-        if event_type != "glassbox.stream.status":
-            payload = json.loads("\n".join(data_lines))
-            yield EventEnvelope.model_validate(payload)
-
-
-async def _request_runtime(
-    client: httpx.AsyncClient,
-    method: str,
-    path: str,
-    *,
-    dashboard_url: str,
-    **kwargs,
-) -> httpx.Response:
-    try:
-        return await client.request(method, path, **kwargs)
-    except httpx.HTTPError as exc:
-        raise InteractiveClientError(
-            InteractiveClientErrorKind.RUNTIME_UNAVAILABLE,
-            f"live runtime unavailable at {dashboard_url}: {exc}",
-        ) from exc
-
-
-def _raise_for_action_error(response: httpx.Response) -> None:
-    if response.status_code == 404:
-        raise InteractiveClientError(
-            InteractiveClientErrorKind.UNKNOWN_SESSION,
-            _response_detail(response),
-        )
-    if response.status_code == 409:
-        raise InteractiveClientError(
-            InteractiveClientErrorKind.CONFLICT,
-            _response_detail(response),
-        )
-    if response.status_code == 422:
-        raise InteractiveClientError(
-            InteractiveClientErrorKind.VALIDATION_ERROR,
-            _response_detail(response),
-        )
-    response.raise_for_status()
-
-
-def _response_detail(response: httpx.Response) -> str:
-    try:
-        detail = response.json().get("detail", response.text)
-    except json.JSONDecodeError:
-        detail = response.text
-    return str(detail)
 
 
 def _string_tuple(items: object) -> tuple[str, ...]:

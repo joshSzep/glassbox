@@ -676,7 +676,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R640: Split Interactive Client Models, Protocols, And SSE Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R601
 - Target files:
   - `src/glassbox/cli/interactive_client.py`
