@@ -41,6 +41,18 @@ def test_repo_index_build_status_search_and_show_commands(
     )
     status_payload = json.loads(capsys.readouterr().out)
 
+    inspect_exit = main(
+        [
+            "repo",
+            "index",
+            "inspect",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    inspect_payload = json.loads(capsys.readouterr().out)
+
     search_exit = main(
         [
             "repo",
@@ -74,10 +86,19 @@ def test_repo_index_build_status_search_and_show_commands(
     assert status_exit == 0
     assert status_payload["status"] == "fresh"
     assert status_payload["entry_count"] == len(build_payload["entries"])
+    assert status_payload["schema_version"] == 2
+    assert status_payload["package_boundary_count"] >= 1
+    assert status_payload["source_root_count"] >= 1
+    assert status_payload["command_recipe_count"] == len(
+        build_payload["command_recipes"]
+    )
     assert status_payload["detail"] == (
         "Repository intelligence is fresh for the current source digest."
     )
     assert status_payload["current_source_digest"] == status_payload["source_digest"]
+    assert inspect_exit == 0
+    assert inspect_payload["schema_version"] == 2
+    assert inspect_payload["package_boundaries"][0]["package_id"] == "package:fixture"
     assert search_exit == 0
     assert len(search_payload) == 1
     assert search_payload[0]["symbol"] == "UsefulThing"

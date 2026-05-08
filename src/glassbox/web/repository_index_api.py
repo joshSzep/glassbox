@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
@@ -49,7 +50,34 @@ class RepositoryIndexStatusResponse(BaseModel):
     schema_version: int | None = None
     builder_version: str | None = None
     source_digest: str | None = None
+    source_manifest_count: int = 0
+    source_root_count: int = 0
+    test_root_count: int = 0
+    doc_root_count: int = 0
+    generated_path_count: int = 0
+    policy_sensitive_path_count: int = 0
+    package_boundary_count: int = 0
+    command_recipe_count: int = 0
+    ownership_hint_count: int = 0
+    subsystem_count: int = 0
+    release_surface_count: int = 0
+    limitations: list[str] = Field(default_factory=list)
     detail: str | None = None
+
+
+class RepositoryIndexInspectResponse(BaseModel):
+    index: RepositoryIndexStatusResponse
+    source_roots: list[str]
+    test_roots: list[str]
+    doc_roots: list[str]
+    generated_paths: list[str]
+    policy_sensitive_paths: list[str]
+    package_boundaries: list[str]
+    command_recipes: list[str]
+    ownership_hints: list[str]
+    subsystems: list[str]
+    release_sensitive_surfaces: list[str]
+    limitations: list[str]
 
 
 class RepositoryIndexSearchPageResponse(BaseModel):
@@ -168,6 +196,45 @@ def build_repository_index_status_response(
         schema_version=snapshot.schema_version,
         builder_version=snapshot.builder_version,
         source_digest=snapshot.source_digest,
+        source_manifest_count=len(snapshot.source_manifests),
+        source_root_count=len(snapshot.source_roots),
+        test_root_count=len(snapshot.test_roots),
+        doc_root_count=len(snapshot.doc_roots),
+        generated_path_count=len(snapshot.generated_paths),
+        policy_sensitive_path_count=len(snapshot.policy_sensitive_paths),
+        package_boundary_count=len(snapshot.package_boundaries),
+        command_recipe_count=len(snapshot.command_recipes),
+        ownership_hint_count=len(snapshot.ownership_hints),
+        subsystem_count=len(snapshot.subsystems),
+        release_surface_count=len(snapshot.release_sensitive_surfaces),
+        limitations=snapshot.limitations,
+    )
+
+
+def build_repository_index_inspect_response(
+    snapshot: RepositoryIndexSnapshot,
+    *,
+    path: str,
+) -> RepositoryIndexInspectResponse:
+    return RepositoryIndexInspectResponse(
+        index=build_repository_index_status_response(snapshot, path=path),
+        source_roots=[hint.path.as_posix() for hint in snapshot.source_roots],
+        test_roots=[hint.path.as_posix() for hint in snapshot.test_roots],
+        doc_roots=[hint.path.as_posix() for hint in snapshot.doc_roots],
+        generated_paths=[hint.path.as_posix() for hint in snapshot.generated_paths],
+        policy_sensitive_paths=[
+            hint.path.as_posix() for hint in snapshot.policy_sensitive_paths
+        ],
+        package_boundaries=[
+            package.package_id for package in snapshot.package_boundaries
+        ],
+        command_recipes=[recipe.recipe_id for recipe in snapshot.command_recipes],
+        ownership_hints=[hint.hint_id for hint in snapshot.ownership_hints],
+        subsystems=[subsystem.subsystem_id for subsystem in snapshot.subsystems],
+        release_sensitive_surfaces=[
+            surface.surface_id for surface in snapshot.release_sensitive_surfaces
+        ],
+        limitations=snapshot.limitations,
     )
 
 

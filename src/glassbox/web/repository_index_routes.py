@@ -20,6 +20,7 @@ from glassbox.runtime.workspace_topology import load_workspace_topology
 from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.repository_index_api import RepositoryIndexEntryDetailResponse
+from glassbox.web.repository_index_api import RepositoryIndexInspectResponse
 from glassbox.web.repository_index_api import RepositoryIndexRebuildRequest
 from glassbox.web.repository_index_api import RepositoryIndexRebuildResponse
 from glassbox.web.repository_index_api import RepositoryIndexSearchPageResponse
@@ -30,6 +31,7 @@ from glassbox.web.repository_index_api import WorkspaceTopologyRebuildResponse
 from glassbox.web.repository_index_api import WorkspaceTopologyStatusResponse
 from glassbox.web.repository_index_api import build_repository_index_entry_response
 from glassbox.web.repository_index_api import build_repository_index_entry_responses
+from glassbox.web.repository_index_api import build_repository_index_inspect_response
 from glassbox.web.repository_index_api import build_repository_index_status_response
 from glassbox.web.repository_index_api import build_workspace_topology_detail_response
 from glassbox.web.repository_index_api import build_workspace_topology_status_response
@@ -58,6 +60,21 @@ def get_repository_index_status(
             detail="repository index has not been built",
         )
     return build_repository_index_status_response(snapshot, path=str(path))
+
+
+@router.get("", response_model=RepositoryIndexInspectResponse)
+def inspect_repository_index(
+    context: RuntimeContextDep,
+) -> RepositoryIndexInspectResponse:
+    """Return inspectable repository intelligence snapshot metadata."""
+
+    workspace_root = context.infrastructure.artifacts_root
+    path = repository_index_path(workspace_root)
+    try:
+        snapshot = load_repository_index(workspace_root)
+    except RepositoryIndexNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    return build_repository_index_inspect_response(snapshot, path=str(path))
 
 
 @router.get("/search", response_model=RepositoryIndexSearchPageResponse)

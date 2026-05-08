@@ -53,6 +53,34 @@ const toolAttempt = {
   turn_id: "turn-1",
 } satisfies components["schemas"]["ToolAttemptResponse"];
 
+function makeRepositoryStatus(
+  overrides: Partial<components["schemas"]["RepositoryIndexStatusResponse"]> = {},
+): components["schemas"]["RepositoryIndexStatusResponse"] {
+  return {
+    built_at: "2026-04-23T00:00:00Z",
+    builder_version: "v2-schema",
+    command_recipe_count: 0,
+    detail: null,
+    doc_root_count: 0,
+    entry_count: 1,
+    generated_path_count: 0,
+    limitations: [],
+    ownership_hint_count: 0,
+    package_boundary_count: 0,
+    path: "/tmp/.glassbox/repository-index.json",
+    policy_sensitive_path_count: 0,
+    release_surface_count: 0,
+    schema_version: 2,
+    source_digest: "digest",
+    source_manifest_count: 0,
+    source_root_count: 0,
+    status: "fresh",
+    subsystem_count: 0,
+    test_root_count: 0,
+    ...overrides,
+  };
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
@@ -164,16 +192,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
     getReviewFeedbackPage: async () => ({ items: [] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
-    getRepositoryIndexStatus: async () => ({
-      built_at: "2026-04-23T00:00:00Z",
-      builder_version: "v1",
-      detail: null,
-      entry_count: 1,
-      path: "/tmp/.glassbox/repository-index.json",
-      schema_version: 1,
-      source_digest: "digest",
-      status: "fresh",
-    }),
+    getRepositoryIndexStatus: async () => makeRepositoryStatus(),
     getWorkspaceMemoryDetail: async (memoryId) => ({ entry: makeMemoryEntry(memoryId) }),
     listWorkspaceMemory: async () => ({
       items: [makeMemoryEntry("memory-1")],
@@ -1075,16 +1094,10 @@ describe("knowledge store", () => {
         },
         getRepositoryIndexStatus: async () => {
           calls.push("status");
-          return {
+          return makeRepositoryStatus({
             built_at: timestamp(0),
-            builder_version: "v1",
-            detail: null,
             entry_count: 2,
-            path: "/tmp/.glassbox/repository-index.json",
-            schema_version: 1,
-            source_digest: "digest",
-            status: "fresh",
-          };
+          });
         },
         rebuildRepositoryIndex: async (input = {}) => {
           calls.push(`rebuild:${input.sessionId ?? "sync"}`);

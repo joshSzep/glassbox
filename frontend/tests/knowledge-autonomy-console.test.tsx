@@ -8,6 +8,7 @@ import type { MemoryInspectorState, RepositoryInspectorState } from "@/stores/da
 
 type MemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
+type RepositoryStatus = components["schemas"]["RepositoryIndexStatusResponse"];
 
 describe("knowledge autonomy console", () => {
   it("renders memory filters, provenance, actions, and prune previews", () => {
@@ -53,16 +54,14 @@ describe("knowledge autonomy console", () => {
           searchState: "loaded",
           selectedEntry: entry,
           selectedEntryId: "entry-1",
-          status: {
+          status: makeRepositoryStatus({
             built_at: null,
             builder_version: null,
             detail: "repository index has not been built",
-            entry_count: 1,
-            path: "/tmp/.glassbox/repository-index.json",
             schema_version: null,
             source_digest: null,
             status: "missing",
-          },
+          }),
           statusState: "loaded",
         },
         surface: "repository",
@@ -105,6 +104,32 @@ const idleRepository: RepositoryInspectorState = {
   status: null,
   statusState: "idle",
 };
+
+function makeRepositoryStatus(overrides: Partial<RepositoryStatus> = {}): RepositoryStatus {
+  return {
+    built_at: null,
+    builder_version: null,
+    command_recipe_count: 0,
+    detail: null,
+    doc_root_count: 0,
+    entry_count: 1,
+    generated_path_count: 0,
+    limitations: [],
+    ownership_hint_count: 0,
+    package_boundary_count: 0,
+    path: "/tmp/.glassbox/repository-index.json",
+    policy_sensitive_path_count: 0,
+    release_surface_count: 0,
+    schema_version: null,
+    source_digest: null,
+    source_manifest_count: 0,
+    source_root_count: 0,
+    status: "missing",
+    subsystem_count: 0,
+    test_root_count: 0,
+    ...overrides,
+  };
+}
 
 function makeMemoryEntry(memoryId: string, overrides: Partial<MemoryEntry> = {}): MemoryEntry {
   return {

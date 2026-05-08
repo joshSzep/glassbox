@@ -537,7 +537,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1514: Persist And Inspect Repository Intelligence Snapshots
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1512`, `GBX-1513`
 - Goal: persist richer repository intelligence as managed local evidence and
   expose status through CLI and API

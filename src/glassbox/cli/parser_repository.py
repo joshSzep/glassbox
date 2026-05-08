@@ -76,6 +76,18 @@ def _add_repository_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    inspect_parser = index_subparsers.add_parser(
+        "inspect",
+        help="inspect the retained repository intelligence snapshot",
+        description=(
+            "Inspect repository intelligence freshness, roots, packages, "
+            "command recipes, owner hints, subsystems, release surfaces, and "
+            "limitations."
+        ),
+    )
+    inspect_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(inspect_parser)
+
     topology_parser = repo_subparsers.add_parser(
         "topology",
         help="build and inspect workspace topology",

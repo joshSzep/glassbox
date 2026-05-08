@@ -47,10 +47,22 @@ class RepositoryIndexStatusSummary(BaseModel):
     current_source_digest: str | None = None
     source_file_count: int = 0
     current_source_file_count: int = 0
+    source_manifest_count: int = 0
+    source_root_count: int = 0
+    test_root_count: int = 0
+    doc_root_count: int = 0
+    generated_path_count: int = 0
+    policy_sensitive_path_count: int = 0
+    package_boundary_count: int = 0
+    command_recipe_count: int = 0
+    ownership_hint_count: int = 0
+    subsystem_count: int = 0
+    release_surface_count: int = 0
     failure_reason: str | None = None
     detail: str
     stale_reason: str | None = None
     source_diff: RepositoryIndexSourceDiff | None = None
+    limitations: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
 
 
@@ -103,10 +115,22 @@ def build_repository_index_status_summary(
         current_source_digest=current_digest,
         source_file_count=len(snapshot.source_inputs),
         current_source_file_count=len(current_inputs),
+        source_manifest_count=len(snapshot.source_manifests),
+        source_root_count=len(snapshot.source_roots),
+        test_root_count=len(snapshot.test_roots),
+        doc_root_count=len(snapshot.doc_roots),
+        generated_path_count=len(snapshot.generated_paths),
+        policy_sensitive_path_count=len(snapshot.policy_sensitive_paths),
+        package_boundary_count=len(snapshot.package_boundaries),
+        command_recipe_count=len(snapshot.command_recipes),
+        ownership_hint_count=len(snapshot.ownership_hints),
+        subsystem_count=len(snapshot.subsystems),
+        release_surface_count=len(snapshot.release_sensitive_surfaces),
         failure_reason=snapshot.failure_reason,
         detail=_status_detail(snapshot),
         stale_reason=stale_reason,
         source_diff=source_diff,
+        limitations=snapshot.limitations,
         next_actions=_next_actions(root, snapshot.status),
     )
 

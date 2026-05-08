@@ -158,6 +158,14 @@ Invalidation can be triggered by changed manifest digests, changed indexed file 
 
 `glassbox repo index status --cwd .` is the operator-facing freshness check. It reports missing, fresh, stale, building, and failed states with the retained index path, entry count, current source digest, retained source digest when available, and safe next actions. New v9 snapshots also retain bounded source input metadata so stale status can show read-only samples of added, removed, or changed paths. Older snapshots that do not have this inventory still report the digest mismatch and ask the operator to rebuild once to enable path-level stale explanations.
 
+`glassbox repo index inspect --cwd .` returns the retained snapshot for
+operator inspection. Human output summarizes v2 counts for manifests, packages,
+roots, generated paths, policy-sensitive paths, command recipes, owner hints,
+subsystems, release surfaces, and limitations; `--json` returns the full
+managed artifact. The dashboard/API status response exposes the same counts,
+and `GET /repo/index` returns a compact inspect payload with the retained
+metadata identifiers.
+
 ## Storage And Rebuild Strategy
 
 The first implementation may store the index as a retained JSON artifact or as a projection table. In either case:

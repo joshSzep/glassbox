@@ -33,6 +33,7 @@ def test_repository_index_routes_return_status_search_and_detail(
                 base_url="http://testserver",
             ) as client:
                 status_response = await client.get("/repo/index/status")
+                inspect_response = await client.get("/repo/index")
                 search_response = await client.get(
                     "/repo/index/search",
                     params={"query": "useful", "limit": 5},
@@ -42,6 +43,12 @@ def test_repository_index_routes_return_status_search_and_detail(
             assert status_response.status_code == 200
             assert status_response.json()["status"] == "fresh"
             assert status_response.json()["entry_count"] == len(snapshot.entries)
+            assert status_response.json()["schema_version"] == 2
+            assert status_response.json()["package_boundary_count"] >= 1
+            assert status_response.json()["source_root_count"] >= 1
+            assert inspect_response.status_code == 200
+            assert inspect_response.json()["index"]["status"] == "fresh"
+            assert "package:fixture" in inspect_response.json()["package_boundaries"]
             assert search_response.status_code == 200
             assert search_response.json()["page"]["returned_count"] >= 1
             assert search_response.json()["items"][0]["symbol"] == "UsefulThing"
@@ -64,6 +71,7 @@ def test_repository_index_routes_report_missing_snapshot(tmp_path: Path) -> None
                 base_url="http://testserver",
             ) as client:
                 status_response = await client.get("/repo/index/status")
+                inspect_response = await client.get("/repo/index")
                 search_response = await client.get(
                     "/repo/index/search",
                     params={"query": "anything"},
@@ -71,6 +79,7 @@ def test_repository_index_routes_report_missing_snapshot(tmp_path: Path) -> None
 
             assert status_response.status_code == 200
             assert status_response.json()["status"] == "missing"
+            assert inspect_response.status_code == 404
             assert search_response.status_code == 404
         finally:
             connection.close()

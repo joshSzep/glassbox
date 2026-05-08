@@ -772,6 +772,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/repo/index": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Inspect Repository Index
+     * @description Return inspectable repository intelligence snapshot metadata.
+     */
+    get: operations["inspect_repository_index_repo_index_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/repo/index/entries/{entry_id}": {
     parameters: {
       query?: never;
@@ -4306,6 +4326,32 @@ export interface components {
        */
       updated_at: string;
     };
+    /** RepositoryIndexInspectResponse */
+    RepositoryIndexInspectResponse: {
+      /** Command Recipes */
+      command_recipes: string[];
+      /** Doc Roots */
+      doc_roots: string[];
+      /** Generated Paths */
+      generated_paths: string[];
+      index: components["schemas"]["RepositoryIndexStatusResponse"];
+      /** Limitations */
+      limitations: string[];
+      /** Ownership Hints */
+      ownership_hints: string[];
+      /** Package Boundaries */
+      package_boundaries: string[];
+      /** Policy Sensitive Paths */
+      policy_sensitive_paths: string[];
+      /** Release Sensitive Surfaces */
+      release_sensitive_surfaces: string[];
+      /** Source Roots */
+      source_roots: string[];
+      /** Subsystems */
+      subsystems: string[];
+      /** Test Roots */
+      test_roots: string[];
+    };
     /** RepositoryIndexProvenanceResponse */
     RepositoryIndexProvenanceResponse: {
       /** Content Sha256 */
@@ -4365,18 +4411,75 @@ export interface components {
       builder_version?: string | null;
       /** Built At */
       built_at?: string | null;
+      /**
+       * Command Recipe Count
+       * @default 0
+       */
+      command_recipe_count: number;
       /** Detail */
       detail?: string | null;
+      /**
+       * Doc Root Count
+       * @default 0
+       */
+      doc_root_count: number;
       /** Entry Count */
       entry_count: number;
+      /**
+       * Generated Path Count
+       * @default 0
+       */
+      generated_path_count: number;
+      /** Limitations */
+      limitations?: string[];
+      /**
+       * Ownership Hint Count
+       * @default 0
+       */
+      ownership_hint_count: number;
+      /**
+       * Package Boundary Count
+       * @default 0
+       */
+      package_boundary_count: number;
       /** Path */
       path: string;
+      /**
+       * Policy Sensitive Path Count
+       * @default 0
+       */
+      policy_sensitive_path_count: number;
+      /**
+       * Release Surface Count
+       * @default 0
+       */
+      release_surface_count: number;
       /** Schema Version */
       schema_version?: number | null;
       /** Source Digest */
       source_digest?: string | null;
+      /**
+       * Source Manifest Count
+       * @default 0
+       */
+      source_manifest_count: number;
+      /**
+       * Source Root Count
+       * @default 0
+       */
+      source_root_count: number;
       /** Status */
       status: string;
+      /**
+       * Subsystem Count
+       * @default 0
+       */
+      subsystem_count: number;
+      /**
+       * Test Root Count
+       * @default 0
+       */
+      test_root_count: number;
     };
     /**
      * ResolveApprovalRequest
@@ -7894,6 +7997,26 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inspect_repository_index_repo_index_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIndexInspectResponse"];
         };
       };
     };

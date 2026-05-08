@@ -12,6 +12,7 @@ from glassbox.core.types import BackgroundJobKind
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
+from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
 from glassbox.runtime.repository_index_status import RepositoryIndexSourceDiff
@@ -45,6 +46,8 @@ def _repo_index_command(args: argparse.Namespace) -> int:
         return _repo_index_search_command(args)
     if index_command == "show":
         return _repo_index_show_command(args)
+    if index_command == "inspect":
+        return _repo_index_inspect_command(args)
     raise ValueError(f"unsupported repo index subcommand: {index_command}")
 
 
@@ -115,6 +118,16 @@ def _repo_index_show_command(args: argparse.Namespace) -> int:
         print_json_output(entry.model_dump(mode="json"))
     else:
         _print_index_entry(entry)
+    return 0
+
+
+def _repo_index_inspect_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = load_repository_index(cwd)
+    if args.json:
+        print_json_output(snapshot.model_dump(mode="json"))
+    else:
+        _print_index_snapshot(snapshot, repository_index_path(cwd))
     return 0
 
 
@@ -192,6 +205,21 @@ def _print_status_summary(summary: RepositoryIndexStatusSummary) -> None:
             f"{summary.source_file_count} indexed, "
             f"{summary.current_source_file_count} current"
         )
+    _print_repository_intelligence_counts(
+        source_manifest_count=summary.source_manifest_count,
+        source_root_count=summary.source_root_count,
+        test_root_count=summary.test_root_count,
+        doc_root_count=summary.doc_root_count,
+        generated_path_count=summary.generated_path_count,
+        policy_sensitive_path_count=summary.policy_sensitive_path_count,
+        package_boundary_count=summary.package_boundary_count,
+        command_recipe_count=summary.command_recipe_count,
+        ownership_hint_count=summary.ownership_hint_count,
+        subsystem_count=summary.subsystem_count,
+        release_surface_count=summary.release_surface_count,
+    )
+    for limitation in summary.limitations:
+        print(f"Limitation: {limitation}")
     if summary.source_diff is not None:
         _print_source_diff(summary.source_diff)
     if summary.next_actions:
@@ -226,6 +254,70 @@ def _print_index_snapshot(snapshot: RepositoryIndexSnapshot, path: Path) -> None
     print(f"Entries: {len(snapshot.entries)}")
     if snapshot.built_at is not None:
         print(f"Built: {snapshot.built_at.isoformat()}")
+    _print_repository_intelligence_counts(
+        source_manifest_count=len(snapshot.source_manifests),
+        source_root_count=len(snapshot.source_roots),
+        test_root_count=len(snapshot.test_roots),
+        doc_root_count=len(snapshot.doc_roots),
+        generated_path_count=len(snapshot.generated_paths),
+        policy_sensitive_path_count=len(snapshot.policy_sensitive_paths),
+        package_boundary_count=len(snapshot.package_boundaries),
+        command_recipe_count=len(snapshot.command_recipes),
+        ownership_hint_count=len(snapshot.ownership_hints),
+        subsystem_count=len(snapshot.subsystems),
+        release_surface_count=len(snapshot.release_sensitive_surfaces),
+    )
+    for limitation in snapshot.limitations:
+        print(f"Limitation: {limitation}")
+
+
+def _print_repository_intelligence_counts(
+    *,
+    source_manifest_count: int,
+    source_root_count: int,
+    test_root_count: int,
+    doc_root_count: int,
+    generated_path_count: int,
+    policy_sensitive_path_count: int,
+    package_boundary_count: int,
+    command_recipe_count: int,
+    ownership_hint_count: int,
+    subsystem_count: int,
+    release_surface_count: int,
+) -> None:
+    if not any(
+        (
+            source_manifest_count,
+            source_root_count,
+            test_root_count,
+            doc_root_count,
+            generated_path_count,
+            policy_sensitive_path_count,
+            package_boundary_count,
+            command_recipe_count,
+            ownership_hint_count,
+            subsystem_count,
+            release_surface_count,
+        )
+    ):
+        return
+    print(
+        "Intelligence: "
+        f"{source_manifest_count} manifests, "
+        f"{package_boundary_count} packages, "
+        f"{source_root_count} source roots, "
+        f"{test_root_count} test roots, "
+        f"{doc_root_count} doc roots"
+    )
+    print(
+        "Hints: "
+        f"{generated_path_count} generated paths, "
+        f"{policy_sensitive_path_count} policy-sensitive paths, "
+        f"{command_recipe_count} command recipes, "
+        f"{ownership_hint_count} owners, "
+        f"{subsystem_count} subsystems, "
+        f"{release_surface_count} release surfaces"
+    )
 
 
 def _print_index_entries(entries: list[RepositoryIndexEntry]) -> None:

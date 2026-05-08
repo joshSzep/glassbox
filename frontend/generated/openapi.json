@@ -7875,6 +7875,106 @@
         "title": "RepositoryIndexEntryResponse",
         "type": "object"
       },
+      "RepositoryIndexInspectResponse": {
+        "properties": {
+          "command_recipes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command Recipes",
+            "type": "array"
+          },
+          "doc_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Doc Roots",
+            "type": "array"
+          },
+          "generated_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Paths",
+            "type": "array"
+          },
+          "index": {
+            "$ref": "#/components/schemas/RepositoryIndexStatusResponse"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "ownership_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ownership Hints",
+            "type": "array"
+          },
+          "package_boundaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Package Boundaries",
+            "type": "array"
+          },
+          "policy_sensitive_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Policy Sensitive Paths",
+            "type": "array"
+          },
+          "release_sensitive_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Sensitive Surfaces",
+            "type": "array"
+          },
+          "source_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Roots",
+            "type": "array"
+          },
+          "subsystems": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Subsystems",
+            "type": "array"
+          },
+          "test_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Test Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "index",
+          "source_roots",
+          "test_roots",
+          "doc_roots",
+          "generated_paths",
+          "policy_sensitive_paths",
+          "package_boundaries",
+          "command_recipes",
+          "ownership_hints",
+          "subsystems",
+          "release_sensitive_surfaces",
+          "limitations"
+        ],
+        "title": "RepositoryIndexInspectResponse",
+        "type": "object"
+      },
       "RepositoryIndexProvenanceResponse": {
         "properties": {
           "content_sha256": {
@@ -8082,6 +8182,11 @@
             ],
             "title": "Built At"
           },
+          "command_recipe_count": {
+            "default": 0,
+            "title": "Command Recipe Count",
+            "type": "integer"
+          },
           "detail": {
             "anyOf": [
               {
@@ -8093,13 +8198,50 @@
             ],
             "title": "Detail"
           },
+          "doc_root_count": {
+            "default": 0,
+            "title": "Doc Root Count",
+            "type": "integer"
+          },
           "entry_count": {
             "title": "Entry Count",
+            "type": "integer"
+          },
+          "generated_path_count": {
+            "default": 0,
+            "title": "Generated Path Count",
+            "type": "integer"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "ownership_hint_count": {
+            "default": 0,
+            "title": "Ownership Hint Count",
+            "type": "integer"
+          },
+          "package_boundary_count": {
+            "default": 0,
+            "title": "Package Boundary Count",
             "type": "integer"
           },
           "path": {
             "title": "Path",
             "type": "string"
+          },
+          "policy_sensitive_path_count": {
+            "default": 0,
+            "title": "Policy Sensitive Path Count",
+            "type": "integer"
+          },
+          "release_surface_count": {
+            "default": 0,
+            "title": "Release Surface Count",
+            "type": "integer"
           },
           "schema_version": {
             "anyOf": [
@@ -8123,9 +8265,29 @@
             ],
             "title": "Source Digest"
           },
+          "source_manifest_count": {
+            "default": 0,
+            "title": "Source Manifest Count",
+            "type": "integer"
+          },
+          "source_root_count": {
+            "default": 0,
+            "title": "Source Root Count",
+            "type": "integer"
+          },
           "status": {
             "title": "Status",
             "type": "string"
+          },
+          "subsystem_count": {
+            "default": 0,
+            "title": "Subsystem Count",
+            "type": "integer"
+          },
+          "test_root_count": {
+            "default": 0,
+            "title": "Test Root Count",
+            "type": "integer"
           }
         },
         "required": ["status", "path", "entry_count"],
@@ -16723,6 +16885,26 @@
           }
         },
         "summary": "Preview Workspace Memory Prune"
+      }
+    },
+    "/repo/index": {
+      "get": {
+        "description": "Return inspectable repository intelligence snapshot metadata.",
+        "operationId": "inspect_repository_index_repo_index_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIndexInspectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Inspect Repository Index",
+        "tags": ["repo"]
       }
     },
     "/repo/index/entries/{entry_id}": {
