@@ -8,6 +8,7 @@ from urllib.parse import urlunsplit
 from glassbox.cli.interactive_client import InteractiveClientError
 from glassbox.cli.interactive_client import ReviewLoopAction
 from glassbox.cli.interactive_client import ReviewLoopActionResult
+from glassbox.cli.interactive_review_actions import review_feedback_message
 from glassbox.cli.tui.commands import TerminalCommandId
 from glassbox.cli.tui.commands import TerminalSlashCommand
 from glassbox.cli.tui.conversation import TerminalConversationState
@@ -203,15 +204,6 @@ def dashboard_review_url(
     if changeset_id:
         path += "/" + quote(changeset_id, safe="")
     return urlunsplit((parts.scheme, parts.netloc, path, "", ""))
-
-
-def review_feedback_message(result: ReviewLoopActionResult) -> str:
-    parts = [result.headline]
-    if result.limitations:
-        parts.append(f"Limitation: {result.limitations[0]}")
-    if result.safe_next_actions:
-        parts.append(f"Next: {result.safe_next_actions[0]}")
-    return " ".join(parts)
 
 
 def review_action_for_command(

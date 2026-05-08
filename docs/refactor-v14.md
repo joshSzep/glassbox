@@ -726,7 +726,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R642: Extract Interactive Review Action And Guidance Formatting
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R641
 - Target files:
   - `src/glassbox/cli/interactive_client_local.py`

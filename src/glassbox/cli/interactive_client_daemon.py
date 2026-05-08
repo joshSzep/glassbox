@@ -2,8 +2,6 @@
 
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any
-from typing import cast
 
 import httpx
 
@@ -16,8 +14,14 @@ from glassbox.cli.interactive_client_sse import interactive_snapshot_from_respon
 from glassbox.cli.interactive_client_sse import iter_sse_events
 from glassbox.cli.interactive_client_sse import raise_for_action_error
 from glassbox.cli.interactive_client_sse import request_runtime
-from glassbox.cli.interactive_review_guidance import payload_handoff_evidence_guidance
-from glassbox.cli.interactive_review_guidance import review_evidence_guidance
+from glassbox.cli.interactive_review_actions import create_changeset_result
+from glassbox.cli.interactive_review_actions import generate_brief_result
+from glassbox.cli.interactive_review_actions import payload_feedback_status_result
+from glassbox.cli.interactive_review_actions import payload_handoff_readiness_result
+from glassbox.cli.interactive_review_actions import payload_refresh_inventory_result
+from glassbox.cli.interactive_review_actions import payload_review_status_result
+from glassbox.cli.interactive_review_actions import preview_verification_result
+from glassbox.cli.interactive_review_actions import string_tuple
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
 from glassbox.core.ids import QuestionId
@@ -136,23 +140,9 @@ class DaemonInteractiveSessionClient:
         raise_for_action_error(response)
         payload = response.json()
         changeset_id = str(payload["changeset_id"])
-        limitations = tuple(str(item) for item in payload.get("limitations", []))
-        return ReviewLoopActionResult(
-            action="create",
-            headline=f"Created review changeset {changeset_id}",
-            changeset_id=changeset_id,
-            details=(
-                "Source: current workspace diff for this chat session.",
-                "No tests, staging, commit, push, PR, or merge was run.",
-            ),
-            limitations=limitations,
-            safe_next_actions=(
-                f"glassbox changeset show {changeset_id} --cwd .",
-                f"glassbox changeset verification-plan {changeset_id} --cwd .",
-                f"glassbox changeset brief {changeset_id} --cwd .",
-                f"glassbox changeset handoff-readiness {changeset_id} --cwd .",
-            ),
-            dashboard_path=f"/app/changesets/{changeset_id}",
+        return create_changeset_result(
+            changeset_id,
+            limitations=string_tuple(payload.get("limitations", [])),
         )
 
     async def run_review_action(
@@ -175,41 +165,9 @@ class DaemonInteractiveSessionClient:
                 dashboard_url=self.dashboard_url,
             )
             raise_for_action_error(response)
-            payload = response.json()
-            review_summary = payload["review_response_summary"]
-            inventory_status = payload["inventory_status"]
-            skipped_total, skipped_browser, skipped_accessibility = (
-                _payload_skipped_evidence_counts(payload.get("manual_evidence", []))
-            )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Review status for changeset {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(
-                    (
-                        f"{review_summary['total_feedback_count']} feedback item(s), "
-                        f"{review_summary['unresolved_count']} unresolved, "
-                        f"{review_summary['stale_response_count']} stale response "
-                        "check(s)."
-                    ),
-                    f"Inventory: {inventory_status['freshness']}.",
-                    *review_evidence_guidance(
-                        changeset_id=resolved_changeset_id,
-                        missing_fixup_feedback_ids=(
-                            _payload_missing_fixup_feedback_ids(review_summary)
-                        ),
-                        stale_response_count=int(
-                            review_summary.get("stale_response_count", 0)
-                        ),
-                        review_brief_count=len(payload.get("review_briefs", [])),
-                        skipped_live_evidence_count=skipped_total,
-                        skipped_browser_evidence_count=skipped_browser,
-                        skipped_accessibility_evidence_count=skipped_accessibility,
-                    ),
-                ),
-                limitations=_string_tuple(payload.get("limitations", [])),
-                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return payload_review_status_result(
+                resolved_changeset_id,
+                response.json(),
             )
         if action == ReviewLoopAction.REFRESH_INVENTORY:
             response = await request_runtime(
@@ -220,23 +178,9 @@ class DaemonInteractiveSessionClient:
                 json={"actor": "terminal"},
             )
             raise_for_action_error(response)
-            payload = response.json()
-            detail = payload.get("detail", {})
-            inventory = detail.get("inventory") or {}
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Refreshed review inventory for {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(
-                    f"Inventory artifact: {inventory.get('artifact_id', 'unknown')}",
-                    f"Status: {payload.get('status', 'refreshed')}",
-                ),
-                safe_next_actions=(
-                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
-                    "glassbox changeset verification-plan "
-                    f"{resolved_changeset_id} --cwd .",
-                ),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return payload_refresh_inventory_result(
+                resolved_changeset_id,
+                response.json(),
             )
         if action == ReviewLoopAction.GENERATE_BRIEF:
             response = await request_runtime(
@@ -248,18 +192,10 @@ class DaemonInteractiveSessionClient:
             )
             raise_for_action_error(response)
             payload = response.json()
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Generated lifecycle brief for {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(f"Brief artifact: {payload['artifact_id']}",),
-                limitations=_string_tuple(payload.get("limitations", [])),
-                safe_next_actions=(
-                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
-                    "glassbox changeset handoff-readiness "
-                    f"{resolved_changeset_id} --cwd .",
-                ),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return generate_brief_result(
+                resolved_changeset_id,
+                artifact_id=str(payload["artifact_id"]),
+                limitations=string_tuple(payload.get("limitations", [])),
             )
         if action == ReviewLoopAction.PREVIEW_VERIFICATION:
             response = await request_runtime(
@@ -272,17 +208,12 @@ class DaemonInteractiveSessionClient:
             payload = response.json()
             commands = payload.get("recommended_commands", [])
             readiness = payload.get("readiness", {})
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Previewed verification for {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(
-                    f"Readiness: {readiness.get('state', 'unknown')}",
-                    f"{len(commands)} recommended command(s); none were run.",
-                ),
-                limitations=_string_tuple(payload.get("limitations", [])),
-                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return preview_verification_result(
+                resolved_changeset_id,
+                readiness_state=str(readiness.get("state", "unknown")),
+                command_count=len(commands),
+                limitations=string_tuple(payload.get("limitations", [])),
+                safe_next_actions=string_tuple(payload.get("safe_next_actions", [])),
             )
         if action == ReviewLoopAction.INSPECT_HANDOFF:
             response = await request_runtime(
@@ -292,21 +223,9 @@ class DaemonInteractiveSessionClient:
                 dashboard_url=self.dashboard_url,
             )
             raise_for_action_error(response)
-            payload = response.json()
-            blockers = payload.get("blockers", [])
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Handoff readiness for {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(
-                    f"State: {payload.get('state', 'unknown')}",
-                    str(payload.get("reason", "No reason returned.")),
-                    f"{len(blockers)} blocker(s).",
-                    *payload_handoff_evidence_guidance(payload),
-                ),
-                limitations=_string_tuple(payload.get("limitations", [])),
-                safe_next_actions=_string_tuple(payload.get("safe_next_actions", [])),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return payload_handoff_readiness_result(
+                resolved_changeset_id,
+                response.json(),
             )
         if action == ReviewLoopAction.SHOW_FEEDBACK_STATUS:
             response = await request_runtime(
@@ -319,35 +238,9 @@ class DaemonInteractiveSessionClient:
             raise_for_action_error(response)
             payload = response.json()
             summary = payload.get("response_summary") or {}
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Feedback status for {resolved_changeset_id}",
-                changeset_id=resolved_changeset_id,
-                details=(
-                    (
-                        f"{summary.get('total_feedback_count', 0)} feedback item(s), "
-                        f"{summary.get('unresolved_count', 0)} unresolved."
-                    ),
-                    (
-                        f"{summary.get('stale_response_count', 0)} stale response "
-                        "check(s)."
-                    ),
-                    *review_evidence_guidance(
-                        changeset_id=resolved_changeset_id,
-                        missing_fixup_feedback_ids=(
-                            _payload_missing_fixup_feedback_ids(summary)
-                        ),
-                        stale_response_count=int(
-                            summary.get("stale_response_count", 0)
-                        ),
-                        review_brief_count=None,
-                        skipped_live_evidence_count=None,
-                        skipped_browser_evidence_count=None,
-                        skipped_accessibility_evidence_count=None,
-                    ),
-                ),
-                safe_next_actions=_string_tuple(summary.get("safe_next_actions", [])),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
+            return payload_feedback_status_result(
+                resolved_changeset_id,
+                summary,
             )
         if action == ReviewLoopAction.RECORD_FEEDBACK_FIXUP:
             raise InteractiveClientError(
@@ -401,62 +294,3 @@ class DaemonInteractiveSessionClient:
         if not items:
             return None
         return str(items[0]["changeset_id"])
-
-
-def _string_tuple(items: object) -> tuple[str, ...]:
-    if not isinstance(items, list):
-        return ()
-    return tuple(str(item) for item in items)
-
-
-def _payload_missing_fixup_feedback_ids(summary: Any) -> tuple[str, ...]:
-    if not isinstance(summary, dict):
-        return ()
-    ids: list[str] = []
-    for item in summary.get("items", []):
-        if not isinstance(item, dict):
-            continue
-        if item.get("response_state") in {"accepted_with_risk", "not_applicable"}:
-            continue
-        if int(item.get("fixup_inventory_count", 0)) == 0:
-            ids.append(str(item.get("feedback_id")))
-    return tuple(ids)
-
-
-def _payload_skipped_evidence_counts(items: Any) -> tuple[int, int, int]:
-    if not isinstance(items, list):
-        return (0, 0, 0)
-    evidence_items = [
-        cast(dict[str, Any], item) for item in items if isinstance(item, dict)
-    ]
-    skipped = [
-        item
-        for item in evidence_items
-        if item.get("evidence_kind")
-        in {"browser_observation", "screenshot", "accessibility_note"}
-        and _payload_is_skipped_evidence(item)
-    ]
-    skipped_browser = [
-        item
-        for item in skipped
-        if item.get("evidence_kind") in {"browser_observation", "screenshot"}
-    ]
-    skipped_accessibility = [
-        item for item in skipped if item.get("evidence_kind") == "accessibility_note"
-    ]
-    return (len(skipped), len(skipped_browser), len(skipped_accessibility))
-
-
-def _payload_is_skipped_evidence(item: dict[str, Any]) -> bool:
-    text = [
-        *[str(value) for value in item.get("limitations", []) if value is not None],
-        *[str(value) for value in item.get("non_claims", []) if value is not None],
-    ]
-    normalized = {value.strip().lower() for value in text}
-    return bool(
-        {
-            "capture state: not_run",
-            "capture state: not_applicable",
-        }
-        & normalized
-    )

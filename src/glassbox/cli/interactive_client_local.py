@@ -3,7 +3,6 @@
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 from typing import cast
 from uuid import UUID
 
@@ -12,8 +11,14 @@ from glassbox.cli.interactive_client_models import InteractiveClientErrorKind
 from glassbox.cli.interactive_client_models import InteractiveSessionSnapshot
 from glassbox.cli.interactive_client_models import ReviewLoopAction
 from glassbox.cli.interactive_client_models import ReviewLoopActionResult
-from glassbox.cli.interactive_review_guidance import handoff_evidence_guidance
-from glassbox.cli.interactive_review_guidance import review_evidence_guidance
+from glassbox.cli.interactive_review_actions import create_changeset_result
+from glassbox.cli.interactive_review_actions import feedback_status_result
+from glassbox.cli.interactive_review_actions import fixup_inventory_result
+from glassbox.cli.interactive_review_actions import generate_brief_result
+from glassbox.cli.interactive_review_actions import handoff_readiness_result
+from glassbox.cli.interactive_review_actions import preview_verification_result
+from glassbox.cli.interactive_review_actions import refresh_inventory_result
+from glassbox.cli.interactive_review_actions import review_status_result_from_detail
 from glassbox.cli.status_formatters import _pending_question_text_from_events
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
@@ -107,22 +112,9 @@ class LocalInteractiveSessionClient:
             objective=objective,
         )
         changeset_id = str(result.changeset_id)
-        return ReviewLoopActionResult(
-            action="create",
-            headline=f"Created review changeset {changeset_id}",
-            changeset_id=changeset_id,
-            details=(
-                "Source: current workspace diff for this chat session.",
-                "No tests, staging, commit, push, PR, or merge was run.",
-            ),
+        return create_changeset_result(
+            changeset_id,
             limitations=tuple(result.limitations),
-            safe_next_actions=(
-                f"glassbox changeset show {changeset_id} --cwd .",
-                f"glassbox changeset verification-plan {changeset_id} --cwd .",
-                f"glassbox changeset brief {changeset_id} --cwd .",
-                f"glassbox changeset handoff-readiness {changeset_id} --cwd .",
-            ),
-            dashboard_path=f"/app/changesets/{changeset_id}",
         )
 
     async def run_review_action(
@@ -162,23 +154,7 @@ class LocalInteractiveSessionClient:
                 result.feedback_id,
                 workspace_root=workspace_root,
             )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Recorded fixup inventory for feedback {feedback_id}",
-                changeset_id=str(result.changeset_id),
-                details=(
-                    f"Artifact: {result.artifact.artifact_id}",
-                    (
-                        f"Paths: {result.inventory.changed_path_count} changed, "
-                        f"{result.inventory.matched_scope_path_count} scoped matches."
-                    ),
-                    f"Verification: {response_status.verification_state.value}.",
-                    "No tests, staging, commit, push, PR, or merge was run.",
-                ),
-                limitations=tuple(result.inventory.limitations),
-                safe_next_actions=tuple(response_status.safe_next_actions),
-                dashboard_path=f"/app/changesets/{result.changeset_id}",
-            )
+            return fixup_inventory_result(feedback_id, result, response_status)
         resolved_changeset_id = UUID(changeset_id) if changeset_id else None
         if resolved_changeset_id is None:
             resolved_changeset_id = self._latest_changeset_id()
@@ -197,33 +173,7 @@ class LocalInteractiveSessionClient:
                 resolved_changeset_id,
                 workspace_root=workspace_root,
             )
-            summary = detail.review_response_summary
-            skipped_total, skipped_browser, skipped_accessibility = (
-                _local_skipped_evidence_counts(detail.manual_evidence)
-            )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Review status for changeset {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(
-                    f"{summary.total_feedback_count} feedback item(s), "
-                    f"{summary.unresolved_count} unresolved, "
-                    f"{summary.stale_response_count} stale response check(s).",
-                    f"Inventory: {detail.inventory_status.freshness.value}.",
-                    *review_evidence_guidance(
-                        changeset_id=str(resolved_changeset_id),
-                        missing_fixup_feedback_ids=_missing_fixup_feedback_ids(summary),
-                        stale_response_count=summary.stale_response_count,
-                        review_brief_count=len(detail.review_briefs),
-                        skipped_live_evidence_count=skipped_total,
-                        skipped_browser_evidence_count=skipped_browser,
-                        skipped_accessibility_evidence_count=skipped_accessibility,
-                    ),
-                ),
-                limitations=tuple(detail.limitations),
-                safe_next_actions=tuple(detail.safe_next_actions),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
-            )
+            return review_status_result_from_detail(resolved_changeset_id, detail)
         if action == ReviewLoopAction.REFRESH_INVENTORY:
             from glassbox.runtime.changesets import ChangesetActionService
 
@@ -235,21 +185,7 @@ class LocalInteractiveSessionClient:
                 workspace_root,
                 refreshed_by="terminal",
             )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Refreshed review inventory for {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(
-                    f"Inventory artifact: {result.artifact.artifact_id}",
-                    f"Freshness: {result.freshness.value}",
-                ),
-                safe_next_actions=(
-                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
-                    "glassbox changeset verification-plan "
-                    f"{resolved_changeset_id} --cwd .",
-                ),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
-            )
+            return refresh_inventory_result(resolved_changeset_id, result)
         if action == ReviewLoopAction.GENERATE_BRIEF:
             from glassbox.runtime.changesets import ChangesetReviewBriefService
 
@@ -261,18 +197,10 @@ class LocalInteractiveSessionClient:
                 workspace_root,
                 created_by="terminal",
             )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Generated lifecycle brief for {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(f"Brief artifact: {result.artifact.artifact_id}",),
+            return generate_brief_result(
+                str(resolved_changeset_id),
+                artifact_id=str(result.artifact.artifact_id),
                 limitations=tuple(result.limitations),
-                safe_next_actions=(
-                    f"glassbox changeset show {resolved_changeset_id} --cwd .",
-                    "glassbox changeset handoff-readiness "
-                    f"{resolved_changeset_id} --cwd .",
-                ),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
             )
         if action == ReviewLoopAction.PREVIEW_VERIFICATION:
             from glassbox.runtime.changesets import ChangesetVerificationService
@@ -282,17 +210,12 @@ class LocalInteractiveSessionClient:
                 artifact_repository,
             ).preview_plan(resolved_changeset_id, workspace_root)
             command_count = len(preview.recommended_commands)
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Previewed verification for {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(
-                    f"Readiness: {preview.readiness.state.value}",
-                    f"{command_count} recommended command(s); none were run.",
-                ),
+            return preview_verification_result(
+                str(resolved_changeset_id),
+                readiness_state=preview.readiness.state.value,
+                command_count=command_count,
                 limitations=tuple(preview.limitations),
                 safe_next_actions=tuple(preview.safe_next_actions),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
             )
         if action == ReviewLoopAction.INSPECT_HANDOFF:
             from glassbox.runtime.handoff_readiness import (
@@ -303,20 +226,7 @@ class LocalInteractiveSessionClient:
                 repository,
                 artifact_repository,
             ).preview(resolved_changeset_id, workspace_root)
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Handoff readiness for {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(
-                    f"State: {readiness.state}",
-                    readiness.reason,
-                    f"{len(readiness.blockers)} blocker(s).",
-                    *handoff_evidence_guidance(readiness),
-                ),
-                limitations=tuple(readiness.limitations),
-                safe_next_actions=tuple(readiness.safe_next_actions),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
-            )
+            return handoff_readiness_result(resolved_changeset_id, readiness)
         if action == ReviewLoopAction.SHOW_FEEDBACK_STATUS:
             from glassbox.runtime.changesets import ChangesetQueryService
 
@@ -324,27 +234,7 @@ class LocalInteractiveSessionClient:
                 resolved_changeset_id,
                 workspace_root=workspace_root,
             )
-            return ReviewLoopActionResult(
-                action=action,
-                headline=f"Feedback status for {resolved_changeset_id}",
-                changeset_id=str(resolved_changeset_id),
-                details=(
-                    f"{summary.total_feedback_count} feedback item(s), "
-                    f"{summary.unresolved_count} unresolved.",
-                    f"{summary.stale_response_count} stale response check(s).",
-                    *review_evidence_guidance(
-                        changeset_id=str(resolved_changeset_id),
-                        missing_fixup_feedback_ids=_missing_fixup_feedback_ids(summary),
-                        stale_response_count=summary.stale_response_count,
-                        review_brief_count=None,
-                        skipped_live_evidence_count=None,
-                        skipped_browser_evidence_count=None,
-                        skipped_accessibility_evidence_count=None,
-                    ),
-                ),
-                safe_next_actions=tuple(summary.safe_next_actions),
-                dashboard_path=f"/app/changesets/{resolved_changeset_id}",
-            )
+            return feedback_status_result(resolved_changeset_id, summary)
         raise InteractiveClientError(
             InteractiveClientErrorKind.VALIDATION_ERROR,
             f"unsupported review action: {action}",
@@ -400,20 +290,3 @@ class LocalInteractiveSessionClient:
         from glassbox.runtime.changesets import ChangesetRepository
 
         return cast(ChangesetRepository, self.runtime_context.repositories.sessions)
-
-
-def _missing_fixup_feedback_ids(summary: Any) -> tuple[str, ...]:
-    ids: list[str] = []
-    for item in getattr(summary, "items", ()):
-        response_state = getattr(item, "response_state", "")
-        if str(response_state) in {"accepted_with_risk", "not_applicable"}:
-            continue
-        if getattr(item, "fixup_inventory_count", 0) == 0:
-            ids.append(str(item.feedback_id))
-    return tuple(ids)
-
-
-def _local_skipped_evidence_counts(manual_evidence: Any) -> tuple[int, int, int]:
-    from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
-
-    return skipped_live_evidence_counts(manual_evidence)
