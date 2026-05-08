@@ -4,6 +4,7 @@ import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/component
 import type { ChangesetActionStatus, ChangesetDetailState } from "@/stores/dashboard-stores";
 
 import { readinessBadgeVariant } from "./format";
+import { formatReviewPostureState, responseBadgeVariant } from "./review-posture";
 import { Section } from "./shared";
 import type { ChangesetConsoleProps } from "./types";
 
@@ -24,7 +25,7 @@ export function ReviewPanel({
     <Section title="Review Readiness">
       <div className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={readinessBadgeVariant(state)}>{state.replaceAll("_", " ")}</Badge>
+          <Badge variant={readinessBadgeVariant(state)}>{formatReviewPostureState(state)}</Badge>
           <Badge variant={briefCount > 0 ? "success" : "warning"}>{briefCount} brief</Badge>
           {latestBriefId ? <Badge variant="outline">Latest brief attached</Badge> : null}
         </div>
@@ -117,7 +118,7 @@ export function ReviewFeedbackPanel({
                     <div className="flex flex-wrap items-center gap-2">
                       {response ? (
                         <Badge variant={responseBadgeVariant(response.response_state)}>
-                          {response.response_state.replaceAll("_", " ")}
+                          {formatReviewPostureState(response.response_state)}
                         </Badge>
                       ) : null}
                       <Button asChild size="sm" variant="ghost">
@@ -219,17 +220,4 @@ export function ReviewFeedbackPanel({
 
 function feedbackRowId(feedbackId: string) {
   return `feedback-${feedbackId}`;
-}
-
-function responseBadgeVariant(state: string): "default" | "outline" | "success" | "warning" {
-  if (state === "ready_for_handoff" || state === "resolved") {
-    return "success";
-  }
-  if (state === "blocked" || state === "reopened") {
-    return "warning";
-  }
-  if (state === "accepted_with_risk") {
-    return "outline";
-  }
-  return "default";
 }

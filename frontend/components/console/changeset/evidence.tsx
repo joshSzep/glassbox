@@ -18,11 +18,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { ChangesetActionStatus, ChangesetDetailState } from "@/stores/dashboard-stores";
 
+import { isSkippedEvidence, skippedEvidencePosture } from "./review-posture";
 import { Section } from "./shared";
 import type { ChangesetConsoleProps } from "./types";
 
 type ChangesetDetailRecord = NonNullable<ChangesetDetailState["detail"]>;
-type ManualEvidenceItem = ChangesetDetailRecord["manual_evidence"][number];
 
 export function ReviewQuickActionsPanel({
   action,
@@ -168,7 +168,7 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
   const accessibilityEvidence = evidence.filter(
     (item) => item.evidence_kind === "accessibility_note",
   );
-  const skippedLiveEvidence = evidence.filter((item) => skippedEvidenceState(item) !== null);
+  const skippedLiveEvidence = evidence.filter(isSkippedEvidence);
   return (
     <Section title="Manual Evidence Inbox">
       <div className="grid gap-3">
@@ -195,15 +195,14 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
         ) : (
           <DataList density="compact">
             {evidence.slice(0, 8).map((item) => {
-              const skippedState = skippedEvidenceState(item);
-              const skipReason = skippedEvidenceReason(item);
+              const skippedPosture = skippedEvidencePosture(item);
               return (
                 <DataListItem id={evidenceRowId(item.evidence_id)} key={item.evidence_id}>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <DataListLabel>{item.summary}</DataListLabel>
                     <div className="flex flex-wrap items-center gap-2">
-                      {skippedState ? (
-                        <Badge variant="warning">{skippedState.replaceAll("_", " ")}</Badge>
+                      {skippedPosture ? (
+                        <Badge variant="warning">{skippedPosture.stateLabel}</Badge>
                       ) : null}
                       <Button asChild size="sm" variant="ghost">
                         <a href={`#${evidenceRowId(item.evidence_id)}`}>Link</a>
@@ -219,10 +218,10 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
                   {item.artifact_id ? (
                     <DataListMeta>Artifact {item.artifact_id}</DataListMeta>
                   ) : null}
-                  {skippedState ? (
+                  {skippedPosture ? (
                     <DataListMeta>
                       Skipped live evidence remains a limitation, not a pass
-                      {skipReason ? ` - ${skipReason}` : ""}
+                      {skippedPosture.reason ? ` - ${skippedPosture.reason}` : ""}
                     </DataListMeta>
                   ) : null}
                   {item.evidence_kind === "browser_observation" ||
@@ -269,24 +268,6 @@ export function ManualEvidencePanel({ detail }: { detail: ChangesetDetailRecord 
         </ul>
       </div>
     </Section>
-  );
-}
-
-function skippedEvidenceState(item: ManualEvidenceItem): string | null {
-  const captureState = item.limitations
-    .find((limitation) => limitation.toLowerCase().startsWith("capture state: "))
-    ?.split(": ", 2)[1];
-  if (captureState === "not_run" || captureState === "not_applicable") {
-    return captureState;
-  }
-  return null;
-}
-
-function skippedEvidenceReason(item: ManualEvidenceItem): string | null {
-  return (
-    item.limitations
-      .find((limitation) => limitation.toLowerCase().startsWith("skip reason: "))
-      ?.split(": ", 2)[1] ?? null
   );
 }
 

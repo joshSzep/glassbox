@@ -6,6 +6,7 @@ import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { ChangesetDetailState } from "@/stores/dashboard-stores";
 
 import { candidateBadgeVariant, handoffBadgeVariant, verificationBadgeVariant } from "./format";
+import { handoffPostureLabel } from "./review-posture";
 import { Section } from "./shared";
 
 export function HandoffReadinessPanel({ detail }: { detail: ChangesetDetailState }) {
@@ -23,7 +24,7 @@ export function HandoffReadinessPanel({ detail }: { detail: ChangesetDetailState
       <div className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={handoffBadgeVariant(readiness.state)}>
-            {readiness.state.replaceAll("_", " ")}
+            {handoffPostureLabel(readiness.state)}
           </Badge>
           <Badge variant="outline">Commit {readiness.commit_readiness_state}</Badge>
           <Badge variant={readiness.evidence.unresolved_feedback_count > 0 ? "warning" : "muted"}>

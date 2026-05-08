@@ -879,7 +879,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R661: Extract Frontend Skipped-Evidence And Review-Posture Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R660
 - Target files:
   - `frontend/components/console/changeset/evidence.tsx`

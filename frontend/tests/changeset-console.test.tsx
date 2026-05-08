@@ -3,6 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { ChangesetConsole } from "@/components/console/changeset-console";
+import {
+  formatReviewPostureState,
+  responseBadgeVariant,
+  skippedEvidencePosture,
+} from "@/components/console/changeset/review-posture";
 import type { components } from "@/generated/api-types";
 
 type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
@@ -222,6 +227,22 @@ describe("changeset console", () => {
 
     expect(markup).toContain("Response ready_for_handoff");
     expect(markup).toContain("Review feedback is local evidence, not approval.");
+  });
+
+  it("derives skipped evidence and response posture labels in shared helpers", () => {
+    const changeset = makeChangesetSummary("changeset-posture");
+    const detail = makeChangesetDetail(changeset);
+    const skippedPosture = skippedEvidencePosture(detail.manual_evidence[1]);
+
+    expect(skippedPosture).toEqual({
+      reason: "local dashboard server was not started",
+      state: "not_run",
+      stateLabel: "not run",
+    });
+    expect(skippedEvidencePosture(detail.manual_evidence[0])).toBeNull();
+    expect(responseBadgeVariant("ready_for_handoff")).toBe("success");
+    expect(responseBadgeVariant("blocked")).toBe("warning");
+    expect(formatReviewPostureState("needs_verification")).toBe("needs verification");
   });
 });
 

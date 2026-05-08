@@ -1,4 +1,5 @@
 import type { ChangesetBadgeVariant } from "./types";
+import { formatReviewPostureState } from "./review-posture";
 
 export function verificationBadgeVariant(state: string): ChangesetBadgeVariant {
   if (state === "failed") {
@@ -70,5 +71,5 @@ export function candidateBadgeVariant(state: string | null | undefined): Changes
 }
 
 export function formatVerificationState(state: string): string {
-  return state.replaceAll("_", " ");
+  return formatReviewPostureState(state);
 }
