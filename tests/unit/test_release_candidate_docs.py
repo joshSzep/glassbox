@@ -1912,6 +1912,44 @@ def test_v13_refactor_docs_describe_final_module_shape() -> None:
     assert "refactor-v13.md" in docs_readme
 
 
+def test_v14_refactor_docs_define_next_boundary_map() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    boundaries = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    roadmap = (REPO_ROOT / "docs" / "refactor-v14.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Current Post-v14 Review-Loop Maturity Refactor Shape",
+        "`runtime/changeset_review_brief_sections.py` remains the lifecycle brief",
+        "`runtime/review_responses.py` remains the review response facade",
+        "`scripts/v14_release_gate_helpers.py`",
+    ):
+        assert required_text in architecture
+
+    for required_text in (
+        "The post-v14 review-loop maturity boundary map starts",
+        "#### Post-V14 Review-Loop Maturity Runtime Sub-Boundaries",
+        "#### Post-V14 Terminal Review-Loop Sub-Boundaries",
+        "### Post-V14 Accepted Compatibility Shims",
+        "`frontend/stores/changeset-store-actions.ts`: store action facade",
+    ):
+        assert required_text in boundaries
+
+    for required_text in (
+        "GBX-R600: Define Post-V14 Refactor Boundary Map",
+        "- Status: `DONE`",
+        "GBX-R601: Characterize Current V14 Review-Loop Maturity Behavior",
+        "GBX-R602: Add Post-V14 Facade Guardrails After First Extraction",
+    ):
+        assert required_text in roadmap
+
+    assert "docs/refactor-v14.md" in root_readme
+    assert "refactor-v14.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

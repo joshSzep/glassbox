@@ -2726,6 +2726,178 @@ V13_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
 )
 
+V14_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changeset_review_brief_sections.py",
+        915,
+        (
+            "post-v14 review brief sections should move new limitation, "
+            "section-family, skipped-evidence, and readiness behavior into "
+            "focused review-brief helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "review_responses.py",
+        722,
+        (
+            "post-v14 review responses should move new model, status, fixup, "
+            "path-scope, and summary behavior into focused response helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_readiness.py",
+        763,
+        (
+            "post-v14 handoff readiness should move shared signal aggregation "
+            "into review_readiness_signals without merging handoff semantics"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "commit_readiness.py",
+        750,
+        (
+            "post-v14 commit readiness should move shared signal aggregation "
+            "into review_readiness_signals without merging commit semantics"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "interactive_client.py",
+        1153,
+        (
+            "post-v14 interactive client should move protocols, SSE parsing, "
+            "local actions, daemon actions, and review guidance into focused "
+            "terminal helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "changeset_command_handlers.py",
+        847,
+        (
+            "post-v14 changeset command handlers should split lifecycle, "
+            "feedback, evidence, verification, readiness, adoption, export, "
+            "and commit-preparation command families"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changesets.py",
+        779,
+        (
+            "post-v14 changeset routes should move repeated action, reload, "
+            "workspace-root, service, and error patterns into route helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api_builders.py",
+        878,
+        (
+            "post-v14 changeset API builders should split summary, detail, "
+            "review-loop, readiness, verification, evidence, and commit-prep "
+            "builder families"
+        ),
+    ),
+    (
+        REPO_ROOT / "scripts" / "v14_release_gate_helpers.py",
+        301,
+        (
+            "post-v14 release-gate helpers should split inherited stages, "
+            "v14 stages, advisory evidence, dry-run copy, evidence dirs, and "
+            "summary metadata"
+        ),
+    ),
+)
+
+V14_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "api" / "client.ts",
+        1067,
+        (
+            "post-v14 frontend API client should group endpoint families "
+            "without moving transport into components"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "changeset-store-actions.ts",
+        405,
+        (
+            "post-v14 changeset store actions should split list, detail, "
+            "review-loop, readiness, commit-prep, message, and branch-adjacent "
+            "action families"
+        ),
+    ),
+)
+
+V14_PYTHON_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "changeset_review_brief_sections.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "post-v14 review brief helpers must keep lifecycle and limitation "
+            "derivation independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "review_responses.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "post-v14 review response helpers must keep status and fixup "
+            "derivation independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_readiness.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "post-v14 handoff readiness helpers must keep signal derivation "
+            "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "commit_readiness.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "post-v14 commit readiness helpers must keep signal derivation "
+            "independent from CLI and web presentation layers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api_builders.py",
+        ("fastapi",),
+        (
+            "post-v14 changeset API builder helpers should keep FastAPI "
+            "dependencies in route modules"
+        ),
+    ),
+    (
+        REPO_ROOT / "scripts" / "v14_release_gate_helpers.py",
+        ("glassbox.cli", "glassbox.web"),
+        (
+            "post-v14 release-gate helpers must keep summary shaping separate "
+            "from CLI and web presentation layers"
+        ),
+    ),
+)
+
+V14_FRONTEND_IMPORT_RULES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        FRONTEND_ROOT / "api" / "client.ts",
+        ("@/components", "@/stores", "next/", "react", "src/glassbox"),
+        (
+            "post-v14 frontend API client should own transport without "
+            "importing components, stores, Next server modules, React, or "
+            "backend source"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "changeset-store-actions.ts",
+        ("@/components", "next/", "react", "src/glassbox"),
+        (
+            "post-v14 changeset store actions should own transport/action "
+            "state without importing React components, Next server modules, "
+            "or backend source"
+        ),
+    ),
+)
+
 
 def test_dependency_direction_rules_hold_for_refactor_boundaries() -> None:
     violations: list[str] = []
@@ -3007,6 +3179,40 @@ def test_v13_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
     assert violations == []
 
 
+def test_v14_python_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V14_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v14_frontend_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V14_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v14_python_boundaries_avoid_transport_and_presentation_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V14_PYTHON_IMPORT_RULES:
+        violations.extend(
+            _python_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
+def test_v14_frontend_boundaries_avoid_transport_and_backend_imports() -> None:
+    violations: list[str] = []
+
+    for file_path, forbidden_prefixes, message in V14_FRONTEND_IMPORT_RULES:
+        violations.extend(
+            _frontend_import_violations(file_path, forbidden_prefixes, message)
+        )
+
+    assert violations == []
+
+
 def test_post_v8_python_guardrail_messages_point_to_owned_boundaries(
     tmp_path: Path,
 ) -> None:
@@ -3199,6 +3405,53 @@ def test_v13_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
     ]
 
 
+def test_v14_guardrail_messages_point_to_next_owner(tmp_path: Path) -> None:
+    response_file = tmp_path / "review_responses.py"
+    response_file.write_text(
+        "from glassbox.web.changeset_api import ReviewFeedbackResponse\n",
+        encoding="utf-8",
+    )
+
+    import_violations = _python_import_violations(
+        response_file,
+        ("glassbox.web",),
+        (
+            "post-v14 review response helpers must keep status and fixup "
+            "derivation independent from CLI and web presentation layers"
+        ),
+    )
+
+    assert import_violations == [
+        (
+            f"{response_file}: post-v14 review response helpers must keep "
+            "status and fixup derivation independent from CLI and web "
+            "presentation layers: glassbox.web.changeset_api"
+        )
+    ]
+
+    growth_violations = _line_count_violations(
+        (
+            (
+                response_file,
+                0,
+                (
+                    "post-v14 review responses should move new model, status, "
+                    "fixup, path-scope, and summary behavior into focused "
+                    "response helpers"
+                ),
+            ),
+        )
+    )
+
+    assert growth_violations == [
+        (
+            f"{response_file}: post-v14 review responses should move new "
+            "model, status, fixup, path-scope, and summary behavior into "
+            "focused response helpers: 1 lines exceeds 0"
+        )
+    ]
+
+
 def test_v11_confidence_boundary_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"
@@ -3246,6 +3499,39 @@ def test_v13_review_loop_boundary_strategy_is_documented() -> None:
         "### Runtime Review-Loop Boundaries",
         "Publication-boundary behavior is part of this runtime contract",
         "[v13-review-loop-contract.md](./v13-review-loop-contract.md)",
+        "[publication-boundary.md](./publication-boundary.md)",
+    ):
+        assert required_text in architecture_doc
+
+
+def test_post_v14_review_loop_maturity_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### Post-V14 Review-Loop Maturity Runtime Sub-Boundaries",
+        "`changeset_review_brief_limitations.py`",
+        "`review_response_models.py`",
+        "`review_readiness_signals.py`",
+        "#### Post-V14 Terminal Review-Loop Sub-Boundaries",
+        "#### Post-V14 Changeset Web Sub-Boundaries",
+        "#### Post-V14 Frontend Changeset Sub-Boundaries",
+        "### Post-V14 Accepted Compatibility Shims",
+        "post-v14 guardrails start with pre-extraction pressure-point caps",
+        "`scripts/v14_release_gate_helpers.py`: v14 gate helper surface",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "## Current Post-v14 Review-Loop Maturity Refactor Shape",
+        "`runtime/changeset_review_brief_sections.py` remains the lifecycle brief",
+        "`runtime/review_responses.py` remains the review response facade",
+        "`cli/interactive_client.py` remains the plain interactive client entrypoint",
+        "[v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md)",
         "[publication-boundary.md](./publication-boundary.md)",
     ):
         assert required_text in architecture_doc

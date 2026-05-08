@@ -337,7 +337,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R600: Define Post-V14 Refactor Boundary Map
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: none
 - Target files:
   - [refactor-boundaries.md](./refactor-boundaries.md)

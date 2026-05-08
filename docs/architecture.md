@@ -148,6 +148,46 @@ says otherwise, handoff and commit preparation are read-only, and release-gate
 authority remains deterministic rather than browser/dashboard/provider
 advisory evidence.
 
+## Current Post-v14 Review-Loop Maturity Refactor Shape
+
+The v14 review-loop maturity implementation extends the v13 local review loop
+with rich lifecycle limitation summaries, response-linked fixup inventory,
+skipped advisory browser/dashboard/accessibility evidence, safer handoff and
+commit posture, dashboard action states, advisory UX evidence, deterministic
+v14 eval coverage, and a v14 release gate. These additions preserve the same
+local-first authority model: canonical events and managed artifacts remain the
+source of truth, while projection tables, CLI output, web payloads, dashboard
+state, and release-gate summaries are derived.
+
+The post-v14 refactor should preserve current behavior and public entrypoints
+while splitting the maturity surfaces that grew during the milestone:
+
+- `runtime/changeset_review_brief_sections.py` remains the lifecycle brief
+    assembly facade while lifecycle limitation collection and summary, core
+    sections, review-loop sections, and readiness derivation move into focused
+    helpers
+- `runtime/review_responses.py` remains the review response facade while
+    response models, response-status derivation, fixup artifact construction,
+    path-scope helpers, and summary assembly move into focused helpers
+- `runtime/handoff_readiness.py` and `runtime/commit_readiness.py` keep
+    distinct product semantics while shared signal aggregation helpers remove
+    duplicated blocker, limitation, path, and safe-action shaping
+- `cli/interactive_client.py` remains the plain interactive client entrypoint
+    while protocols, SSE parsing, local actions, daemon actions, and
+    review-loop guidance move into CLI-owned helpers
+- changeset command handlers, web changeset routes, web changeset API
+    builders, frontend API endpoint groups, frontend changeset store action
+    families, and `scripts/v14_release_gate_helpers.py` are follow-on transport
+    and release-gate pressure points
+
+These splits must preserve the v14 non-claims described in
+[v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md)
+and [publication-boundary.md](./publication-boundary.md): skipped advisory
+evidence is never passing release evidence, response-linked fixup inventory is
+not reviewer acceptance, handoff and commit readiness are read-only guidance,
+dashboard action states are operator workflow state rather than approval, and
+release-gate authority remains deterministic rather than advisory UX evidence.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per

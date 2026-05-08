@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), and the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), and the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), and [refactor-v13.md](./refactor-v13.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), and [refactor-v14.md](./refactor-v14.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -53,6 +53,15 @@ dashboard console sections, frontend store actions/selectors, store projection
 families, repository adapter mixins, and release-gate helper ownership now
 follow the focused boundaries described below.
 
+The post-v14 review-loop maturity boundary map starts from the completed v14
+release-candidate milestone and the new roadmap in
+[refactor-v14.md](./refactor-v14.md). The next split should keep lifecycle
+limitation summaries, response-linked fixup inventory, skipped advisory
+evidence, handoff and commit readiness, terminal review-loop guidance,
+changeset web transport, frontend changeset actions, and v14 release-gate
+summary shaping independently reviewable without changing the shipped v14
+contracts.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -85,6 +94,11 @@ The non-goals are:
   boundary non-claims, handoff/commit read-only posture, or advisory browser,
   dashboard, accessibility, provider, and dogfooding evidence contracts while
   performing post-v13 review-loop refactor-only movement
+- change v14 review-loop maturity semantics, response-linked fixup inventory,
+  skipped advisory evidence posture, lifecycle brief limitation caps, safe next
+  actions, dashboard action states, local-versus-daemon review command parity,
+  or publication-boundary non-claims while performing post-v14 maturity
+  refactor-only movement
 
 ## Behavior-Preservation Contract
 
@@ -314,6 +328,41 @@ modules whose public contract is intentionally broad but already delegates
 behavior to owned implementation modules. Large files that are mixed
 coordinators should be split along ownership boundaries when their roadmap task
 arrives, not by mechanical line slicing.
+
+The post-v14 pressure points are the review-loop maturity surfaces that grew
+after the v13 split:
+
+- `src/glassbox/runtime/changeset_review_brief_sections.py` now owns lifecycle
+  section assembly, limitation collection, skipped-evidence copy, reviewer
+  checklist shaping, safe commands, and review-readiness derivation. Limitation
+  collection and summary construction should move first, followed by core,
+  review-loop, and readiness section families.
+- `src/glassbox/runtime/review_responses.py` owns response and fixup models,
+  fixup artifact shaping, path-scope matching, status derivation, blockers,
+  verification posture, freshness, and safe next actions. Model declarations,
+  status derivation, fixup artifacts, path helpers, and summary assembly should
+  become separate runtime owners while `review_responses.py` preserves imports.
+- `src/glassbox/runtime/handoff_readiness.py` and
+  `src/glassbox/runtime/commit_readiness.py` independently derive overlapping
+  signal, blocker, limitation, path, and safe-action patterns. Shared signal
+  concepts should move into a helper without merging the distinct handoff and
+  commit product semantics.
+- `src/glassbox/cli/interactive_client.py` mixes interactive client protocols,
+  local runtime actions, daemon HTTP actions, SSE parsing, review-loop action
+  orchestration, payload parsing, skipped-evidence counting, and terminal copy.
+  Protocol/model, SSE, local, daemon, and review guidance owners should split
+  without changing plain interactive behavior.
+- Follow-on transport and release-gate pressure points are
+  `src/glassbox/cli/changeset_command_handlers.py`,
+  `src/glassbox/web/routes/changesets.py`,
+  `src/glassbox/web/changeset_api_builders.py`,
+  `frontend/api/client.ts`,
+  `frontend/stores/changeset-store-actions.ts`, and
+  `scripts/v14_release_gate_helpers.py`.
+
+The post-v14 split should continue to treat model-heavy public surfaces,
+generated API types, generated OpenAPI JSON, and fixture-heavy tests as stable
+contract surfaces unless a concrete ownership problem appears.
 
 ## Target Boundary Map
 
@@ -558,6 +607,35 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   lifecycle briefs, handoff readiness, and commit preparation remain advisory
   unless the current event contract already records a canonical mutation.
 
+#### Post-V14 Review-Loop Maturity Runtime Sub-Boundaries
+
+- Lifecycle brief limitation collection, deduplication, priority ordering,
+  overflow copy, and `ReviewBriefLimitationSummary` construction should move
+  from `changeset_review_brief_sections.py` into
+  `changeset_review_brief_limitations.py`. The raw retained evidence remains
+  authoritative, and the current 20-item reviewer-safe artifact cap remains the
+  behavior contract.
+- Review brief section assembly should keep
+  `changeset_review_brief_sections.py` as the service-facing facade while core
+  changeset sections, review-loop sections, and readiness-state derivation move
+  into focused section-family modules.
+- Skipped live evidence semantics should stay in one runtime boundary:
+  `skipped_evidence.py` owns labels, reasons, counts, and summaries used by
+  browser evidence, accessibility evidence, lifecycle briefs, verification
+  readiness, and handoff readiness. Skipped evidence remains advisory and does
+  not become passing release evidence.
+- Review response declarations should split from derivation. Response and fixup
+  inventory models belong in `review_response_models.py`; response state,
+  blocker, verification, freshness, and safe-action derivation belong in
+  `review_response_status.py`; fixup artifact JSON and path-scope helpers
+  belong in `review_fixup_*` modules.
+- Changeset-level response summary assembly should stay reusable by detail
+  views, CLI, web, verification previews, handoff readiness, and commit
+  readiness without owning fixup artifact creation.
+- Commit and handoff readiness may share signal aggregation helpers, but the
+  public `CommitReadinessSignal` and `HandoffReadinessSignal` surfaces keep
+  their distinct product vocabularies, non-claims, and safe-action copy.
+
 ### Store
 
 The `store` package should own canonical persistence and projection application.
@@ -764,6 +842,23 @@ The `cli` package should not build its own parallel session-query logic when the
   they should not duplicate runtime evidence, readiness, publication-boundary,
   or response-status derivation.
 
+#### Post-V14 Terminal Review-Loop Sub-Boundaries
+
+- `cli/interactive_client.py` should split client models/protocols, SSE event
+  parsing, local runtime actions, daemon HTTP actions, and review-loop action
+  guidance into focused CLI helpers. The compatibility entrypoint should
+  preserve plain interactive behavior, daemon attach behavior, and current
+  review command copy.
+- Terminal guidance for review-loop fixups, skipped advisory evidence,
+  verification posture, handoff readiness, and safe next actions may format
+  runtime-derived data, but it should not rederive response status, readiness
+  blockers, or publication-boundary rules.
+- `cli/changeset_command_handlers.py` is the follow-on scriptable command
+  pressure point. New lifecycle, feedback, evidence, verification, readiness,
+  adoption, export, and commit-preparation command behavior should move into
+  command-family helpers while `changeset_commands.py` remains the user-facing
+  command facade.
+
 #### Post-v8 TUI Sub-Boundaries
 
 - the TUI conversation split now keeps `cli/tui/conversation.py` as a
@@ -834,6 +929,21 @@ The `web` package should not own the canonical logic for deriving session summar
 - Route helpers preserve paths, response models, status codes, validation
   patterns, OpenAPI shape, local evidence advisory copy, and publication-boundary
   non-claims.
+
+#### Post-V14 Changeset Web Sub-Boundaries
+
+- `web/routes/changesets.py` should continue to preserve FastAPI route
+  declarations while repeated repository lookup, workspace-root lookup, action
+  execution, post-mutation detail reload, and HTTP error translation move into
+  route action helpers.
+- `web/changeset_api_builders.py` may remain the compatibility mapper while
+  changeset summary/detail, review-loop feedback, readiness, verification,
+  evidence, and commit-preparation builder families split into focused pure
+  builder modules. Builder helpers own transport serialization only.
+- Web response models and generated OpenAPI/frontend types remain transport
+  contracts. Runtime query services must not import them, and refactor-only
+  movement must refresh generated contracts only when payload shapes
+  intentionally change.
 
 #### Historical Web Frontend Sub-Boundaries
 
@@ -945,6 +1055,20 @@ the Next.js SPA contract in [architecture.md](./architecture.md) and
   must not duplicate backend review-loop derivation, response-status logic,
   readiness scoring, or publication-boundary rules.
 
+#### Post-V14 Frontend Changeset Sub-Boundaries
+
+- `frontend/stores/changeset-store-actions.ts` should split list/detail reload,
+  lifecycle actions, review-loop actions, readiness/commit-preparation actions,
+  action-message shaping, and branch-search adjacency into store-owned helpers.
+  Components continue to consume store state and action methods.
+- Frontend skipped-evidence and review-posture helpers may normalize typed API
+  values for display, but they must not recreate backend skipped-evidence
+  recognition, response-status derivation, readiness blockers, or
+  publication-boundary authority.
+- `frontend/api/client.ts` may group endpoint families behind the existing API
+  facade. Transport stays in the API/store layer and must not move into React
+  components.
+
 ### Replay And Eval
 
 Replay and eval logic lives in `runtime`, but it should maintain its own internal boundaries.
@@ -982,6 +1106,13 @@ Its internal ownership should stay explicit:
   v13-specific stage construction, review-loop evidence rows, browser and
   accessibility advisory rows, dry-run planning, and summary metadata move into
   `scripts/v13_release_gate_helpers.py` or focused helper functions.
+- The v14 release-gate helper split should keep
+  `scripts/validate_v14_release_gate.py` as the operator entrypoint while
+  inherited gate stages, v14 stage construction, advisory provider evidence,
+  advisory UX evidence, dry-run copy, evidence-dir resolution, and summary
+  metadata move into focused helpers under
+  `scripts/v14_release_gate_helpers.py` or adjacent release-gate helper
+  modules.
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 
@@ -1130,6 +1261,23 @@ The practical rules are:
   helpers, inherited release-gate helpers, and runtime eval models, but should
   not import CLI renderers, web routes, frontend code, or dashboard component
   state
+- post-v14 runtime review-loop maturity helpers must stay transport-agnostic:
+  lifecycle limitations, response status, fixup inventory, skipped evidence,
+  handoff readiness, and commit readiness may depend on core/runtime/service
+  contracts, but not CLI formatters, FastAPI models, frontend code, or raw
+  projection SQL
+- post-v14 terminal helpers may call runtime services and format runtime-owned
+  posture, but should not rederive skipped-evidence semantics, response status,
+  readiness blockers, or publication-boundary rules
+- post-v14 changeset API builders own transport serialization only and must
+  not import FastAPI route dependencies
+- post-v14 frontend stores own API transport and action state, while frontend
+  display helpers remain pure over generated API/store types and avoid backend
+  source, Next server modules, and React component imports where pure helpers
+  are intended
+- post-v14 release-gate helper modules may depend on inherited release-gate
+  helpers, runtime eval models, and standard library filesystem/process
+  helpers, but not CLI renderers, web routes, frontend code, or dashboard state
 
 ## Boundary Guardrails
 
@@ -1172,6 +1320,12 @@ The guardrails are intentionally narrow:
   also have explicit delegate-import and facade-size checks. Frontend changeset
   entrypoints remain under pre-split growth and dependency-direction guardrails
   until the Phase 85 component and store helper modules exist.
+- post-v14 guardrails start with pre-extraction pressure-point caps for
+  lifecycle brief limitations, review response/fixup status, handoff and commit
+  readiness, plain interactive client behavior, changeset command handlers,
+  changeset routes, changeset API builders, frontend API/store action owners,
+  and v14 release-gate helpers. Post-extraction facade delegate checks should
+  be added only after the owning helper modules exist.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1239,6 +1393,17 @@ shape:
   `scripts/validate_v13_release_gate.py` while existing runtime imports,
   commands, parser entrypoints, routes, generated API consumers, component
   entrypoints, and release-gate invocations transition to focused helpers
+- post-v14 compatibility facades may include
+  `runtime/changeset_review_brief_sections.py`,
+  `runtime/review_responses.py`, `runtime/handoff_readiness.py`,
+  `runtime/commit_readiness.py`, `cli/interactive_client.py`,
+  `cli/changeset_command_handlers.py`, `web/routes/changesets.py`,
+  `web/changeset_api_builders.py`, `frontend/api/client.ts`,
+  `frontend/stores/changeset-store-actions.ts`, and
+  `scripts/v14_release_gate_helpers.py` while lifecycle limitations, response
+  status, fixup artifacts, readiness signals, terminal review guidance,
+  transport action patterns, endpoint groups, store action families, and
+  release-gate summary shaping move into focused helpers
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain
@@ -1334,6 +1499,48 @@ For completed post-v13 extraction slices, guardrails now assert that:
   advisory-evidence, dry-run, evidence-dir, and summary metadata ownership to
   `scripts/v13_release_gate_helpers.py`.
 
+### Post-V14 Accepted Compatibility Shims
+
+The post-v14 refactor starts with these accepted compatibility surfaces and
+intended owners:
+
+- `runtime/changeset_review_brief_sections.py`: lifecycle brief assembly
+  facade; limitation collection belongs in
+  `changeset_review_brief_limitations.py`, section families belong in
+  `changeset_review_brief_*_sections.py`, and readiness derivation belongs in a
+  review-brief readiness helper.
+- `runtime/review_responses.py`: review response facade; response models
+  belong in `review_response_models.py`, status derivation belongs in
+  `review_response_status.py`, fixup artifact/path helpers belong in
+  `review_fixup_*` modules, and summary assembly belongs in
+  `review_response_summary.py`.
+- `runtime/handoff_readiness.py` and `runtime/commit_readiness.py`: readiness
+  service surfaces; shared blocker, limitation, path, and safe-action signal
+  helpers belong in `review_readiness_signals.py` while product-specific state
+  vocabularies remain separate.
+- `cli/interactive_client.py`: plain interactive client surface; client
+  protocols, SSE parsing, local actions, daemon actions, and review guidance
+  belong in focused interactive client helpers.
+- `cli/changeset_command_handlers.py`: scriptable changeset command handler
+  surface; lifecycle, feedback, evidence, verification, readiness, adoption,
+  export, and commit-preparation action families should split by command
+  owner.
+- `web/routes/changesets.py`: FastAPI declaration surface; repeated action,
+  post-mutation reload, workspace-root, service, and HTTP error patterns belong
+  in route-local action helpers.
+- `web/changeset_api_builders.py`: transport builder facade; summary/detail,
+  review-loop, readiness, verification, evidence, and commit-preparation
+  builder families belong in focused pure web builder modules.
+- `frontend/api/client.ts`: frontend API facade; endpoint groups may split
+  under API-owned modules while preserving component/store call sites.
+- `frontend/stores/changeset-store-actions.ts`: store action facade; list,
+  detail, review-loop, readiness, commit-preparation, message, and branch
+  adjacency behavior belongs in store-owned action helpers.
+- `scripts/v14_release_gate_helpers.py`: v14 gate helper surface; inherited
+  stage mapping, v14 stage construction, advisory evidence, dry-run copy,
+  evidence-dir resolution, and summary metadata should become separately
+  testable helper families.
+
 ## Patterns That Must Not Become Permanent
 
 The following patterns are not acceptable as stable endpoints:
@@ -1392,6 +1599,12 @@ The intended mapping is:
   transports, frontend changeset console/store, store projections, and release
   gate helper ownership
 - `GBX-R502`: planned v13 post-extraction guardrails that keep the new
+  compatibility facades thin and delegated after the first helper modules exist
+- `GBX-R600`: post-v14 review-loop maturity boundary map for lifecycle
+  limitations, review response/fixup status, skipped evidence, readiness
+  signals, terminal clients, changeset transport, frontend API/store action
+  surfaces, and v14 release-gate helper ownership
+- `GBX-R602`: planned post-v14 post-extraction guardrails that keep the new
   compatibility facades thin and delegated after the first helper modules exist
 
 Later tasks should follow this boundary map rather than redefining subsystem ownership case by case.
