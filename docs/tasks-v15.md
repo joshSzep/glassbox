@@ -330,7 +330,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1500: Define The v15 Repository Intelligence V2 Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1463`
 - Goal: publish the operator and contributor contract for repository
   intelligence v2 without expanding Glassbox into hosted code search, cloud

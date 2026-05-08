@@ -553,6 +553,54 @@ def test_v14_review_loop_maturity_contract_covers_product_boundary() -> None:
     assert "tasks-v14.md" in docs_readme
 
 
+def test_v15_repository_intelligence_contract_covers_product_boundary() -> None:
+    content = (
+        REPO_ROOT / "docs" / "v15-repository-intelligence-contract.md"
+    ).read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Scope",
+        "## Vocabulary",
+        "## Supported Workflow Set",
+        "## Repository Intelligence Sources",
+        "## Evidence Expectations",
+        "## Advisory Boundaries",
+        "## Release Authority",
+        "## Safety Rules",
+        "## Mapping To Existing Contracts",
+        "## Non-Goals",
+        "repository index snapshots",
+        "workspace topology snapshots",
+        "eval metadata",
+        "command recipes",
+        "confirmed active workspace memory",
+        "dependency manifests",
+        "source roots, test roots, docs roots",
+        "release-sensitive surfaces",
+        "Repository intelligence is local, rebuildable, freshness-aware,",
+        "provenance-backed, and advisory by default.",
+        "Repository intelligence is advisory by default.",
+        "Deterministic replay, eval, package, migration, unit, integration",
+        "Memory-derived intelligence must come from confirmed active memory",
+        "Prompt use must be bounded, source-labeled, inspectable, and",
+        "v8-auditable-autonomy-contract.md",
+        "repository-intelligence-index.md",
+        "workspace-topology.md",
+        "workspace-memory.md",
+        "runtime-context.md",
+        "hosted code search",
+        "external vector-store authority",
+        "provider-side hidden memory",
+        "automatic owner assignment",
+        "automatic commits",
+        "automatic pushes",
+        "automatic pull request creation",
+        "hidden semantic indexing",
+        "tasks-v15.md",
+    ):
+        assert required_text in content
+
+
 def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:
     content = (REPO_ROOT / "docs" / "v14-review-loop-maturity-audit.md").read_text(
         encoding="utf-8"
