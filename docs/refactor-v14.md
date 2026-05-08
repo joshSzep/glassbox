@@ -793,7 +793,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R651: Extract Changeset Route Action Patterns
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620, GBX-R632
 - Target files:
   - `src/glassbox/web/routes/changesets.py`
@@ -810,6 +810,8 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - route module that reads as transport declaration rather than repeated
     action orchestration
+  - route-local action helpers for mutation/detail reload and feedback action
+    response patterns while preserving FastAPI endpoint declarations
 - Validation:
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `pnpm --dir frontend api:generate`

@@ -1536,8 +1536,9 @@ intended owners:
   `changeset_command_lifecycle.py`, `changeset_command_feedback.py`,
   `changeset_command_evidence.py`, and `changeset_command_readiness.py`.
 - `web/routes/changesets.py`: FastAPI declaration surface; repeated action,
-  post-mutation reload, workspace-root, service, and HTTP error patterns belong
-  in route-local action helpers.
+  post-mutation reload, workspace-root, service, and HTTP error patterns now
+  delegate to `changeset_route_actions.py`, `changeset_route_feedback.py`, and
+  the existing route-local request, service, and error helpers.
 - `web/changeset_api_builders.py`: transport builder facade; summary/detail,
   review-loop, readiness, verification, evidence, and commit-preparation
   builder families belong in focused pure web builder modules.

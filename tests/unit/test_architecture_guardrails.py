@@ -2520,11 +2520,12 @@ V13_COMPATIBILITY_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...
     (
         SRC_ROOT / "web" / "routes" / "changesets.py",
         (
-            "glassbox.web.routes.changeset_route_errors",
+            "glassbox.web.routes.changeset_route_actions",
+            "glassbox.web.routes.changeset_route_feedback",
             "glassbox.web.routes.changeset_route_requests",
             "glassbox.web.routes.changeset_route_services",
         ),
-        "v13 changeset routes should delegate to route-local helpers",
+        "v13 changeset routes should delegate to route-local action helpers",
     ),
 )
 
