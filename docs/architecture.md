@@ -321,6 +321,11 @@ preview, lifecycle brief sections, safe commands, handoff readiness, and commit
 readiness from canonical events, managed artifacts, repository read models, and
 explicit service inputs.
 
+Lifecycle brief limitation collection and reviewer-safe overflow summarization
+live in `runtime/changeset_review_brief_limitations.py`; the review brief
+section facade consumes that summarized output without changing retained
+evidence authority.
+
 Runtime review-loop helpers must not import CLI formatting, FastAPI response
 models, dashboard components, generated frontend types, or raw projection SQL.
 They may preserve compatibility re-exports through `runtime/changesets.py`

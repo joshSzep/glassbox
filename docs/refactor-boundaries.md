@@ -610,11 +610,11 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 #### Post-V14 Review-Loop Maturity Runtime Sub-Boundaries
 
 - Lifecycle brief limitation collection, deduplication, priority ordering,
-  overflow copy, and `ReviewBriefLimitationSummary` construction should move
-  from `changeset_review_brief_sections.py` into
-  `changeset_review_brief_limitations.py`. The raw retained evidence remains
-  authoritative, and the current 20-item reviewer-safe artifact cap remains the
-  behavior contract.
+  overflow copy, and `ReviewBriefLimitationSummary` construction now live in
+  `changeset_review_brief_limitations.py`; `changeset_review_brief_sections.py`
+  consumes summarized limitation output while assembling the artifact. The raw
+  retained evidence remains authoritative, and the current 20-item
+  reviewer-safe artifact cap remains the behavior contract.
 - Review brief section assembly should keep
   `changeset_review_brief_sections.py` as the service-facing facade while core
   changeset sections, review-loop sections, and readiness-state derivation move

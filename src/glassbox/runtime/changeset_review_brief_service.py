@@ -30,8 +30,10 @@ from glassbox.runtime.changeset_inventory_status import (
 )
 from glassbox.runtime.changeset_models import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
+from glassbox.runtime.changeset_review_brief_limitations import (
+    collect_review_brief_limitations as _review_brief_limitations,
+)
 from glassbox.runtime.changeset_review_brief_sections import _review_brief_artifact
-from glassbox.runtime.changeset_review_brief_sections import _review_brief_limitations
 from glassbox.runtime.changeset_review_brief_sections import _review_readiness_reason
 from glassbox.runtime.changeset_review_brief_sections import _review_readiness_state
 from glassbox.runtime.changeset_verification import ChangesetVerificationService

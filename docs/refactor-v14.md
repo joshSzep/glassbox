@@ -432,7 +432,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R610: Extract Lifecycle Brief Limitation Collection And Summary
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R601
 - Target files:
   - `src/glassbox/runtime/changeset_review_brief_sections.py`

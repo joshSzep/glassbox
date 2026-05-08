@@ -35,6 +35,9 @@ from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_verification_id
 from glassbox.runtime.changeset_export import build_changeset_export_payload
+from glassbox.runtime.changeset_review_brief_limitations import (
+    summarize_review_brief_limitations,
+)
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.review_briefs import REVIEW_BRIEF_ARTIFACT_KIND
@@ -506,6 +509,30 @@ def test_review_brief_generation_summarizes_limitations_before_validation(
     )
     assert result.event.payload.event_type == "ChangesetReviewBriefCreated"
     assert repository.events
+
+
+def test_review_brief_limitation_summary_prioritizes_review_blockers() -> None:
+    low_priority = [f"retained limitation {index:02d}" for index in range(24)]
+    priority_limitations = [
+        "review blocker prevents handoff",
+        "failed verification check needs rerun",
+        "stale response needs fresh verification",
+        "skipped browser/dashboard evidence is not a pass",
+        "publication boundary remains local-only",
+        "raw command output is not included",
+    ]
+
+    limitations, summary = summarize_review_brief_limitations(
+        low_priority + priority_limitations
+    )
+
+    assert len(limitations) == 20
+    assert limitations[-1].startswith("rich-evidence limitations summarized")
+    for limitation in priority_limitations:
+        assert limitation in limitations
+    assert summary is not None
+    assert summary.visible_count == 20
+    assert summary.overflow_count == 11
 
 
 def _brief(
