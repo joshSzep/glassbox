@@ -409,7 +409,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R602: Add Post-V14 Facade Guardrails After First Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R610, GBX-R620, GBX-R640
 - Target files:
   - [test_architecture_guardrails.py](../tests/unit/test_architecture_guardrails.py)

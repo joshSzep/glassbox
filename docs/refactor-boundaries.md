@@ -1335,6 +1335,13 @@ The guardrails are intentionally narrow:
   changeset routes, changeset API builders, frontend API/store action owners,
   and v14 release-gate helpers. Post-extraction facade delegate checks should
   be added only after the owning helper modules exist.
+- the completed post-v14 extraction slices now have narrow facade checks for
+  lifecycle brief section families, review response helpers, commit/handoff
+  readiness signals, interactive terminal clients, changeset command handlers,
+  route-local changeset actions, web builder families, frontend endpoint
+  groups, and changeset store action helpers. The v14 release-gate helper
+  remains under its pre-split cap until its stage, advisory, and summary owners
+  exist.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1545,14 +1552,37 @@ intended owners:
   `changeset_api_builders_review.py`, and
   `changeset_api_builders_readiness.py`.
 - `frontend/api/client.ts`: frontend API facade; endpoint groups may split
-  under API-owned modules while preserving component/store call sites.
+  under API-owned modules while preserving component/store call sites. The
+  current split keeps request/error handling in `client-core.ts`, sessions in
+  `client-sessions.ts`, tasks and background jobs in `client-tasks.ts`,
+  changesets and branch search in `client-changesets.ts`, and memory plus
+  repository index in `client-workspace.ts`.
 - `frontend/stores/changeset-store-actions.ts`: store action facade; list,
   detail, review-loop, readiness, commit-preparation, message, and branch
-  adjacency behavior belongs in store-owned action helpers.
+  adjacency behavior belongs in store-owned action helpers. The current split
+  keeps list/detail reload and branch-search adjacency in
+  `changeset-store-loaders.ts`, review-loop mutations in
+  `changeset-store-review-actions.ts`, and operator-facing action text in
+  `changeset-store-action-messages.ts`.
 - `scripts/v14_release_gate_helpers.py`: v14 gate helper surface; inherited
   stage mapping, v14 stage construction, advisory evidence, dry-run copy,
   evidence-dir resolution, and summary metadata should become separately
   testable helper families.
+
+For completed post-v14 extraction slices, guardrails now assert that:
+
+- `runtime/changeset_review_brief_sections.py` imports the core and review-loop
+  section families it assembles.
+- `runtime/review_responses.py` delegates models, status, fixup artifacts, and
+  summary assembly to focused response helpers.
+- `runtime/handoff_readiness.py` and `runtime/commit_readiness.py` remain
+  bounded orchestration over evidence, git, and signal helpers.
+- `cli/interactive_client.py` and `cli/changeset_command_handlers.py` remain
+  compatibility surfaces over client and command-family helpers.
+- `web/routes/changesets.py` and `web/changeset_api_builders.py` delegate to
+  route-local action/service helpers and builder-family modules.
+- `frontend/api/client.ts` and `frontend/stores/changeset-store-actions.ts`
+  delegate to API endpoint-family and store action helper modules.
 
 ## Patterns That Must Not Become Permanent
 
