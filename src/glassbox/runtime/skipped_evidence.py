@@ -7,6 +7,9 @@ from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 
 SkippedEvidenceState = Literal["not_run", "not_applicable", "skipped"]
+EvidenceCaptureState = Literal["observed", "not_run", "not_applicable", "skipped"]
+SKIPPED_CAPTURE_STATE_PREFIX = "capture state: "
+SKIPPED_REASON_PREFIX = "skip reason: "
 
 LIVE_EVIDENCE_KINDS = {
     ManualEvidenceKind.BROWSER_OBSERVATION,
@@ -19,6 +22,12 @@ def is_live_evidence(evidence: ManualEvidenceRecord) -> bool:
     return evidence.evidence_kind in LIVE_EVIDENCE_KINDS
 
 
+def live_evidence_items(
+    evidence: Iterable[ManualEvidenceRecord],
+) -> list[ManualEvidenceRecord]:
+    return [item for item in evidence if is_live_evidence(item)]
+
+
 def skipped_evidence_state(
     evidence: ManualEvidenceRecord,
 ) -> SkippedEvidenceState | None:
@@ -27,10 +36,12 @@ def skipped_evidence_state(
     text = [*evidence.limitations, *evidence.non_claims]
     for item in text:
         normalized = item.strip().lower()
-        if normalized == "capture state: not_run":
+        if normalized == skipped_capture_state_limitation("not_run"):
             return "not_run"
-        if normalized == "capture state: not_applicable":
+        if normalized == skipped_capture_state_limitation("not_applicable"):
             return "not_applicable"
+        if normalized == skipped_capture_state_limitation("skipped"):
+            return "skipped"
     return None
 
 
@@ -38,9 +49,15 @@ def is_skipped_live_evidence(evidence: ManualEvidenceRecord) -> bool:
     return is_live_evidence(evidence) and skipped_evidence_state(evidence) is not None
 
 
+def skipped_live_evidence_items(
+    evidence: Iterable[ManualEvidenceRecord],
+) -> list[ManualEvidenceRecord]:
+    return [item for item in evidence if is_skipped_live_evidence(item)]
+
+
 def skipped_evidence_reason(evidence: ManualEvidenceRecord) -> str | None:
     for limitation in evidence.limitations:
-        if limitation.lower().startswith("skip reason: "):
+        if limitation.lower().startswith(SKIPPED_REASON_PREFIX):
             return limitation.split(": ", 1)[1]
     return None
 
@@ -55,7 +72,7 @@ def skipped_evidence_label(evidence: ManualEvidenceRecord) -> str:
 def skipped_live_evidence_counts(
     evidence: Iterable[ManualEvidenceRecord],
 ) -> tuple[int, int, int]:
-    skipped = [item for item in evidence if is_skipped_live_evidence(item)]
+    skipped = skipped_live_evidence_items(evidence)
     browser = [
         item
         for item in skipped
@@ -79,14 +96,34 @@ def skipped_live_evidence_summary(evidence: ManualEvidenceRecord) -> str:
     return f"{skipped_evidence_label(evidence)}: {evidence.summary}{suffix}"
 
 
+def skipped_capture_state_limitation(state: EvidenceCaptureState) -> str:
+    return f"{SKIPPED_CAPTURE_STATE_PREFIX}{state}"
+
+
+def skipped_reason_limitation(reason: str) -> str:
+    return f"{SKIPPED_REASON_PREFIX}{reason}"
+
+
+def skipped_case_limitations(cases: Iterable[str], *, limit: int = 5) -> list[str]:
+    return [f"skipped: {item}" for item in list(cases)[:limit]]
+
+
 __all__ = [
+    "EvidenceCaptureState",
     "LIVE_EVIDENCE_KINDS",
+    "SKIPPED_CAPTURE_STATE_PREFIX",
+    "SKIPPED_REASON_PREFIX",
     "SkippedEvidenceState",
     "is_live_evidence",
     "is_skipped_live_evidence",
+    "live_evidence_items",
+    "skipped_capture_state_limitation",
+    "skipped_case_limitations",
     "skipped_evidence_label",
     "skipped_evidence_reason",
     "skipped_evidence_state",
+    "skipped_live_evidence_items",
     "skipped_live_evidence_counts",
     "skipped_live_evidence_summary",
+    "skipped_reason_limitation",
 ]

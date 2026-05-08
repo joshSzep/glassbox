@@ -485,7 +485,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R612: Promote Skipped Evidence Recognition To A Shared Runtime Boundary
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R610
 - Target files:
   - `src/glassbox/runtime/skipped_evidence.py`

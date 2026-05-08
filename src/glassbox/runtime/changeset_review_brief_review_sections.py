@@ -13,8 +13,10 @@ from glassbox.runtime.review_briefs import ReviewBriefEvidenceRef
 from glassbox.runtime.review_briefs import ReviewBriefSection
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
+from glassbox.runtime.skipped_evidence import live_evidence_items
 from glassbox.runtime.skipped_evidence import skipped_evidence_label
 from glassbox.runtime.skipped_evidence import skipped_evidence_reason
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_items
 from glassbox.runtime.skipped_evidence import skipped_live_evidence_summary
 
 
@@ -164,22 +166,11 @@ def review_brief_manual_evidence_section(
 def review_brief_live_evidence_section(
     manual_evidence: list[ManualEvidenceRecord],
 ) -> ReviewBriefSection | None:
-    live_evidence = [
-        item
-        for item in manual_evidence
-        if item.evidence_kind
-        in {
-            ManualEvidenceKind.BROWSER_OBSERVATION,
-            ManualEvidenceKind.SCREENSHOT,
-            ManualEvidenceKind.ACCESSIBILITY_NOTE,
-        }
-    ]
+    live_evidence = live_evidence_items(manual_evidence)
     if not live_evidence:
         return None
     kind_counts = _value_counts(item.evidence_kind.value for item in live_evidence)
-    skipped_evidence = [
-        item for item in live_evidence if is_skipped_live_evidence(item)
-    ]
+    skipped_evidence = skipped_live_evidence_items(live_evidence)
     skipped_sentence = (
         f" {len(skipped_evidence)} item(s) are explicitly skipped/not applicable "
         "and must remain visible as limitations, not passes."

@@ -9,6 +9,9 @@ from pydantic import Field
 from pydantic import model_validator
 
 from glassbox.runtime.manual_evidence import ManualEvidenceLocalReference
+from glassbox.runtime.skipped_evidence import skipped_capture_state_limitation
+from glassbox.runtime.skipped_evidence import skipped_case_limitations
+from glassbox.runtime.skipped_evidence import skipped_reason_limitation
 
 BROWSER_EVIDENCE_PROTOCOL = "browser-accessibility-evidence.v1"
 BrowserEvidenceCaptureState = Literal["observed", "not_run", "not_applicable"]
@@ -143,7 +146,7 @@ def browser_evidence_limitations(capture: BrowserEvidenceCapture) -> list[str]:
     limitations = [
         "browser/dashboard evidence is advisory live evidence",
         "browser/dashboard evidence does not replace deterministic checks",
-        f"capture state: {capture.capture_state}",
+        skipped_capture_state_limitation(capture.capture_state),
     ]
     if capture.capture_state != "observed":
         limitations.extend(
@@ -153,10 +156,10 @@ def browser_evidence_limitations(capture: BrowserEvidenceCapture) -> list[str]:
             ]
         )
         if capture.skip_reason:
-            limitations.append(f"skip reason: {capture.skip_reason}")
+            limitations.append(skipped_reason_limitation(capture.skip_reason))
     if capture.screenshot_path_hint is not None:
         limitations.append("screenshot metadata is local-only")
-    limitations.extend(f"skipped: {item}" for item in capture.skipped_cases[:5])
+    limitations.extend(skipped_case_limitations(capture.skipped_cases))
     limitations.extend(capture.limitations[:5])
     return limitations[:20]
 

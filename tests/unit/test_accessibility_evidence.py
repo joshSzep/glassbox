@@ -59,6 +59,10 @@ def test_skipped_accessibility_evidence_does_not_require_fake_environment() -> N
     assert "environment: unknown" in note
     assert "observed_issue: not observed" in note
     assert "skip_reason: docs-only change" in note
+    assert "capture state: not_applicable" in limitations
+    assert "skip reason: docs-only change had no rendered interaction surface" in (
+        limitations
+    )
     assert "skipped accessibility evidence is not a pass" in limitations
     assert "skipped accessibility evidence is not a pass" in non_claims
 

@@ -624,11 +624,12 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   response, manual evidence, live evidence, stale-verification, and
   publication-boundary sections; and `changeset_review_brief_readiness.py`
   owns review-readiness state and reason derivation.
-- Skipped live evidence semantics should stay in one runtime boundary:
-  `skipped_evidence.py` owns labels, reasons, counts, and summaries used by
-  browser evidence, accessibility evidence, lifecycle briefs, verification
-  readiness, and handoff readiness. Skipped evidence remains advisory and does
-  not become passing release evidence.
+- Skipped live evidence semantics now stay in one runtime boundary:
+  `skipped_evidence.py` owns labels, reasons, persisted skipped limitation
+  strings, live/skipped item helpers, counts, and summaries used by browser
+  evidence, accessibility evidence, lifecycle briefs, verification readiness,
+  and handoff readiness. Skipped evidence remains advisory and does not become
+  passing release evidence.
 - Review response declarations should split from derivation. Response and fixup
   inventory models belong in `review_response_models.py`; response state,
   blocker, verification, freshness, and safe-action derivation belong in

@@ -68,6 +68,10 @@ def test_skipped_browser_evidence_does_not_require_fake_viewport() -> None:
     assert "viewport: unknown" in note
     assert "environment: unknown" in note
     assert "skip_reason: local server was not started" in note
+    assert "capture state: not_run" in limitations
+    assert "skip reason: local server was not started for this docs-only pass" in (
+        limitations
+    )
     assert "skipped browser/dashboard evidence is not a pass" in limitations
     assert "skipped browser/dashboard evidence is not a pass" in non_claims
 

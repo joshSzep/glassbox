@@ -40,8 +40,8 @@ from glassbox.runtime.commit_readiness import ChangesetCommitReadinessService
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
-from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
 from glassbox.runtime.skipped_evidence import skipped_live_evidence_counts
+from glassbox.runtime.skipped_evidence import skipped_live_evidence_items
 from glassbox.services import ArtifactRepository
 
 HandoffReadinessState = Literal[
@@ -521,7 +521,7 @@ def _manual_evidence_signals(
             )
         )
     local_only = [item for item in attached if item.local_only]
-    skipped_live = [item for item in attached if is_skipped_live_evidence(item)]
+    skipped_live = skipped_live_evidence_items(attached)
     if local_only:
         signals.append(
             HandoffReadinessSignal(

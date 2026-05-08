@@ -333,6 +333,10 @@ builders live in `runtime/changeset_review_brief_review_sections.py`, and
 readiness-state derivation lives in
 `runtime/changeset_review_brief_readiness.py`.
 
+Skipped advisory live evidence semantics are centralized in
+`runtime/skipped_evidence.py`, including retained limitation strings, labels,
+reasons, live/skipped item selection, and skipped evidence counts.
+
 Runtime review-loop helpers must not import CLI formatting, FastAPI response
 models, dashboard components, generated frontend types, or raw projection SQL.
 They may preserve compatibility re-exports through `runtime/changesets.py`

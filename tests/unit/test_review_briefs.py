@@ -247,7 +247,7 @@ def test_review_brief_generation_degrades_without_inventory(tmp_path: Path) -> N
     )
 
 
-def test_review_brief_generation_includes_review_loop_evidence(
+def test_review_brief_generation_includes_skipped_review_loop_evidence(
     tmp_path: Path,
 ) -> None:
     repository = _FakeReviewBriefRepository(tmp_path)
