@@ -700,7 +700,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R641: Split Local And Daemon Interactive Client Implementations
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R640
 - Target files:
   - `src/glassbox/cli/interactive_client.py`
