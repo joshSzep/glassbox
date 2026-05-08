@@ -964,6 +964,43 @@ describe("changeset store", () => {
     expect(store.getState().detail.branchSearchDetail).toBeNull();
     expect(store.getState().detail.detail?.changeset.branch_candidate_id).toBe("candidate-1");
   });
+
+  it("ignores stale changeset page and detail responses", async () => {
+    const stalePage = deferred<{ items: ChangesetSummary[] }>();
+    const staleDetail = deferred<ChangesetDetail>();
+    let pageCalls = 0;
+    const store = createChangesetStore(
+      createApiClient({
+        getChangesetDetail: async (changesetId) => {
+          if (changesetId === "stale") {
+            return staleDetail.promise;
+          }
+          return makeChangesetDetail(changesetId);
+        },
+        getChangesetPage: async () => {
+          pageCalls += 1;
+          if (pageCalls === 1) {
+            return stalePage.promise;
+          }
+          return { items: [makeChangesetSummary("fresh")] };
+        },
+      }),
+    );
+
+    const firstPageLoad = store.getState().loadChangesetPage();
+    await store.getState().loadChangesetPage();
+    stalePage.resolve({ items: [makeChangesetSummary("stale")] });
+    await firstPageLoad;
+
+    const firstDetailLoad = store.getState().selectChangeset("stale");
+    await store.getState().selectChangeset("fresh");
+    staleDetail.resolve(makeChangesetDetail("stale"));
+    await firstDetailLoad;
+
+    expect(store.getState().page.items[0]?.changeset_id).toBe("fresh");
+    expect(store.getState().detail.selectedChangesetId).toBe("fresh");
+    expect(store.getState().detail.detail?.changeset.changeset_id).toBe("fresh");
+  });
 });
 
 describe("knowledge store", () => {

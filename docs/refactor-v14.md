@@ -852,7 +852,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R660: Split Changeset Store Action Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R651
 - Target files:
   - `frontend/stores/changeset-store.ts`
