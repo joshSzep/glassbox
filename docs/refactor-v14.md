@@ -457,7 +457,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R611: Extract Review Brief Section Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R610
 - Target files:
   - `src/glassbox/runtime/changeset_review_brief_sections.py`

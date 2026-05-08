@@ -33,9 +33,13 @@ from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_review_brief_limitations import (
     collect_review_brief_limitations as _review_brief_limitations,
 )
+from glassbox.runtime.changeset_review_brief_readiness import (
+    review_readiness_reason as _review_readiness_reason,
+)
+from glassbox.runtime.changeset_review_brief_readiness import (
+    review_readiness_state as _review_readiness_state,
+)
 from glassbox.runtime.changeset_review_brief_sections import _review_brief_artifact
-from glassbox.runtime.changeset_review_brief_sections import _review_readiness_reason
-from glassbox.runtime.changeset_review_brief_sections import _review_readiness_state
 from glassbox.runtime.changeset_verification import ChangesetVerificationService
 from glassbox.runtime.review_briefs import REVIEW_BRIEF_ARTIFACT_SCHEMA_VERSION
 from glassbox.runtime.review_briefs import review_brief_artifact_json

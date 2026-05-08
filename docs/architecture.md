@@ -326,6 +326,13 @@ live in `runtime/changeset_review_brief_limitations.py`; the review brief
 section facade consumes that summarized output without changing retained
 evidence authority.
 
+Review brief artifact assembly keeps a narrow facade in
+`runtime/changeset_review_brief_sections.py`; deterministic section builders
+live in `runtime/changeset_review_brief_core_sections.py`, review-loop section
+builders live in `runtime/changeset_review_brief_review_sections.py`, and
+readiness-state derivation lives in
+`runtime/changeset_review_brief_readiness.py`.
+
 Runtime review-loop helpers must not import CLI formatting, FastAPI response
 models, dashboard components, generated frontend types, or raw projection SQL.
 They may preserve compatibility re-exports through `runtime/changesets.py`

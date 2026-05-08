@@ -615,10 +615,15 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   consumes summarized limitation output while assembling the artifact. The raw
   retained evidence remains authoritative, and the current 20-item
   reviewer-safe artifact cap remains the behavior contract.
-- Review brief section assembly should keep
-  `changeset_review_brief_sections.py` as the service-facing facade while core
-  changeset sections, review-loop sections, and readiness-state derivation move
-  into focused section-family modules.
+- Review brief section assembly now keeps
+  `changeset_review_brief_sections.py` as the service-facing facade while
+  `changeset_review_brief_core_sections.py` owns deterministic changeset,
+  inventory, provenance, topology, verification, command-evidence,
+  branch-candidate, and risk sections;
+  `changeset_review_brief_review_sections.py` owns lifecycle, feedback,
+  response, manual evidence, live evidence, stale-verification, and
+  publication-boundary sections; and `changeset_review_brief_readiness.py`
+  owns review-readiness state and reason derivation.
 - Skipped live evidence semantics should stay in one runtime boundary:
   `skipped_evidence.py` owns labels, reasons, counts, and summaries used by
   browser evidence, accessibility evidence, lifecycle briefs, verification
