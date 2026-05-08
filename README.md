@@ -117,7 +117,8 @@ release-candidate guide in
 [docs/v13-release-candidate.md](docs/v13-release-candidate.md). The next
 review-loop maturity contract is in
 [docs/v14-review-loop-maturity-contract.md](docs/v14-review-loop-maturity-contract.md),
-with the planning graph in [docs/tasks-v14.md](docs/tasks-v14.md).
+with the planning graph in [docs/tasks-v14.md](docs/tasks-v14.md) and the
+post-v14 refactor roadmap in [docs/refactor-v14.md](docs/refactor-v14.md).
 
 ## Documentation
 

@@ -159,30 +159,31 @@ local-first authority model: canonical events and managed artifacts remain the
 source of truth, while projection tables, CLI output, web payloads, dashboard
 state, and release-gate summaries are derived.
 
-The post-v14 refactor should preserve current behavior and public entrypoints
-while splitting the maturity surfaces that grew during the milestone:
+The post-v14 refactor preserves current behavior and public entrypoints while
+splitting the maturity surfaces that grew during the milestone:
 
 - `runtime/changeset_review_brief_sections.py` remains the lifecycle brief
     assembly facade while lifecycle limitation collection and summary, core
-    sections, review-loop sections, and readiness derivation move into focused
+    sections, review-loop sections, and readiness derivation live in focused
     helpers
 - `runtime/review_responses.py` remains the review response facade while
     response models, response-status derivation, fixup artifact construction,
-    path-scope helpers, and summary assembly move into focused helpers
+    path-scope helpers, and summary assembly live in focused helpers
 - `runtime/handoff_readiness.py` and `runtime/commit_readiness.py` keep
     distinct product semantics while shared signal aggregation helpers remove
     duplicated blocker, limitation, path, and safe-action shaping
 - `cli/interactive_client.py` remains the plain interactive client entrypoint
     while protocols, SSE parsing, local actions, daemon actions, and
-    review-loop guidance move into CLI-owned helpers
+    review-loop guidance live in CLI-owned helpers
 - changeset command handlers now split scriptable lifecycle, feedback,
     evidence, and readiness workflows behind the stable command-handler import
     surface; web changeset routes now keep endpoint declarations over
     route-local action and feedback helpers; web changeset API builders now
     split detail/verification, review-loop, and readiness response shaping
     behind the stable API facade; frontend API endpoint groups, frontend
-    changeset store action families, and `scripts/v14_release_gate_helpers.py`
-    are follow-on transport and release-gate pressure points
+    changeset store action families, and v14 release-gate stage/advisory/summary
+    helpers now live behind compatibility facades; `scripts/v14_release_gate_helpers.py`
+    remains the stable helper import surface for the operator entrypoint
 
 These splits must preserve the v14 non-claims described in
 [v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md)

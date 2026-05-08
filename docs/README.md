@@ -605,8 +605,8 @@ but they are not the first-run operator path.
 - [refactor-v14.md](./refactor-v14.md): post-v14 review-loop maturity
   refactor roadmap for lifecycle limitation summaries, response-linked fixup
   inventory, skipped advisory evidence, readiness signals, terminal clients,
-  changeset transport, frontend API/store actions, and v14 release-gate helper
-  ownership
+  changeset transport, frontend API/store actions, post-extraction guardrails,
+  and v14 release-gate helper ownership
 - [refactor-v11.md](./refactor-v11.md): post-v11 confidence-surface
   refactor roadmap for recommendation, knowledge, branch-search, handoff, CLI,
   frontend, recovery, and projection boundaries

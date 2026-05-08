@@ -963,7 +963,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R671: Refresh Refactor Documentation And Package Metadata Expectations
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R602, GBX-R670
 - Target files:
   - [README.md](../README.md)

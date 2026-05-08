@@ -274,6 +274,13 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert (
         "sdist missing required file: scripts/v14_release_gate_helpers.py" in problems
     )
+    assert "sdist missing required file: scripts/v14_release_gate_stages.py" in problems
+    assert (
+        "sdist missing required file: scripts/v14_release_gate_advisory.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/v14_release_gate_summary.py" in problems
+    )
     assert (
         "sdist missing required file: scripts/validate_frontend_release_assets.py"
         in problems
@@ -577,6 +584,9 @@ def _write_sdist(
                 "scripts/v13_release_gate_helpers.py",
                 "scripts/validate_v14_release_gate.py",
                 "scripts/v14_release_gate_helpers.py",
+                "scripts/v14_release_gate_stages.py",
+                "scripts/v14_release_gate_advisory.py",
+                "scripts/v14_release_gate_summary.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{script_path}", "\n")
             for source_path in (
