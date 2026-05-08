@@ -12,9 +12,12 @@ from typing import TypedDict
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIntelligenceCommandRecipe
+from glassbox.core.models import RepositoryIntelligenceOwnershipHint
 from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
+from glassbox.core.models import RepositoryIntelligenceReleaseSurface
 from glassbox.core.models import RepositoryIntelligenceSourceManifest
+from glassbox.core.models import RepositoryIntelligenceSubsystem
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexSourceType
 from glassbox.runtime.repository_intelligence_layout import (
@@ -33,6 +36,9 @@ class RepositoryIntelligenceLayoutFields(TypedDict):
     policy_sensitive_paths: list[RepositoryIntelligencePathHint]
     package_boundaries: list[RepositoryIntelligencePackageBoundary]
     command_recipes: list[RepositoryIntelligenceCommandRecipe]
+    ownership_hints: list[RepositoryIntelligenceOwnershipHint]
+    subsystems: list[RepositoryIntelligenceSubsystem]
+    release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface]
     limitations: list[str]
 
 
@@ -168,6 +174,9 @@ def repository_intelligence_layout_fields(
         "policy_sensitive_paths": layout.policy_sensitive_paths,
         "package_boundaries": layout.package_boundaries,
         "command_recipes": layout.command_recipes,
+        "ownership_hints": layout.ownership_hints,
+        "subsystems": layout.subsystems,
+        "release_sensitive_surfaces": layout.release_sensitive_surfaces,
         "limitations": layout.limitations,
     }
 

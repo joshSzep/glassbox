@@ -138,6 +138,16 @@ not approve execution, grant tool-policy permission, or replace deterministic
 release evidence; they only explain likely local commands and why the repository
 suggests them.
 
+Ownership, subsystem, and release-surface hints follow the same rule. The
+builder reads optional CODEOWNERS-style files when present, adds low-confidence
+subsystem owner hints from local path conventions, records subsystem scopes for
+runtime, store, web, CLI, frontend, evals, docs, release, packaging, policy,
+provider, memory, topology, and review-loop areas when those paths exist, and
+groups command recipes into commit-time, push-time, release-candidate, and
+advisory release surfaces. These records are explainability aids only; they do
+not assign reviewers, enforce access control, or promote advisory checks into
+release authority.
+
 Layout discovery remains bounded and advisory. Excluded directories such as
 `node_modules`, `.venv`, `.git`, `.glassbox`, static build outputs, and cache
 directories are not crawled for entries, but known generated or build-output

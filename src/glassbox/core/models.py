@@ -767,6 +767,30 @@ class RepositoryIntelligenceOwnershipHint(BaseModel):
         return _repository_relative_paths(value)
 
 
+class RepositoryIntelligenceSubsystem(BaseModel):
+    """Advisory subsystem boundary inferred from repository-owned metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    subsystem_id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=500)
+    scope_paths: list[Path] = Field(min_length=1)
+    package_ids: list[str] = Field(default_factory=list)
+    owner_hint_ids: list[str] = Field(default_factory=list)
+    release_surface_ids: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("scope_paths")
+    @classmethod
+    def validate_scope_paths(cls, value: list[Path]) -> list[Path]:
+        return _repository_relative_paths(value)
+
+
 class RepositoryIntelligenceReleaseSurface(BaseModel):
     """Advisory release-sensitive surface retained in a repository snapshot."""
 
@@ -823,6 +847,7 @@ class RepositoryIndexSnapshot(BaseModel):
     ownership_hints: list[RepositoryIntelligenceOwnershipHint] = Field(
         default_factory=list
     )
+    subsystems: list[RepositoryIntelligenceSubsystem] = Field(default_factory=list)
     release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface] = Field(
         default_factory=list
     )
@@ -860,6 +885,7 @@ class RepositoryIndexSnapshot(BaseModel):
                 self.package_boundaries,
                 self.command_recipes,
                 self.ownership_hints,
+                self.subsystems,
                 self.release_sensitive_surfaces,
                 self.limitations,
             )
@@ -895,6 +921,10 @@ class RepositoryIndexSnapshot(BaseModel):
         _ensure_unique(
             "repository intelligence ownership hint ids",
             (hint.hint_id for hint in self.ownership_hints),
+        )
+        _ensure_unique(
+            "repository intelligence subsystem ids",
+            (subsystem.subsystem_id for subsystem in self.subsystems),
         )
         _ensure_unique(
             "repository intelligence release surface ids",

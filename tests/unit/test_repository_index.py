@@ -87,6 +87,23 @@ def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> No
         commands["uv run glassbox eval run --profile release-candidate --cwd ."].purpose
         == CommandPurpose.EVAL
     )
+    assert {subsystem.subsystem_id for subsystem in loaded.subsystems} >= {
+        "subsystem:docs",
+        "subsystem:evals",
+        "subsystem:frontend",
+        "subsystem:packaging",
+        "subsystem:release",
+    }
+    assert any(
+        hint.owner_label == "@docs-team" and hint.scope_paths == [Path("docs")]
+        for hint in loaded.ownership_hints
+    )
+    assert {surface.kind for surface in loaded.release_sensitive_surfaces} == {
+        RepositoryIntelligenceReleaseSurfaceKind.COMMIT_TIME,
+        RepositoryIntelligenceReleaseSurfaceKind.PUSH_TIME,
+        RepositoryIntelligenceReleaseSurfaceKind.RELEASE_CANDIDATE,
+        RepositoryIntelligenceReleaseSurfaceKind.ADVISORY,
+    }
     assert fetched.entry_id == symbol_entry.entry_id
     assert (
         fetched.provenance[0].source_type == RepositoryIndexSourceType.STATIC_ANALYSIS
@@ -447,6 +464,7 @@ def _seed_repository(root: Path) -> None:
     (root / "frontend").mkdir()
     (root / "frontend" / "generated").mkdir()
     (root / "frontend" / "out").mkdir()
+    (root / ".github").mkdir()
     (root / "tests").mkdir()
     (root / "node_modules").mkdir()
     (root / "pyproject.toml").write_text(
@@ -461,6 +479,10 @@ glassbox-fixture = "fixture:main"
         encoding="utf-8",
     )
     (root / "README.md").write_text("# Fixture\n", encoding="utf-8")
+    (root / ".github" / "CODEOWNERS").write_text(
+        "docs/* @docs-team\nfrontend/* @frontend-team\n",
+        encoding="utf-8",
+    )
     (root / "docs" / "architecture.md").write_text("# Architecture\n", encoding="utf-8")
     (root / "evals" / "cases" / "example.json").write_text("{}\n", encoding="utf-8")
     (root / "evals" / "recipes.json").write_text(

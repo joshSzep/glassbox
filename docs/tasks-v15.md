@@ -511,7 +511,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1513: Add Ownership, Subsystem, And Release-Surface Hint Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1511`
 - Goal: extract explainable ownership and subsystem hints that improve
   changesets, review briefs, eval recommendations, and dashboard inspection

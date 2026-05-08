@@ -215,6 +215,7 @@ from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
 from glassbox.core.models import RepositoryIntelligenceReleaseSurface
 from glassbox.core.models import RepositoryIntelligenceSourceManifest
+from glassbox.core.models import RepositoryIntelligenceSubsystem
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import ReviewFeedbackFixupInventoryRecord
 from glassbox.core.models import ReviewFeedbackFixupPathRecord
@@ -484,6 +485,7 @@ __all__ = [
     "RepositoryIntelligenceReleaseSurface",
     "RepositoryIntelligenceReleaseSurfaceKind",
     "RepositoryIntelligenceSourceManifest",
+    "RepositoryIntelligenceSubsystem",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",
