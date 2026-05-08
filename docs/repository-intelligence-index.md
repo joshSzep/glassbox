@@ -129,6 +129,15 @@ generated/cache/build-output posture for known paths such as
 indexing, workspace topology exclusion, workspace diff generated-path
 annotation, and verification drift generated-path checks.
 
+Command recipe discovery is also local and advisory. V15 snapshots derive
+recipes from package scripts, `pyproject.toml` console scripts, eval recipe
+commands, eval profiles, release-gate scripts, and a bounded scan of documented
+command examples. Recipes carry command purpose, review relevance, risk,
+timeout hints, scope paths, confidence, provenance, and limitations. They do
+not approve execution, grant tool-policy permission, or replace deterministic
+release evidence; they only explain likely local commands and why the repository
+suggests them.
+
 Layout discovery remains bounded and advisory. Excluded directories such as
 `node_modules`, `.venv`, `.git`, `.glassbox`, static build outputs, and cache
 directories are not crawled for entries, but known generated or build-output

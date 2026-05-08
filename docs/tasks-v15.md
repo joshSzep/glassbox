@@ -485,7 +485,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1512: Add Command Recipe And Toolchain Intelligence Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1511`
 - Goal: derive local command recipes and toolchain posture from repository-owned
   files and retained successful command evidence

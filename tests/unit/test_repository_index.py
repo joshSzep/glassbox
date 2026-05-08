@@ -1,5 +1,6 @@
 """Unit coverage for deterministic repository intelligence indexing."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -70,6 +71,22 @@ def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> No
         and hint.kind == RepositoryIntelligencePathKind.GENERATED_PATH
         for hint in loaded.generated_paths
     )
+    commands = {recipe.command: recipe for recipe in loaded.command_recipes}
+    assert commands["pnpm --dir frontend test"].purpose == CommandPurpose.TEST
+    assert (
+        commands["pnpm --dir frontend test"].risk
+        == RepositoryIntelligenceCommandRisk.READ_ONLY
+    )
+    assert (
+        commands[
+            "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+        ].confidence
+        == RepositoryIntelligenceConfidence.HIGH
+    )
+    assert (
+        commands["uv run glassbox eval run --profile release-candidate --cwd ."].purpose
+        == CommandPurpose.EVAL
+    )
     assert fetched.entry_id == symbol_entry.entry_id
     assert (
         fetched.provenance[0].source_type == RepositoryIndexSourceType.STATIC_ANALYSIS
@@ -116,6 +133,49 @@ def test_repository_index_layout_respects_builder_limit_and_generated_paths(
         for hint in snapshot.generated_paths
         if hint.path == Path("frontend/out")
     )
+
+
+def test_repository_command_recipes_dedupe_and_explain_sources(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    (tmp_path / "README.md").write_text(
+        "# Fixture\n\n$ uv run pytest tests/unit/test_release_candidate_docs.py -q\n",
+        encoding="utf-8",
+    )
+
+    snapshot = build_and_write_repository_index(tmp_path)
+    docs_recipe = next(
+        recipe
+        for recipe in snapshot.command_recipes
+        if recipe.command
+        == "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+    )
+    release_recipe = next(
+        recipe
+        for recipe in snapshot.command_recipes
+        if recipe.command
+        == "uv run python scripts/validate_v1_release_gate.py --dry-run"
+    )
+
+    assert (
+        len(
+            [
+                recipe
+                for recipe in snapshot.command_recipes
+                if recipe.command
+                == "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+            ]
+        )
+        == 1
+    )
+    assert {source.path for source in docs_recipe.provenance} == {
+        Path("evals/recipes.json"),
+        Path("README.md"),
+    }
+    assert docs_recipe.review_relevance == CommandReviewRelevance.VERIFICATION
+    assert release_recipe.purpose == CommandPurpose.RELEASE_GATE
+    assert release_recipe.timeout_seconds == 600
 
 
 def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(
@@ -403,6 +463,38 @@ glassbox-fixture = "fixture:main"
     (root / "README.md").write_text("# Fixture\n", encoding="utf-8")
     (root / "docs" / "architecture.md").write_text("# Architecture\n", encoding="utf-8")
     (root / "evals" / "cases" / "example.json").write_text("{}\n", encoding="utf-8")
+    (root / "evals" / "recipes.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "recipes": [
+                    {
+                        "recipe_id": "docs-only",
+                        "title": "Docs checks",
+                        "path_globs": ["docs/*.md"],
+                        "commands": [
+                            "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+                        ],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (root / "evals" / "profiles.json").write_text(
+        json.dumps(
+            {
+                "manifest_version": 1,
+                "profiles": [
+                    {
+                        "profile_id": "release-candidate",
+                        "title": "Release Candidate",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
     (root / "src" / "sample.py").write_text(
         "class UsefulThing:\n    pass\n\ndef helper() -> None:\n    pass\n",
         encoding="utf-8",
@@ -415,6 +507,7 @@ glassbox-fixture = "fixture:main"
         '{"scripts":{"test":"vitest"},"dependencies":{"react":"19.0.0"}}',
         encoding="utf-8",
     )
+    (root / "frontend" / "pnpm-lock.yaml").write_text("", encoding="utf-8")
     (root / "frontend" / "generated" / "api-types.ts").write_text(
         "export type Api = {};\n",
         encoding="utf-8",
@@ -425,5 +518,10 @@ glassbox-fixture = "fixture:main"
     )
     (root / "node_modules" / "ignored.py").write_text(
         "class Ignored:\n    pass\n",
+        encoding="utf-8",
+    )
+    (root / "scripts").mkdir()
+    (root / "scripts" / "validate_v1_release_gate.py").write_text(
+        "def main() -> None: pass\n",
         encoding="utf-8",
     )

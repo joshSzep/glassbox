@@ -10,10 +10,13 @@ from pathlib import Path
 from typing import Any
 
 from glassbox.core.models import RepositoryIndexProvenance
+from glassbox.core.models import RepositoryIntelligenceCommandRecipe
 from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
 from glassbox.core.models import RepositoryIntelligenceSourceManifest
+from glassbox.core.types import CommandPurpose
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import RepositoryIntelligenceCommandRisk
 from glassbox.core.types import RepositoryIntelligenceConfidence
 from glassbox.core.types import RepositoryIntelligencePackageKind
 from glassbox.core.types import RepositoryIntelligencePathKind
@@ -40,6 +43,7 @@ class RepositoryIntelligenceLayout:
     generated_paths: list[RepositoryIntelligencePathHint]
     policy_sensitive_paths: list[RepositoryIntelligencePathHint]
     package_boundaries: list[RepositoryIntelligencePackageBoundary]
+    command_recipes: list[RepositoryIntelligenceCommandRecipe]
     limitations: list[str]
 
 
@@ -58,6 +62,7 @@ def discover_repository_intelligence_layout(
     generated_paths: list[RepositoryIntelligencePathHint] = []
     policy_sensitive_paths: list[RepositoryIntelligencePathHint] = []
     package_boundaries: list[RepositoryIntelligencePackageBoundary] = []
+    command_recipes: list[RepositoryIntelligenceCommandRecipe] = []
 
     def add_manifest(path: Path, role: str) -> None:
         if not (root / path).exists():
@@ -78,6 +83,7 @@ def discover_repository_intelligence_layout(
         add_manifest(pyproject, "python project manifest")
         package = _python_package(root, pyproject)
         package_boundaries.append(package)
+        command_recipes.extend(_pyproject_command_recipes(root, pyproject, package))
         source_roots.extend(
             _path_hints(
                 package.source_roots, RepositoryIntelligencePathKind.SOURCE_ROOT
@@ -100,6 +106,7 @@ def discover_repository_intelligence_layout(
         add_manifest(relative, "node package manifest")
         package = _node_package(root, relative)
         package_boundaries.append(package)
+        command_recipes.extend(_node_command_recipes(root, relative, package))
         source_roots.extend(
             _path_hints(
                 package.source_roots, RepositoryIntelligencePathKind.SOURCE_ROOT
@@ -157,9 +164,12 @@ def discover_repository_intelligence_layout(
             "recipes.json",
         ):
             add_manifest(eval_root / manifest, "eval metadata")
+        command_recipes.extend(_eval_command_recipes(root))
 
     generated_paths.extend(_known_generated_and_ignored_hints(root))
     policy_sensitive_paths.extend(_policy_sensitive_hints(root))
+    command_recipes.extend(_release_script_command_recipes(root))
+    command_recipes.extend(_docs_command_recipes(root))
 
     return RepositoryIntelligenceLayout(
         source_manifests=_dedupe_by_id(source_manifests, "manifest_id"),
@@ -169,6 +179,7 @@ def discover_repository_intelligence_layout(
         generated_paths=_dedupe_by_id(generated_paths, "hint_id"),
         policy_sensitive_paths=_dedupe_by_id(policy_sensitive_paths, "hint_id"),
         package_boundaries=_dedupe_by_id(package_boundaries, "package_id"),
+        command_recipes=_dedupe_command_recipes(command_recipes),
         limitations=[],
     )
 
@@ -239,6 +250,237 @@ def _node_package(
         generated_paths=generated,
         confidence=RepositoryIntelligenceConfidence.HIGH,
         provenance=[_provenance(RepositoryIndexSourceType.MANIFEST, package_json)],
+    )
+
+
+def _pyproject_command_recipes(
+    root: Path,
+    pyproject: Path,
+    package: RepositoryIntelligencePackageBoundary,
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    data = _read_toml(root / pyproject)
+    project = data.get("project", {})
+    if not isinstance(project, dict):
+        return []
+    scripts = project.get("scripts", {})
+    if not isinstance(scripts, dict):
+        return []
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for script_name in sorted(str(name) for name in scripts):
+        recipes.append(
+            _command_recipe(
+                recipe_id=f"pyproject:{script_name}",
+                name=f"Python script {script_name}",
+                command=f"uv run {script_name}",
+                source_path=pyproject,
+                source_type=RepositoryIndexSourceType.MANIFEST,
+                scope_paths=[package.root, *package.source_roots],
+                confidence=RepositoryIntelligenceConfidence.LOW,
+                toolchain="uv",
+                limitations=[
+                    "Console script entrypoint is repository-owned, but its "
+                    "review purpose may need operator inspection."
+                ],
+            )
+        )
+    return recipes
+
+
+def _node_command_recipes(
+    root: Path,
+    package_json: Path,
+    package: RepositoryIntelligencePackageBoundary,
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    data = _read_json(root / package_json)
+    scripts = data.get("scripts", {})
+    if not isinstance(scripts, dict):
+        return []
+    manager = _node_package_manager(root, package_json.parent)
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for script_name in sorted(str(name) for name in scripts):
+        recipes.append(
+            _command_recipe(
+                recipe_id=f"node:{_slug(package.root)}:{script_name}",
+                name=f"{package.name}:{script_name}",
+                command=_node_script_command(manager, package.root, script_name),
+                source_path=package_json,
+                source_type=RepositoryIndexSourceType.MANIFEST,
+                scope_paths=[package.root, *package.source_roots, *package.test_roots],
+                confidence=RepositoryIntelligenceConfidence.HIGH,
+                toolchain=manager,
+            )
+        )
+    return recipes
+
+
+def _eval_command_recipes(root: Path) -> list[RepositoryIntelligenceCommandRecipe]:
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    recipes.extend(_eval_recipes_file_commands(root, Path("evals/recipes.json")))
+    recipes.extend(_eval_profile_commands(root, Path("evals/profiles.json")))
+    return recipes
+
+
+def _eval_recipes_file_commands(
+    root: Path,
+    path: Path,
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    data = _read_json(root / path)
+    raw_recipes = data.get("recipes", [])
+    if not isinstance(raw_recipes, list):
+        return []
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for raw_recipe in raw_recipes:
+        if not isinstance(raw_recipe, dict):
+            continue
+        recipe_id = str(raw_recipe.get("recipe_id") or "unknown")
+        title = str(raw_recipe.get("title") or recipe_id)
+        commands = raw_recipe.get("commands", [])
+        if not isinstance(commands, list):
+            continue
+        scope_paths = _scope_paths_from_globs(raw_recipe.get("path_globs", []))
+        for index, command in enumerate(commands):
+            if not isinstance(command, str) or not command.strip():
+                continue
+            recipes.append(
+                _command_recipe(
+                    recipe_id=f"eval-recipe:{recipe_id}:{index}",
+                    name=title,
+                    command=command.strip(),
+                    source_path=path,
+                    source_type=RepositoryIndexSourceType.EVAL,
+                    scope_paths=scope_paths,
+                    confidence=RepositoryIntelligenceConfidence.HIGH,
+                    toolchain=_command_toolchain(command.strip()),
+                    limitations=[
+                        "Eval recipe commands are recommendations and do not "
+                        "grant execution permission."
+                    ],
+                )
+            )
+    return recipes
+
+
+def _eval_profile_commands(
+    root: Path,
+    path: Path,
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    data = _read_json(root / path)
+    profiles = data.get("profiles", [])
+    if not isinstance(profiles, list):
+        return []
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for profile in profiles:
+        if not isinstance(profile, dict):
+            continue
+        profile_id = str(profile.get("profile_id") or "")
+        title = str(profile.get("title") or profile_id)
+        if not profile_id:
+            continue
+        recipes.append(
+            _command_recipe(
+                recipe_id=f"eval-profile:{profile_id}",
+                name=title,
+                command=f"uv run glassbox eval run --profile {profile_id} --cwd .",
+                source_path=path,
+                source_type=RepositoryIndexSourceType.EVAL,
+                scope_paths=[Path("evals")],
+                confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                toolchain="uv",
+            )
+        )
+    return recipes
+
+
+def _release_script_command_recipes(
+    root: Path,
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    scripts_root = root / "scripts"
+    if not scripts_root.exists():
+        return []
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for script in sorted(scripts_root.glob("validate*_release_gate.py"))[:20]:
+        relative = script.relative_to(root)
+        recipes.append(
+            _command_recipe(
+                recipe_id=f"release-script:{_slug(relative)}",
+                name=relative.as_posix(),
+                command=f"uv run python {relative.as_posix()} --dry-run",
+                source_path=relative,
+                source_type=RepositoryIndexSourceType.FILE_SYSTEM,
+                scope_paths=[Path("scripts")],
+                confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                toolchain="uv",
+                limitations=[
+                    "Release script recipes are advisory; release authority "
+                    "still comes from deterministic gate evidence."
+                ],
+            )
+        )
+    return recipes
+
+
+def _docs_command_recipes(root: Path) -> list[RepositoryIntelligenceCommandRecipe]:
+    docs_paths = [root / "README.md", *sorted((root / "docs").glob("*.md"))[:20]]
+    recipes: list[RepositoryIntelligenceCommandRecipe] = []
+    for path in docs_paths:
+        if not path.exists() or not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        scope = relative.parent if relative.parent != Path(".") else Path(".")
+        for index, command in enumerate(_documented_commands(path)[:10]):
+            recipes.append(
+                _command_recipe(
+                    recipe_id=f"docs:{_slug(relative)}:{index}",
+                    name=f"Documented command in {relative.as_posix()}",
+                    command=command,
+                    source_path=relative,
+                    source_type=RepositoryIndexSourceType.DOCUMENTATION,
+                    scope_paths=[scope],
+                    confidence=RepositoryIntelligenceConfidence.LOW,
+                    toolchain=_command_toolchain(command),
+                    limitations=[
+                        "Documentation command examples may need operator "
+                        "confirmation before use."
+                    ],
+                )
+            )
+    return recipes[:50]
+
+
+def _command_recipe(
+    *,
+    recipe_id: str,
+    name: str,
+    command: str,
+    source_path: Path,
+    source_type: RepositoryIndexSourceType,
+    scope_paths: list[Path],
+    confidence: RepositoryIntelligenceConfidence,
+    toolchain: str | None = None,
+    limitations: list[str] | None = None,
+) -> RepositoryIntelligenceCommandRecipe:
+    from glassbox.runtime.command_evidence import classify_command_purpose
+
+    assessment = classify_command_purpose(command)
+    return RepositoryIntelligenceCommandRecipe(
+        recipe_id=f"recipe:{recipe_id}",
+        name=name,
+        command=command,
+        purpose=assessment.purpose,
+        review_relevance=assessment.review_relevance,
+        risk=_command_risk(assessment.purpose),
+        toolchain=toolchain,
+        scope_paths=_dedupe_paths(scope_paths),
+        timeout_seconds=_timeout_for_purpose(assessment.purpose),
+        confidence=confidence,
+        provenance=[
+            RepositoryIndexProvenance(
+                source_type=source_type,
+                path=source_path,
+                note=assessment.reason,
+            )
+        ],
+        limitations=limitations or [],
     )
 
 
@@ -372,6 +614,126 @@ def _path_hint(
         provenance=[_provenance(source_type, path)],
         limitations=limitations or [],
     )
+
+
+def _node_package_manager(root: Path, package_root: Path) -> str:
+    if (root / package_root / "pnpm-lock.yaml").exists():
+        return "pnpm"
+    if (root / package_root / "package-lock.json").exists():
+        return "npm"
+    return "npm"
+
+
+def _node_script_command(manager: str, package_root: Path, script_name: str) -> str:
+    root_arg = package_root.as_posix()
+    if manager == "pnpm":
+        return f"pnpm --dir {root_arg} {script_name}"
+    if root_arg == ".":
+        return f"npm run {script_name}"
+    return f"npm --prefix {root_arg} run {script_name}"
+
+
+def _scope_paths_from_globs(value: object) -> list[Path]:
+    if not isinstance(value, list):
+        return []
+    paths: list[Path] = []
+    for item in value:
+        if not isinstance(item, str):
+            continue
+        prefix = item.split("*", 1)[0].rstrip("/")
+        if not prefix:
+            continue
+        path = Path(prefix)
+        if path.suffix:
+            path = path.parent if path.parent != Path(".") else path
+        if path.is_absolute() or ".." in path.parts:
+            continue
+        paths.append(path)
+    return _dedupe_paths(paths)
+
+
+def _documented_commands(path: Path) -> list[str]:
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    commands: list[str] = []
+    prefixes = (
+        "uv run ",
+        "pnpm --dir ",
+        "npm run ",
+        "npm --prefix ",
+        "python scripts/",
+    )
+    for raw_line in lines:
+        line = raw_line.strip()
+        if line.startswith("$ "):
+            line = line[2:].strip()
+        if line.startswith(prefixes) and "\n" not in line and "\r" not in line:
+            commands.append(line)
+    return list(dict.fromkeys(commands))
+
+
+def _command_risk(purpose: CommandPurpose) -> RepositoryIntelligenceCommandRisk:
+    if purpose in {CommandPurpose.PUBLISH, CommandPurpose.DEPLOY}:
+        return RepositoryIntelligenceCommandRisk.RELEASE
+    if purpose in {CommandPurpose.DANGEROUS, CommandPurpose.CLEANUP}:
+        return RepositoryIntelligenceCommandRisk.DESTRUCTIVE
+    if purpose in {CommandPurpose.BUILD, CommandPurpose.PACKAGE}:
+        return RepositoryIntelligenceCommandRisk.WORKSPACE_WRITE
+    if purpose == CommandPurpose.UNKNOWN:
+        return RepositoryIntelligenceCommandRisk.UNKNOWN
+    return RepositoryIntelligenceCommandRisk.READ_ONLY
+
+
+def _timeout_for_purpose(purpose: CommandPurpose) -> int | None:
+    if purpose in {CommandPurpose.EVAL, CommandPurpose.RELEASE_GATE}:
+        return 600
+    if purpose in {CommandPurpose.BUILD, CommandPurpose.PACKAGE}:
+        return 300
+    if purpose in {
+        CommandPurpose.TEST,
+        CommandPurpose.LINT,
+        CommandPurpose.TYPECHECK,
+    }:
+        return 120
+    return None
+
+
+def _command_toolchain(command: str) -> str | None:
+    first = command.split(maxsplit=1)[0] if command.split() else ""
+    return first or None
+
+
+def _dedupe_command_recipes(
+    recipes: list[RepositoryIntelligenceCommandRecipe],
+) -> list[RepositoryIntelligenceCommandRecipe]:
+    by_command: dict[str, RepositoryIntelligenceCommandRecipe] = {}
+    for recipe in recipes:
+        key = " ".join(recipe.command.split())
+        existing = by_command.get(key)
+        if existing is None:
+            by_command[key] = recipe
+            continue
+        by_command[key] = existing.model_copy(
+            update={
+                "provenance": [
+                    *existing.provenance,
+                    *recipe.provenance,
+                ],
+                "scope_paths": _dedupe_paths(
+                    [*existing.scope_paths, *recipe.scope_paths]
+                ),
+                "limitations": list(
+                    dict.fromkeys([*existing.limitations, *recipe.limitations])
+                ),
+            }
+        )
+    return sorted(by_command.values(), key=lambda item: item.recipe_id)
+
+
+def _dedupe_paths(paths: list[Path]) -> list[Path]:
+    return list(dict.fromkeys(paths))
 
 
 def _existing_paths(root: Path, candidates: Sequence[str | Path]) -> list[Path]:

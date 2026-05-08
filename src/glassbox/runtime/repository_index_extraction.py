@@ -11,6 +11,7 @@ from typing import TypedDict
 
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
+from glassbox.core.models import RepositoryIntelligenceCommandRecipe
 from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
 from glassbox.core.models import RepositoryIntelligenceSourceManifest
@@ -31,6 +32,7 @@ class RepositoryIntelligenceLayoutFields(TypedDict):
     generated_paths: list[RepositoryIntelligencePathHint]
     policy_sensitive_paths: list[RepositoryIntelligencePathHint]
     package_boundaries: list[RepositoryIntelligencePackageBoundary]
+    command_recipes: list[RepositoryIntelligenceCommandRecipe]
     limitations: list[str]
 
 
@@ -165,6 +167,7 @@ def repository_intelligence_layout_fields(
         "generated_paths": layout.generated_paths,
         "policy_sensitive_paths": layout.policy_sensitive_paths,
         "package_boundaries": layout.package_boundaries,
+        "command_recipes": layout.command_recipes,
         "limitations": layout.limitations,
     }
 

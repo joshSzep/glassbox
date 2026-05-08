@@ -724,6 +724,7 @@ class RepositoryIntelligenceCommandRecipe(BaseModel):
     purpose: CommandPurpose = CommandPurpose.UNKNOWN
     review_relevance: CommandReviewRelevance = CommandReviewRelevance.UNKNOWN
     risk: RepositoryIntelligenceCommandRisk = RepositoryIntelligenceCommandRisk.UNKNOWN
+    toolchain: str | None = Field(default=None, max_length=100)
     scope_paths: list[Path] = Field(default_factory=list)
     timeout_seconds: int | None = Field(default=None, ge=1)
     confidence: RepositoryIntelligenceConfidence = (
