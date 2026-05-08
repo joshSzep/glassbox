@@ -991,7 +991,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R672: Run Post-V14 Refactor Release Confidence Sweep
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: all previous tasks
 - Target files:
   - [refactor-v14.md](./refactor-v14.md)
@@ -1018,6 +1018,31 @@ Each phase below corresponds to one concrete refactor milestone.
   - `pnpm --dir frontend test`
   - `pnpm --dir frontend build`
   - `uv run python scripts/validate_v14_release_gate.py --dry-run`
+
+## Post-V14 Refactor Closeout
+
+Closeout validation passed on May 8, 2026 after the post-v14 helper splits and
+guardrails landed:
+
+- `uv run ruff format --check .`
+- `uv run ruff check .`
+- `uv run ty check`
+- `uv run pytest -n auto --dist loadfile` (`1385 passed`)
+- `uv run pre-commit run --all-files`
+- `pnpm --dir frontend lint`
+- `pnpm --dir frontend typecheck`
+- `pnpm --dir frontend test` (`130 passed`)
+- `pnpm --dir frontend build`
+- `uv run python scripts/validate_v14_release_gate.py --dry-run`
+
+The v14 dry-run summary was written to
+`.glassbox/releases/20260508T024947Z-v14-gate/summary.json` with 68 planned
+blocking stages, one skipped advisory provider item, and two retained advisory
+UX evidence records. No replay or eval baseline drift was observed during the
+closeout sweep. Remaining compatibility facades are intentional: they preserve
+stable runtime, CLI, web, frontend, and release-gate import surfaces while
+delegating behavior to the post-v14 helper owners listed in
+[refactor-boundaries.md](./refactor-boundaries.md).
 
 ## Accepted Product Follow-Up Candidates
 

@@ -213,6 +213,11 @@ The current retained v14 evidence shows:
   `.glassbox/releases/gbx-1462-v14-dogfooding/v14-gate-dry-run/summary.json`
   with 68 planned blocking stages, one skipped provider advisory item, and two
   recorded retained advisory UX items
+- post-v14 refactor closeout dry run: passed at
+  `.glassbox/releases/20260508T024947Z-v14-gate/summary.json` after the
+  lifecycle brief, review response, readiness, terminal, web, frontend, and
+  v14 release-gate helper splits, with 68 planned blocking stages and the same
+  advisory evidence posture
 - v14 dogfooding: findings and follow-up candidates are triaged in
   [v14-dogfooding-summary.md](./v14-dogfooding-summary.md)
 - lifecycle brief maturity: the dogfooding brief generated successfully and
