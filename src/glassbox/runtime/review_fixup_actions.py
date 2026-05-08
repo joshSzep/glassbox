@@ -18,13 +18,15 @@ from glassbox.runtime.changeset_models import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_workspace_diff import diff_summary_without_local_state
 from glassbox.runtime.changeset_workspace_diff import workspace_diff_source_digest
-from glassbox.runtime.review_responses import REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION
-from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
-from glassbox.runtime.review_responses import review_fixup_inventory_artifact_json
-from glassbox.runtime.review_responses import (
+from glassbox.runtime.review_fixup_artifacts import review_fixup_inventory_artifact_json
+from glassbox.runtime.review_fixup_artifacts import (
     review_fixup_inventory_from_change_inventory,
 )
-from glassbox.runtime.review_responses import review_fixup_inventory_status
+from glassbox.runtime.review_response_models import (
+    REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION,
+)
+from glassbox.runtime.review_response_models import ReviewFixupInventoryStatus
+from glassbox.runtime.review_response_status import review_fixup_inventory_status
 from glassbox.services import ArtifactRepository
 from glassbox.tools.workflow import DiffFileSummary
 from glassbox.tools.workflow import DiffSummaryArgs

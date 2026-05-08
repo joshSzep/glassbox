@@ -547,7 +547,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R621: Extract Fixup Inventory Artifact And Path-Scope Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620
 - Target files:
   - `src/glassbox/runtime/review_responses.py`
