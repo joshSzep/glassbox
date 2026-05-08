@@ -178,10 +178,11 @@ while splitting the maturity surfaces that grew during the milestone:
 - changeset command handlers now split scriptable lifecycle, feedback,
     evidence, and readiness workflows behind the stable command-handler import
     surface; web changeset routes now keep endpoint declarations over
-    route-local action and feedback helpers; web changeset API builders,
-    frontend API endpoint groups, frontend changeset store action families, and
-    `scripts/v14_release_gate_helpers.py` are follow-on transport and
-    release-gate pressure points
+    route-local action and feedback helpers; web changeset API builders now
+    split detail/verification, review-loop, and readiness response shaping
+    behind the stable API facade; frontend API endpoint groups, frontend
+    changeset store action families, and `scripts/v14_release_gate_helpers.py`
+    are follow-on transport and release-gate pressure points
 
 These splits must preserve the v14 non-claims described in
 [v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md)

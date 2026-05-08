@@ -819,7 +819,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R652: Split Changeset API Builder Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620, GBX-R632, GBX-R651
 - Target files:
   - `src/glassbox/web/changeset_api.py`
@@ -838,6 +838,8 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve OpenAPI schema shape unless explicitly changed
 - Deliverables:
   - transport builders split by response family while preserving facade imports
+  - `changeset_api_builders.py` preserved as a compatibility re-export surface
+    over detail/verification, review-loop, and readiness builder owners
 - Validation:
   - `uv run pytest tests/integration/test_web_changeset_routes.py`
   - `uv run pytest tests/integration/test_openapi_schema.py`

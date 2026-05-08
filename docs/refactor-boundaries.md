@@ -1541,7 +1541,9 @@ intended owners:
   the existing route-local request, service, and error helpers.
 - `web/changeset_api_builders.py`: transport builder facade; summary/detail,
   review-loop, readiness, verification, evidence, and commit-preparation
-  builder families belong in focused pure web builder modules.
+  builder families now split across `changeset_api_builders_detail.py`,
+  `changeset_api_builders_review.py`, and
+  `changeset_api_builders_readiness.py`.
 - `frontend/api/client.ts`: frontend API facade; endpoint groups may split
   under API-owned modules while preserving component/store call sites.
 - `frontend/stores/changeset-store-actions.ts`: store action facade; list,
