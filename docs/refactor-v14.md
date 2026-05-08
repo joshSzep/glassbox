@@ -370,7 +370,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R601: Characterize Current V14 Review-Loop Maturity Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R600
 - Target files:
   - [test_review_briefs.py](../tests/unit/test_review_briefs.py)
@@ -1020,6 +1020,10 @@ behavior:
 
 - decide whether daemon-backed `/review fixup FEEDBACK_ID` should call the
   existing web fixup route for parity with local interactive clients
+  - GBX-R601 characterizes the current behavior: local interactive clients can
+    record response-linked fixup inventory, while daemon-backed `/review fixup`
+    returns a validation error pointing operators to
+    `glassbox changeset feedback fixup FEEDBACK_ID --cwd .`
 - decide whether the frontend should expose first-class browser/dashboard and
   accessibility skipped-evidence attachment forms, beyond the current manual
   evidence quick action and retained command examples

@@ -18,10 +18,12 @@ from glassbox.cli.interactive_client import DaemonInteractiveSessionClient
 from glassbox.cli.interactive_client import InteractiveClientError
 from glassbox.cli.interactive_client import InteractiveClientErrorKind
 from glassbox.cli.interactive_client import LocalInteractiveSessionClient
+from glassbox.cli.interactive_client import ReviewLoopAction
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import UserQuestionAsked
 from glassbox.core.ids import new_approval_id
 from glassbox.core.ids import new_question_id
+from glassbox.core.ids import new_review_feedback_id
 from glassbox.core.ids import new_session_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
@@ -181,6 +183,39 @@ def test_daemon_client_maps_conflict_response_to_common_error() -> None:
     asyncio.run(client.aclose())
     assert exc_info.value.kind == InteractiveClientErrorKind.CONFLICT
     assert str(exc_info.value) == "session is busy"
+
+
+def test_daemon_review_fixup_characterizes_current_parity_gap() -> None:
+    session_id = new_session_id()
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        msg = f"daemon /review fixup should not call {request.url.path}"
+        raise AssertionError(msg)
+
+    http_client = httpx.AsyncClient(
+        base_url="http://127.0.0.1:8765",
+        transport=httpx.MockTransport(handler),
+    )
+    client = DaemonInteractiveSessionClient(
+        http_client,
+        session_id,
+        "http://127.0.0.1:8765/",
+    )
+
+    with pytest.raises(InteractiveClientError) as exc_info:
+        asyncio.run(
+            client.run_review_action(
+                ReviewLoopAction.RECORD_FEEDBACK_FIXUP,
+                changeset_id=str(new_review_feedback_id()),
+            )
+        )
+
+    asyncio.run(client.aclose())
+    assert exc_info.value.kind == InteractiveClientErrorKind.VALIDATION_ERROR
+    assert "Remote /review fixup is not available yet" in str(exc_info.value)
+    assert "glassbox changeset feedback fixup FEEDBACK_ID --cwd ." in str(
+        exc_info.value
+    )
 
 
 def _now() -> datetime:

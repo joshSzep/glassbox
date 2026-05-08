@@ -416,6 +416,40 @@ def test_response_status_blocks_mismatched_fixup_inventory_scope() -> None:
     )
 
 
+def test_response_summary_keeps_accepted_risk_local_and_non_approving() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    feedback = _feedback_record(session_id, changeset_id, feedback_id).model_copy(
+        update={"disposition": ReviewFeedbackDisposition.ACCEPTED_WITH_RISK}
+    )
+
+    status = review_feedback_response_status(
+        feedback=feedback,
+        inventories=[],
+        paths=[],
+        task_ledger=[],
+    )
+    summary = changeset_review_response_summary(
+        changeset_id=changeset_id,
+        items=[status],
+    )
+
+    assert status.response_state == ReviewResponseState.ACCEPTED_WITH_RISK
+    assert status.verification_state == ChangesetVerificationState.ACCEPTED_WITH_RISK
+    assert status.blockers == []
+    assert "accepted with local risk" in (status.verification_reason or "")
+    assert any("not reviewer acceptance" in claim for claim in status.non_claims)
+    assert any("did not stage, commit, push" in claim for claim in status.non_claims)
+    assert summary.accepted_risk_count == 1
+    assert summary.unresolved_count == 0
+    assert summary.safe_next_actions == [
+        f"glassbox changeset feedback list --changeset {changeset_id} --cwd .",
+        f"glassbox changeset show {changeset_id} --cwd .",
+    ]
+    assert any("not reviewer acceptance" in claim for claim in summary.non_claims)
+
+
 def _feedback_record(session_id, changeset_id, feedback_id) -> ReviewFeedbackRecord:
     now = datetime.now(UTC)
     return ReviewFeedbackRecord(
