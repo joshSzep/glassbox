@@ -647,7 +647,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R632: Split Handoff Readiness Signal Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R630
 - Target files:
   - `src/glassbox/runtime/handoff_readiness.py`
