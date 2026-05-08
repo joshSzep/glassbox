@@ -368,7 +368,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1501: Audit Current Repository Intelligence Surfaces And Gaps
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1500`
 - Goal: establish a source-linked baseline of current repository index,
   topology, eval recommendation, memory, changeset, dashboard, and context

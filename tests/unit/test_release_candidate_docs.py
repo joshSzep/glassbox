@@ -601,6 +601,69 @@ def test_v15_repository_intelligence_contract_covers_product_boundary() -> None:
         assert required_text in content
 
 
+def test_v15_repository_intelligence_audit_maps_current_surfaces() -> None:
+    content = (REPO_ROOT / "docs" / "v15-repository-intelligence-audit.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Summary",
+        "## Classification Legend",
+        "## Audit Entries",
+        "## Signal Inventory",
+        "## Test Inventory",
+        "## Disposition",
+        "Fix now",
+        "Document only",
+        "Accepted risk",
+        "Not v15",
+        "Repository Index Builder And Search",
+        "Repository Index Freshness And Observability",
+        "Workspace Topology",
+        "Eval Recommendation Engine",
+        "Topology-Derived Verification Recipes",
+        "Workspace Memory",
+        "Runtime Context And Prompt Use",
+        "Changeset Topology And Review Surfaces",
+        "CLI Commands",
+        "Web API Routes And Types",
+        "Dashboard Knowledge And Repository Surfaces",
+        "Store And Projection Boundaries",
+        "runtime/repository_index*",
+        "runtime/workspace_topology.py",
+        "runtime/eval_recommendation*",
+        "runtime/workspace_memory*",
+        "runtime/changeset_topology.py",
+        "runtime/context_*",
+        "store projections",
+        "web routes",
+        "frontend knowledge/repository surfaces",
+        "Path-to-test",
+        "Path-to-eval",
+        "Recipe",
+        "Topology",
+        "Command",
+        "Owner",
+        "Package",
+        "Dependency",
+        "Generated path",
+        "Policy-sensitive path",
+        "Release-sensitive surface",
+        "src/glassbox/runtime/repository_index.py:28",
+        "src/glassbox/runtime/workspace_topology.py:198",
+        "src/glassbox/runtime/eval_recommendation_engine.py:58",
+        "src/glassbox/runtime/workspace_memory_capture.py:79",
+        "src/glassbox/runtime/changeset_topology.py:35",
+        "src/glassbox/runtime/context_builder.py:104",
+        "src/glassbox/web/repository_index_routes.py:39",
+        "frontend/components/console/knowledge-autonomy/repository.tsx:23",
+        "no dedicated v15 repository intelligence console",
+        "hosted repository indexing",
+        "automatic owner assignment",
+    ):
+        assert required_text in content
+
+
 def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:
     content = (REPO_ROOT / "docs" / "v14-review-loop-maturity-audit.md").read_text(
         encoding="utf-8"
