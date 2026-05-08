@@ -863,7 +863,10 @@ The `cli` package should not build its own parallel session-query logic when the
   pressure point. New lifecycle, feedback, evidence, verification, readiness,
   adoption, export, and commit-preparation command behavior should move into
   command-family helpers while `changeset_commands.py` remains the user-facing
-  command facade.
+  command facade. The post-v14 split keeps `changeset_command_handlers.py` as
+  the compatibility import surface over `changeset_command_lifecycle.py`,
+  `changeset_command_feedback.py`, `changeset_command_evidence.py`, and
+  `changeset_command_readiness.py`.
 
 #### Post-v8 TUI Sub-Boundaries
 
@@ -1529,8 +1532,9 @@ intended owners:
   belong in focused interactive client helpers.
 - `cli/changeset_command_handlers.py`: scriptable changeset command handler
   surface; lifecycle, feedback, evidence, verification, readiness, adoption,
-  export, and commit-preparation action families should split by command
-  owner.
+  export, and commit-preparation action families now split across
+  `changeset_command_lifecycle.py`, `changeset_command_feedback.py`,
+  `changeset_command_evidence.py`, and `changeset_command_readiness.py`.
 - `web/routes/changesets.py`: FastAPI declaration surface; repeated action,
   post-mutation reload, workspace-root, service, and HTTP error patterns belong
   in route-local action helpers.

@@ -761,7 +761,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R650: Split Changeset Command Handler Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620, GBX-R632, GBX-R642
 - Target files:
   - `src/glassbox/cli/changeset_command_handlers.py`
@@ -782,6 +782,9 @@ Each phase below corresponds to one concrete refactor milestone.
     behavior, and command-guide expectations
 - Deliverables:
   - changeset CLI handlers that can be reviewed by operator workflow family
+  - `changeset_command_handlers.py` preserved as the compatibility import
+    surface over lifecycle, feedback, evidence, and readiness command-family
+    helpers
 - Validation:
   - `uv run pytest tests/integration/test_cli_changeset_commands.py`
   - `uv run pytest tests/unit/test_command_guide.py`

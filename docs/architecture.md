@@ -175,10 +175,12 @@ while splitting the maturity surfaces that grew during the milestone:
 - `cli/interactive_client.py` remains the plain interactive client entrypoint
     while protocols, SSE parsing, local actions, daemon actions, and
     review-loop guidance move into CLI-owned helpers
-- changeset command handlers, web changeset routes, web changeset API
-    builders, frontend API endpoint groups, frontend changeset store action
-    families, and `scripts/v14_release_gate_helpers.py` are follow-on transport
-    and release-gate pressure points
+- changeset command handlers now split scriptable lifecycle, feedback,
+    evidence, and readiness workflows behind the stable command-handler import
+    surface; web changeset routes, web changeset API builders, frontend API
+    endpoint groups, frontend changeset store action families, and
+    `scripts/v14_release_gate_helpers.py` are follow-on transport and
+    release-gate pressure points
 
 These splits must preserve the v14 non-claims described in
 [v14-review-loop-maturity-contract.md](./v14-review-loop-maturity-contract.md)
