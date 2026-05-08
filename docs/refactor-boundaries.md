@@ -1339,9 +1339,8 @@ The guardrails are intentionally narrow:
   lifecycle brief section families, review response helpers, commit/handoff
   readiness signals, interactive terminal clients, changeset command handlers,
   route-local changeset actions, web builder families, frontend endpoint
-  groups, and changeset store action helpers. The v14 release-gate helper
-  remains under its pre-split cap until its stage, advisory, and summary owners
-  exist.
+  groups, changeset store action helpers, and v14 release-gate stage,
+  advisory, and summary helper families.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1566,8 +1565,9 @@ intended owners:
   `changeset-store-action-messages.ts`.
 - `scripts/v14_release_gate_helpers.py`: v14 gate helper surface; inherited
   stage mapping, v14 stage construction, advisory evidence, dry-run copy,
-  evidence-dir resolution, and summary metadata should become separately
-  testable helper families.
+  evidence-dir resolution, and summary metadata split into separately testable
+  helper families under `v14_release_gate_stages.py`,
+  `v14_release_gate_advisory.py`, and `v14_release_gate_summary.py`.
 
 For completed post-v14 extraction slices, guardrails now assert that:
 
@@ -1583,6 +1583,9 @@ For completed post-v14 extraction slices, guardrails now assert that:
   route-local action/service helpers and builder-family modules.
 - `frontend/api/client.ts` and `frontend/stores/changeset-store-actions.ts`
   delegate to API endpoint-family and store action helper modules.
+- `scripts/v14_release_gate_helpers.py` delegates deterministic stage
+  construction, advisory evidence shaping, dry-run copy, evidence-dir
+  resolution, and summary metadata to v14 release-gate helper families.
 
 ## Patterns That Must Not Become Permanent
 

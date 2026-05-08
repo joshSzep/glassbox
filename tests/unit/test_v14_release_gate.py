@@ -5,7 +5,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts import v14_release_gate_advisory as v14_advisory
 from scripts import v14_release_gate_helpers as v14_helpers
+from scripts import v14_release_gate_stages as v14_stages
+from scripts import v14_release_gate_summary as v14_summary
 from scripts import validate_v14_release_gate as v14_gate
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -79,6 +82,7 @@ def test_v14_gate_stage_plan_adds_maturity_checks(tmp_path: Path) -> None:
     stages = v14_gate.build_gate_stages(tmp_path / "evidence")
     labels = [stage.label for stage in stages]
 
+    assert v14_helpers.V14_MATURITY_CASES == v14_stages.V14_MATURITY_CASES
     assert labels[-6:] == [
         "v14 deterministic eval release report",
         "v14 review-loop maturity profile",
@@ -88,7 +92,7 @@ def test_v14_gate_stage_plan_adds_maturity_checks(tmp_path: Path) -> None:
         "v14 eval coverage audit",
     ]
     assert any(
-        all(case_id in stage.command for case_id in v14_helpers.V14_MATURITY_CASES)
+        all(case_id in stage.command for case_id in v14_stages.V14_MATURITY_CASES)
         for stage in stages
     )
     assert any(
@@ -111,7 +115,7 @@ def test_v14_advisory_ux_evidence_is_structured(tmp_path: Path) -> None:
         dry_run=True,
     )
 
-    v14_gate._record_v14_advisory_ux_evidence(summary, evidence_dir)
+    v14_advisory.record_v14_advisory_ux_evidence(summary, evidence_dir)
 
     assert summary["advisory"] == [
         {
@@ -154,7 +158,7 @@ def test_v14_advisory_ux_evidence_is_structured(tmp_path: Path) -> None:
 def test_v14_helper_summary_metadata_marks_maturity_authority(
     tmp_path: Path,
 ) -> None:
-    summary = v14_helpers.new_evidence_summary(
+    summary = v14_summary.new_evidence_summary(
         tmp_path / "evidence",
         include_provider_canaries=False,
         dry_run=True,

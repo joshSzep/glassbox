@@ -2958,6 +2958,15 @@ V14_PYTHON_FACADE_RULES: tuple[
             "surface over builder-family helpers"
         ),
     ),
+    (
+        REPO_ROOT / "scripts" / "v14_release_gate_helpers.py",
+        ("scripts.v14_release_gate_",),
+        50,
+        (
+            "post-v14 release-gate helper facade should stay a compatibility "
+            "surface over stage, advisory, and summary helpers"
+        ),
+    ),
 )
 
 V14_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
@@ -3035,6 +3044,15 @@ V14_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
             "glassbox.web.changeset_api_builders_review",
         ),
         "post-v14 changeset API builder facade should delegate to builder helpers",
+    ),
+    (
+        REPO_ROOT / "scripts" / "v14_release_gate_helpers.py",
+        (
+            "scripts.v14_release_gate_advisory",
+            "scripts.v14_release_gate_stages",
+            "scripts.v14_release_gate_summary",
+        ),
+        "post-v14 release-gate helper facade should delegate to helper families",
     ),
 )
 

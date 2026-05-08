@@ -935,7 +935,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R670: Split V14 Release-Gate Helper Owners
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R600
 - Target files:
   - `scripts/validate_v14_release_gate.py`
