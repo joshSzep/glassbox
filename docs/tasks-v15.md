@@ -569,7 +569,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1520: Define Path-To-Verification Recommendation Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1514`
 - Goal: define how changed paths map to tests, evals, recipes, release gates,
   stale-evidence risks, and confidence explanations

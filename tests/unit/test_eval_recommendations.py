@@ -4,6 +4,17 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
+from pydantic import ValidationError
+
+from glassbox.runtime.eval_recommendations import PathVerificationCommandRecipeTarget
+from glassbox.runtime.eval_recommendations import PathVerificationEvalProfileTarget
+from glassbox.runtime.eval_recommendations import PathVerificationImpact
+from glassbox.runtime.eval_recommendations import PathVerificationProvenance
+from glassbox.runtime.eval_recommendations import PathVerificationRecommendationReport
+from glassbox.runtime.eval_recommendations import PathVerificationSkippedCheck
+from glassbox.runtime.eval_recommendations import PathVerificationStaleEvidence
+from glassbox.runtime.eval_recommendations import PathVerificationTarget
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.eval_verification import build_eval_verification_plan
 from glassbox.runtime.eval_verification_recipes import (
@@ -177,6 +188,118 @@ def _write_recipes(tmp_path: Path, recipes: list[dict[str, object]]) -> None:
         json.dumps({"manifest_version": 1, "recipes": recipes}, indent=2) + "\n",
         encoding="utf-8",
     )
+
+
+def test_path_verification_contract_serializes_evidence_classes(
+    tmp_path: Path,
+) -> None:
+    provenance = PathVerificationProvenance(
+        source="eval-impact",
+        source_path="evals/impact.json",
+        confidence="direct",
+        freshness="fresh",
+        explanation="impact rule matched the changed runtime path",
+    )
+    report = PathVerificationRecommendationReport(
+        workspace_root=tmp_path,
+        changed_paths=["src/glassbox/runtime/repository_index.py"],
+        impacts=[
+            PathVerificationImpact(
+                path="src/glassbox/runtime/repository_index.py",
+                confidence="direct",
+                subsystems=["runtime.repository-intelligence"],
+                release_surfaces=["commit-time"],
+                why_this=["repository intelligence runtime path changed"],
+                provenance=[provenance],
+            )
+        ],
+        targets=[
+            PathVerificationTarget(
+                target_id="tests/unit/test_repository_index.py",
+                target_kind="test-target",
+                title="Repository index unit tests",
+                evidence_class="deterministic-executable",
+                confidence="direct",
+                matched_paths=["src/glassbox/runtime/repository_index.py"],
+                command="uv run pytest tests/unit/test_repository_index.py",
+                verification_stage="commit-time",
+                blocking=True,
+                why_this="changed path belongs to the repository index runtime",
+                provenance=[provenance],
+            )
+        ],
+        command_recipes=[
+            PathVerificationCommandRecipeTarget(
+                target_id="repo-index-focused",
+                recipe_id="repo-index-focused",
+                title="Repository index focused validation",
+                confidence="recipe-derived",
+                matched_paths=["src/glassbox/runtime/repository_index.py"],
+                command="uv run pytest tests/unit/test_repository_index.py",
+                why_this="recipe matched repository index paths",
+                purpose="focused repository index validation",
+                risk="low",
+                provenance=[provenance],
+            )
+        ],
+        eval_profiles=[
+            PathVerificationEvalProfileTarget(
+                target_id="commit-smoke",
+                profile_id="commit-smoke",
+                title="Commit smoke",
+                evidence_class="deterministic-executable",
+                confidence="stage-derived",
+                matched_paths=["src/glassbox/runtime/repository_index.py"],
+                command="uv run glassbox eval run --profile commit-smoke --cwd .",
+                verification_stage="commit-time",
+                profile_track="deterministic",
+                blocking=True,
+                why_this="impacted case participates in commit-time verification",
+                provenance=[provenance],
+            )
+        ],
+        skipped_checks=[
+            PathVerificationSkippedCheck(
+                target_id="live-provider-canary",
+                target_kind="live-provider-canary",
+                reason="live-provider-canary",
+                explanation="canary profiles require explicit operator selection",
+            )
+        ],
+        stale_evidence=[
+            PathVerificationStaleEvidence(
+                evidence_id="workspace-topology",
+                evidence_kind="topology",
+                freshness="stale",
+                affected_paths=["src/glassbox/runtime/repository_index.py"],
+                reason="topology digest no longer matches the workspace",
+                provenance=[provenance],
+                safe_next_actions=["uv run glassbox topology build --cwd ."],
+            )
+        ],
+        cheapest_next_command="uv run pytest tests/unit/test_repository_index.py",
+    )
+
+    payload = report.model_dump(mode="json")
+
+    assert payload["targets"][0]["evidence_class"] == "deterministic-executable"
+    assert payload["command_recipes"][0]["evidence_class"] == "advisory-command"
+    assert payload["eval_profiles"][0]["profile_track"] == "deterministic"
+    assert payload["skipped_checks"][0]["reason"] == "live-provider-canary"
+    assert payload["stale_evidence"][0]["freshness"] == "stale"
+    assert payload["impacts"][0]["provenance"][0]["source"] == "eval-impact"
+
+
+def test_path_verification_contract_rejects_advisory_targets_as_deterministic() -> None:
+    with pytest.raises(ValidationError, match="command-recipe"):
+        PathVerificationTarget(
+            target_id="docs-recipe",
+            target_kind="command-recipe",
+            title="Docs recipe",
+            evidence_class="deterministic-executable",
+            confidence="recipe-derived",
+            why_this="recipes are advisory command guidance",
+        )
 
 
 def test_recommend_eval_change_impact_ignores_non_contract_case_metadata(

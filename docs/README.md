@@ -94,6 +94,10 @@ boundaries and deterministic release authority.
   advisory repository intelligence covering repository snapshots, topology,
   command recipes, ownership hints, path-to-verification guidance, confirmed
   memory, context, replay, evals, and release authority
+- [path-to-verification-recommendations.md](./path-to-verification-recommendations.md):
+  v15 contract for mapping changed paths to tests, evals, command recipes,
+  release gates, skipped checks, stale evidence, provenance, freshness,
+  confidence, limitations, and safe next actions
 - [v15-repository-intelligence-audit.md](./v15-repository-intelligence-audit.md):
   source-linked audit of current repository index, topology, eval
   recommendation, memory, changeset, context, store, web, CLI, and dashboard
@@ -270,6 +274,10 @@ boundaries and deterministic release authority.
   understand the v15 repository intelligence boundary before relying on command
   recipes, owner hints, path-to-verification guidance, memory-derived facts, or
   future repository intelligence console surfaces
+- [path-to-verification-recommendations.md](./path-to-verification-recommendations.md):
+  understand how changed paths map to deterministic checks, advisory recipes,
+  live-provider canaries, browser/accessibility/manual evidence, stale
+  evidence, and safe next actions
 - [knowledge-posture.md](./knowledge-posture.md): understand the unified v11
   freshness categories before continuation or handoff
 - [background-jobs.md](./background-jobs.md): inspect and recover daemon-owned
@@ -333,6 +341,9 @@ boundaries and deterministic release authority.
 - [replay-evals.md](./replay-evals.md): eval recommendations, recipes,
   profiles, impact metadata, deterministic replay, and release-evidence
   workflows that v15 path-to-verification guidance will build on
+- [path-to-verification-recommendations.md](./path-to-verification-recommendations.md):
+  typed v15 path impact, verification target, command recipe, skipped-check,
+  stale-evidence, provenance, freshness, confidence, and limitation contract
 - [command-evidence.md](./command-evidence.md): retained command purpose and
   review-relevance evidence; v15 command recipes remain recommendations, not
   permission grants

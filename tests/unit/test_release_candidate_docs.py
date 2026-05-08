@@ -681,6 +681,7 @@ def test_v15_repository_intelligence_docs_are_discoverable() -> None:
         "v15-repository-intelligence-contract.md",
         "v15-repository-intelligence-audit.md",
         "tasks-v15.md",
+        "path-to-verification-recommendations.md",
         "## Repository Intelligence Map",
         "repository-intelligence-index.md",
         "workspace-topology.md",
@@ -693,6 +694,50 @@ def test_v15_repository_intelligence_docs_are_discoverable() -> None:
         "task graph are the active planning",
     ):
         assert required_text in docs_readme
+
+
+def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> None:
+    content = (
+        REPO_ROOT / "docs" / "path-to-verification-recommendations.md"
+    ).read_text(encoding="utf-8")
+    replay_evals = (REPO_ROOT / "docs" / "replay-evals.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Inputs",
+        "## Output Model",
+        "## Evidence Classes",
+        "## Confidence",
+        "## Freshness And Stale Evidence",
+        "## Non-Claims",
+        "PathVerificationRecommendationReport",
+        "PathVerificationImpact",
+        "PathVerificationTarget",
+        "PathVerificationCommandRecipeTarget",
+        "PathVerificationEvalCaseTarget",
+        "PathVerificationEvalProfileTarget",
+        "PathVerificationSkippedCheck",
+        "PathVerificationStaleEvidence",
+        "PathVerificationProvenance",
+        "deterministic-executable",
+        "advisory-command",
+        "live-provider-canary",
+        "browser-evidence",
+        "accessibility-evidence",
+        "manual-evidence",
+        "fresh",
+        "stale",
+        "missing",
+        "degraded",
+        "unknown",
+        "Repository intelligence snapshots",
+        "workspace topology snapshots",
+        "eval metadata",
+        "confirmed active workspace memory",
+        "command recipes are approved to execute",
+    ):
+        assert required_text in content
+
+    assert "path-to-verification-recommendations.md" in replay_evals
 
 
 def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:

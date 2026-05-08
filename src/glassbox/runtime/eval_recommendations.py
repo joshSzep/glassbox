@@ -24,6 +24,30 @@ from glassbox.runtime.eval_recommendation_models import (
 )
 from glassbox.runtime.eval_recommendation_models import EvalVerificationRecipeSource
 from glassbox.runtime.eval_recommendation_models import LongRunVerificationSurface
+from glassbox.runtime.eval_recommendation_models import (
+    PathVerificationCommandRecipeTarget,
+)
+from glassbox.runtime.eval_recommendation_models import PathVerificationConfidence
+from glassbox.runtime.eval_recommendation_models import PathVerificationEvalCaseTarget
+from glassbox.runtime.eval_recommendation_models import (
+    PathVerificationEvalProfileTarget,
+)
+from glassbox.runtime.eval_recommendation_models import PathVerificationEvidenceClass
+from glassbox.runtime.eval_recommendation_models import PathVerificationFreshness
+from glassbox.runtime.eval_recommendation_models import PathVerificationImpact
+from glassbox.runtime.eval_recommendation_models import PathVerificationProvenance
+from glassbox.runtime.eval_recommendation_models import PathVerificationProvenanceSource
+from glassbox.runtime.eval_recommendation_models import (
+    PathVerificationRecommendationReport,
+)
+from glassbox.runtime.eval_recommendation_models import PathVerificationSkippedCheck
+from glassbox.runtime.eval_recommendation_models import PathVerificationSkippedReason
+from glassbox.runtime.eval_recommendation_models import PathVerificationStaleEvidence
+from glassbox.runtime.eval_recommendation_models import (
+    PathVerificationStaleEvidenceKind,
+)
+from glassbox.runtime.eval_recommendation_models import PathVerificationTarget
+from glassbox.runtime.eval_recommendation_models import PathVerificationTargetKind
 from glassbox.runtime.eval_verification_recipes import (
     DEFAULT_EVAL_VERIFICATION_RECIPES_PATH,
 )
@@ -61,6 +85,22 @@ __all__ = [
     "DEFAULT_EVAL_VERIFICATION_RECIPES_PATH",
     "EVAL_VERIFICATION_RECIPE_MANIFEST_VERSION",
     "LongRunVerificationSurface",
+    "PathVerificationCommandRecipeTarget",
+    "PathVerificationConfidence",
+    "PathVerificationEvidenceClass",
+    "PathVerificationEvalCaseTarget",
+    "PathVerificationEvalProfileTarget",
+    "PathVerificationFreshness",
+    "PathVerificationImpact",
+    "PathVerificationProvenance",
+    "PathVerificationProvenanceSource",
+    "PathVerificationRecommendationReport",
+    "PathVerificationSkippedCheck",
+    "PathVerificationSkippedReason",
+    "PathVerificationStaleEvidence",
+    "PathVerificationStaleEvidenceKind",
+    "PathVerificationTarget",
+    "PathVerificationTargetKind",
     "load_eval_impact_manifest",
     "load_eval_verification_recipe_manifest",
     "maybe_load_eval_impact_manifest",

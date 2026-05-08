@@ -180,7 +180,11 @@ See [release-check-alignment-v6.md](./release-check-alignment-v6.md) for the ful
 ## Change-Impact Recommendations
 
 GBX-340 defines the operator contract for choosing replay and eval scope from a
-change set before the recommendation command itself exists.
+change set before the recommendation command itself exists. The v15
+[path-to-verification recommendation contract](./path-to-verification-recommendations.md)
+extends this model with typed path impact, verification target, command recipe,
+skipped-check, stale-evidence, provenance, freshness, confidence, and limitation
+fields while preserving the same advisory boundary.
 
 The model stays advisory.
 
