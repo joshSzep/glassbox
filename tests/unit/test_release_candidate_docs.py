@@ -664,6 +664,37 @@ def test_v15_repository_intelligence_audit_maps_current_surfaces() -> None:
         assert required_text in content
 
 
+def test_v15_repository_intelligence_docs_are_discoverable() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "docs/v15-repository-intelligence-contract.md",
+        "docs/v15-repository-intelligence-audit.md",
+        "docs/tasks-v15.md",
+        "v15 planning track is",
+        "repository intelligence v2",
+    ):
+        assert required_text in root_readme
+
+    for required_text in (
+        "v15-repository-intelligence-contract.md",
+        "v15-repository-intelligence-audit.md",
+        "tasks-v15.md",
+        "## Repository Intelligence Map",
+        "repository-intelligence-index.md",
+        "workspace-topology.md",
+        "workspace-memory.md",
+        "replay-evals.md",
+        "command-evidence.md",
+        "changeset-verification-readiness.md",
+        "command recipes remain recommendations, not",
+        "planned repository intelligence console",
+        "task graph are the active planning",
+    ):
+        assert required_text in docs_readme
+
+
 def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:
     content = (REPO_ROOT / "docs" / "v14-review-loop-maturity-audit.md").read_text(
         encoding="utf-8"

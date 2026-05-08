@@ -399,7 +399,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1502: Update Documentation Discovery For v15
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1500`, `GBX-1501`
 - Goal: make the v15 plan, contract, audit, and later evidence docs
   discoverable from the documentation hub

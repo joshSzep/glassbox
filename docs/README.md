@@ -11,8 +11,10 @@ Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
 v13 review-loop contract is the current implemented review lifecycle, and the
-v14 review-loop maturity contract and task graph scope the next planning track
-after the v13 release candidate and post-v13 refactor.
+v14 release candidate is the latest review-loop maturity guide. The v15
+repository intelligence contract, audit, and task graph are the active planning
+track for making local repository awareness richer while preserving advisory
+boundaries and deterministic release authority.
 
 ## Start Here
 
@@ -87,6 +89,20 @@ after the v13 release candidate and post-v13 refactor.
   rich-evidence lifecycle briefs, response-linked fixup inventory, skipped
   advisory evidence, review-loop command discovery, fresh browser/accessibility
   advisory evidence, evals, dogfooding, and release signoff
+- [v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md):
+  v15 contract for local, rebuildable, freshness-aware, provenance-backed, and
+  advisory repository intelligence covering repository snapshots, topology,
+  command recipes, ownership hints, path-to-verification guidance, confirmed
+  memory, context, replay, evals, and release authority
+- [v15-repository-intelligence-audit.md](./v15-repository-intelligence-audit.md):
+  source-linked audit of current repository index, topology, eval
+  recommendation, memory, changeset, context, store, web, CLI, and dashboard
+  surfaces before v15 implementation
+- [tasks-v15.md](./tasks-v15.md): v15 repository intelligence v2 task graph for
+  snapshot schema, discovery, command recipes, owner/subsystem hints,
+  path-to-verification guidance, memory integration, freshness, CLI/API,
+  dashboard console, context, replay, evals, performance, packaging, dogfooding,
+  and release signoff
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -250,6 +266,10 @@ after the v13 release candidate and post-v13 refactor.
 - [workspace-topology.md](./workspace-topology.md): understand the v12 typed
   topology model for packages, apps, libraries, roots, generated outputs,
   ownership hints, dependencies, provenance, and freshness
+- [v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md):
+  understand the v15 repository intelligence boundary before relying on command
+  recipes, owner hints, path-to-verification guidance, memory-derived facts, or
+  future repository intelligence console surfaces
 - [knowledge-posture.md](./knowledge-posture.md): understand the unified v11
   freshness categories before continuation or handoff
 - [background-jobs.md](./background-jobs.md): inspect and recover daemon-owned
@@ -298,6 +318,31 @@ after the v13 release candidate and post-v13 refactor.
 - [commit-preparation.md](./commit-preparation.md): combine readiness,
   suggested commit messages, risky paths, and safe next commands without
   staging, committing, pushing, or opening a PR
+
+## Repository Intelligence Map
+
+- [repository-intelligence-index.md](./repository-intelligence-index.md):
+  current rebuildable local repository index contract for source, docs, tests,
+  evals, commands, dependencies, freshness, and prompt-use posture
+- [workspace-topology.md](./workspace-topology.md): current typed topology
+  model for package/app/library/docs/test/generated roots, manifests,
+  dependency edges, ownership hints, provenance, and stale-topology degradation
+- [workspace-memory.md](./workspace-memory.md): review-gated local memory
+  contract for confirmed facts, conventions, commands, failure patterns,
+  invalidation, pruning, and prompt-use records
+- [replay-evals.md](./replay-evals.md): eval recommendations, recipes,
+  profiles, impact metadata, deterministic replay, and release-evidence
+  workflows that v15 path-to-verification guidance will build on
+- [command-evidence.md](./command-evidence.md): retained command purpose and
+  review-relevance evidence; v15 command recipes remain recommendations, not
+  permission grants
+- [changeset-verification-readiness.md](./changeset-verification-readiness.md):
+  current changeset verification readiness model that later v15 stale-evidence
+  and path-to-verification guidance will enrich
+- [v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md):
+  planned repository intelligence console, command recipe, memory candidate,
+  context, replay, eval, and release-evidence boundaries before those v15
+  surfaces land
 
 ## Reference
 
@@ -394,6 +439,12 @@ after the v13 release candidate and post-v13 refactor.
 - [workspace-topology.md](./workspace-topology.md): v12 local topology
   contract for path-aware verification, review readiness, component
   provenance, and stale-topology degradation
+- [v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md):
+  v15 repository intelligence v2 contract for local snapshots, topology,
+  command recipes, owners, path-to-verification recommendations, confirmed
+  memory, prompt context, replay, evals, and release authority
+- [v15-repository-intelligence-audit.md](./v15-repository-intelligence-audit.md):
+  source-linked v15 audit of current repository intelligence surfaces and gaps
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together
