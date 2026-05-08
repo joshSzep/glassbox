@@ -428,7 +428,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1510: Define Repository Intelligence Snapshot Schema V2
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1501`
 - Goal: define a typed snapshot model that unifies index entries, topology
   signals, command recipes, ownership hints, and freshness metadata without

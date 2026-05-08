@@ -712,3 +712,56 @@ class RepositoryIndexSourceType(StrEnum):
     STATIC_ANALYSIS = "static_analysis"
     GIT = "git"
     USER_HINT = "user_hint"
+
+
+class RepositoryIntelligenceConfidence(StrEnum):
+    """Confidence classes for advisory repository intelligence records."""
+
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    UNKNOWN = "unknown"
+
+
+class RepositoryIntelligencePathKind(StrEnum):
+    """Repository path roles carried by v2 intelligence snapshots."""
+
+    SOURCE_ROOT = "source_root"
+    TEST_ROOT = "test_root"
+    DOC_ROOT = "doc_root"
+    GENERATED_PATH = "generated_path"
+    CACHE_PATH = "cache_path"
+    BUILD_OUTPUT = "build_output"
+    POLICY_SENSITIVE_PATH = "policy_sensitive_path"
+
+
+class RepositoryIntelligencePackageKind(StrEnum):
+    """Package and workspace boundary kinds."""
+
+    PYTHON = "python"
+    FRONTEND = "frontend"
+    NODE_WORKSPACE = "node_workspace"
+    EVAL = "eval"
+    DOCS = "docs"
+    RELEASE = "release"
+    GENERIC = "generic"
+
+
+class RepositoryIntelligenceCommandRisk(StrEnum):
+    """Advisory command recipe risk classes."""
+
+    READ_ONLY = "read_only"
+    WORKSPACE_WRITE = "workspace_write"
+    NETWORK = "network"
+    RELEASE = "release"
+    DESTRUCTIVE = "destructive"
+    UNKNOWN = "unknown"
+
+
+class RepositoryIntelligenceReleaseSurfaceKind(StrEnum):
+    """Release-sensitive surface classes for repository intelligence."""
+
+    COMMIT_TIME = "commit_time"
+    PUSH_TIME = "push_time"
+    RELEASE_CANDIDATE = "release_candidate"
+    ADVISORY = "advisory"

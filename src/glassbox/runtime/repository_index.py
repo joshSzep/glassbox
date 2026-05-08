@@ -50,6 +50,7 @@ def build_repository_index(workspace_root: Path) -> RepositoryIndexSnapshot:
         add(dependency_entry)
 
     return RepositoryIndexSnapshot(
+        schema_version=2,
         workspace_root=root,
         status=RepositoryIndexFreshness.FRESH,
         built_at=built_at,

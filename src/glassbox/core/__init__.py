@@ -209,6 +209,12 @@ from glassbox.core.models import QuietWindowPolicy
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
+from glassbox.core.models import RepositoryIntelligenceCommandRecipe
+from glassbox.core.models import RepositoryIntelligenceOwnershipHint
+from glassbox.core.models import RepositoryIntelligencePackageBoundary
+from glassbox.core.models import RepositoryIntelligencePathHint
+from glassbox.core.models import RepositoryIntelligenceReleaseSurface
+from glassbox.core.models import RepositoryIntelligenceSourceManifest
 from glassbox.core.models import ResolvedForkPoint
 from glassbox.core.models import ReviewFeedbackFixupInventoryRecord
 from glassbox.core.models import ReviewFeedbackFixupPathRecord
@@ -273,6 +279,11 @@ from glassbox.core.types import RecoveryDecision
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import RepositoryIntelligenceCommandRisk
+from glassbox.core.types import RepositoryIntelligenceConfidence
+from glassbox.core.types import RepositoryIntelligencePackageKind
+from glassbox.core.types import RepositoryIntelligencePathKind
+from glassbox.core.types import RepositoryIntelligenceReleaseSurfaceKind
 from glassbox.core.types import ResumeOutcomeStatus
 from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
@@ -462,6 +473,17 @@ __all__ = [
     "ReviewFeedbackScopeRecord",
     "ReviewFixupSourceKind",
     "ReviewResponseState",
+    "RepositoryIntelligenceCommandRecipe",
+    "RepositoryIntelligenceCommandRisk",
+    "RepositoryIntelligenceConfidence",
+    "RepositoryIntelligenceOwnershipHint",
+    "RepositoryIntelligencePackageBoundary",
+    "RepositoryIntelligencePackageKind",
+    "RepositoryIntelligencePathHint",
+    "RepositoryIntelligencePathKind",
+    "RepositoryIntelligenceReleaseSurface",
+    "RepositoryIntelligenceReleaseSurfaceKind",
+    "RepositoryIntelligenceSourceManifest",
     "RepositoryIndexEntry",
     "RepositoryIndexEntityKind",
     "RepositoryIndexFreshness",

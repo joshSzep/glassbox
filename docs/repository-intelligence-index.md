@@ -84,6 +84,41 @@ A `RepositoryIndexSnapshot` has a schema version, workspace root, builder versio
 
 Fresh snapshots require a build timestamp. Failed snapshots require a reason. Snapshot entries require unique stable IDs. Index consumers must be able to tell whether context came from a fresh, stale, or failed index.
 
+## Snapshot Schema V2
+
+Schema version `2` keeps the existing entry list as the broad search surface and
+adds typed repository-intelligence sections to the same managed artifact:
+
+- `source_manifests`: repository-owned manifests, docs, eval metadata, or other
+  local sources that contributed intelligence, with digest and provenance
+- `source_roots`, `test_roots`, `doc_roots`, `generated_paths`, and
+  `policy_sensitive_paths`: workspace-relative path hints with confidence,
+  provenance, and limitations
+- `package_boundaries`: local package or workspace boundaries with roots,
+  manifests, generated paths, confidence, and limitations
+- `command_recipes`: advisory commands with purpose, review relevance, risk,
+  scope paths, timeout hints, confidence, provenance, and limitations
+- `ownership_hints`: advisory owner or maintainer labels for paths or
+  subsystems; these are not access-control or reviewer-assignment authority
+- `release_sensitive_surfaces`: commit-time, push-time, release-candidate, and
+  advisory surfaces that can later explain verification recommendations
+- `limitations`: snapshot-wide caveats for missing, weak, stale, or partial
+  intelligence
+
+All v2 paths are workspace-relative and must not traverse upward. Command recipe
+text is retained only as a single-line repository-derived recommendation; raw
+command logs, raw diffs, secrets, and raw file contents stay out of the artifact
+by default. V2 records carry their own confidence, provenance, and limitations,
+while the snapshot-level `status`, `built_at`, `builder_version`,
+`source_digest`, and source input inventory describe freshness for the whole
+artifact.
+
+Older schema-1 artifacts remain readable. When v2-only fields are absent,
+Glassbox treats the richer sections as empty and preserves the older freshness
+and search behavior. When v2-only fields are present, the artifact must declare
+`schema_version >= 2` so operators and replay surfaces can fingerprint the
+contract that shaped repository recommendations.
+
 Invalidation can be triggered by changed manifest digests, changed indexed file digests, deleted paths, schema version changes, builder version changes, configuration changes, or explicit operator refresh requests.
 
 `glassbox repo index status --cwd .` is the operator-facing freshness check. It reports missing, fresh, stale, building, and failed states with the retained index path, entry count, current source digest, retained source digest when available, and safe next actions. New v9 snapshots also retain bounded source input metadata so stale status can show read-only samples of added, removed, or changed paths. Older snapshots that do not have this inventory still report the digest mismatch and ask the operator to rebuild once to enable path-level stale explanations.

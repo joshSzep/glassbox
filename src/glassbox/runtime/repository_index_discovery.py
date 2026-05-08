@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 INDEX_FILE = "repository-index.json"
-BUILDER_VERSION = "v1"
+BUILDER_VERSION = "v2-schema"
 MAX_INDEXED_FILES = 2000
 EXCLUDED_NAMES = {
     ".git",

@@ -1,5 +1,6 @@
 """Core Pydantic domain models for Glassbox."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -63,6 +64,11 @@ from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import RepositoryIntelligenceCommandRisk
+from glassbox.core.types import RepositoryIntelligenceConfidence
+from glassbox.core.types import RepositoryIntelligencePackageKind
+from glassbox.core.types import RepositoryIntelligencePathKind
+from glassbox.core.types import RepositoryIntelligenceReleaseSurfaceKind
 from glassbox.core.types import ReviewFeedbackDisposition
 from glassbox.core.types import ReviewFeedbackKind
 from glassbox.core.types import ReviewFeedbackProvenance
@@ -94,6 +100,18 @@ QuietWindowPolicy = Literal[
     "checkpoint_before_quiet_window",
     "pause_during_quiet_window",
 ]
+
+
+def _repository_relative_path(value: Path) -> Path:
+    if value.is_absolute():
+        raise ValueError("repository intelligence paths must be workspace-relative")
+    if ".." in value.parts:
+        raise ValueError("repository intelligence paths must not traverse upward")
+    return value
+
+
+def _repository_relative_paths(values: list[Path]) -> list[Path]:
+    return [_repository_relative_path(value) for value in values]
 
 
 class AutonomyBudget(BaseModel):
@@ -617,6 +635,159 @@ class RepositoryIndexEntry(BaseModel):
         return self
 
 
+class RepositoryIntelligenceSourceManifest(BaseModel):
+    """A repository-owned source that contributed to a v2 intelligence snapshot."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    manifest_id: str = Field(min_length=1, max_length=200)
+    path: Path
+    source_type: RepositoryIndexSourceType
+    role: str = Field(min_length=1, max_length=120)
+    digest: str | None = Field(default=None, min_length=64, max_length=64)
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, value: Path) -> Path:
+        return _repository_relative_path(value)
+
+
+class RepositoryIntelligencePathHint(BaseModel):
+    """A source, test, doc, generated, or policy-sensitive path hint."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hint_id: str = Field(min_length=1, max_length=200)
+    kind: RepositoryIntelligencePathKind
+    path: Path
+    package_id: str | None = Field(default=None, max_length=200)
+    language: str | None = Field(default=None, max_length=100)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("path")
+    @classmethod
+    def validate_path(cls, value: Path) -> Path:
+        return _repository_relative_path(value)
+
+
+class RepositoryIntelligencePackageBoundary(BaseModel):
+    """A local package, workspace, or subsystem boundary."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    package_id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=500)
+    kind: RepositoryIntelligencePackageKind
+    root: Path
+    manifest_paths: list[Path] = Field(default_factory=list)
+    source_roots: list[Path] = Field(default_factory=list)
+    test_roots: list[Path] = Field(default_factory=list)
+    doc_roots: list[Path] = Field(default_factory=list)
+    generated_paths: list[Path] = Field(default_factory=list)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("root")
+    @classmethod
+    def validate_root(cls, value: Path) -> Path:
+        return _repository_relative_path(value)
+
+    @field_validator(
+        "manifest_paths",
+        "source_roots",
+        "test_roots",
+        "doc_roots",
+        "generated_paths",
+    )
+    @classmethod
+    def validate_path_lists(cls, value: list[Path]) -> list[Path]:
+        return _repository_relative_paths(value)
+
+
+class RepositoryIntelligenceCommandRecipe(BaseModel):
+    """Advisory command recipe derived from local repository evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    recipe_id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=500)
+    command: str = Field(min_length=1, max_length=2000)
+    purpose: CommandPurpose = CommandPurpose.UNKNOWN
+    review_relevance: CommandReviewRelevance = CommandReviewRelevance.UNKNOWN
+    risk: RepositoryIntelligenceCommandRisk = RepositoryIntelligenceCommandRisk.UNKNOWN
+    scope_paths: list[Path] = Field(default_factory=list)
+    timeout_seconds: int | None = Field(default=None, ge=1)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("command")
+    @classmethod
+    def validate_command(cls, value: str) -> str:
+        if "\n" in value or "\r" in value:
+            raise ValueError("repository command recipes must be single-line commands")
+        return value
+
+    @field_validator("scope_paths")
+    @classmethod
+    def validate_scope_paths(cls, value: list[Path]) -> list[Path]:
+        return _repository_relative_paths(value)
+
+
+class RepositoryIntelligenceOwnershipHint(BaseModel):
+    """Advisory owner or maintainer hint for repository paths or subsystems."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hint_id: str = Field(min_length=1, max_length=200)
+    owner_label: str = Field(min_length=1, max_length=500)
+    scope_paths: list[Path] = Field(min_length=1)
+    subsystem: str | None = Field(default=None, max_length=200)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("scope_paths")
+    @classmethod
+    def validate_scope_paths(cls, value: list[Path]) -> list[Path]:
+        return _repository_relative_paths(value)
+
+
+class RepositoryIntelligenceReleaseSurface(BaseModel):
+    """Advisory release-sensitive surface retained in a repository snapshot."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    surface_id: str = Field(min_length=1, max_length=200)
+    name: str = Field(min_length=1, max_length=500)
+    kind: RepositoryIntelligenceReleaseSurfaceKind
+    scope_paths: list[Path] = Field(default_factory=list)
+    command_recipe_ids: list[str] = Field(default_factory=list)
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    provenance: list[RepositoryIndexProvenance] = Field(min_length=1)
+    limitations: list[str] = Field(default_factory=list)
+
+    @field_validator("scope_paths")
+    @classmethod
+    def validate_scope_paths(cls, value: list[Path]) -> list[Path]:
+        return _repository_relative_paths(value)
+
+
 class RepositoryIndexSnapshot(BaseModel):
     """Versioned rebuildable repository intelligence snapshot."""
 
@@ -632,6 +803,29 @@ class RepositoryIndexSnapshot(BaseModel):
     include_patterns: list[str] = Field(default_factory=list)
     exclude_patterns: list[str] = Field(default_factory=list)
     entries: list[RepositoryIndexEntry] = Field(default_factory=list)
+    source_manifests: list[RepositoryIntelligenceSourceManifest] = Field(
+        default_factory=list
+    )
+    source_roots: list[RepositoryIntelligencePathHint] = Field(default_factory=list)
+    test_roots: list[RepositoryIntelligencePathHint] = Field(default_factory=list)
+    doc_roots: list[RepositoryIntelligencePathHint] = Field(default_factory=list)
+    generated_paths: list[RepositoryIntelligencePathHint] = Field(default_factory=list)
+    policy_sensitive_paths: list[RepositoryIntelligencePathHint] = Field(
+        default_factory=list
+    )
+    package_boundaries: list[RepositoryIntelligencePackageBoundary] = Field(
+        default_factory=list
+    )
+    command_recipes: list[RepositoryIntelligenceCommandRecipe] = Field(
+        default_factory=list
+    )
+    ownership_hints: list[RepositoryIntelligenceOwnershipHint] = Field(
+        default_factory=list
+    )
+    release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface] = Field(
+        default_factory=list
+    )
+    limitations: list[str] = Field(default_factory=list)
     failure_reason: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
@@ -646,7 +840,73 @@ class RepositoryIndexSnapshot(BaseModel):
         entry_ids = [entry.entry_id for entry in self.entries]
         if len(entry_ids) != len(set(entry_ids)):
             raise ValueError("repository index entries require unique entry_id values")
+        if self.schema_version < 2 and self._has_v2_intelligence():
+            raise ValueError(
+                "rich repository intelligence fields require schema_version >= 2"
+            )
+        self._validate_v2_identifiers()
         return self
+
+    def _has_v2_intelligence(self) -> bool:
+        return any(
+            (
+                self.source_manifests,
+                self.source_roots,
+                self.test_roots,
+                self.doc_roots,
+                self.generated_paths,
+                self.policy_sensitive_paths,
+                self.package_boundaries,
+                self.command_recipes,
+                self.ownership_hints,
+                self.release_sensitive_surfaces,
+                self.limitations,
+            )
+        )
+
+    def _validate_v2_identifiers(self) -> None:
+        _ensure_unique(
+            "repository intelligence source manifest ids",
+            (manifest.manifest_id for manifest in self.source_manifests),
+        )
+        _ensure_unique(
+            "repository intelligence path hint ids",
+            (
+                hint.hint_id
+                for hints in (
+                    self.source_roots,
+                    self.test_roots,
+                    self.doc_roots,
+                    self.generated_paths,
+                    self.policy_sensitive_paths,
+                )
+                for hint in hints
+            ),
+        )
+        _ensure_unique(
+            "repository intelligence package ids",
+            (package.package_id for package in self.package_boundaries),
+        )
+        _ensure_unique(
+            "repository intelligence command recipe ids",
+            (recipe.recipe_id for recipe in self.command_recipes),
+        )
+        _ensure_unique(
+            "repository intelligence ownership hint ids",
+            (hint.hint_id for hint in self.ownership_hints),
+        )
+        _ensure_unique(
+            "repository intelligence release surface ids",
+            (surface.surface_id for surface in self.release_sensitive_surfaces),
+        )
+
+
+def _ensure_unique(label: str, values: Iterable[str]) -> None:
+    seen: set[str] = set()
+    for value in values:
+        if value in seen:
+            raise ValueError(f"{label} require unique values")
+        seen.add(value)
 
 
 class MessagePart(BaseModel):

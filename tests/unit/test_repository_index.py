@@ -2,9 +2,26 @@
 
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
+from glassbox.core import CommandPurpose
+from glassbox.core import CommandReviewRelevance
 from glassbox.core import RepositoryIndexFreshness
+from glassbox.core import RepositoryIndexProvenance
 from glassbox.core import RepositoryIndexSnapshot
 from glassbox.core import RepositoryIndexSourceType
+from glassbox.core import RepositoryIntelligenceCommandRecipe
+from glassbox.core import RepositoryIntelligenceCommandRisk
+from glassbox.core import RepositoryIntelligenceConfidence
+from glassbox.core import RepositoryIntelligenceOwnershipHint
+from glassbox.core import RepositoryIntelligencePackageBoundary
+from glassbox.core import RepositoryIntelligencePackageKind
+from glassbox.core import RepositoryIntelligencePathHint
+from glassbox.core import RepositoryIntelligencePathKind
+from glassbox.core import RepositoryIntelligenceReleaseSurface
+from glassbox.core import RepositoryIntelligenceReleaseSurfaceKind
+from glassbox.core import RepositoryIntelligenceSourceManifest
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
@@ -29,6 +46,8 @@ def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> No
 
     assert repository_index_path(tmp_path).exists()
     assert snapshot.status == RepositoryIndexFreshness.FRESH
+    assert snapshot.schema_version == 2
+    assert snapshot.builder_version == "v2-schema"
     assert loaded.status == RepositoryIndexFreshness.FRESH
     assert any(entry.name == "pyproject.toml" for entry in loaded.entries)
     assert any(entry.name == "docs/architecture.md" for entry in loaded.entries)
@@ -41,6 +60,183 @@ def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> No
         fetched.provenance[0].source_type == RepositoryIndexSourceType.STATIC_ANALYSIS
     )
     assert fetched.provenance[0].line_start == 1
+
+
+def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    snapshot = build_and_write_repository_index(tmp_path)
+    provenance = RepositoryIndexProvenance(
+        source_type=RepositoryIndexSourceType.MANIFEST,
+        path=Path("pyproject.toml"),
+    )
+    enriched = snapshot.model_copy(
+        update={
+            "source_manifests": [
+                RepositoryIntelligenceSourceManifest(
+                    manifest_id="manifest:pyproject",
+                    path=Path("pyproject.toml"),
+                    source_type=RepositoryIndexSourceType.MANIFEST,
+                    role="python project manifest",
+                    digest="b" * 64,
+                    provenance=[provenance],
+                )
+            ],
+            "source_roots": [
+                RepositoryIntelligencePathHint(
+                    hint_id="source-root:src",
+                    kind=RepositoryIntelligencePathKind.SOURCE_ROOT,
+                    path=Path("src"),
+                    language="python",
+                    confidence=RepositoryIntelligenceConfidence.HIGH,
+                    provenance=[provenance],
+                )
+            ],
+            "test_roots": [
+                RepositoryIntelligencePathHint(
+                    hint_id="test-root:tests",
+                    kind=RepositoryIntelligencePathKind.TEST_ROOT,
+                    path=Path("tests"),
+                    language="python",
+                    confidence=RepositoryIntelligenceConfidence.HIGH,
+                    provenance=[provenance],
+                )
+            ],
+            "package_boundaries": [
+                RepositoryIntelligencePackageBoundary(
+                    package_id="package:fixture",
+                    name="fixture",
+                    kind=RepositoryIntelligencePackageKind.PYTHON,
+                    root=Path("."),
+                    manifest_paths=[Path("pyproject.toml")],
+                    source_roots=[Path("src")],
+                    test_roots=[Path("tests")],
+                    confidence=RepositoryIntelligenceConfidence.HIGH,
+                    provenance=[provenance],
+                )
+            ],
+            "command_recipes": [
+                RepositoryIntelligenceCommandRecipe(
+                    recipe_id="recipe:pytest",
+                    name="backend tests",
+                    command="uv run pytest tests",
+                    purpose=CommandPurpose.TEST,
+                    review_relevance=CommandReviewRelevance.VERIFICATION,
+                    risk=RepositoryIntelligenceCommandRisk.READ_ONLY,
+                    scope_paths=[Path("src"), Path("tests")],
+                    timeout_seconds=120,
+                    confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                    provenance=[provenance],
+                    limitations=["Derived recipe; execution is still operator-gated."],
+                )
+            ],
+            "ownership_hints": [
+                RepositoryIntelligenceOwnershipHint(
+                    hint_id="owner:runtime",
+                    owner_label="runtime maintainers",
+                    scope_paths=[Path("src")],
+                    subsystem="runtime",
+                    confidence=RepositoryIntelligenceConfidence.LOW,
+                    provenance=[provenance],
+                )
+            ],
+            "release_sensitive_surfaces": [
+                RepositoryIntelligenceReleaseSurface(
+                    surface_id="release:unit",
+                    name="unit verification",
+                    kind=RepositoryIntelligenceReleaseSurfaceKind.COMMIT_TIME,
+                    scope_paths=[Path("tests")],
+                    command_recipe_ids=["recipe:pytest"],
+                    confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                    provenance=[provenance],
+                )
+            ],
+            "limitations": [
+                "Schema test data does not imply command approval or "
+                "ownership authority."
+            ],
+        }
+    )
+
+    restored = RepositoryIndexSnapshot.model_validate_json(enriched.model_dump_json())
+
+    assert restored.schema_version == 2
+    assert restored.command_recipes[0].command == "uv run pytest tests"
+    assert restored.package_boundaries[0].source_roots == [Path("src")]
+    assert restored.release_sensitive_surfaces[0].command_recipe_ids == [
+        "recipe:pytest"
+    ]
+
+
+def test_repository_intelligence_snapshot_loads_legacy_v1_payload() -> None:
+    payload = {
+        "schema_version": 1,
+        "workspace_root": "/tmp/glassbox",
+        "status": "failed",
+        "builder_version": "v1",
+        "failure_reason": "legacy failure",
+    }
+
+    snapshot = RepositoryIndexSnapshot.model_validate(payload)
+
+    assert snapshot.schema_version == 1
+    assert snapshot.command_recipes == []
+    assert snapshot.package_boundaries == []
+
+
+def test_repository_intelligence_snapshot_rejects_malformed_v2_fields() -> None:
+    provenance = RepositoryIndexProvenance(
+        source_type=RepositoryIndexSourceType.MANIFEST,
+        path=Path("pyproject.toml"),
+    )
+
+    with pytest.raises(ValidationError):
+        RepositoryIntelligencePathHint(
+            hint_id="source-root:absolute",
+            kind=RepositoryIntelligencePathKind.SOURCE_ROOT,
+            path=Path("/tmp/glassbox/src"),
+            provenance=[provenance],
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIntelligenceCommandRecipe(
+            recipe_id="recipe:logs",
+            name="bad command",
+            command="uv run pytest\nraw output follows",
+            provenance=[provenance],
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexSnapshot(
+            schema_version=1,
+            workspace_root=Path("/tmp/glassbox"),
+            status=RepositoryIndexFreshness.FAILED,
+            failure_reason="legacy failure",
+            limitations=["v2-only limitation"],
+        )
+
+    with pytest.raises(ValidationError):
+        RepositoryIndexSnapshot(
+            schema_version=2,
+            workspace_root=Path("/tmp/glassbox"),
+            status=RepositoryIndexFreshness.FAILED,
+            failure_reason="duplicate recipe",
+            command_recipes=[
+                RepositoryIntelligenceCommandRecipe(
+                    recipe_id="recipe:pytest",
+                    name="backend tests",
+                    command="uv run pytest",
+                    provenance=[provenance],
+                ),
+                RepositoryIntelligenceCommandRecipe(
+                    recipe_id="recipe:pytest",
+                    name="unit tests",
+                    command="uv run pytest tests/unit",
+                    provenance=[provenance],
+                ),
+            ],
+        )
 
 
 def test_repository_index_marks_snapshot_stale_after_source_change(
