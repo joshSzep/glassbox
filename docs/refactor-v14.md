@@ -573,7 +573,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R622: Extract Review Response Summary Assembly
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R620, GBX-R621
 - Target files:
   - `src/glassbox/runtime/review_responses.py`

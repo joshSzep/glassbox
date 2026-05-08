@@ -34,7 +34,7 @@ from glassbox.runtime.change_inventory import ChangeInventorySummary
 from glassbox.runtime.review_fixup_artifacts import (
     review_fixup_inventory_from_change_inventory,
 )
-from glassbox.runtime.review_responses import changeset_review_response_summary
+from glassbox.runtime.review_response_summary import changeset_review_response_summary
 from glassbox.runtime.review_responses import review_feedback_response_status
 from glassbox.runtime.review_responses import review_fixup_inventory_status
 

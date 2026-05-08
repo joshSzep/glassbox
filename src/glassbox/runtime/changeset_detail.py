@@ -20,9 +20,9 @@ from glassbox.runtime.changeset_models import ChangesetDetailView
 from glassbox.runtime.changeset_models import ChangesetInventoryStatus
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_safe_commands import show_changeset_command
+from glassbox.runtime.review_response_summary import changeset_review_response_summary
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
-from glassbox.runtime.review_responses import changeset_review_response_summary
 from glassbox.runtime.review_responses import (
     review_feedback_response_status as _review_feedback_response_status,
 )
