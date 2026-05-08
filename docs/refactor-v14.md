@@ -623,7 +623,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R631: Split Commit Readiness Signal Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R630
 - Target files:
   - `src/glassbox/runtime/commit_readiness.py`
