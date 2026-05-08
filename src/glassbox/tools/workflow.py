@@ -15,6 +15,10 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
+from glassbox.runtime.repository_index_discovery import is_generated_repository_path
+from glassbox.runtime.repository_index_discovery import (
+    is_policy_sensitive_repository_path,
+)
 from glassbox.tools._subprocess import DEFAULT_MAX_OUTPUT_BYTES
 from glassbox.tools._subprocess import CapturedSubprocessOutput
 from glassbox.tools._subprocess import CommandExecutionResult
@@ -179,32 +183,6 @@ def _parse_porcelain_output(output: str) -> GitStatusResult:
 # ---------------------------------------------------------------------------
 
 DIFF_SUMMARY_ARTIFACT_KIND = "workspace_diff_summary"
-
-_POLICY_SENSITIVE_PATH_PREFIXES = (
-    ".github/",
-    "docs/tool-policy",
-    "docs/tasks-v",
-    "scripts/validate_",
-    "src/glassbox/tools/policy",
-    "src/glassbox/tools/policy_config",
-)
-_POLICY_SENSITIVE_PATH_NAMES = {
-    ".env",
-    ".env.local",
-    ".envrc",
-    "glassbox-policy.json",
-    "glassbox.tool-policy.json",
-}
-_GENERATED_PATH_MARKERS = (
-    "/__pycache__/",
-    "/generated/",
-    "/static_next/",
-    "/node_modules/",
-)
-_GENERATED_PATH_PREFIXES = (
-    "frontend/generated/",
-    "src/glassbox/web/static_next/",
-)
 
 
 class DiffSummaryScope(StrEnum):
@@ -556,10 +534,7 @@ def _build_patch_risk_summary(files: list[DiffFileSummary]) -> PatchRiskSummary:
 
 
 def _is_generated_path(path: str) -> bool:
-    normalized = f"/{path}"
-    return path.startswith(_GENERATED_PATH_PREFIXES) or any(
-        marker in normalized for marker in _GENERATED_PATH_MARKERS
-    )
+    return is_generated_repository_path(path)
 
 
 def _is_test_path(path: str) -> bool:
@@ -581,10 +556,7 @@ def _is_docs_path(path: str) -> bool:
 
 
 def _is_policy_sensitive_path(path: str) -> bool:
-    name = Path(path).name
-    return name in _POLICY_SENSITIVE_PATH_NAMES or path.startswith(
-        _POLICY_SENSITIVE_PATH_PREFIXES
-    )
+    return is_policy_sensitive_repository_path(path)
 
 
 def diff_summary_artifact_content(output_payload: dict[str, object]) -> str | None:

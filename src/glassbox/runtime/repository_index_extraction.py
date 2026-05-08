@@ -7,11 +7,32 @@ import tomllib
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from typing import TypedDict
 
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
+from glassbox.core.models import RepositoryIntelligencePackageBoundary
+from glassbox.core.models import RepositoryIntelligencePathHint
+from glassbox.core.models import RepositoryIntelligenceSourceManifest
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.runtime.repository_intelligence_layout import (
+    discover_repository_intelligence_layout,
+)
+
+
+class RepositoryIntelligenceLayoutFields(TypedDict):
+    """Keyword fields from layout discovery accepted by RepositoryIndexSnapshot."""
+
+    source_manifests: list[RepositoryIntelligenceSourceManifest]
+    source_roots: list[RepositoryIntelligencePathHint]
+    test_roots: list[RepositoryIntelligencePathHint]
+    doc_roots: list[RepositoryIntelligencePathHint]
+    generated_paths: list[RepositoryIntelligencePathHint]
+    policy_sensitive_paths: list[RepositoryIntelligencePathHint]
+    package_boundaries: list[RepositoryIntelligencePackageBoundary]
+    limitations: list[str]
+
 
 PROJECT_MARKERS = {
     "pyproject.toml",
@@ -126,6 +147,26 @@ def dependency_entries(root: Path, updated_at: datetime) -> list[RepositoryIndex
                 )
             )
     return entries
+
+
+def repository_intelligence_layout_fields(
+    root: Path,
+    *,
+    built_at: datetime,
+) -> RepositoryIntelligenceLayoutFields:
+    """Return v2 layout fields for the repository index snapshot facade."""
+
+    layout = discover_repository_intelligence_layout(root, built_at=built_at)
+    return {
+        "source_manifests": layout.source_manifests,
+        "source_roots": layout.source_roots,
+        "test_roots": layout.test_roots,
+        "doc_roots": layout.doc_roots,
+        "generated_paths": layout.generated_paths,
+        "policy_sensitive_paths": layout.policy_sensitive_paths,
+        "package_boundaries": layout.package_boundaries,
+        "limitations": layout.limitations,
+    }
 
 
 def dedupe_entry_id(
@@ -363,4 +404,5 @@ __all__ = [
     "dedupe_entry_id",
     "dependency_entries",
     "file_entries",
+    "repository_intelligence_layout_fields",
 ]

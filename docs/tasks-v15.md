@@ -458,7 +458,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1511: Upgrade Repository Discovery For Roots, Packages, And Generated Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1510`
 - Goal: make repository indexing detect high-signal local structure beyond
   top-level file discovery

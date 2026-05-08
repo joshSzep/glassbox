@@ -18,6 +18,9 @@ from glassbox.runtime.repository_index_extraction import command_entries
 from glassbox.runtime.repository_index_extraction import dedupe_entry_id
 from glassbox.runtime.repository_index_extraction import dependency_entries
 from glassbox.runtime.repository_index_extraction import file_entries
+from glassbox.runtime.repository_index_extraction import (
+    repository_intelligence_layout_fields,
+)
 from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index_persistence import load_repository_index
 from glassbox.runtime.repository_index_persistence import write_repository_index
@@ -59,6 +62,7 @@ def build_repository_index(workspace_root: Path) -> RepositoryIndexSnapshot:
         source_inputs=source_inputs,
         exclude_patterns=sorted(EXCLUDED_NAMES),
         entries=entries,
+        **repository_intelligence_layout_fields(root, built_at=built_at),
     )
 
 

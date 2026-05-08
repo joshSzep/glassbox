@@ -119,6 +119,22 @@ and search behavior. When v2-only fields are present, the artifact must declare
 `schema_version >= 2` so operators and replay surfaces can fingerprint the
 contract that shaped repository recommendations.
 
+The v15 builder now populates the first layout sections deterministically from
+local files. It records Python package boundaries from `pyproject.toml`, node
+or frontend workspaces from `package.json`, docs and eval roots when those
+directories exist, source/test/doc roots from repository conventions, and
+generated/cache/build-output posture for known paths such as
+`frontend/generated`, `frontend/out`, `.next`, `dist`, `coverage`, and
+`src/glassbox/web/static_next`. The same path classifier backs repository
+indexing, workspace topology exclusion, workspace diff generated-path
+annotation, and verification drift generated-path checks.
+
+Layout discovery remains bounded and advisory. Excluded directories such as
+`node_modules`, `.venv`, `.git`, `.glassbox`, static build outputs, and cache
+directories are not crawled for entries, but known generated or build-output
+paths may appear as path-level hints with limitations so operators can see why
+they matter without retaining raw generated contents.
+
 Invalidation can be triggered by changed manifest digests, changed indexed file digests, deleted paths, schema version changes, builder version changes, configuration changes, or explicit operator refresh requests.
 
 `glassbox repo index status --cwd .` is the operator-facing freshness check. It reports missing, fresh, stale, building, and failed states with the retained index path, entry count, current source digest, retained source digest when available, and safe next actions. New v9 snapshots also retain bounded source input metadata so stale status can show read-only samples of added, removed, or changed paths. Older snapshots that do not have this inventory still report the digest mismatch and ask the operator to rebuild once to enable path-level stale explanations.

@@ -28,6 +28,8 @@ from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
 from glassbox.runtime.repository_index import write_repository_index
+from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
+from glassbox.runtime.repository_index_discovery import classify_repository_path
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
@@ -55,11 +57,65 @@ def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> No
     assert any(entry.name == "frontend:test" for entry in loaded.entries)
     assert any(entry.name == "python dependencies" for entry in loaded.entries)
     assert all("node_modules" not in entry.entry_id for entry in loaded.entries)
+    assert {root.path.as_posix() for root in loaded.source_roots} >= {"src"}
+    assert {root.path.as_posix() for root in loaded.test_roots} == {"tests"}
+    assert {root.path.as_posix() for root in loaded.doc_roots} == {"docs"}
+    assert {package.package_id for package in loaded.package_boundaries} >= {
+        "package:fixture",
+        "app:frontend",
+        "docs:docs",
+    }
+    assert any(
+        hint.path == Path("frontend/generated")
+        and hint.kind == RepositoryIntelligencePathKind.GENERATED_PATH
+        for hint in loaded.generated_paths
+    )
     assert fetched.entry_id == symbol_entry.entry_id
     assert (
         fetched.provenance[0].source_type == RepositoryIndexSourceType.STATIC_ANALYSIS
     )
     assert fetched.provenance[0].line_start == 1
+
+
+def test_repository_path_classifier_identifies_generated_and_sensitive_paths() -> None:
+    generated = classify_repository_path("frontend/generated/api-types.ts")
+    cache = classify_repository_path("frontend/node_modules/react/index.js")
+    build = classify_repository_path("frontend/out/index.html")
+    policy = classify_repository_path("docs/tasks-v15.md")
+
+    assert generated.generated
+    assert generated.excluded is False
+    assert cache.generated
+    assert cache.cache
+    assert cache.excluded
+    assert build.build_output
+    assert build.excluded
+    assert policy.policy_sensitive
+
+
+def test_repository_index_layout_respects_builder_limit_and_generated_paths(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    bulk = tmp_path / "src" / "bulk"
+    bulk.mkdir()
+    for index in range(MAX_INDEXED_FILES + 20):
+        (bulk / f"module_{index}.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+    snapshot = build_and_write_repository_index(tmp_path)
+
+    assert len(snapshot.source_inputs) == MAX_INDEXED_FILES
+    assert all("node_modules" not in source for source in snapshot.source_inputs)
+    assert any(
+        hint.path == Path("frontend/out")
+        and hint.kind == RepositoryIntelligencePathKind.BUILD_OUTPUT
+        for hint in snapshot.generated_paths
+    )
+    assert any(
+        "Excluded from file crawling" in " ".join(hint.limitations)
+        for hint in snapshot.generated_paths
+        if hint.path == Path("frontend/out")
+    )
 
 
 def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(
@@ -329,6 +385,8 @@ def _seed_repository(root: Path) -> None:
     (root / "docs").mkdir()
     (root / "evals" / "cases").mkdir(parents=True)
     (root / "frontend").mkdir()
+    (root / "frontend" / "generated").mkdir()
+    (root / "frontend" / "out").mkdir()
     (root / "tests").mkdir()
     (root / "node_modules").mkdir()
     (root / "pyproject.toml").write_text(
@@ -355,6 +413,14 @@ glassbox-fixture = "fixture:main"
     )
     (root / "frontend" / "package.json").write_text(
         '{"scripts":{"test":"vitest"},"dependencies":{"react":"19.0.0"}}',
+        encoding="utf-8",
+    )
+    (root / "frontend" / "generated" / "api-types.ts").write_text(
+        "export type Api = {};\n",
+        encoding="utf-8",
+    )
+    (root / "frontend" / "out" / "index.html").write_text(
+        "<html></html>\n",
         encoding="utf-8",
     )
     (root / "node_modules" / "ignored.py").write_text(

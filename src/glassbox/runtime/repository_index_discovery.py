@@ -2,6 +2,7 @@
 
 import hashlib
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 INDEX_FILE = "repository-index.json"
@@ -23,6 +24,59 @@ EXCLUDED_NAMES = {
     "out",
     "static_next",
 }
+GENERATED_PATH_PREFIXES = (
+    "frontend/generated/",
+    "src/glassbox/web/static_next/",
+)
+GENERATED_PATH_MARKERS = (
+    "/__pycache__/",
+    "/generated/",
+    "/static_next/",
+    "/node_modules/",
+)
+CACHE_PATH_NAMES = {
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "node_modules",
+}
+BUILD_OUTPUT_NAMES = {
+    ".next",
+    "build",
+    "coverage",
+    "dist",
+    "out",
+    "static_next",
+}
+POLICY_SENSITIVE_PATH_PREFIXES = (
+    ".github/",
+    "docs/tool-policy",
+    "docs/tasks-v",
+    "scripts/validate_",
+    "src/glassbox/tools/policy",
+    "src/glassbox/tools/policy_config",
+)
+POLICY_SENSITIVE_PATH_NAMES = {
+    ".env",
+    ".env.local",
+    ".envrc",
+    "glassbox-policy.json",
+    "glassbox.tool-policy.json",
+}
+
+
+@dataclass(frozen=True)
+class RepositoryPathClassification:
+    """Shared local path classifier for repository intelligence consumers."""
+
+    relative_path: Path
+    excluded: bool
+    generated: bool
+    cache: bool
+    build_output: bool
+    policy_sensitive: bool
 
 
 def repository_index_path(workspace_root: Path) -> Path:
@@ -42,7 +96,38 @@ def iter_indexable_files(root: Path) -> Iterable[Path]:
 
 
 def is_excluded(relative: Path) -> bool:
-    return any(part in EXCLUDED_NAMES for part in relative.parts)
+    return classify_repository_path(relative).excluded
+
+
+def is_generated_repository_path(path: str | Path) -> bool:
+    return classify_repository_path(path).generated
+
+
+def is_policy_sensitive_repository_path(path: str | Path) -> bool:
+    return classify_repository_path(path).policy_sensitive
+
+
+def classify_repository_path(path: str | Path) -> RepositoryPathClassification:
+    relative = _normalize_relative_path(path)
+    parts = set(relative.parts)
+    value = relative.as_posix()
+    normalized = f"/{value}"
+    cache = any(part in CACHE_PATH_NAMES for part in parts)
+    build_output = any(part in BUILD_OUTPUT_NAMES for part in parts)
+    generated = value.startswith(GENERATED_PATH_PREFIXES) or any(
+        marker in normalized for marker in GENERATED_PATH_MARKERS
+    )
+    policy_sensitive = value in POLICY_SENSITIVE_PATH_NAMES or any(
+        value.startswith(prefix) for prefix in POLICY_SENSITIVE_PATH_PREFIXES
+    )
+    return RepositoryPathClassification(
+        relative_path=relative,
+        excluded=any(part in EXCLUDED_NAMES for part in parts),
+        generated=generated,
+        cache=cache,
+        build_output=build_output,
+        policy_sensitive=policy_sensitive,
+    )
 
 
 def source_digest(root: Path, files: list[Path]) -> str:
@@ -64,11 +149,30 @@ def source_digest_inputs(root: Path, files: list[Path]) -> list[str]:
     return inputs
 
 
+def _normalize_relative_path(path: str | Path) -> Path:
+    relative = Path(path)
+    if relative.is_absolute():
+        raise ValueError("repository paths must be relative to the workspace root")
+    if ".." in relative.parts:
+        raise ValueError("repository paths must not escape the workspace root")
+    return relative
+
+
 __all__ = [
     "BUILDER_VERSION",
+    "BUILD_OUTPUT_NAMES",
+    "CACHE_PATH_NAMES",
     "EXCLUDED_NAMES",
+    "GENERATED_PATH_MARKERS",
+    "GENERATED_PATH_PREFIXES",
     "MAX_INDEXED_FILES",
+    "POLICY_SENSITIVE_PATH_NAMES",
+    "POLICY_SENSITIVE_PATH_PREFIXES",
+    "RepositoryPathClassification",
+    "classify_repository_path",
     "iter_indexable_files",
+    "is_generated_repository_path",
+    "is_policy_sensitive_repository_path",
     "repository_index_path",
     "source_digest",
     "source_digest_inputs",

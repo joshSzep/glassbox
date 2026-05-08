@@ -13,6 +13,7 @@ from glassbox.core.ids import TaskId
 from glassbox.core.ids import TaskVerificationId
 from glassbox.core.models import TaskVerificationLedgerRecord
 from glassbox.core.types import TaskVerificationStatus
+from glassbox.runtime.repository_index_discovery import is_generated_repository_path
 
 VerificationDriftPosture = Literal[
     "not_assessed",
@@ -24,14 +25,6 @@ VerificationDriftPosture = Literal[
     "unknown",
 ]
 
-_GENERATED_PATH_PREFIXES = (
-    "frontend/generated/",
-    "src/glassbox/web/static_next/",
-)
-_GENERATED_PATH_MARKERS = (
-    "/generated/",
-    "/static_next/",
-)
 _POLICY_DOC_PREFIXES = (
     "docs/tasks-v",
     "docs/tool-policy",
@@ -212,9 +205,7 @@ def _changed_path_digest(paths: list[str]) -> str | None:
 
 
 def _is_generated_path(path: str) -> bool:
-    return path.startswith(_GENERATED_PATH_PREFIXES) or any(
-        marker in f"/{path}" for marker in _GENERATED_PATH_MARKERS
-    )
+    return is_generated_repository_path(path)
 
 
 def _is_docs_only_path(path: str) -> bool:

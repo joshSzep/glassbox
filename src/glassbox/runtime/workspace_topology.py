@@ -22,6 +22,7 @@ from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.runtime.repository_index import build_repository_index
 from glassbox.runtime.repository_index_discovery import BUILDER_VERSION
 from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
+from glassbox.runtime.repository_index_discovery import classify_repository_path
 from glassbox.runtime.repository_index_discovery import iter_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
@@ -687,10 +688,7 @@ def _dedupe_dependencies(
 
 
 def _is_excluded_topology_path(relative: Path) -> bool:
-    return any(
-        part in {"node_modules", ".next", "out", "dist", ".glassbox"}
-        for part in relative.parts
-    )
+    return classify_repository_path(relative).excluded
 
 
 __all__ = [
