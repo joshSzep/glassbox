@@ -904,7 +904,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R662: Group Frontend API Client Endpoint Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R651
 - Target files:
   - `frontend/api/client.ts`
