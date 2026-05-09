@@ -8,6 +8,7 @@ from glassbox.runtime.context_models import CheckpointResumeSnapshot
 from glassbox.runtime.context_models import ContextCompactionContextSnapshot
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_models import WorkspaceMemoryContextItemSnapshot
@@ -85,6 +86,67 @@ def format_repository_index_for_prompt(
         source = item.source_type or "unknown"
         lines.append(
             f"- [{item.kind}] {location}{symbol_suffix}: {summary} (source: {source})"
+        )
+    return "\n".join(lines)
+
+
+def format_repository_intelligence_for_prompt(
+    snapshot: RepositoryIntelligenceContextSnapshot | None,
+) -> str:
+    """Render bounded repository-intelligence context with source caveats."""
+
+    if snapshot is None:
+        return ""
+
+    lines = [
+        (
+            "Repository intelligence: "
+            f"{snapshot.status}; schema {snapshot.schema_version}; "
+            f"{len(snapshot.items)} item(s)"
+        )
+    ]
+    if snapshot.source_digest is not None:
+        lines.append(f"Repository intelligence digest: {snapshot.source_digest}")
+    if snapshot.budget_bytes is not None:
+        lines.append(
+            "Repository intelligence budget: "
+            f"{snapshot.context_bytes}/{snapshot.budget_bytes} bytes"
+        )
+    if snapshot.sources:
+        source_text = "; ".join(
+            (f"{source.source_name}={source.freshness}/{source.confidence}")
+            for source in snapshot.sources[:5]
+        )
+        lines.append(f"Repository intelligence sources: {source_text}")
+    for item in snapshot.items:
+        source_suffix = (
+            f" (sources: {', '.join(item.source_names[:3])})"
+            if item.source_names
+            else ""
+        )
+        lines.append(
+            f"- [{item.item_kind}] {item.title}: {item.summary} "
+            f"(freshness: {item.freshness}; confidence: {item.confidence})"
+            f"{source_suffix}"
+        )
+        if item.limitations:
+            lines.append("  Limitations: " + "; ".join(item.limitations[:2]))
+    if snapshot.additional_item_count:
+        lines.append(
+            f"- +{snapshot.additional_item_count} more repository-intelligence item(s)"
+        )
+    for excluded in snapshot.excluded_sources[:5]:
+        excluded_detail = "; ".join(excluded.limitations[:2])
+        lines.append(
+            "- Excluded source: "
+            f"{excluded.source_name} ({excluded.freshness}; "
+            f"{excluded_detail or 'not eligible for prompt use'})"
+        )
+    for limitation in snapshot.limitations[:3]:
+        lines.append(f"- Limitation: {limitation}")
+    if snapshot.safe_next_actions:
+        lines.append(
+            "- Safe next actions: " + "; ".join(snapshot.safe_next_actions[:3])
         )
     return "\n".join(lines)
 
@@ -253,6 +315,15 @@ def format_runtime_context_budget_summary(
                 else 0,
                 snapshot.repository_index.additional_item_count
                 if snapshot.repository_index is not None
+                else 0,
+            ),
+            _budget_segment(
+                "repo intelligence",
+                len(snapshot.repository_intelligence.items)
+                if snapshot.repository_intelligence is not None
+                else 0,
+                snapshot.repository_intelligence.additional_item_count
+                if snapshot.repository_intelligence is not None
                 else 0,
             ),
         ]

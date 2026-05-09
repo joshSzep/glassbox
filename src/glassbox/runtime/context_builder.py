@@ -7,6 +7,9 @@ from glassbox.runtime.context_formatting import format_checkpoint_resume_for_pro
 from glassbox.runtime.context_formatting import format_context_compactions_for_prompt
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
 from glassbox.runtime.context_formatting import format_repository_index_for_prompt
+from glassbox.runtime.context_formatting import (
+    format_repository_intelligence_for_prompt,
+)
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
 from glassbox.runtime.context_formatting import format_transcript_for_prompt
@@ -24,6 +27,9 @@ from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextItemSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextItemSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextSourceSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_models import TurnContext
@@ -61,6 +67,7 @@ class TurnContextBuilder:
         artifact_context: ArtifactBackedContextSnapshot | None = None,
         workspace_memory: Sequence[WorkspaceMemoryContextItemSnapshot] = (),
         repository_index: RepositoryIndexContextSnapshot | None = None,
+        repository_intelligence: RepositoryIntelligenceContextSnapshot | None = None,
         checkpoint_context: CheckpointResumeSnapshot | None = None,
         context_compactions: ContextCompactionContextSnapshot | None = None,
     ) -> TurnContext:
@@ -97,6 +104,7 @@ class TurnContextBuilder:
             artifact_context=artifact_context,
             workspace_memory=list(workspace_memory),
             repository_index=repository_index,
+            repository_intelligence=repository_intelligence,
             checkpoint_context=checkpoint_context,
             context_compactions=context_compactions,
         )
@@ -149,6 +157,7 @@ class TurnContextBuilder:
             artifact_context=runtime_context.artifact_context,
             workspace_memory=runtime_context.workspace_memory,
             repository_index=turn_repository_index,
+            repository_intelligence=runtime_context.repository_intelligence,
             checkpoint_context=runtime_context.checkpoint_resume,
             context_compactions=runtime_context.context_compactions,
         )
@@ -169,6 +178,7 @@ __all__ = [
     "build_workspace_memory_context_snapshot",
     "build_working_set_snapshot",
     "format_repository_index_for_prompt",
+    "format_repository_intelligence_for_prompt",
     "format_repository_context_for_prompt",
     "format_runtime_notes_for_prompt",
     "format_checkpoint_resume_for_prompt",
@@ -182,6 +192,9 @@ __all__ = [
     "PytestFailureDigestArtifact",
     "RepositoryIndexContextItemSnapshot",
     "RepositoryIndexContextSnapshot",
+    "RepositoryIntelligenceContextItemSnapshot",
+    "RepositoryIntelligenceContextSnapshot",
+    "RepositoryIntelligenceContextSourceSnapshot",
     "RepositoryContextSnapshot",
     "RuntimeContextNoteSnapshot",
     "RuntimeContextSnapshot",

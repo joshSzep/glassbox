@@ -151,6 +151,48 @@ snapshot must make the memory influence inspectable and
 section, state at use, and reason. Replay can then fingerprint both the
 repository-intelligence snapshot and the memory state that shaped the prompt.
 
+## Turn Context Contract
+
+Repository intelligence may shape model turns only through a bounded typed
+context snapshot. This prompt section is separate from repository context,
+repository index context, runtime notes, working set, artifact-backed context,
+workspace memory prompt fragments, checkpoint resume context, and compaction
+summaries.
+
+The context snapshot records:
+
+- overall status, schema version, optional source digest, context byte count,
+  budget byte count, truncation counts, safe next actions, and limitations
+- included source summaries with source name, source kind, freshness,
+  confidence, provenance, source digest, item count, and limitations
+- selected prompt items for affected subsystems, likely tests, command
+  recipes, confirmed conventions, release-sensitive surfaces,
+  path-to-verification guidance, stale-risk notes, and limitations
+- excluded source summaries for stale memory, stale topology, stale command
+  recipes, failed index snapshots, conflicting metadata, missing eval
+  metadata, or any other source that should remain visible but not active in
+  the prompt
+
+Only summaries enter the prompt. Raw repository intelligence artifacts, raw
+repository index blobs, raw source files, raw diffs, raw command logs,
+unreviewed memory candidates, secrets, credentials, and local `.glassbox`
+internals stay out of model context by default.
+
+Fresh sources can contribute active items. Stale, missing, degraded,
+conflicting, or partial sources either stay out of active items or appear as
+explicit excluded sources with degraded confidence, limitations, and safe
+inspection or rebuild commands. Confirmed memory-derived intelligence is
+eligible only when the memory entry is active, confirmed, local to the
+workspace, provenance-backed, not stale or conflicting, and context use is
+recorded.
+
+Replay treats `repository_intelligence` as its own enriched-context source. The
+fingerprint includes the context status, schema version, source digest,
+included and excluded source summaries, selected items, limitations,
+truncation counts, and safe next actions. Replay and eval drift should name the
+repository intelligence source directly when this context changes, rather than
+collapsing it into generic repository context or transcript drift.
+
 ## Evidence Expectations
 
 Repository intelligence claims must be backed by deterministic local inputs,

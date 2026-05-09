@@ -29,6 +29,10 @@ from glassbox.runtime.replay_compare import collect_mismatches
 from glassbox.runtime.replay_compare import normalize_event_families
 from glassbox.runtime.replay_compare import normalize_long_run_events
 from glassbox.runtime.replay_failures import ReplayFailure
+from glassbox.runtime.replay_fingerprints import build_replay_enriched_context_sources
+from glassbox.runtime.replay_fingerprints import (
+    fingerprint_replay_enriched_context_payload,
+)
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLongRunEventSnapshot
@@ -259,6 +263,60 @@ def test_replay_mismatch_detection_includes_long_run_events() -> None:
     )
 
     assert collect_mismatches(baseline, replay) == ["long_run_events drift"]
+
+
+def test_replay_fingerprints_repository_intelligence_context_by_source() -> None:
+    payload = {
+        "repository_intelligence": {
+            "status": "fresh",
+            "schema_version": 1,
+            "source_digest": "repo-intel:abc123",
+            "sources": [
+                {
+                    "source_name": "path-to-verification",
+                    "source_kind": "verification_recommendation",
+                    "freshness": "fresh",
+                    "confidence": "medium",
+                    "included": True,
+                    "provenance": "eval recommend",
+                }
+            ],
+            "items": [
+                {
+                    "item_kind": "likely_test",
+                    "title": "context builder tests",
+                    "summary": "Run focused context and prompt tests.",
+                    "source_names": ["path-to-verification"],
+                    "freshness": "fresh",
+                    "confidence": "medium",
+                }
+            ],
+            "excluded_sources": [
+                {
+                    "source_name": "workspace-memory",
+                    "source_kind": "memory_reference",
+                    "freshness": "stale",
+                    "confidence": "low",
+                    "included": False,
+                    "limitations": ["stale memory excluded from prompt context"],
+                }
+            ],
+            "additional_item_count": 2,
+            "limitations": ["bounded context"],
+            "safe_next_actions": ["glassbox repo recommend src/glassbox/runtime"],
+        }
+    }
+
+    sources = build_replay_enriched_context_sources(payload)
+
+    assert [source.source_name for source in sources] == ["repository_intelligence"]
+    assert sources[0].schema_version == 1
+    assert sources[0].item_count == 1
+    assert sources[0].additional_item_count == 2
+    assert "repository intelligence fresh" in (sources[0].summary or "")
+    assert fingerprint_replay_enriched_context_payload(payload) != (
+        fingerprint_replay_enriched_context_payload({})
+    )
 
 
 @pytest.mark.anyio

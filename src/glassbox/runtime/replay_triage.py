@@ -207,6 +207,11 @@ def context_source_inspection_path(source_name: str | None) -> str:
             "Inspect the repository intelligence index snapshot, freshness state, "
             "and source paths used for turn context."
         )
+    if source_name == "repository_intelligence":
+        return (
+            "Inspect repository intelligence context sources, freshness posture, "
+            "excluded stale sources, and path-to-verification recommendations."
+        )
     if source_name == "policy":
         return (
             "Inspect policy decision traces, repository-owned safe autonomy rules, "

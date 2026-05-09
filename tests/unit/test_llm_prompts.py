@@ -14,6 +14,9 @@ from glassbox.runtime.context_builder import CheckpointResumeSnapshot
 from glassbox.runtime.context_builder import ContextCompactionContextItemSnapshot
 from glassbox.runtime.context_builder import ContextCompactionContextSnapshot
 from glassbox.runtime.context_builder import PolicyContext
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextItemSnapshot
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextSnapshot
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextSourceSnapshot
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContext
 from glassbox.runtime.context_builder import WorkingSetItemSnapshot
@@ -203,6 +206,51 @@ def test_build_system_prompt_includes_fresh_context_compactions() -> None:
     assert "source events 1-8" in prompt
     assert "Raw transcript omitted." in prompt
     assert "1 stale compaction(s) excluded." in prompt
+
+
+def test_build_system_prompt_includes_repository_intelligence_context() -> None:
+    turn_context = TurnContext(
+        session_id=uuid4(),
+        session_status=SessionStatus.RUNNING,
+        current_turn_id=None,
+        last_sequence=4,
+        transcript=[],
+        available_tools=[],
+        policy=PolicyContext(approval_mode="confirm"),
+        repository_intelligence=RepositoryIntelligenceContextSnapshot(
+            status="fresh",
+            sources=[
+                RepositoryIntelligenceContextSourceSnapshot(
+                    source_name="path-to-verification",
+                    source_kind="verification_recommendation",
+                    freshness="fresh",
+                    confidence="medium",
+                    included=True,
+                    provenance="eval recommend",
+                )
+            ],
+            items=[
+                RepositoryIntelligenceContextItemSnapshot(
+                    item_kind="likely_test",
+                    title="context builder tests",
+                    summary="Run focused context and prompt tests.",
+                    source_names=["path-to-verification"],
+                    confidence="medium",
+                )
+            ],
+            safe_next_actions=[
+                "uv run pytest tests/unit/test_context_builder.py "
+                "tests/unit/test_llm_prompts.py"
+            ],
+        ),
+    )
+
+    prompt = build_system_prompt(turn_context)
+
+    assert "Repository intelligence: fresh; schema 1; 1 item(s)" in prompt
+    assert "[likely_test] context builder tests" in prompt
+    assert "path-to-verification=fresh/medium" in prompt
+    assert "uv run pytest tests/unit/test_context_builder.py" in prompt
 
 
 def test_tool_usage_fragment_is_stable_and_includes_schema() -> None:

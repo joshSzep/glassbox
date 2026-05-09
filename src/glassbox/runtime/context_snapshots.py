@@ -22,6 +22,7 @@ from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextItemSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_models import WorkingSetSnapshot
@@ -114,6 +115,7 @@ def build_runtime_context_snapshot(
     additional_workspace_memory_count: int = 0,
     workspace_memory_context_bytes: int = 0,
     repository_index: RepositoryIndexContextSnapshot | None = None,
+    repository_intelligence: RepositoryIntelligenceContextSnapshot | None = None,
     checkpoint_resume: CheckpointResumeSnapshot | None = None,
     context_compactions: ContextCompactionContextSnapshot | None = None,
 ) -> RuntimeContextSnapshot:
@@ -138,6 +140,7 @@ def build_runtime_context_snapshot(
         additional_workspace_memory_count=additional_workspace_memory_count,
         workspace_memory_context_bytes=workspace_memory_context_bytes,
         repository_index=repository_index,
+        repository_intelligence=repository_intelligence,
         checkpoint_resume=checkpoint_resume,
         context_compactions=context_compactions or ContextCompactionContextSnapshot(),
     )

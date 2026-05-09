@@ -56,6 +56,9 @@ from glassbox.runtime.context_builder import ContextCompactionContextSnapshot
 from glassbox.runtime.context_builder import PytestFailureDigestArtifact
 from glassbox.runtime.context_builder import RepositoryContextSnapshot
 from glassbox.runtime.context_builder import RepositoryIndexContextSnapshot
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextItemSnapshot
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextSnapshot
+from glassbox.runtime.context_builder import RepositoryIntelligenceContextSourceSnapshot
 from glassbox.runtime.context_builder import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.context_builder import ToolSchema
@@ -66,6 +69,9 @@ from glassbox.runtime.context_builder import WorkspaceMemoryContextItemSnapshot
 from glassbox.runtime.context_builder import WorkspaceMemoryContextProvenanceSnapshot
 from glassbox.runtime.context_formatting import format_repository_context_for_prompt
 from glassbox.runtime.context_formatting import format_repository_index_for_prompt
+from glassbox.runtime.context_formatting import (
+    format_repository_intelligence_for_prompt,
+)
 from glassbox.runtime.context_formatting import format_runtime_context_budget_summary
 from glassbox.runtime.context_formatting import format_runtime_notes_for_prompt
 from glassbox.runtime.context_formatting import format_tool_schemas_for_prompt
@@ -834,6 +840,91 @@ def test_turn_context_builder_includes_memory_and_repository_index_context() -> 
     )
 
 
+def test_turn_context_builder_carries_repository_intelligence_context() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    repository_intelligence = RepositoryIntelligenceContextSnapshot(
+        status="fresh",
+        source_digest="repo-intel:abc123",
+        budget_bytes=2000,
+        context_bytes=286,
+        sources=[
+            RepositoryIntelligenceContextSourceSnapshot(
+                source_name="index",
+                source_kind="repository_index_snapshot",
+                freshness="fresh",
+                confidence="high",
+                included=True,
+                provenance=".glassbox/repository-intelligence.json",
+                source_digest="index:123",
+                item_count=2,
+            )
+        ],
+        items=[
+            RepositoryIntelligenceContextItemSnapshot(
+                item_kind="subsystem",
+                title="runtime context",
+                summary="Runtime context code and tests are affected.",
+                source_names=["index"],
+                confidence="high",
+                provenance=["src/glassbox/runtime/context_builder.py"],
+            )
+        ],
+        excluded_sources=[
+            RepositoryIntelligenceContextSourceSnapshot(
+                source_name="workspace-memory",
+                source_kind="memory_reference",
+                freshness="stale",
+                confidence="low",
+                included=False,
+                limitations=["stale memory stays out of prompt context"],
+            )
+        ],
+        limitations=[
+            "Bounded summary only; inspect repository intelligence for detail."
+        ],
+        safe_next_actions=[
+            "glassbox repo inspect path src/glassbox/runtime/context_builder.py"
+        ],
+    )
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(workspace_name="glassbox"),
+        repository_intelligence=repository_intelligence,
+    )
+
+    context = TurnContextBuilder(repository).build_from_runtime_context(
+        session_id,
+        runtime_context,
+    )
+
+    assert context.repository_intelligence == repository_intelligence
+    assert context.repo_context == format_repository_context_for_prompt(
+        runtime_context.repository_context
+    )
+    formatted = format_repository_intelligence_for_prompt(repository_intelligence)
+    assert "Repository intelligence: fresh; schema 1; 1 item(s)" in formatted
+    assert "[subsystem] runtime context" in formatted
+    assert "Excluded source: workspace-memory" in formatted
+    assert "glassbox repo inspect path" in formatted
+
+
 def test_turn_context_builder_can_derive_tools_from_registry() -> None:
     session_id = new_session_id()
     repository = FakeSessionRepository(
@@ -1318,7 +1409,8 @@ def test_runtime_context_budget_summary_reports_visible_and_truncated_counts() -
         "repo dirs 2 visible (+3 more); repo files 1 visible; "
         "notes 1 visible (+2 more); working set 1 visible (+4 more); "
         "artifact summaries 0 visible (+1 more); "
-        "workspace memory 0 visible; repo index 0 visible"
+        "workspace memory 0 visible; repo index 0 visible; "
+        "repo intelligence 0 visible"
     )
 
 

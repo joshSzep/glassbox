@@ -1065,7 +1065,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1560: Define Repository Intelligence Context Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1540`
 - Goal: define how bounded repository intelligence may shape model turns while
   remaining inspectable and replay-aware

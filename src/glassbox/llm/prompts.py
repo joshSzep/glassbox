@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from glassbox.runtime.context_builder import PolicyContext
 from glassbox.runtime.context_builder import ToolSchema
 from glassbox.runtime.context_builder import TurnContext
+from glassbox.runtime.context_builder import format_repository_intelligence_for_prompt
 from glassbox.runtime.context_builder import normalize_tool_schemas
 from glassbox.runtime.task_plan_capture import build_task_plan_prompt_fragment
 
@@ -26,6 +27,12 @@ def build_system_prompt(turn_context: TurnContext) -> str:
         and turn_context.repo_context.strip() != ""
     ):
         sections.append(build_repo_context_prompt_fragment(turn_context.repo_context))
+    if turn_context.repository_intelligence is not None:
+        sections.append(
+            build_repository_intelligence_prompt_fragment(
+                turn_context.repository_intelligence
+            )
+        )
     if turn_context.memory_notes:
         sections.append(build_memory_notes_prompt_fragment(turn_context.memory_notes))
     if turn_context.checkpoint_context is not None:
@@ -141,6 +148,12 @@ def build_repo_context_prompt_fragment(repo_context: str) -> str:
     """Return repository-specific context for the current turn."""
 
     return "\n".join(["Repository context:", repo_context.strip()])
+
+
+def build_repository_intelligence_prompt_fragment(repository_intelligence) -> str:
+    """Return bounded repository-intelligence context for the current turn."""
+
+    return format_repository_intelligence_for_prompt(repository_intelligence)
 
 
 def build_memory_notes_prompt_fragment(memory_notes: Sequence[str]) -> str:

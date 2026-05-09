@@ -145,6 +145,29 @@ def build_replay_enriched_context_sources(
             )
         )
 
+    repository_intelligence_payload = turn_context_payload.get(
+        "repository_intelligence"
+    )
+    if isinstance(repository_intelligence_payload, dict):
+        normalized_intelligence = _normalize_repository_intelligence_payload(
+            repository_intelligence_payload
+        )
+        manifests.append(
+            ReplayEnrichedContextSourceManifest(
+                source_name="repository_intelligence",
+                schema_version=normalized_intelligence["schema_version"],
+                provenance_class="recomputed_summary",
+                fingerprint=fingerprint_replay_payload(normalized_intelligence),
+                item_count=len(normalized_intelligence["items"]),
+                additional_item_count=normalized_intelligence["additional_item_count"],
+                summary=(
+                    "repository intelligence "
+                    f"{normalized_intelligence['status']} with "
+                    f"{len(normalized_intelligence['items'])} item(s)"
+                ),
+            )
+        )
+
     working_set_payload = turn_context_payload.get("working_set")
     working_set_items = []
     additional_item_count = 0
@@ -250,6 +273,9 @@ def fingerprint_replay_enriched_context_payload(
             "artifact_context": turn_context_payload.get("artifact_context"),
             "workspace_memory": turn_context_payload.get("workspace_memory"),
             "repository_index": turn_context_payload.get("repository_index"),
+            "repository_intelligence": turn_context_payload.get(
+                "repository_intelligence"
+            ),
         }
     )
 
@@ -413,6 +439,129 @@ def _normalize_repository_index_item_payload(item: dict[str, Any]) -> dict[str, 
                 tag.strip()
                 for tag in list(item.get("tags") or [])
                 if isinstance(tag, str) and tag.strip() != ""
+            },
+            key=str.casefold,
+        ),
+    }
+
+
+def _normalize_repository_intelligence_payload(
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    items = [
+        item for item in list(payload.get("items") or []) if isinstance(item, dict)
+    ]
+    sources = [
+        source
+        for source in list(payload.get("sources") or [])
+        if isinstance(source, dict)
+    ]
+    excluded_sources = [
+        source
+        for source in list(payload.get("excluded_sources") or [])
+        if isinstance(source, dict)
+    ]
+    return {
+        "status": str(payload.get("status") or ""),
+        "schema_version": int(payload.get("schema_version") or 1),
+        "source_digest": str(payload.get("source_digest") or "") or None,
+        "additional_item_count": int(payload.get("additional_item_count") or 0),
+        "context_bytes": int(payload.get("context_bytes") or 0),
+        "budget_bytes": payload.get("budget_bytes"),
+        "sources": sorted(
+            [
+                _normalize_repository_intelligence_source_payload(source)
+                for source in sources
+            ],
+            key=lambda source: (source["source_name"], source["source_kind"]),
+        ),
+        "items": sorted(
+            [_normalize_repository_intelligence_item_payload(item) for item in items],
+            key=lambda item: (
+                item["item_kind"],
+                item["title"],
+                item["summary"],
+            ),
+        ),
+        "excluded_sources": sorted(
+            [
+                _normalize_repository_intelligence_source_payload(source)
+                for source in excluded_sources
+            ],
+            key=lambda source: (source["source_name"], source["source_kind"]),
+        ),
+        "limitations": sorted(
+            {
+                str(limitation).strip()
+                for limitation in list(payload.get("limitations") or [])
+                if str(limitation).strip() != ""
+            },
+            key=str.casefold,
+        ),
+        "safe_next_actions": sorted(
+            {
+                str(action).strip()
+                for action in list(payload.get("safe_next_actions") or [])
+                if str(action).strip() != ""
+            },
+            key=str.casefold,
+        ),
+    }
+
+
+def _normalize_repository_intelligence_source_payload(
+    source: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "source_name": str(source.get("source_name") or "").strip(),
+        "source_kind": str(source.get("source_kind") or "").strip(),
+        "freshness": str(source.get("freshness") or "").strip(),
+        "confidence": str(source.get("confidence") or "").strip(),
+        "included": bool(source.get("included")),
+        "provenance": str(source.get("provenance") or "").strip() or None,
+        "source_digest": str(source.get("source_digest") or "").strip() or None,
+        "item_count": source.get("item_count"),
+        "limitations": sorted(
+            {
+                str(limitation).strip()
+                for limitation in list(source.get("limitations") or [])
+                if str(limitation).strip() != ""
+            },
+            key=str.casefold,
+        ),
+    }
+
+
+def _normalize_repository_intelligence_item_payload(
+    item: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "item_kind": str(item.get("item_kind") or "").strip(),
+        "title": str(item.get("title") or "").strip(),
+        "summary": str(item.get("summary") or "").strip(),
+        "source_names": sorted(
+            {
+                str(source_name).strip()
+                for source_name in list(item.get("source_names") or [])
+                if str(source_name).strip() != ""
+            },
+            key=str.casefold,
+        ),
+        "freshness": str(item.get("freshness") or "").strip(),
+        "confidence": str(item.get("confidence") or "").strip(),
+        "provenance": sorted(
+            {
+                str(provenance).strip()
+                for provenance in list(item.get("provenance") or [])
+                if str(provenance).strip() != ""
+            },
+            key=str.casefold,
+        ),
+        "limitations": sorted(
+            {
+                str(limitation).strip()
+                for limitation in list(item.get("limitations") or [])
+                if str(limitation).strip() != ""
             },
             key=str.casefold,
         ),

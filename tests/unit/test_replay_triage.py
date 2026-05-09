@@ -154,6 +154,7 @@ def test_build_replay_triage_explains_v8_context_sources() -> None:
     for source_name, expected_text in (
         ("workspace_memory", "workspace memory entries"),
         ("repository_index", "repository intelligence index"),
+        ("repository_intelligence", "repository intelligence context sources"),
         ("policy", "policy decision traces"),
         ("provider_advisory", "provider advisory evidence"),
     ):

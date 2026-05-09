@@ -182,6 +182,80 @@ class RepositoryIndexContextSnapshot(BaseModel):
     detail: str | None = None
 
 
+class RepositoryIntelligenceContextSourceSnapshot(BaseModel):
+    """One repository-intelligence source considered for prompt context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_name: str
+    source_kind: str
+    freshness: Literal[
+        "fresh",
+        "stale",
+        "missing",
+        "degraded",
+        "conflicting",
+        "partial",
+    ]
+    confidence: str
+    included: bool
+    provenance: str | None = None
+    source_digest: str | None = None
+    item_count: int | None = Field(default=None, ge=0)
+    limitations: list[str] = Field(default_factory=list)
+
+
+class RepositoryIntelligenceContextItemSnapshot(BaseModel):
+    """One bounded repository-intelligence item selected for turn context."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_kind: str
+    title: str
+    summary: str
+    source_names: list[str] = Field(default_factory=list)
+    freshness: Literal[
+        "fresh",
+        "stale",
+        "missing",
+        "degraded",
+        "conflicting",
+        "partial",
+    ] = "fresh"
+    confidence: str = "unknown"
+    provenance: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
+class RepositoryIntelligenceContextSnapshot(BaseModel):
+    """Bounded repository-intelligence context with replay-visible sources."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal[
+        "fresh",
+        "stale",
+        "missing",
+        "degraded",
+        "conflicting",
+        "partial",
+    ]
+    schema_version: int = Field(default=1, ge=1)
+    source_digest: str | None = None
+    sources: list[RepositoryIntelligenceContextSourceSnapshot] = Field(
+        default_factory=list
+    )
+    items: list[RepositoryIntelligenceContextItemSnapshot] = Field(default_factory=list)
+    additional_item_count: int = Field(default=0, ge=0)
+    excluded_sources: list[RepositoryIntelligenceContextSourceSnapshot] = Field(
+        default_factory=list
+    )
+    context_bytes: int = Field(default=0, ge=0)
+    budget_bytes: int | None = Field(default=None, ge=0)
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
 class CheckpointResumeSnapshot(BaseModel):
     """Checkpoint-derived resume context with explicit trust posture."""
 
@@ -285,6 +359,7 @@ class RuntimeContextSnapshot(BaseModel):
     additional_workspace_memory_count: int = Field(default=0, ge=0)
     workspace_memory_context_bytes: int = Field(default=0, ge=0)
     repository_index: RepositoryIndexContextSnapshot | None = None
+    repository_intelligence: RepositoryIntelligenceContextSnapshot | None = None
     checkpoint_resume: CheckpointResumeSnapshot | None = None
     context_compactions: ContextCompactionContextSnapshot = Field(
         default_factory=lambda: ContextCompactionContextSnapshot()
@@ -320,5 +395,6 @@ class TurnContext(BaseModel):
         default_factory=list
     )
     repository_index: RepositoryIndexContextSnapshot | None = None
+    repository_intelligence: RepositoryIntelligenceContextSnapshot | None = None
     checkpoint_context: CheckpointResumeSnapshot | None = None
     context_compactions: ContextCompactionContextSnapshot | None = None
