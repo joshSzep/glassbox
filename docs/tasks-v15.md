@@ -874,7 +874,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1542: Add Safe Background Refresh Jobs For Derived Intelligence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1541`
 - Goal: let the daemon refresh derived repository intelligence without creating
   a second mutation authority or hiding work from operators

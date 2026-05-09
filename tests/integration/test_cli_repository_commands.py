@@ -4,6 +4,12 @@ import json
 from pathlib import Path
 
 from glassbox.cli import main
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionStarted
+from glassbox.core import new_session_id
+from glassbox.store import SQLiteSessionRepository
+from glassbox.store import initialize_database
+from glassbox.store import open_database
 
 
 def test_repo_index_build_status_search_and_show_commands(
@@ -185,6 +191,80 @@ def test_repo_topology_build_status_and_show_commands(tmp_path: Path, capsys) ->
     assert status_payload["component_count"] == len(build_payload["components"])
     assert show_exit == 0
     assert show_payload["dependencies"][0]["external_name"] == "react"
+
+
+def test_repo_refresh_builds_index_and_topology(tmp_path: Path, capsys) -> None:
+    _seed_repository(tmp_path)
+
+    refresh_exit = main(
+        [
+            "repo",
+            "refresh",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    refresh_payload = json.loads(capsys.readouterr().out)
+
+    assert refresh_exit == 0
+    assert refresh_payload["index"]["status"] == "fresh"
+    assert refresh_payload["topology"]["freshness"] == "fresh"
+    assert {
+        component["component_id"]
+        for component in refresh_payload["topology"]["components"]
+    } >= {
+        "package:fixture",
+    }
+
+
+def test_repo_refresh_queues_background_job(tmp_path: Path, capsys) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    connection = open_database(db_path)
+    try:
+        initialize_database(connection)
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=SessionStarted(
+                    cwd=str(tmp_path),
+                    model_name="openai:gpt-5.4",
+                    approval_mode="confirm",
+                ),
+            )
+        )
+    finally:
+        connection.close()
+
+    refresh_exit = main(
+        [
+            "repo",
+            "refresh",
+            "--background",
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    refresh_payload = json.loads(capsys.readouterr().out)
+
+    assert refresh_exit == 0
+    assert refresh_payload["state"] == "queued"
+    assert refresh_payload["kind"] == "derived_index"
+    assert refresh_payload["job_type"] == "repository-intelligence-refresh"
+    assert refresh_payload["payload"]["index_path"].endswith(
+        ".glassbox/repository-index.json"
+    )
+    assert refresh_payload["payload"]["topology_path"].endswith(
+        ".glassbox/workspace-topology.json"
+    )
 
 
 def test_repo_index_status_human_output_explains_stale_snapshot(

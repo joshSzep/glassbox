@@ -154,9 +154,12 @@ async def rebuild_repository_index(
         job = context.repositories.sessions.enqueue_background_job(
             UUID(request.session_id),
             kind=BackgroundJobKind.DERIVED_INDEX,
-            job_type="repository-index-refresh",
-            title="Refresh repository intelligence index",
-            payload={"index_path": str(repository_index_path(workspace_root))},
+            job_type="repository-intelligence-refresh",
+            title="Refresh repository intelligence",
+            payload={
+                "index_path": str(repository_index_path(workspace_root)),
+                "topology_path": str(workspace_topology_path(workspace_root)),
+            },
             requested_by=request.requested_by,
         )
         return RepositoryIndexRebuildResponse(

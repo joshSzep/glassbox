@@ -37,6 +37,8 @@ from glassbox.runtime.pause_windows import schedule_pause_window
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.task_queries import TaskPlanRepository
+from glassbox.runtime.workspace_topology import load_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import initialize_database
 from glassbox.store import open_database
@@ -118,6 +120,60 @@ def test_worker_refreshes_repository_index(tmp_path: Path) -> None:
     assert any(entry.symbol == "UsefulThing" for entry in snapshot.entries)
     assert updated.progress_message is not None
     assert "Repository index refresh wrote" in updated.progress_message
+
+
+def test_worker_refreshes_repository_intelligence_snapshots(
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "sample.py").write_text(
+        "class UsefulThing:\n    pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+
+    _seed_session(db_path, tmp_path, session_id)
+    with open_runtime_context(tmp_path, db_path=db_path) as runtime_context:
+        repository = runtime_context.repositories.sessions
+        job = repository.enqueue_background_job(
+            session_id,
+            kind=BackgroundJobKind.DERIVED_INDEX,
+            job_type="repository-intelligence-refresh",
+            title="Refresh repository intelligence",
+        )
+
+        tick = run_background_job_worker_once(
+            runtime_context,
+            worker_id="test-worker",
+        )
+        updated = repository.get_background_job(job.job_id)
+        index_snapshot = load_repository_index(tmp_path)
+        topology_snapshot = load_workspace_topology(tmp_path)
+
+    assert tick.claimed_count == 1
+    assert tick.completed_count == 1
+    assert updated is not None
+    assert updated.state == BackgroundJobState.COMPLETED
+    assert repository_index_path(tmp_path).exists()
+    assert workspace_topology_path(tmp_path).exists()
+    assert any(entry.symbol == "UsefulThing" for entry in index_snapshot.entries)
+    assert {component.component_id for component in topology_snapshot.components} >= {
+        "package:fixture",
+    }
+    assert updated.progress_message is not None
+    assert "Repository intelligence refresh wrote" in updated.progress_message
+    assert "Summary artifact:" in updated.progress_message
+    artifact_path = updated.progress_message.rsplit("Summary artifact: ", 1)[1].rstrip(
+        "."
+    )
+    artifact_text = (tmp_path / artifact_path).read_text(encoding="utf-8")
+    assert "source_mutation: none" in artifact_text
+    assert "policy_mutation: none" in artifact_text
 
 
 def test_worker_scans_workspace_memory_candidates(tmp_path: Path) -> None:

@@ -127,8 +127,14 @@ enabled. The first supported job types are intentionally bounded:
 	pruning files.
 - `provider-evidence-freshness-scan`: loads retained provider canary evidence and
 	records the latest status.
-- `repository-index-refresh`: placeholder derived-index job that records progress
-	without writing an index.
+- `repository-index-refresh`: rebuilds the local repository intelligence index
+  as managed `.glassbox` derived state.
+- `repository-intelligence-refresh`: rebuilds the repository intelligence index
+  and workspace topology together, records progress after each derived artifact,
+  and retains a session-scoped summary artifact that explicitly states no source
+  files or policy files were mutated.
+- `workspace-memory-candidate-scan`: scans retained session evidence for
+  review-gated workspace memory candidates without activating unconfirmed facts.
 
 The daemon claims queued eligible jobs with a short lease, records a heartbeat,
 records progress, and then records completion or failure. Cancellation requests are
@@ -144,6 +150,8 @@ Troubleshooting commands:
 	running, or stale jobs do not move; it reports not-running, running,
 	stale-owner, and unreachable-health recovery guidance without mutating owner
 	metadata.
+- `glassbox repo refresh --background --session SESSION_ID --cwd .` queues a
+  safe daemon refresh for derived repository intelligence.
 - `glassbox job retry JOB_ID --reason ...` requeues a failed or stale job until
 	the retry budget is exhausted.
 - `glassbox job abandon JOB_ID --reason ...` records terminal operator triage.

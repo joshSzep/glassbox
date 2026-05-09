@@ -14,6 +14,9 @@ from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
+from glassbox.runtime.workspace_topology import build_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
+from glassbox.runtime.workspace_topology import write_workspace_topology
 from glassbox.store.artifact_retention import inspect_artifact_state
 
 
@@ -38,6 +41,9 @@ def run_read_only_background_job(
         return
     if job.job_type == "repository-index-refresh":
         _run_repository_index_refresh(runtime_context, workspace_root, job)
+        return
+    if job.job_type == "repository-intelligence-refresh":
+        _run_repository_intelligence_refresh(runtime_context, workspace_root, job)
         return
     if job.job_type == "workspace-memory-candidate-scan":
         _run_workspace_memory_candidate_scan(runtime_context, job)
@@ -134,6 +140,90 @@ def _run_repository_index_refresh(
             f"Repository index refresh wrote {len(snapshot.entries)} entries "
             f"to {index_path}."
         ),
+    )
+
+
+def _run_repository_intelligence_refresh(
+    runtime_context: RuntimeContext,
+    workspace_root: Path,
+    job: BackgroundJobRecord,
+) -> None:
+    repository = runtime_context.repositories.sessions
+    memory_entries = repository.list_workspace_memory(
+        state=WorkspaceMemoryState.ACTIVE,
+    )
+    index_snapshot = build_and_write_repository_index(
+        workspace_root,
+        workspace_memory_entries=memory_entries,
+    )
+    record_background_job_progress(
+        runtime_context,
+        job,
+        (
+            "repository intelligence index refreshed "
+            f"{len(index_snapshot.entries)} entries"
+        ),
+    )
+    topology_snapshot = build_workspace_topology(
+        workspace_root,
+        repository_index=index_snapshot,
+    )
+    write_workspace_topology(workspace_root, topology_snapshot)
+    record_background_job_progress(
+        runtime_context,
+        job,
+        (
+            "workspace topology refreshed "
+            f"{len(topology_snapshot.components)} component(s)"
+        ),
+    )
+    summary_artifact = runtime_context.repositories.artifacts.write_text_artifact(
+        job.session_id,
+        _repository_intelligence_refresh_summary(
+            index_entries=len(index_snapshot.entries),
+            command_recipes=len(index_snapshot.command_recipes),
+            memory_references=len(index_snapshot.memory_references),
+            topology_components=len(topology_snapshot.components),
+            topology_dependencies=len(topology_snapshot.dependencies),
+            index_path=repository_index_path(workspace_root),
+            topology_path=workspace_topology_path(workspace_root),
+        ),
+        suffix="repository-intelligence-refresh.txt",
+    )
+    repository.complete_background_job(
+        job.job_id,
+        summary=(
+            "Repository intelligence refresh wrote "
+            f"{len(index_snapshot.entries)} index entries and "
+            f"{len(topology_snapshot.components)} topology component(s). "
+            f"Summary artifact: {summary_artifact.relative_path.as_posix()}."
+        ),
+    )
+
+
+def _repository_intelligence_refresh_summary(
+    *,
+    index_entries: int,
+    command_recipes: int,
+    memory_references: int,
+    topology_components: int,
+    topology_dependencies: int,
+    index_path: Path,
+    topology_path: Path,
+) -> str:
+    return "\n".join(
+        [
+            "Repository intelligence refresh",
+            f"index_entries: {index_entries}",
+            f"command_recipes: {command_recipes}",
+            f"memory_references: {memory_references}",
+            f"topology_components: {topology_components}",
+            f"topology_dependencies: {topology_dependencies}",
+            f"index_path: {index_path}",
+            f"topology_path: {topology_path}",
+            "source_mutation: none",
+            "policy_mutation: none",
+        ]
     )
 
 

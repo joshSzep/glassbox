@@ -19,6 +19,28 @@ def _add_repository_parsers(
         required=True,
     )
 
+    refresh_parser = repo_subparsers.add_parser(
+        "refresh",
+        help="refresh derived repository intelligence",
+        description=(
+            "Refresh the local repository intelligence index and workspace topology."
+        ),
+    )
+    refresh_parser.add_argument(
+        "--background",
+        action="store_true",
+        help="enqueue a safe daemon refresh job instead of rebuilding now",
+    )
+    refresh_parser.add_argument(
+        "--session",
+        dest="session_id",
+        type=_parse_uuid,
+        default=None,
+        help="session used to anchor a background refresh job",
+    )
+    refresh_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(refresh_parser)
+
     index_parser = repo_subparsers.add_parser(
         "index",
         help="build and query the repository index",

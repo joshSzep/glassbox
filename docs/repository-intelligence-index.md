@@ -212,6 +212,16 @@ managed artifact. The dashboard/API status response exposes the same counts,
 and `GET /repo/index` returns a compact inspect payload with the retained
 metadata identifiers.
 
+`glassbox repo refresh --cwd .` is the explicit local refresh for derived
+repository intelligence as a set. It rebuilds the v2 repository index and then
+derives workspace topology from that fresh snapshot so path-to-verification and
+health surfaces see coherent evidence. `glassbox repo refresh --background
+--session SESSION_ID --cwd .` queues the same work for the daemon as a
+`repository-intelligence-refresh` background job. That job may write managed
+`.glassbox` index, topology, and summary artifacts, but it does not mutate
+source files, stage, commit, push, or edit policy files. Operators inspect,
+cancel, retry, or abandon it through the normal `glassbox job ...` commands.
+
 ## Storage And Rebuild Strategy
 
 The first implementation may store the index as a retained JSON artifact or as a projection table. In either case:
