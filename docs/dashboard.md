@@ -85,9 +85,10 @@ review output hand off directly to `/app/changesets/CHANGESET_ID` when a
 dashboard URL is available. The panel shows review readiness, feedback and
 response status, manual evidence, changed-file inventory summaries,
 verification readiness and retained artifacts, affected topology subsystems
-when available, handoff posture, commit preparation, candidate-adoption
-comparisons when a branch-search candidate is attached, generated review brief
-artifacts, source evidence, limitations, and safe inspection commands.
+when available, repository-intelligence recommendations for changed paths,
+handoff posture, commit preparation, candidate-adoption comparisons when a
+branch-search candidate is attached, generated review brief artifacts, source
+evidence, limitations, and safe inspection commands.
 Skipped browser, dashboard, and accessibility evidence is shown as skipped live
 evidence with its retained `not_run`, `not_applicable`, or skipped posture and
 skip reason, so the row reads as a limitation instead of a pass.
@@ -110,7 +111,12 @@ approval.
 
 The affected-subsystems panel names package/app components, topology freshness,
 matched paths, test roots, owner hints, and dependency hints without treating
-stale topology as current fact. The adoption panel shows the selected
+stale topology as current fact. The repository-intelligence panel adds
+advisory subsystem, package, release-surface, owner-hint, command-recipe, and
+freshness cues from `/repo/intelligence`; changed-path links open
+`/app/repository-index?path=...` with the path inspector preloaded. Owner hints
+remain routing context, not reviewer assignment or approval authority. The
+adoption panel shows the selected
 candidate, rejected alternatives, retained rationale, verification and risk
 posture, accepted risks, and follow-up actions while stating that Glassbox did
 not merge, rebase, stage, commit, push, or open a PR.

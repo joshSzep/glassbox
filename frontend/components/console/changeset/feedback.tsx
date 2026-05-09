@@ -55,10 +55,12 @@ export function ReviewFeedbackPanel({
   action,
   detail,
   onRecordFeedbackFixup,
+  repositoryIntelligence,
 }: {
   action: ChangesetActionStatus;
   detail: ChangesetDetailRecord;
   onRecordFeedbackFixup?: ChangesetConsoleProps["onRecordFeedbackFixup"];
+  repositoryIntelligence?: ChangesetDetailState["repositoryIntelligence"];
 }) {
   const feedback = detail.review_feedback;
   const responseSummary = detail.review_response_summary;
@@ -72,6 +74,7 @@ export function ReviewFeedbackPanel({
   const requestedChanges = feedback.filter((item) => item.feedback_kind === "requested_change");
   const acceptedRisks = feedback.filter((item) => item.disposition === "accepted_with_risk");
   const resolved = feedback.filter((item) => item.disposition === "resolved_locally");
+  const repositoryNextAction = repositoryIntelligence?.verification?.next_actions?.[0] ?? null;
   return (
     <Section title="Review Feedback">
       <div className="grid gap-3">
@@ -169,6 +172,11 @@ export function ReviewFeedbackPanel({
                           Inspect first: {action}
                         </DataListMeta>
                       ))}
+                      {repositoryNextAction !== null && response.changed_path_count > 0 ? (
+                        <DataListMeta className="break-all">
+                          Repository intelligence suggests: {repositoryNextAction}
+                        </DataListMeta>
+                      ) : null}
                       <DataListMeta className="break-all">
                         glassbox changeset feedback fixup {item.feedback_id} --from-workspace --cwd
                         .

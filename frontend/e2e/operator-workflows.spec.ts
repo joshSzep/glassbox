@@ -282,6 +282,11 @@ test("reviewer can inspect a changeset and generate a brief", async ({ page }) =
   await expect(page.getByText("deterministic changeset evidence is ready")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Changed Files" })).toBeVisible();
   await expect(page.getByText("4 changed paths")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Repository Intelligence" })).toBeVisible();
+  await expect(page.getByText("Repository intelligence suggests:").first()).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /frontend\/components\/console\/changeset-console\.tsx/ }),
+  ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Verification" })).toBeVisible();
   await expect(page.getByText("verification readiness passed")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Candidate Adoption" })).toBeVisible();
@@ -297,6 +302,17 @@ test("reviewer can inspect a changeset and generate a brief", async ({ page }) =
     .poll(() => fixture.actions.map((action) => action.url))
     .toContain("/changesets/changeset-1/brief");
   await expect(page.getByText("brief-artifact-2").first()).toBeVisible();
+
+  await page
+    .getByRole("link", { name: /frontend\/components\/console\/changeset-console\.tsx/ })
+    .click();
+  await expect(page).toHaveURL(
+    /\/app\/repository-index\?path=frontend%2Fcomponents%2Fconsole%2Fchangeset-console\.tsx$/,
+  );
+  await expect(page.getByRole("heading", { name: "Repository Index" })).toBeVisible();
+  await expect(page.getByLabel("Inspect repository path")).toHaveValue(
+    "frontend/components/console/changeset-console.tsx",
+  );
 });
 
 test("mobile operator can select a branch-search candidate from the keyboard", async ({ page }) => {

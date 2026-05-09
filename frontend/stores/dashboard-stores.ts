@@ -15,6 +15,7 @@ export type {
   ChangesetActionStatus,
   ChangesetDetailState,
   ChangesetPageState,
+  ChangesetRepositoryIntelligenceState,
   ChangesetStoreState,
 } from "@/stores/changeset-store";
 

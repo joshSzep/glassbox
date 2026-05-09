@@ -9,6 +9,7 @@ import {
   skippedEvidencePosture,
 } from "@/components/console/changeset/review-posture";
 import type { components } from "@/generated/api-types";
+import type { ChangesetRepositoryIntelligenceState } from "@/stores/dashboard-stores";
 
 type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
@@ -33,6 +34,7 @@ describe("changeset console", () => {
           handoffReadiness: makeHandoffReadiness("changeset-1"),
           lastActionMessage: "Manual evidence manual-evidence-1 attached.",
           loadState: "loaded",
+          repositoryIntelligence: makeChangesetRepositoryIntelligence(),
           selectedChangesetId: "changeset-1",
           verificationPlan: makeVerificationPlan("changeset-1"),
         },
@@ -103,6 +105,13 @@ describe("changeset console", () => {
     expect(markup).toContain("Affected Subsystems");
     expect(markup).toContain("glassbox - package");
     expect(markup).toContain("runtime dependency: pydantic");
+    expect(markup).toContain("Repository Intelligence");
+    expect(markup).toContain("Repository intelligence suggests:");
+    expect(markup).toContain("Runtime changeset service");
+    expect(markup).toContain("Owner hints: runtime team");
+    expect(markup).toContain(
+      'href="/app/repository-index?path=src%2Fglassbox%2Fruntime%2Fchangesets.py"',
+    );
     expect(markup).toContain("Command Evidence");
     expect(markup).toContain("test - failed");
     expect(markup).toContain("selected verification failed before rerun");
@@ -923,6 +932,138 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["uv run pytest tests/unit"],
     session_id: "session-1",
+  };
+}
+
+function makeChangesetRepositoryIntelligence(): ChangesetRepositoryIntelligenceState {
+  const provenance = [
+    {
+      content_sha256: null,
+      line_end: 1,
+      line_start: 1,
+      note: null,
+      path: "src/glassbox/runtime/changesets.py",
+      source_label: null,
+      source_type: "test_fixture",
+      tool_name: "fixture-indexer",
+    },
+  ];
+  const commandRecipe = {
+    command: "uv run pytest tests/integration/test_web_changeset_routes.py",
+    confidence: "high",
+    limitations: [],
+    name: "Changeset route integration tests",
+    provenance,
+    purpose: "Validate changeset API behavior for runtime and dashboard changes.",
+    recipe_id: "recipe-changesets",
+    review_relevance: "verification",
+    risk: "read_only",
+    scope_paths: ["src/glassbox/runtime/changesets.py"],
+    timeout_seconds: 120,
+    toolchain: "uv",
+  };
+  return {
+    commandRecipes: [commandRecipe],
+    error: null,
+    freshness: {
+      cues: [],
+      index: {
+        builder_version: "test",
+        built_at: "2026-05-01T00:00:00Z",
+        command_recipe_count: 1,
+        detail: null,
+        doc_root_count: 0,
+        entry_count: 1,
+        freshness_cues: [],
+        generated_path_count: 0,
+        limitations: [],
+        memory_reference_count: 0,
+        ownership_hint_count: 1,
+        package_boundary_count: 1,
+        path: "/tmp/repo-index.json",
+        policy_sensitive_path_count: 0,
+        release_surface_count: 1,
+        schema_version: 1,
+        source_digest: "digest",
+        source_manifest_count: 0,
+        source_root_count: 1,
+        status: "fresh",
+        subsystem_count: 1,
+        test_root_count: 1,
+      },
+      next_actions: [],
+      topology: null,
+    },
+    loadState: "loaded",
+    pathInspections: [
+      {
+        command_recipes: [commandRecipe],
+        next_actions: ["uv run pytest tests/integration/test_web_changeset_routes.py"],
+        ownership_hints: [
+          {
+            confidence: "medium",
+            hint_id: "owner-runtime",
+            limitations: [],
+            owner_label: "runtime team",
+            provenance,
+            scope_paths: ["src/glassbox/runtime"],
+            subsystem: "Runtime changeset service",
+          },
+        ],
+        packages: [
+          {
+            confidence: "high",
+            doc_roots: [],
+            generated_paths: [],
+            kind: "python",
+            limitations: [],
+            manifest_paths: ["pyproject.toml"],
+            name: "glassbox",
+            package_id: "package-glassbox",
+            provenance,
+            root: ".",
+            source_roots: ["src"],
+            test_roots: ["tests"],
+          },
+        ],
+        path: "src/glassbox/runtime/changesets.py",
+        path_hints: [],
+        release_surfaces: [
+          {
+            command_recipe_ids: ["recipe-changesets"],
+            confidence: "medium",
+            kind: "runtime",
+            limitations: [],
+            name: "Changeset review surface",
+            provenance,
+            scope_paths: ["src/glassbox/runtime"],
+            surface_id: "surface-changesets",
+          },
+        ],
+        snapshot_status: "fresh",
+        subsystems: [
+          {
+            confidence: "high",
+            limitations: [],
+            name: "Runtime changeset service",
+            owner_hint_ids: ["owner-runtime"],
+            package_ids: ["package-glassbox"],
+            provenance,
+            release_surface_ids: ["surface-changesets"],
+            scope_paths: ["src/glassbox/runtime"],
+            subsystem_id: "subsystem-changesets",
+            tags: ["runtime", "changesets"],
+          },
+        ],
+      },
+    ],
+    verification: {
+      detail: null,
+      next_actions: ["uv run pytest tests/integration/test_web_changeset_routes.py"],
+      paths: ["src/glassbox/runtime/changesets.py"],
+      report: null,
+      status: "ok",
+    },
   };
 }
 

@@ -13,6 +13,7 @@ import {
 } from "@/stores/changeset-store-action-messages";
 import {
   loadBranchSearchForChangeset,
+  loadRepositoryIntelligenceForChangeset,
   reloadSelectedChangeset,
   type ChangesetStoreGet,
   type ChangesetStoreSet,
@@ -76,6 +77,10 @@ export function createChangesetStoreReviewActions({
         });
         const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
+          apiClient,
+          verificationPlan,
+        );
         const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
           apiClient.getChangesetHandoffReadiness(selectedChangesetId),
@@ -92,6 +97,7 @@ export function createChangesetStoreReviewActions({
             handoffReadiness,
             lastActionMessage: reviewBriefActionMessage(response),
             loadState: "loaded",
+            repositoryIntelligence,
             selectedChangesetId,
             verificationPlan,
           },
@@ -167,6 +173,10 @@ export function createChangesetStoreReviewActions({
       set({ action: createPendingActionStatus("preview-verification") });
       try {
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
+          apiClient,
+          verificationPlan,
+        );
         set((state) => ({
           detail: {
             ...state.detail,
@@ -175,6 +185,7 @@ export function createChangesetStoreReviewActions({
               verificationPlan.recommended_commands.length,
             ),
             loadState: "loaded",
+            repositoryIntelligence,
             selectedChangesetId,
             verificationPlan,
           },
@@ -228,6 +239,10 @@ export function createChangesetStoreReviewActions({
         const response = await apiClient.refreshChangeset({ changesetId: selectedChangesetId });
         const branchSearchDetail = await loadBranchSearchForChangeset(apiClient, response.detail);
         const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
+        const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
+          apiClient,
+          verificationPlan,
+        );
         const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
           apiClient.getChangesetCommitReadiness(selectedChangesetId),
           apiClient.getChangesetHandoffReadiness(selectedChangesetId),
@@ -244,6 +259,7 @@ export function createChangesetStoreReviewActions({
             handoffReadiness,
             lastActionMessage: refreshChangesetActionMessage(response.event_sequence),
             loadState: "loaded",
+            repositoryIntelligence,
             selectedChangesetId,
             verificationPlan,
           },

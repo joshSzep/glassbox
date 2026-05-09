@@ -1,4 +1,8 @@
-import type { ChangesetDetailState, ChangesetPageState } from "@/stores/changeset-store";
+import type {
+  ChangesetDetailState,
+  ChangesetPageState,
+  ChangesetRepositoryIntelligenceState,
+} from "@/stores/changeset-store";
 
 export function createIdleChangesetPageState(): ChangesetPageState {
   return { error: null, items: [], loadState: "idle" };
@@ -14,6 +18,7 @@ export function createIdleChangesetDetailState(): ChangesetDetailState {
     handoffReadiness: null,
     lastActionMessage: null,
     loadState: "idle",
+    repositoryIntelligence: createIdleChangesetRepositoryIntelligenceState(),
     selectedChangesetId: null,
     verificationPlan: null,
   };
@@ -29,6 +34,7 @@ export function createLoadingChangesetDetailState(changesetId: string): Changese
     handoffReadiness: null,
     lastActionMessage: null,
     loadState: "loading",
+    repositoryIntelligence: createIdleChangesetRepositoryIntelligenceState("loading"),
     selectedChangesetId: changesetId,
     verificationPlan: null,
   };
@@ -50,8 +56,22 @@ export function createFailedChangesetDetailState({
     handoffReadiness: null,
     lastActionMessage: null,
     loadState: "failed",
+    repositoryIntelligence: createIdleChangesetRepositoryIntelligenceState(),
     selectedChangesetId: changesetId,
     verificationPlan: null,
+  };
+}
+
+export function createIdleChangesetRepositoryIntelligenceState(
+  loadState: ChangesetRepositoryIntelligenceState["loadState"] = "idle",
+): ChangesetRepositoryIntelligenceState {
+  return {
+    commandRecipes: [],
+    error: null,
+    freshness: null,
+    loadState,
+    pathInspections: [],
+    verification: null,
   };
 }
 

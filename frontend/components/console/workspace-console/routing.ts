@@ -92,6 +92,10 @@ function loadRouteSurface(
     taskStore.getState().reset();
     void (async () => {
       await knowledgeStore.getState().loadRepositoryStatus();
+      const repositoryPath = new URL(window.location.href).searchParams.get("path");
+      if (repositoryPath !== null) {
+        await knowledgeStore.getState().inspectRepositoryPath(repositoryPath);
+      }
       await knowledgeStore.getState().searchRepositoryIndex();
     })();
   } else if (nextRoute.surface === "branches") {

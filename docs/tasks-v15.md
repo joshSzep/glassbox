@@ -1009,7 +1009,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1553: Connect Repository Intelligence To Changeset Dashboard Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1524`, `GBX-1552`
 - Goal: make changeset review surfaces use repository intelligence without
   burying operators in duplicate panels

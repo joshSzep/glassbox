@@ -1029,6 +1029,12 @@ describe("changeset store", () => {
     expect(store.getState().detail.commitMessage?.suggestion_label).toBe(
       "suggestion_only_not_committed",
     );
+    expect(store.getState().detail.repositoryIntelligence?.verification?.paths).toEqual([
+      "src/glassbox/runtime/changesets.py",
+    ]);
+    expect(store.getState().detail.repositoryIntelligence?.pathInspections[0]?.path).toBe(
+      "src/glassbox/runtime/changesets.py",
+    );
     expect(store.getState().detail.lastActionMessage).toBe(
       "Lifecycle brief brief-artifact-1 generated.",
     );

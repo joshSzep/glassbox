@@ -1,11 +1,16 @@
 import type {
   BranchSearchDetailResponse,
   ChangesetDetailResponse,
+  ChangesetVerificationPlanPreviewResponse,
   GlassboxApiClient,
 } from "@/api/client";
-import type { ChangesetStoreState } from "@/stores/changeset-store";
+import type {
+  ChangesetRepositoryIntelligenceState,
+  ChangesetStoreState,
+} from "@/stores/changeset-store";
 import {
   createFailedChangesetDetailState,
+  createIdleChangesetRepositoryIntelligenceState,
   createLoadingChangesetDetailState,
 } from "@/stores/changeset-store-selectors";
 import { errorMessage, type createRequestTracker } from "@/stores/store-actions";
@@ -76,6 +81,10 @@ export async function selectChangeset(input: {
         input.apiClient.getChangesetCommitMessage(input.changesetId),
         loadBranchSearchForChangeset(input.apiClient, detail),
       ]);
+    const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
+      input.apiClient,
+      verificationPlan,
+    );
     if (!input.detailRequests.isCurrent(currentRequestId)) {
       return;
     }
@@ -89,6 +98,7 @@ export async function selectChangeset(input: {
         handoffReadiness,
         lastActionMessage: null,
         loadState: "loaded",
+        repositoryIntelligence,
         selectedChangesetId: input.changesetId,
         verificationPlan,
       },
@@ -121,6 +131,10 @@ export async function reloadSelectedChangeset(
       apiClient.getChangesetCommitMessage(changesetId),
       loadBranchSearchForChangeset(apiClient, detail),
     ]);
+  const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
+    apiClient,
+    verificationPlan,
+  );
   set({
     detail: {
       branchSearchDetail,
@@ -131,6 +145,7 @@ export async function reloadSelectedChangeset(
       handoffReadiness,
       lastActionMessage: options.lastActionMessage,
       loadState: "loaded",
+      repositoryIntelligence,
       selectedChangesetId: changesetId,
       verificationPlan,
     },
@@ -150,4 +165,66 @@ export async function loadBranchSearchForChangeset(
   } catch {
     return null;
   }
+}
+
+export async function loadRepositoryIntelligenceForChangeset(
+  apiClient: GlassboxApiClient,
+  verificationPlan: ChangesetVerificationPlanPreviewResponse,
+): Promise<ChangesetRepositoryIntelligenceState> {
+  const changedPaths = verificationPlan.changed_paths.slice(0, 6);
+  if (changedPaths.length === 0) {
+    return createIdleChangesetRepositoryIntelligenceState("loaded");
+  }
+
+  const [freshnessResult, verificationResult, recipesResult, ...pathResults] =
+    await Promise.allSettled([
+      apiClient.getRepositoryIntelligenceFreshness(),
+      apiClient.recommendRepositoryIntelligenceVerification({ paths: changedPaths }),
+      apiClient.listRepositoryIntelligenceCommandRecipes({ limit: 8 }),
+      ...changedPaths.slice(0, 4).map((path) => apiClient.inspectRepositoryIntelligencePath(path)),
+    ]);
+
+  const freshness = freshnessResult.status === "fulfilled" ? freshnessResult.value : null;
+  const verification = verificationResult.status === "fulfilled" ? verificationResult.value : null;
+  const listedRecipes = recipesResult.status === "fulfilled" ? recipesResult.value.items : [];
+  const pathInspections = pathResults.flatMap((result) =>
+    result.status === "fulfilled" ? [result.value] : [],
+  );
+  const commandRecipes = dedupeCommandRecipes([
+    ...pathInspections.flatMap((inspection) => inspection.command_recipes),
+    ...listedRecipes,
+  ]);
+  const firstError = [freshnessResult, verificationResult, recipesResult, ...pathResults].find(
+    (result) => result.status === "rejected",
+  );
+
+  return {
+    commandRecipes,
+    error:
+      firstError !== undefined && firstError.status === "rejected"
+        ? errorMessage(firstError.reason)
+        : null,
+    freshness,
+    loadState:
+      freshness === null && verification === null && pathInspections.length === 0
+        ? "failed"
+        : "loaded",
+    pathInspections,
+    verification,
+  };
+}
+
+function dedupeCommandRecipes(
+  recipes: ChangesetRepositoryIntelligenceState["commandRecipes"],
+): ChangesetRepositoryIntelligenceState["commandRecipes"] {
+  const seen = new Set<string>();
+  const deduped: ChangesetRepositoryIntelligenceState["commandRecipes"] = [];
+  for (const recipe of recipes) {
+    if (seen.has(recipe.recipe_id)) {
+      continue;
+    }
+    seen.add(recipe.recipe_id);
+    deduped.push(recipe);
+  }
+  return deduped;
 }

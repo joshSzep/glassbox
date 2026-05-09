@@ -13,6 +13,7 @@ import { ManualEvidencePanel, ReviewQuickActionsPanel } from "./changeset/eviden
 import { ReviewFeedbackPanel, ReviewPanel } from "./changeset/feedback";
 import { CandidateAdoptionPanel, HandoffReadinessPanel } from "./changeset/handoff";
 import { ChangesetList } from "./changeset/list";
+import { ChangesetRepositoryIntelligencePanel } from "./changeset/repository-intelligence";
 import { Fact, Section, StateLine } from "./changeset/shared";
 import type { ChangesetConsoleProps } from "./changeset/types";
 import {
@@ -179,10 +180,15 @@ function ChangesetDetail({
         action={action}
         detail={detail.detail}
         onRecordFeedbackFixup={onRecordFeedbackFixup}
+        repositoryIntelligence={detail.repositoryIntelligence}
       />
       <ManualEvidencePanel detail={detail.detail} />
       <InventoryPanel detail={detail.detail} />
       <TopologyPanel verificationPlan={verificationPlan} />
+      <ChangesetRepositoryIntelligencePanel
+        repositoryIntelligence={detail.repositoryIntelligence}
+        verificationPlan={verificationPlan}
+      />
       <VerificationPanel
         posture={detail.detail.verification_posture}
         verificationPlan={verificationPlan}

@@ -9,6 +9,10 @@ import type {
   CommitReadinessResponse,
   GlassboxApiClient,
   HandoffReadinessResponse,
+  RepositoryIntelligenceCommandRecipeListPageResponse,
+  RepositoryIntelligenceFreshnessResponse,
+  RepositoryIntelligencePathInspectionResponse,
+  RepositoryIntelligenceVerificationRecommendationResponse,
 } from "@/api/client";
 import { createChangesetStoreActions } from "@/stores/changeset-store-actions";
 import {
@@ -39,6 +43,15 @@ export type ChangesetPageState = {
   loadState: LoadState;
 };
 
+export type ChangesetRepositoryIntelligenceState = {
+  commandRecipes: RepositoryIntelligenceCommandRecipeListPageResponse["items"];
+  error: string | null;
+  freshness: RepositoryIntelligenceFreshnessResponse | null;
+  loadState: LoadState;
+  pathInspections: RepositoryIntelligencePathInspectionResponse[];
+  verification: RepositoryIntelligenceVerificationRecommendationResponse | null;
+};
+
 export type ChangesetDetailState = {
   branchSearchDetail: BranchSearchDetailResponse | null;
   detail: ChangesetDetailResponse | null;
@@ -48,6 +61,7 @@ export type ChangesetDetailState = {
   handoffReadiness: HandoffReadinessResponse | null;
   lastActionMessage: string | null;
   loadState: LoadState;
+  repositoryIntelligence?: ChangesetRepositoryIntelligenceState;
   selectedChangesetId: string | null;
   verificationPlan: ChangesetVerificationPlanPreviewResponse | null;
 };

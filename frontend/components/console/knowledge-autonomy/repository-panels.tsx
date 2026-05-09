@@ -210,6 +210,7 @@ export function PathInspector({
         <Input
           aria-label="Inspect repository path"
           defaultValue={repository.pathQuery}
+          key={repository.pathQuery}
           name="path"
           placeholder="src/glassbox/runtime/repository_index.py"
         />
