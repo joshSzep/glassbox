@@ -416,6 +416,7 @@ def _normalize_system_prompt_content(content: str) -> str:
         for section in sections
         if section != ""
         and not section.startswith("Repository context:")
+        and not section.startswith("Repository intelligence:")
         and not section.startswith("Memory notes:")
         and not section.startswith("Working set:")
         and not section.startswith("Artifact-backed context:")

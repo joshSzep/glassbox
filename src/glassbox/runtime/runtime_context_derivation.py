@@ -18,8 +18,14 @@ from glassbox.runtime.context_models import ContextCompactionFreshnessCueSnapsho
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_snapshots import build_artifact_backed_context_snapshot
 from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
+from glassbox.runtime.context_snapshots import (
+    build_repository_intelligence_context_snapshot,
+)
 from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
 from glassbox.runtime.context_snapshots import build_workspace_memory_context_snapshot
+from glassbox.runtime.context_snapshots import (
+    repository_intelligence_context_memory_ids,
+)
 from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
@@ -69,6 +75,25 @@ def derive_runtime_context_snapshot(
         if session_state is not None
         else (latest_checkpoint.last_sequence if latest_checkpoint is not None else 0)
     )
+    repository_intelligence = build_repository_intelligence_context_snapshot(
+        workspace_root
+    )
+    if session_state is not None and session_state.current_turn_id is not None:
+        repository_intelligence_memory_ids = repository_intelligence_context_memory_ids(
+            repository_intelligence
+        )
+        if repository_intelligence_memory_ids:
+            _record_workspace_memory_context_use(
+                session_repository,
+                session_id,
+                turn_id=session_state.current_turn_id,
+                memory_ids=repository_intelligence_memory_ids,
+                prompt_section="repository_intelligence",
+                reason=(
+                    "confirmed active memory-derived repository intelligence "
+                    "included in bounded runtime context"
+                ),
+            )
 
     return build_runtime_context_snapshot(
         workspace_root,
@@ -79,6 +104,7 @@ def derive_runtime_context_snapshot(
         additional_workspace_memory_count=additional_workspace_memory_count,
         workspace_memory_context_bytes=workspace_memory_bytes,
         repository_index=build_repository_index_context_snapshot(workspace_root),
+        repository_intelligence=repository_intelligence,
         checkpoint_resume=build_checkpoint_resume_snapshot(
             latest_checkpoint,
             latest_session_sequence=latest_session_sequence,

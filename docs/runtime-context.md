@@ -65,6 +65,12 @@ candidates are excluded. Stale, missing, degraded, conflicting, or partial
 sources are either omitted from active items or carried as clearly labeled
 excluded sources with lower confidence and safe inspection or rebuild actions.
 
+Missing repository intelligence remains visible in runtime snapshots and budget
+summaries, but it is excluded from active prompt context so old replay bundles
+and first-run workspaces do not drift just because no optional index exists.
+Stale, degraded, conflicting, or partial snapshots may be included only with
+clear exclusions, limitations, and safe next actions.
+
 Confirmed workspace memory may appear through repository intelligence only when
 the underlying memory is active, confirmed, provenance-backed, not stale or
 conflicting, and prompt use is recorded through the workspace memory context
@@ -76,6 +82,9 @@ The fingerprint includes status, schema version, source digest, included and
 excluded source summaries, selected items, truncation counts, limitations, and
 safe next actions. Replay drift should name `repository_intelligence` rather
 than hiding these changes as generic transcript or repository-context drift.
+Portable replay of older bundles may ignore newly available live repository
+intelligence when the recorded bundle did not include that source, matching the
+existing repository-context portability rule.
 
 ## Runtime Notes
 
@@ -131,7 +140,7 @@ prefer context-sensitive replay/eval coverage before accepting drift.
 
 ## Resume, Replay, Eval, And Branch Behavior
 
-- `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, reloads artifact-backed summaries when available, carries bounded repository intelligence only when a later integration task provides an eligible snapshot, and classifies the latest checkpoint as checkpoint-derived or replay-derived context with source-event provenance
+- `resume` recomputes repository context, reloads runtime notes, rebuilds the working set, reloads artifact-backed summaries when available, derives bounded repository intelligence from the retained local v2 snapshot without rebuilding it, and classifies the latest checkpoint as checkpoint-derived or replay-derived context with source-event provenance
 - checkpoint-derived context is used only when the latest checkpoint covers the current session tail and has no known blockers; stale, blocked, failed, or workspace-drifted checkpoints remain visible but are marked unsafe to trust
 - `fork` imports active parent runtime notes as inherited notes and rebuilds replay-safe working-set context for the child session
 - `replay` records per-source enriched-context metadata and can report source-level drift

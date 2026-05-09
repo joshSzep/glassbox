@@ -81,8 +81,14 @@ from glassbox.runtime.context_snapshots import build_artifact_backed_context_sna
 from glassbox.runtime.context_snapshots import build_pytest_failure_digest_artifact
 from glassbox.runtime.context_snapshots import build_repository_context_snapshot
 from glassbox.runtime.context_snapshots import build_repository_index_context_snapshot
+from glassbox.runtime.context_snapshots import (
+    build_repository_intelligence_context_snapshot,
+)
 from glassbox.runtime.context_snapshots import build_runtime_context_snapshot
 from glassbox.runtime.context_snapshots import build_workspace_memory_context_snapshot
+from glassbox.runtime.context_snapshots import (
+    repository_intelligence_context_memory_ids,
+)
 from glassbox.runtime.context_working_set import build_working_set_snapshot
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.runtime_context_derivation import derive_runtime_context_snapshot
@@ -925,6 +931,42 @@ def test_turn_context_builder_carries_repository_intelligence_context() -> None:
     assert "glassbox repo inspect path" in formatted
 
 
+def test_turn_context_builder_excludes_missing_repo_intelligence() -> None:
+    session_id = new_session_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=1,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=1,
+        ),
+        [],
+    )
+    runtime_context = RuntimeContextSnapshot(
+        repository_context=RepositoryContextSnapshot(workspace_name="glassbox"),
+        repository_intelligence=RepositoryIntelligenceContextSnapshot(
+            status="missing",
+            limitations=["Repository intelligence is missing."],
+        ),
+    )
+
+    context = TurnContextBuilder(repository).build_from_runtime_context(
+        session_id,
+        runtime_context,
+    )
+
+    assert context.repository_intelligence is None
+
+
 def test_turn_context_builder_can_derive_tools_from_registry() -> None:
     session_id = new_session_id()
     repository = FakeSessionRepository(
@@ -1285,6 +1327,61 @@ def test_memory_and_repository_index_context_snapshots_are_bounded(
     assert repository_index.entry_count >= 2
     assert len(repository_index.items) == 2
     assert repository_index.additional_item_count == repository_index.entry_count - 2
+
+
+def test_repository_intelligence_context_snapshot_is_bounded_and_explainable(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "evals").mkdir()
+    (tmp_path / "src" / "sample.py").write_text(
+        "def useful() -> None:\n    pass\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests" / "test_sample.py").write_text(
+        "def test_sample() -> None:\n    assert True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "README.md").write_text("# Fixture\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+
+    repository_intelligence = build_repository_intelligence_context_snapshot(
+        tmp_path,
+        item_limit=3,
+    )
+
+    assert repository_intelligence.status == "fresh"
+    assert repository_intelligence.budget_bytes is not None
+    assert repository_intelligence.context_bytes > 0
+    assert repository_intelligence.sources[0].source_name == "repository-index"
+    assert [item.item_kind for item in repository_intelligence.items] == [
+        "subsystem",
+        "subsystem",
+        "subsystem",
+    ]
+    assert repository_intelligence.additional_item_count > 0
+    formatted = format_repository_intelligence_for_prompt(repository_intelligence)
+    assert "Repository intelligence: fresh; schema 1; 3 item(s)" in formatted
+    assert "Repository intelligence sources: repository-index=fresh/high" in formatted
+
+
+def test_repository_intelligence_context_degrades_when_snapshot_missing(
+    tmp_path: Path,
+) -> None:
+    repository_intelligence = build_repository_intelligence_context_snapshot(tmp_path)
+
+    assert repository_intelligence.status == "missing"
+    assert repository_intelligence.items == []
+    assert repository_intelligence.sources[0].included is False
+    assert repository_intelligence.safe_next_actions == [
+        "glassbox repo index build --cwd ."
+    ]
 
 
 def test_workspace_memory_context_excludes_conflicting_memory_by_default(
@@ -1946,6 +2043,69 @@ def test_derive_runtime_context_records_workspace_memory_prompt_use() -> None:
     assert used_events[0].memory_id == memory_id
     assert used_events[0].turn_id == turn_id
     assert used_events[0].prompt_section == "workspace_memory"
+
+
+def test_derive_runtime_context_records_repository_intelligence_memory_use(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    memory = _workspace_memory_entry(
+        session_id,
+        summary="Backend test command",
+        content="Use uv run pytest for backend tests.",
+        source_sequence=3,
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "src" / "sample.py").write_text("def main(): pass\n", encoding="utf-8")
+    (tmp_path / "tests" / "test_sample.py").write_text(
+        "def test_sample(): assert True\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path, workspace_memory_entries=[memory])
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=tmp_path,
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            current_turn_id=turn_id,
+            last_sequence=4,
+        ),
+        [],
+        workspace_memory=[memory],
+    )
+
+    runtime_context = derive_runtime_context_snapshot(repository, session_id, tmp_path)
+    used_events = [
+        event.payload
+        for event in repository.read_session_events(session_id)
+        if isinstance(event.payload, WorkspaceMemoryUsedInContext)
+    ]
+
+    assert runtime_context.repository_intelligence is not None
+    assert repository_intelligence_context_memory_ids(
+        runtime_context.repository_intelligence
+    ) == [memory.memory_id]
+    assert [event.prompt_section for event in used_events] == [
+        "workspace_memory",
+        "repository_intelligence",
+    ]
+    assert all(event.memory_id == memory.memory_id for event in used_events)
+    assert all(event.turn_id == turn_id for event in used_events)
 
 
 def _workspace_memory_entry(

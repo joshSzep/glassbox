@@ -193,6 +193,16 @@ truncation counts, and safe next actions. Replay and eval drift should name the
 repository intelligence source directly when this context changes, rather than
 collapsing it into generic repository context or transcript drift.
 
+The live v15 context builder derives this section from the retained local
+repository intelligence snapshot. It does not rebuild the snapshot during turn
+preparation. Fresh v2 snapshots can contribute bounded subsystem, test-root,
+command-recipe, release-surface, and confirmed-memory convention summaries.
+Missing snapshots remain visible in runtime snapshots and budget summaries but
+stay out of active prompt context. Stale, building, failed, or schema-v1
+snapshots produce degraded or excluded source summaries with safe
+`glassbox repo index ... --cwd .` next actions instead of optimistic prompt
+context.
+
 ## Evidence Expectations
 
 Repository intelligence claims must be backed by deterministic local inputs,

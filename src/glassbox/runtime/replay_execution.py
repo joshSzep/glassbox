@@ -56,7 +56,9 @@ async def execute_replay_bundle(
     model_executor = ReplayModelExecutor(
         bundle.model_calls,
         ignored_live_source_names=(
-            {"repository_context"} if workspace_root is not None else set()
+            {"repository_context", "repository_intelligence"}
+            if workspace_root is not None
+            else set()
         ),
     )
     tool_runtime = build_replay_tool_runtime(

@@ -4,10 +4,20 @@ import re
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+from typing import Literal
+from uuid import UUID
 
 from glassbox.core.events import ModelToolCallRequested
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.core.ids import SessionId
+from glassbox.core.ids import WorkspaceMemoryId
+from glassbox.core.models import RepositoryIndexProvenance
+from glassbox.core.models import RepositoryIndexSnapshot
+from glassbox.core.models import RepositoryIntelligenceCommandRecipe
+from glassbox.core.models import RepositoryIntelligenceMemoryReference
+from glassbox.core.models import RepositoryIntelligencePathHint
+from glassbox.core.models import RepositoryIntelligenceReleaseSurface
+from glassbox.core.models import RepositoryIntelligenceSubsystem
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import RepositoryIndexEntityKind
@@ -22,7 +32,9 @@ from glassbox.runtime.context_models import PytestFailureDigestArtifact
 from glassbox.runtime.context_models import RepositoryContextSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextItemSnapshot
 from glassbox.runtime.context_models import RepositoryIndexContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextItemSnapshot
 from glassbox.runtime.context_models import RepositoryIntelligenceContextSnapshot
+from glassbox.runtime.context_models import RepositoryIntelligenceContextSourceSnapshot
 from glassbox.runtime.context_models import RuntimeContextNoteSnapshot
 from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.context_models import WorkingSetSnapshot
@@ -41,8 +53,10 @@ _DEFAULT_RUNTIME_NOTE_LIMIT = 8
 _DEFAULT_ARTIFACT_CONTEXT_LIMIT = 4
 _DEFAULT_WORKSPACE_MEMORY_LIMIT = 5
 _DEFAULT_REPOSITORY_INDEX_ITEM_LIMIT = 8
+_DEFAULT_REPOSITORY_INTELLIGENCE_ITEM_LIMIT = 8
 _DEFAULT_WORKSPACE_MEMORY_CONTEXT_BYTES = 2000
 _DEFAULT_REPOSITORY_INDEX_CONTEXT_BYTES = 2000
+_DEFAULT_REPOSITORY_INTELLIGENCE_CONTEXT_BYTES = 2400
 _HIGH_SIGNAL_REPOSITORY_ENTRIES = (
     "README.md",
     "pyproject.toml",
@@ -249,6 +263,121 @@ def build_repository_index_context_snapshot(
             if snapshot.status != RepositoryIndexFreshness.FRESH
             else None
         ),
+    )
+
+
+def build_repository_intelligence_context_snapshot(
+    workspace_root: Path,
+    *,
+    item_limit: int = _DEFAULT_REPOSITORY_INTELLIGENCE_ITEM_LIMIT,
+    context_byte_limit: int = _DEFAULT_REPOSITORY_INTELLIGENCE_CONTEXT_BYTES,
+) -> RepositoryIntelligenceContextSnapshot:
+    """Return bounded repository-intelligence context for live turn prompts."""
+
+    path = repository_index_path(workspace_root)
+    display_path = _workspace_relative_context_path(workspace_root, path)
+    try:
+        snapshot = load_repository_index(workspace_root)
+    except RepositoryIndexNotFoundError:
+        return RepositoryIntelligenceContextSnapshot(
+            status="missing",
+            sources=[
+                RepositoryIntelligenceContextSourceSnapshot(
+                    source_name="repository-index",
+                    source_kind="repository_index_snapshot",
+                    freshness="missing",
+                    confidence="unknown",
+                    included=False,
+                    provenance=display_path,
+                    limitations=["repository intelligence has not been built"],
+                )
+            ],
+            limitations=["Repository intelligence is missing."],
+            safe_next_actions=["glassbox repo index build --cwd ."],
+        )
+
+    if snapshot.status != RepositoryIndexFreshness.FRESH:
+        freshness = _repository_intelligence_context_status(snapshot)
+        return RepositoryIntelligenceContextSnapshot(
+            status=freshness,
+            schema_version=max(snapshot.schema_version, 1),
+            source_digest=snapshot.source_digest,
+            sources=[
+                RepositoryIntelligenceContextSourceSnapshot(
+                    source_name="repository-index",
+                    source_kind="repository_index_snapshot",
+                    freshness=freshness,
+                    confidence="low",
+                    included=False,
+                    provenance=display_path,
+                    source_digest=snapshot.source_digest,
+                    item_count=len(snapshot.entries),
+                    limitations=[
+                        snapshot.failure_reason
+                        or "repository intelligence snapshot is not fresh"
+                    ],
+                )
+            ],
+            limitations=["Repository intelligence is not fresh enough for prompts."],
+            safe_next_actions=[
+                "glassbox repo index status --cwd . --json",
+                "glassbox repo index build --cwd .",
+            ],
+        )
+
+    if snapshot.schema_version < 2:
+        return RepositoryIntelligenceContextSnapshot(
+            status="partial",
+            schema_version=snapshot.schema_version,
+            source_digest=snapshot.source_digest,
+            sources=[
+                RepositoryIntelligenceContextSourceSnapshot(
+                    source_name="repository-index",
+                    source_kind="repository_index_snapshot",
+                    freshness="partial",
+                    confidence="low",
+                    included=False,
+                    provenance=display_path,
+                    source_digest=snapshot.source_digest,
+                    item_count=len(snapshot.entries),
+                    limitations=["snapshot predates repository intelligence v2"],
+                )
+            ],
+            limitations=[
+                "Repository index exists, but the v2 repository intelligence "
+                "sections are unavailable."
+            ],
+            safe_next_actions=["glassbox repo index build --cwd ."],
+        )
+
+    candidates = _repository_intelligence_context_items(snapshot)
+    selected: list[RepositoryIntelligenceContextItemSnapshot] = []
+    used_bytes = 0
+    for item in candidates:
+        if len(selected) >= item_limit:
+            break
+        item_bytes = _repository_intelligence_item_bytes(item)
+        if selected and used_bytes + item_bytes > context_byte_limit:
+            break
+        selected.append(item)
+        used_bytes += item_bytes
+        if used_bytes >= context_byte_limit:
+            break
+
+    return RepositoryIntelligenceContextSnapshot(
+        status="fresh",
+        schema_version=1,
+        source_digest=snapshot.source_digest,
+        sources=_repository_intelligence_context_sources(
+            snapshot,
+            display_path,
+        ),
+        items=selected,
+        additional_item_count=max(len(candidates) - len(selected), 0),
+        context_bytes=used_bytes,
+        budget_bytes=context_byte_limit,
+        limitations=list(snapshot.limitations),
+        safe_next_actions=["glassbox repo recommend <path> --cwd ."],
     )
 
 
@@ -468,6 +597,264 @@ def _repository_index_item_bytes(item: RepositoryIndexContextItemSnapshot) -> in
             " ".join(item.tags),
         ]
     )
+
+
+def _repository_intelligence_context_status(
+    snapshot: RepositoryIndexSnapshot,
+) -> Literal["stale", "partial", "degraded", "missing"]:
+    if snapshot.status == RepositoryIndexFreshness.STALE:
+        return "stale"
+    if snapshot.status == RepositoryIndexFreshness.BUILDING:
+        return "partial"
+    if snapshot.status == RepositoryIndexFreshness.FAILED:
+        return "degraded"
+    return "missing"
+
+
+def _repository_intelligence_context_sources(
+    snapshot: RepositoryIndexSnapshot,
+    display_path: str,
+) -> list[RepositoryIntelligenceContextSourceSnapshot]:
+    sources = [
+        RepositoryIntelligenceContextSourceSnapshot(
+            source_name="repository-index",
+            source_kind="repository_index_snapshot",
+            freshness="fresh",
+            confidence="high",
+            included=True,
+            provenance=display_path,
+            source_digest=snapshot.source_digest,
+            item_count=len(snapshot.entries),
+            limitations=list(snapshot.limitations),
+        )
+    ]
+    for manifest in sorted(
+        snapshot.source_manifests,
+        key=lambda manifest: (manifest.role, manifest.path.as_posix()),
+    )[:5]:
+        sources.append(
+            RepositoryIntelligenceContextSourceSnapshot(
+                source_name=manifest.manifest_id,
+                source_kind=manifest.source_type.value,
+                freshness="fresh",
+                confidence="high",
+                included=True,
+                provenance=manifest.path.as_posix(),
+                source_digest=manifest.digest,
+                limitations=list(manifest.limitations),
+            )
+        )
+    return sources
+
+
+def _repository_intelligence_context_items(
+    snapshot: RepositoryIndexSnapshot,
+) -> list[RepositoryIntelligenceContextItemSnapshot]:
+    items: list[RepositoryIntelligenceContextItemSnapshot] = []
+    items.extend(
+        _subsystem_context_item(subsystem)
+        for subsystem in sorted(
+            snapshot.subsystems,
+            key=lambda subsystem: (subsystem.name.casefold(), subsystem.subsystem_id),
+        )[:3]
+    )
+    items.extend(
+        _test_root_context_item(test_root)
+        for test_root in sorted(
+            snapshot.test_roots,
+            key=lambda test_root: test_root.path.as_posix(),
+        )[:2]
+    )
+    items.extend(
+        _command_recipe_context_item(recipe)
+        for recipe in sorted(
+            snapshot.command_recipes,
+            key=lambda recipe: (
+                _command_recipe_priority(recipe),
+                recipe.name.casefold(),
+                recipe.command,
+            ),
+        )[:3]
+    )
+    items.extend(
+        _release_surface_context_item(surface)
+        for surface in sorted(
+            snapshot.release_sensitive_surfaces,
+            key=lambda surface: (surface.kind.value, surface.name.casefold()),
+        )[:2]
+    )
+    items.extend(
+        _memory_reference_context_item(reference)
+        for reference in sorted(
+            snapshot.memory_references,
+            key=lambda reference: (reference.kind.value, reference.summary.casefold()),
+        )[:2]
+        if not reference.redacted
+    )
+    return items
+
+
+def _subsystem_context_item(
+    subsystem: RepositoryIntelligenceSubsystem,
+) -> RepositoryIntelligenceContextItemSnapshot:
+    scopes = ", ".join(path.as_posix() for path in subsystem.scope_paths[:4])
+    return RepositoryIntelligenceContextItemSnapshot(
+        item_kind="subsystem",
+        title=subsystem.name,
+        summary=f"Scopes: {scopes or 'workspace'}",
+        source_names=["repository-index"],
+        confidence=subsystem.confidence.value,
+        provenance=_provenance_labels(subsystem.provenance),
+        limitations=list(subsystem.limitations),
+    )
+
+
+def _test_root_context_item(
+    test_root: RepositoryIntelligencePathHint,
+) -> RepositoryIntelligenceContextItemSnapshot:
+    return RepositoryIntelligenceContextItemSnapshot(
+        item_kind="likely_test_root",
+        title=test_root.path.as_posix(),
+        summary="Repository intelligence marks this as a test root.",
+        source_names=["repository-index"],
+        confidence=test_root.confidence.value,
+        provenance=_provenance_labels(test_root.provenance),
+        limitations=list(test_root.limitations),
+    )
+
+
+def _command_recipe_context_item(
+    recipe: RepositoryIntelligenceCommandRecipe,
+) -> RepositoryIntelligenceContextItemSnapshot:
+    scope = ", ".join(path.as_posix() for path in recipe.scope_paths[:3])
+    summary = (
+        f"{recipe.command} (purpose: {recipe.purpose.value}; risk: "
+        f"{recipe.risk.value}" + (f"; scope: {scope}" if scope else "") + ")"
+    )
+    return RepositoryIntelligenceContextItemSnapshot(
+        item_kind="command_recipe",
+        title=recipe.name,
+        summary=summary,
+        source_names=["repository-index"],
+        confidence=recipe.confidence.value,
+        provenance=_provenance_labels(recipe.provenance),
+        limitations=list(recipe.limitations),
+    )
+
+
+def _release_surface_context_item(
+    surface: RepositoryIntelligenceReleaseSurface,
+) -> RepositoryIntelligenceContextItemSnapshot:
+    scopes = ", ".join(path.as_posix() for path in surface.scope_paths[:4])
+    summary = (
+        f"{surface.kind.value} surface"
+        + (f" for {scopes}" if scopes else "")
+        + f"; {len(surface.command_recipe_ids)} command recipe(s)"
+    )
+    return RepositoryIntelligenceContextItemSnapshot(
+        item_kind="release_surface",
+        title=surface.name,
+        summary=summary,
+        source_names=["repository-index"],
+        confidence=surface.confidence.value,
+        provenance=_provenance_labels(surface.provenance),
+        limitations=list(surface.limitations),
+    )
+
+
+def _memory_reference_context_item(
+    reference: RepositoryIntelligenceMemoryReference,
+) -> RepositoryIntelligenceContextItemSnapshot:
+    return RepositoryIntelligenceContextItemSnapshot(
+        item_kind="confirmed_convention",
+        title=reference.kind.value,
+        summary=reference.summary,
+        source_names=["repository-index", f"workspace-memory:{reference.memory_id}"],
+        confidence=reference.confidence.value,
+        provenance=[
+            f"workspace-memory:{reference.memory_id}",
+            *([reference.source_label] if reference.source_label is not None else []),
+        ],
+        limitations=list(reference.limitations),
+    )
+
+
+def _command_recipe_priority(recipe: RepositoryIntelligenceCommandRecipe) -> int:
+    purpose = recipe.purpose.value
+    if purpose == "test":
+        return 0
+    if purpose == "lint":
+        return 1
+    if purpose == "typecheck":
+        return 2
+    if purpose == "eval":
+        return 3
+    return 4
+
+
+def _provenance_labels(provenance: Sequence[RepositoryIndexProvenance]) -> list[str]:
+    labels: list[str] = []
+    for record in provenance[:3]:
+        if record.path is None:
+            labels.append(record.source_type.value)
+            continue
+        location = record.path.as_posix()
+        if record.line_start is not None:
+            location += f":{record.line_start}"
+        labels.append(f"{record.source_type.value}:{location}")
+    return labels
+
+
+def _repository_intelligence_item_bytes(
+    item: RepositoryIntelligenceContextItemSnapshot,
+) -> int:
+    return sum(
+        len(value.encode())
+        for value in [
+            item.item_kind,
+            item.title,
+            item.summary,
+            " ".join(item.source_names),
+            item.confidence,
+            item.freshness,
+            " ".join(item.provenance),
+            " ".join(item.limitations),
+        ]
+    )
+
+
+def _workspace_relative_context_path(workspace_root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(workspace_root.resolve()).as_posix()
+    except ValueError:
+        return path.name
+
+
+def repository_intelligence_context_memory_ids(
+    snapshot: RepositoryIntelligenceContextSnapshot | None,
+) -> list[WorkspaceMemoryId]:
+    """Return confirmed memory IDs included through repository intelligence."""
+
+    if snapshot is None:
+        return []
+    ids: list[WorkspaceMemoryId] = []
+    seen: set[WorkspaceMemoryId] = set()
+    for item in snapshot.items:
+        for source_name in item.source_names:
+            prefix, separator, raw_memory_id = source_name.partition(
+                "workspace-memory:"
+            )
+            if prefix or not separator:
+                continue
+            try:
+                memory_id: WorkspaceMemoryId = UUID(raw_memory_id)
+            except ValueError:
+                continue
+            if memory_id in seen:
+                continue
+            seen.add(memory_id)
+            ids.append(memory_id)
+    return ids
 
 
 def _extract_pytest_failure_nodes(output: str, *, limit: int = 5) -> list[str]:

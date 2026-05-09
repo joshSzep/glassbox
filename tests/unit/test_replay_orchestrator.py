@@ -33,6 +33,7 @@ from glassbox.runtime.replay_fingerprints import build_replay_enriched_context_s
 from glassbox.runtime.replay_fingerprints import (
     fingerprint_replay_enriched_context_payload,
 )
+from glassbox.runtime.replay_model_executor import diff_enriched_context_sources
 from glassbox.runtime.replay_models import ReplayBundle
 from glassbox.runtime.replay_models import ReplayFinalStateSnapshot
 from glassbox.runtime.replay_models import ReplayLongRunEventSnapshot
@@ -316,6 +317,34 @@ def test_replay_fingerprints_repository_intelligence_context_by_source() -> None
     assert "repository intelligence fresh" in (sources[0].summary or "")
     assert fingerprint_replay_enriched_context_payload(payload) != (
         fingerprint_replay_enriched_context_payload({})
+    )
+
+
+def test_replay_can_ignore_live_repository_intelligence_for_portable_bundles() -> None:
+    sources = build_replay_enriched_context_sources(
+        {
+            "repository_intelligence": {
+                "status": "fresh",
+                "schema_version": 1,
+                "items": [
+                    {
+                        "item_kind": "subsystem",
+                        "title": "runtime",
+                        "summary": "Runtime context was included.",
+                    }
+                ],
+            }
+        }
+    )
+
+    assert (
+        diff_enriched_context_sources(
+            expected_sources=[],
+            actual_sources=sources,
+            prefix="enriched context",
+            ignored_source_names={"repository_intelligence"},
+        )
+        == []
     )
 
 

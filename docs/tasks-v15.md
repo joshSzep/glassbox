@@ -1093,7 +1093,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1561: Integrate Bounded Repository Intelligence Into Turn Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1560`
 - Goal: add repository intelligence summaries to live turn preparation under
   explicit budgets and provenance rules

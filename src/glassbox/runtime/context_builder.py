@@ -128,6 +128,12 @@ class TurnContextBuilder:
             and runtime_context.repository_index.status == "fresh"
             else None
         )
+        turn_repository_intelligence = (
+            runtime_context.repository_intelligence
+            if runtime_context.repository_intelligence is not None
+            and runtime_context.repository_intelligence.status != "missing"
+            else None
+        )
         repository_index_context = format_repository_index_for_prompt(
             turn_repository_index
         )
@@ -157,7 +163,7 @@ class TurnContextBuilder:
             artifact_context=runtime_context.artifact_context,
             workspace_memory=runtime_context.workspace_memory,
             repository_index=turn_repository_index,
-            repository_intelligence=runtime_context.repository_intelligence,
+            repository_intelligence=turn_repository_intelligence,
             checkpoint_context=runtime_context.checkpoint_resume,
             context_compactions=runtime_context.context_compactions,
         )
