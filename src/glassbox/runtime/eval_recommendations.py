@@ -18,6 +18,9 @@ from glassbox.runtime.eval_recommendation_models import (
 )
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
+from glassbox.runtime.eval_recommendation_models import EvalTestTargetConfidence
+from glassbox.runtime.eval_recommendation_models import EvalTestTargetRecommendation
+from glassbox.runtime.eval_recommendation_models import EvalTestTargetSource
 from glassbox.runtime.eval_recommendation_models import EvalVerificationRecipeConfidence
 from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
@@ -77,6 +80,9 @@ __all__ = [
     "EvalRecommendationReasonGroupKind",
     "EvalRecommendationReport",
     "EvalReleaseSurfaceRecommendation",
+    "EvalTestTargetConfidence",
+    "EvalTestTargetRecommendation",
+    "EvalTestTargetSource",
     "EvalVerificationRecipe",
     "EvalVerificationRecipeConfidence",
     "EvalVerificationRecipeManifest",

@@ -28,6 +28,22 @@ type EvalRecommendationReasonGroupKind = Literal[
 ]
 type EvalVerificationRecipeConfidence = Literal["direct", "topology", "degraded"]
 type EvalVerificationRecipeSource = Literal["recipe", "topology"]
+type EvalTestTargetConfidence = Literal[
+    "direct",
+    "topology-derived",
+    "naming-derived",
+    "package-derived",
+    "recipe-derived",
+    "fallback",
+]
+type EvalTestTargetSource = Literal[
+    "repository-intelligence",
+    "topology",
+    "naming",
+    "package",
+    "recipe",
+    "fallback",
+]
 type PathVerificationConfidence = Literal[
     "direct",
     "topology-derived",
@@ -204,6 +220,25 @@ class EvalVerificationRecipeRecommendation(BaseModel):
     profile_ids: list[str] = Field(default_factory=list)
     case_ids: list[str] = Field(default_factory=list)
     notes: str | None = None
+    limitations: list[str] = Field(default_factory=list)
+
+
+class EvalTestTargetRecommendation(BaseModel):
+    """Likely test target for one changed path set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_id: str
+    title: str
+    confidence: EvalTestTargetConfidence
+    source: EvalTestTargetSource
+    freshness: PathVerificationFreshness = "unknown"
+    matched_paths: list[str] = Field(default_factory=list)
+    target_paths: list[str] = Field(default_factory=list)
+    component_ids: list[str] = Field(default_factory=list)
+    package_ids: list[str] = Field(default_factory=list)
+    command: str | None = None
+    reasons: list[str] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
 
 
@@ -412,6 +447,7 @@ class EvalRecommendationReport(BaseModel):
     cases: list[EvalCaseRecommendation] = Field(default_factory=list)
     profiles: list[EvalProfileRecommendation] = Field(default_factory=list)
     recipes: list[EvalVerificationRecipeRecommendation] = Field(default_factory=list)
+    test_targets: list[EvalTestTargetRecommendation] = Field(default_factory=list)
     suggested_commands: list[str] = Field(default_factory=list)
     cheapest_next_command: str | None = None
     fallback_policy_commands: list[str] = Field(default_factory=list)

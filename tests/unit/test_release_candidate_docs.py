@@ -711,6 +711,7 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "## Non-Claims",
         "PathVerificationRecommendationReport",
         "PathVerificationImpact",
+        "EvalTestTargetRecommendation",
         "PathVerificationTarget",
         "PathVerificationCommandRecipeTarget",
         "PathVerificationEvalCaseTarget",
@@ -734,6 +735,10 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "eval metadata",
         "confirmed active workspace memory",
         "command recipes are approved to execute",
+        "## Test Target Discovery",
+        "test targets separately from advisory command",
+        "generated paths warn operators",
+        "packages with no discovered test roots",
     ):
         assert required_text in content
 

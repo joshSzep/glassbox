@@ -20,6 +20,7 @@ from glassbox.runtime.eval_verification import build_eval_verification_plan
 from glassbox.runtime.eval_verification_recipes import (
     load_eval_verification_recipe_manifest,
 )
+from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -955,6 +956,164 @@ def test_recommend_eval_change_impact_adds_topology_component_recipes(
         "uv run pytest tests/unit/test_widget.py -q",
     ]
     assert python_recipe.limitations == []
+
+
+def test_recommend_eval_change_impact_discovers_python_test_targets_from_index(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/demo/widget.py"],
+    )
+
+    assert [target.target_id for target in report.test_targets] == [
+        "test-naming:tests/unit/test_widget.py"
+    ]
+    target = report.test_targets[0]
+    assert target.confidence == "naming-derived"
+    assert target.source == "repository-intelligence"
+    assert target.freshness == "fresh"
+    assert target.package_ids == ["package:demo"]
+    assert target.target_paths == ["tests/unit/test_widget.py"]
+    assert target.command == "uv run pytest tests/unit/test_widget.py -q"
+
+
+def test_recommend_eval_change_impact_discovers_frontend_test_targets_from_index(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["frontend/components/console/widget.tsx"],
+    )
+
+    assert [target.target_id for target in report.test_targets] == [
+        "test-naming:frontend/tests/widget.test.ts"
+    ]
+    target = report.test_targets[0]
+    assert target.confidence == "naming-derived"
+    assert target.source == "repository-intelligence"
+    assert target.package_ids == ["app:frontend"]
+    assert target.target_paths == ["frontend/tests/widget.test.ts"]
+    assert target.command == "pnpm --dir frontend test -- frontend/tests/widget.test.ts"
+
+
+def test_recommend_eval_change_impact_reports_docs_test_fallback(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "operator.md").write_text("# Operator\n", encoding="utf-8")
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["docs/operator.md"],
+    )
+
+    assert [target.target_id for target in report.test_targets] == [
+        "test-docs:release-candidate-docs"
+    ]
+    assert report.test_targets[0].confidence == "fallback"
+    assert report.test_targets[0].command == (
+        "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+    )
+
+
+def test_recommend_eval_change_impact_warns_for_generated_paths(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    (tmp_path / "frontend" / "generated").mkdir()
+    (tmp_path / "frontend" / "generated" / "api.ts").write_text(
+        "export type Api = unknown;\n",
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["frontend/generated/api.ts"],
+    )
+
+    assert report.test_targets == []
+    assert any("frontend/generated/api.ts" in warning for warning in report.warnings)
+    assert any("generated" in warning for warning in report.warnings)
+
+
+def test_recommend_eval_change_impact_discovers_release_script_test_by_naming(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "validate_v14_release_gate.py").write_text(
+        "def main() -> int:\n    return 0\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "tests" / "unit").mkdir(parents=True)
+    (tmp_path / "tests" / "unit" / "test_validate_v14_release_gate.py").write_text(
+        "def test_gate() -> None:\n    assert True\n",
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["scripts/validate_v14_release_gate.py"],
+    )
+
+    assert [target.target_paths for target in report.test_targets] == [
+        ["tests/unit/test_validate_v14_release_gate.py"]
+    ]
+    assert report.test_targets[0].confidence == "naming-derived"
+
+
+def test_recommend_eval_change_impact_degrades_missing_test_roots(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "demo"\nversion = "0.1.0"\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "src" / "demo").mkdir(parents=True)
+    (tmp_path / "src" / "demo" / "widget.py").write_text(
+        "VALUE = 1\n",
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/demo/widget.py"],
+    )
+
+    assert report.test_targets == []
+    assert any("no test roots" in warning for warning in report.warnings)
 
 
 def test_recommend_eval_change_impact_degrades_stale_topology_guidance(

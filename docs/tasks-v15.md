@@ -597,7 +597,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1521: Improve Test Target Discovery From Repository Intelligence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1520`
 - Goal: use repository intelligence to recommend likely test targets for
   changed paths with confidence and explanation

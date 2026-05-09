@@ -219,6 +219,7 @@ PYTHON_FACADE_RULES: tuple[
             "glassbox.runtime.eval_recommendation_recipes",
             "glassbox.runtime.eval_recommendation_release_surfaces",
             "glassbox.runtime.eval_recommendation_rows",
+            "glassbox.runtime.eval_recommendation_test_targets",
         ),
         80,
         (

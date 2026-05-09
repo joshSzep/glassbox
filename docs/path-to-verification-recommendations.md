@@ -46,6 +46,9 @@ Runtime reports use typed path-to-verification models exported from
 - `PathVerificationImpact` records why a path matters: subsystem, package,
   owner hint, release surface, generated-path, policy-sensitive, provenance,
   freshness, confidence, and limitations.
+- `EvalTestTargetRecommendation` records likely test targets discovered from
+  repository intelligence source roots, test roots, package boundaries, naming
+  conventions, topology, recipes, and fallback policy.
 - `PathVerificationTarget` records one recommended target and its evidence
   class.
 - `PathVerificationCommandRecipeTarget` records advisory command recipes with
@@ -108,6 +111,29 @@ Recommendations should use visible confidence:
 Ordering should prefer the cheapest useful deterministic check when one exists,
 then explain any broader advisory, release-candidate, manual, browser,
 accessibility, or canary follow-up separately.
+
+## Test Target Discovery
+
+`eval recommend` exposes likely test targets separately from advisory command
+recipes. Test target rows can come from repository intelligence snapshots,
+workspace topology, source/test naming conventions, package boundaries,
+repository recipes, or fallback policy. Rows include matched paths, target test
+paths or roots, package IDs, component IDs, a suggested command when one is
+known, reasons, freshness, confidence, and limitations.
+
+Common behavior:
+
+- changed test files are `direct` targets
+- source files with matching `test_*.py`, `*.test.ts`, `*.spec.ts`,
+  `*.test.tsx`, or `*.spec.tsx` files are `naming-derived`
+- source files inside a package with test roots but no matching test file are
+  `package-derived`
+- topology-only matches are `topology-derived`
+- documentation-only changes fall back to the docs guardrail test
+- generated paths warn operators to inspect the source generator before
+  trusting generated-file test guidance
+- packages with no discovered test roots emit degraded guidance rather than a
+  pretend target
 
 ## Freshness And Stale Evidence
 

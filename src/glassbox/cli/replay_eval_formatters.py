@@ -351,6 +351,32 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
                     print("      - " + command)
     else:
         print("Verification recipes: none")
+    if result.test_targets:
+        print("Likely test targets:")
+        for target in result.test_targets:
+            print(
+                f"  - {target.target_id}: {target.title} "
+                f"({target.confidence}, {target.source}, {target.freshness})"
+            )
+            _print_optional_joined_line("Paths", target.matched_paths, indent="    ")
+            _print_optional_joined_line("Targets", target.target_paths, indent="    ")
+            _print_optional_joined_line(
+                "Components", target.component_ids, indent="    "
+            )
+            _print_optional_joined_line("Packages", target.package_ids, indent="    ")
+            if target.reasons:
+                print("    Reasons:")
+                for reason in target.reasons:
+                    print("      - " + reason)
+            if target.limitations:
+                print("    Limitations:")
+                for limitation in target.limitations:
+                    print("      - " + limitation)
+            if target.command:
+                print("    Command:")
+                print("      - " + target.command)
+    else:
+        print("Likely test targets: none")
     if result.suggested_commands:
         print("Suggested commands:")
         for command in result.suggested_commands:
