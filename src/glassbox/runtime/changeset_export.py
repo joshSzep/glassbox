@@ -268,6 +268,18 @@ def _verification_summary(
         "posture": posture.model_dump(mode="json") if posture is not None else None,
         "readiness": verification_plan.readiness.model_dump(mode="json"),
         "recommended_commands": verification_plan.recommended_commands,
+        "recommended_targets": [
+            target.model_dump(mode="json")
+            for target in verification_plan.recommended_targets
+        ],
+        "release_surfaces": [
+            surface.model_dump(mode="json")
+            for surface in verification_plan.release_surfaces
+        ],
+        "stale_evidence": [
+            target.model_dump(mode="json")
+            for target in verification_plan.stale_evidence
+        ],
         "retained_artifact_ids": [
             str(artifact_id) for artifact_id in verification_plan.retained_artifact_ids
         ],

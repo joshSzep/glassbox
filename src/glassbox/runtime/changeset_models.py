@@ -150,6 +150,22 @@ class ChangesetVerificationRecipePreview(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+class ChangesetPathVerificationTargetPreview(BaseModel):
+    """One path-to-verification target shown in changeset review surfaces."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_id: str
+    target_kind: str
+    title: str
+    confidence: str
+    freshness: str = "unknown"
+    matched_paths: list[str] = Field(default_factory=list)
+    command: str | None = None
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
 class ChangesetVerificationReviewLoopSummary(BaseModel):
     """Review-loop context included in a verification plan preview."""
 
@@ -190,6 +206,15 @@ class ChangesetVerificationPlanPreview(BaseModel):
     recommended_commands: list[str] = Field(default_factory=list)
     eval_profiles: list[str] = Field(default_factory=list)
     recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
+    recommended_targets: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
+    release_surfaces: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
+    stale_evidence: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
     topology_impacts: list[ChangesetTopologyImpact] = Field(default_factory=list)
     review_loop_summary: ChangesetVerificationReviewLoopSummary = Field(
         default_factory=lambda: ChangesetVerificationReviewLoopSummary(

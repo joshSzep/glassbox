@@ -180,6 +180,12 @@ review-relevant. `.glassbox` artifact churn is ignored for source-drift
 purposes; rebuild commands such as `glassbox repo index build --cwd .` and
 `glassbox repo topology build --cwd .` are safe next actions, not proof.
 
+Changeset verification previews expose the same guidance as reviewer-safe
+summary rows: recommended test targets, eval cases, eval profiles, command
+recipes, release surfaces, and stale evidence. CLI and review-brief surfaces
+show IDs, confidence, matched paths, limitations, and safe next actions without
+including raw command output, raw diffs, or raw file contents.
+
 ## Non-Claims
 
 Path-to-verification recommendations do not claim that:

@@ -746,6 +746,8 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "Stale snapshots keep their provenance",
         "VerificationDriftAssessment.stale_evidence",
         "`.glassbox` artifact churn is ignored",
+        "Changeset verification previews expose the same guidance",
+        "raw command output",
     ):
         assert required_text in content
 

@@ -679,7 +679,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1524: Surface Path-To-Verification In Changesets And Review Briefs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1523`
 - Goal: make improved verification recommendations visible where operators
   review local changes

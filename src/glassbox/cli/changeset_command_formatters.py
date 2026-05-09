@@ -132,6 +132,18 @@ def _print_changeset_detail(
                 f"  {requirement.state.value}: {requirement.check_name} - "
                 f"{requirement.reason}"
             )
+        if verification_plan.recommended_targets:
+            print("Recommended verification targets:")
+            for target in verification_plan.recommended_targets[:5]:
+                print(
+                    f"  {target.target_kind}/{target.confidence}: "
+                    f"{target.title} ({target.target_id})"
+                )
+        if verification_plan.stale_evidence:
+            print("Stale verification guidance:")
+            for target in verification_plan.stale_evidence[:5]:
+                guidance = target.limitations[0] if target.limitations else target.title
+                print(f"  {target.title}: {guidance}")
     command_evidence = detail.command_evidence
     print(
         "Command evidence: "
@@ -211,6 +223,26 @@ def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
             print(f"  - {recipe.title} ({recipe.recipe_id})")
             for command in recipe.commands:
                 print(f"    command: {command}")
+    if preview.recommended_targets:
+        print("Recommended verification targets:")
+        for target in preview.recommended_targets:
+            print(
+                f"  - {target.target_kind}/{target.confidence}: "
+                f"{target.title} ({target.target_id})"
+            )
+            if target.command:
+                print(f"    command: {target.command}")
+            if target.limitations:
+                print(f"    limitation: {target.limitations[0]}")
+    if preview.release_surfaces:
+        print("Release surfaces:")
+        for surface in preview.release_surfaces:
+            print(f"  - {surface.title} ({surface.confidence})")
+    if preview.stale_evidence:
+        print("Stale evidence:")
+        for target in preview.stale_evidence:
+            guidance = target.limitations[0] if target.limitations else target.title
+            print(f"  - {target.title}: {guidance}")
     if preview.retained_artifact_ids:
         print("Retained verification artifacts:")
         for artifact_id in preview.retained_artifact_ids:

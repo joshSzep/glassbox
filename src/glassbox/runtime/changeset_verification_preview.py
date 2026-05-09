@@ -9,6 +9,7 @@ from glassbox.core import ChangesetVerificationState
 from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
+from glassbox.runtime.changeset_models import ChangesetPathVerificationTargetPreview
 from glassbox.runtime.changeset_models import ChangesetVerificationRecipePreview
 from glassbox.runtime.changeset_models import ChangesetVerificationReviewLoopSummary
 from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
@@ -256,6 +257,110 @@ def recipe_previews(
     ]
 
 
+def target_previews(
+    recommendation: EvalRecommendationReport | None,
+) -> list[ChangesetPathVerificationTargetPreview]:
+    if recommendation is None:
+        return []
+    targets: list[ChangesetPathVerificationTargetPreview] = []
+    for target in recommendation.test_targets:
+        targets.append(
+            ChangesetPathVerificationTargetPreview(
+                target_id=target.target_id,
+                target_kind="test-target",
+                title=target.title,
+                confidence=target.confidence,
+                freshness=target.freshness,
+                matched_paths=target.matched_paths,
+                command=target.command,
+                limitations=target.limitations,
+                safe_next_actions=[target.command] if target.command else [],
+            )
+        )
+    for case in recommendation.cases:
+        command = f"uv run glassbox eval run {case.case_id} --cwd ."
+        targets.append(
+            ChangesetPathVerificationTargetPreview(
+                target_id=case.case_id,
+                target_kind="eval-case",
+                title=case.title,
+                confidence=case.confidence,
+                matched_paths=case.matched_paths,
+                command=command,
+                limitations=[
+                    limitation
+                    for metadata in case.source_metadata
+                    for limitation in metadata.limitations
+                ],
+                safe_next_actions=[command],
+            )
+        )
+    for profile in recommendation.profiles:
+        targets.append(
+            ChangesetPathVerificationTargetPreview(
+                target_id=profile.profile_id,
+                target_kind="eval-profile",
+                title=profile.title,
+                confidence=profile.confidence,
+                matched_paths=profile.matched_paths,
+                command=profile.safe_next_commands[0]
+                if profile.safe_next_commands
+                else None,
+                limitations=profile.budget_implications,
+                safe_next_actions=profile.safe_next_commands,
+            )
+        )
+    return targets
+
+
+def release_surface_previews(
+    recommendation: EvalRecommendationReport | None,
+) -> list[ChangesetPathVerificationTargetPreview]:
+    if recommendation is None:
+        return []
+    return [
+        ChangesetPathVerificationTargetPreview(
+            target_id=f"release-surface:{surface.verification_stage}",
+            target_kind="release-surface",
+            title=f"{surface.verification_stage} release surface",
+            confidence="stage-derived" if surface.impacted else "fallback",
+            matched_paths=recommendation.touched_paths if surface.impacted else [],
+            command=surface.release_gate_commands[0]
+            if surface.release_gate_commands
+            else None,
+            limitations=surface.release_gate_notes,
+            safe_next_actions=surface.release_gate_commands,
+        )
+        for surface in recommendation.release_surfaces
+        if surface.impacted
+    ]
+
+
+def stale_evidence_previews(
+    readiness: ChangesetVerificationReadiness,
+) -> list[ChangesetPathVerificationTargetPreview]:
+    return [
+        ChangesetPathVerificationTargetPreview(
+            target_id=requirement.requirement_id,
+            target_kind="stale-evidence",
+            title=requirement.check_name,
+            confidence=requirement.state.value,
+            freshness="stale"
+            if requirement.state == ChangesetVerificationState.STALE
+            else "missing",
+            matched_paths=requirement.changed_paths,
+            command=requirement.safe_next_actions[0]
+            if requirement.safe_next_actions
+            else None,
+            limitations=[requirement.reason],
+            safe_next_actions=requirement.safe_next_actions,
+        )
+        for requirement in readiness.requirements
+        if requirement.state
+        in {ChangesetVerificationState.STALE, ChangesetVerificationState.MISSING}
+    ]
+
+
 def artifact_ids_from_readiness(
     readiness: ChangesetVerificationReadiness,
 ) -> list[ArtifactId]:
@@ -275,6 +380,9 @@ __all__ = [
     "preview_commands",
     "recipe_previews",
     "recommendation_for_preview",
+    "release_surface_previews",
     "review_loop_verification_summary",
     "safe_eval_recommendation",
+    "stale_evidence_previews",
+    "target_previews",
 ]

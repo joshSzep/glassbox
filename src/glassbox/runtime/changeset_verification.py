@@ -28,9 +28,12 @@ from glassbox.runtime.changeset_verification_preview import inventory_paths_for_
 from glassbox.runtime.changeset_verification_preview import preview_commands
 from glassbox.runtime.changeset_verification_preview import recipe_previews
 from glassbox.runtime.changeset_verification_preview import recommendation_for_preview
+from glassbox.runtime.changeset_verification_preview import release_surface_previews
 from glassbox.runtime.changeset_verification_preview import (
     review_loop_verification_summary,
 )
+from glassbox.runtime.changeset_verification_preview import stale_evidence_previews
+from glassbox.runtime.changeset_verification_preview import target_previews
 from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
@@ -128,6 +131,9 @@ class ChangesetVerificationService:
             ),
             eval_profiles=eval_profile_ids_for_preview(recommendation),
             recipes=recipe_previews(recommendation),
+            recommended_targets=target_previews(recommendation),
+            release_surfaces=release_surface_previews(recommendation),
+            stale_evidence=stale_evidence_previews(readiness),
             topology_impacts=topology_impacts,
             review_loop_summary=review_loop_summary,
             reason_groups=(

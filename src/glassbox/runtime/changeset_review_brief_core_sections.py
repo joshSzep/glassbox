@@ -179,6 +179,18 @@ def review_brief_verification_section(
             f"{body} Latest retained posture is "
             f"{verification_posture.state.value}: {verification_posture.summary}."
         )
+    if verification_plan.recommended_targets or verification_plan.release_surfaces:
+        body = (
+            f"{body} Path-to-verification guidance names "
+            f"{len(verification_plan.recommended_targets)} recommended target(s), "
+            f"{len(verification_plan.recipes)} recipe(s), and "
+            f"{len(verification_plan.release_surfaces)} release surface(s)."
+        )
+    if verification_plan.stale_evidence:
+        body = (
+            f"{body} Stale evidence guidance names "
+            f"{len(verification_plan.stale_evidence)} stale or missing item(s)."
+        )
     refs = []
     if verification_posture is not None:
         refs.append(

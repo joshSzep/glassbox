@@ -14,6 +14,7 @@ from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetRiskLevel
 from glassbox.core import ChangesetSourceKind
 from glassbox.core import ChangesetSourceRecord
+from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
 from glassbox.core import ManualEvidenceFreshness
 from glassbox.core import ManualEvidenceKind
@@ -35,8 +36,19 @@ from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
 from glassbox.core import new_task_verification_id
 from glassbox.runtime.changeset_export import build_changeset_export_payload
+from glassbox.runtime.changeset_models import ChangesetPathVerificationTargetPreview
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_review_brief_core_sections import (
+    review_brief_verification_section,
+)
 from glassbox.runtime.changeset_review_brief_limitations import (
     summarize_review_brief_limitations,
+)
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationReadiness,
+)
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationRequirement,
 )
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
@@ -76,6 +88,65 @@ def test_review_brief_artifact_contract_and_render_targets() -> None:
     assert "Reviewer Checklist" in markdown
     assert "Safe Inspection Commands" in markdown
     assert '"artifact_kind": "changeset_review_brief"' in raw_json
+
+
+def test_review_brief_verification_section_names_path_guidance() -> None:
+    plan = ChangesetVerificationPlanPreview(
+        changeset_id=new_changeset_id(),
+        session_id=new_session_id(),
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        changed_paths=["src/app.py"],
+        recommended_targets=[
+            ChangesetPathVerificationTargetPreview(
+                target_id="test-naming:tests/test_app.py",
+                target_kind="test-target",
+                title="Likely tests for src/app.py",
+                confidence="naming-derived",
+                freshness="fresh",
+                matched_paths=["src/app.py"],
+                command="uv run pytest tests/test_app.py -q",
+            )
+        ],
+        release_surfaces=[
+            ChangesetPathVerificationTargetPreview(
+                target_id="release-surface:commit-time",
+                target_kind="release-surface",
+                title="commit-time release surface",
+                confidence="stage-derived",
+                matched_paths=["src/app.py"],
+            )
+        ],
+        stale_evidence=[
+            ChangesetPathVerificationTargetPreview(
+                target_id="repository-intelligence-stale",
+                target_kind="stale-evidence",
+                title="Repository intelligence freshness",
+                confidence="stale",
+                freshness="stale",
+                matched_paths=["src/app.py"],
+                limitations=["repository intelligence is stale"],
+            )
+        ],
+        readiness=ChangesetVerificationReadiness(
+            state=ChangesetVerificationState.STALE,
+            summary="verification is stale",
+            requirements=[
+                ChangesetVerificationRequirement(
+                    requirement_id="repository-intelligence-stale",
+                    state=ChangesetVerificationState.STALE,
+                    check_name="Repository intelligence freshness",
+                    reason="repository intelligence is stale",
+                )
+            ],
+            stale_count=1,
+        ),
+    )
+
+    section = review_brief_verification_section(None, plan)
+
+    assert "Path-to-verification guidance names 1 recommended target" in section.body
+    assert "1 release surface" in section.body
+    assert "Stale evidence guidance names 1 stale or missing item" in section.body
 
 
 def test_review_lifecycle_brief_contract_sections_and_evidence_refs() -> None:
