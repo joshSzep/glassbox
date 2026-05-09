@@ -484,6 +484,10 @@ def test_repository_index_status_explains_stale_source_inputs(
 
     assert summary.status == "stale"
     assert summary.stale_reason is not None
+    assert summary.freshness_cues[0].state == "stale"
+    assert summary.freshness_cues[0].reason == "source_digest_changed"
+    assert any(cue.source == "command-recipes" for cue in summary.freshness_cues)
+    assert any(cue.source == "eval-metadata" for cue in summary.freshness_cues)
     assert summary.source_diff is not None
     assert summary.source_diff.added_count == 1
     assert summary.source_diff.removed_count == 1
@@ -505,6 +509,8 @@ def test_repository_index_status_reports_missing_guidance(tmp_path: Path) -> Non
     assert summary.status == "missing"
     assert summary.entry_count == 0
     assert summary.current_source_file_count > 0
+    assert summary.freshness_cues[0].source == "repository-index"
+    assert summary.freshness_cues[0].reason == "artifact_missing"
     assert summary.next_actions == [
         f"glassbox repo index build --cwd {tmp_path.resolve()}",
     ]
@@ -526,6 +532,8 @@ def test_repository_index_status_reports_failed_guidance(tmp_path: Path) -> None
     assert summary.status == "failed"
     assert summary.failure_reason == "parser crashed"
     assert summary.stale_reason == "parser crashed"
+    assert summary.freshness_cues[0].state == "degraded"
+    assert summary.freshness_cues[0].reason == "build_failed"
     assert summary.detail.startswith("The last repository index refresh failed")
     assert summary.next_actions == [
         f"glassbox repo index status --cwd {tmp_path.resolve()} --json",

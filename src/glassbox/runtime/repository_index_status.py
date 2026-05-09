@@ -15,6 +15,12 @@ from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
 from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index_persistence import load_repository_index
+from glassbox.runtime.repository_intelligence_freshness import (
+    RepositoryIntelligenceFreshnessCue,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    repository_index_freshness_cues,
+)
 
 
 class RepositoryIndexSourceDiff(BaseModel):
@@ -63,6 +69,9 @@ class RepositoryIndexStatusSummary(BaseModel):
     detail: str
     stale_reason: str | None = None
     source_diff: RepositoryIndexSourceDiff | None = None
+    freshness_cues: list[RepositoryIntelligenceFreshnessCue] = Field(
+        default_factory=list
+    )
     limitations: list[str] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
 
@@ -91,6 +100,7 @@ def build_repository_index_status_summary(
                 "No repository index exists for this workspace. Build it when you "
                 "want local repository intelligence for search and context."
             ),
+            freshness_cues=repository_index_freshness_cues(root, None),
             next_actions=[f"glassbox repo index build --cwd {root}"],
         )
 
@@ -132,6 +142,7 @@ def build_repository_index_status_summary(
         detail=_status_detail(snapshot),
         stale_reason=stale_reason,
         source_diff=source_diff,
+        freshness_cues=repository_index_freshness_cues(root, snapshot),
         limitations=snapshot.limitations,
         next_actions=_next_actions(root, snapshot.status),
     )

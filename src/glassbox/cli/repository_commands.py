@@ -21,6 +21,9 @@ from glassbox.runtime.repository_index_status import RepositoryIndexStatusSummar
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
+from glassbox.runtime.repository_intelligence_freshness import (
+    workspace_topology_freshness_cues,
+)
 from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
 from glassbox.runtime.workspace_topology import WorkspaceTopologySnapshot
 from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
@@ -164,6 +167,10 @@ def _repo_topology_status_command(args: argparse.Namespace) -> int:
                     "dependency_count": 0,
                     "recommendation_posture": "unavailable",
                     "detail": "workspace topology has not been built",
+                    "freshness_cues": [
+                        cue.model_dump(mode="json")
+                        for cue in workspace_topology_freshness_cues(cwd, None)
+                    ],
                     "next_actions": [
                         f"glassbox repo topology build --cwd {cwd.resolve()}"
                     ],
@@ -231,6 +238,10 @@ def _print_status_summary(summary: RepositoryIndexStatusSummary) -> None:
         print(f"Limitation: {limitation}")
     if summary.source_diff is not None:
         _print_source_diff(summary.source_diff)
+    if summary.freshness_cues:
+        print("Freshness cues:")
+        for cue in summary.freshness_cues:
+            print(f"- {cue.source}: {cue.state} ({cue.reason}) - {cue.detail}")
     if summary.next_actions:
         print("Next actions:")
         for action in summary.next_actions:
@@ -373,6 +384,13 @@ def _topology_status_payload(
         "source_digest": snapshot.source_digest,
         "limitations": snapshot.limitations,
         "failure_reason": snapshot.failure_reason,
+        "freshness_cues": [
+            cue.model_dump(mode="json")
+            for cue in workspace_topology_freshness_cues(
+                snapshot.workspace_root,
+                snapshot,
+            )
+        ],
         "next_actions": (
             [f"glassbox repo topology build --cwd {path.parent.parent.resolve()}"]
             if snapshot.freshness != "fresh"
@@ -391,6 +409,8 @@ def _print_topology_status(snapshot: WorkspaceTopologySnapshot, path: Path) -> N
         print(f"Built: {snapshot.built_at.isoformat()}")
     for limitation in snapshot.limitations:
         print(f"Limitation: {limitation}")
+    for cue in workspace_topology_freshness_cues(snapshot.workspace_root, snapshot):
+        print(f"Freshness: {cue.source} {cue.state} ({cue.reason}) - {cue.detail}")
 
 
 def _print_topology_snapshot(snapshot: WorkspaceTopologySnapshot, path: Path) -> None:

@@ -8215,6 +8215,13 @@
             "title": "Entry Count",
             "type": "integer"
           },
+          "freshness_cues": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceFreshnessCue"
+            },
+            "title": "Freshness Cues",
+            "type": "array"
+          },
           "generated_path_count": {
             "default": 0,
             "title": "Generated Path Count",
@@ -8305,6 +8312,72 @@
         },
         "required": ["status", "path", "entry_count"],
         "title": "RepositoryIndexStatusResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceFreshnessCue": {
+        "additionalProperties": false,
+        "description": "Operator-facing state, reason, and remediation for one intelligence input.",
+        "properties": {
+          "detail": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Detail",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "reason": {
+            "enum": [
+              "source_digest_changed",
+              "artifact_missing",
+              "build_failed",
+              "refresh_in_progress",
+              "topology_missing",
+              "command_recipes_missing",
+              "dependency_manifests_missing",
+              "memory_conflict",
+              "memory_references_missing",
+              "eval_metadata_missing",
+              "release_surfaces_missing",
+              "current"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "severity": {
+            "default": "advisory",
+            "enum": ["advisory", "warning", "blocking"],
+            "title": "Severity",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "enum": ["fresh", "stale", "missing", "degraded", "conflicting", "partial"],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": ["source", "state", "reason", "detail"],
+        "title": "RepositoryIntelligenceFreshnessCue",
         "type": "object"
       },
       "ResolveApprovalRequest": {
@@ -14303,6 +14376,13 @@
           "freshness": {
             "title": "Freshness",
             "type": "string"
+          },
+          "freshness_cues": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceFreshnessCue"
+            },
+            "title": "Freshness Cues",
+            "type": "array"
           },
           "limitations": {
             "items": {

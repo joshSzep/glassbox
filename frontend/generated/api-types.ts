@@ -4427,6 +4427,8 @@ export interface components {
       doc_root_count: number;
       /** Entry Count */
       entry_count: number;
+      /** Freshness Cues */
+      freshness_cues?: components["schemas"]["RepositoryIntelligenceFreshnessCue"][];
       /**
        * Generated Path Count
        * @default 0
@@ -4487,6 +4489,48 @@ export interface components {
        * @default 0
        */
       test_root_count: number;
+    };
+    /**
+     * RepositoryIntelligenceFreshnessCue
+     * @description Operator-facing state, reason, and remediation for one intelligence input.
+     */
+    RepositoryIntelligenceFreshnessCue: {
+      /** Detail */
+      detail: string;
+      /** Limitations */
+      limitations?: string[];
+      /**
+       * Reason
+       * @enum {string}
+       */
+      reason:
+        | "source_digest_changed"
+        | "artifact_missing"
+        | "build_failed"
+        | "refresh_in_progress"
+        | "topology_missing"
+        | "command_recipes_missing"
+        | "dependency_manifests_missing"
+        | "memory_conflict"
+        | "memory_references_missing"
+        | "eval_metadata_missing"
+        | "release_surfaces_missing"
+        | "current";
+      /** Safe Next Actions */
+      safe_next_actions?: string[];
+      /**
+       * Severity
+       * @default advisory
+       * @enum {string}
+       */
+      severity: "advisory" | "warning" | "blocking";
+      /** Source */
+      source: string;
+      /**
+       * State
+       * @enum {string}
+       */
+      state: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
     };
     /**
      * ResolveApprovalRequest
@@ -6347,6 +6391,8 @@ export interface components {
       failure_reason?: string | null;
       /** Freshness */
       freshness: string;
+      /** Freshness Cues */
+      freshness_cues?: components["schemas"]["RepositoryIntelligenceFreshnessCue"][];
       /** Limitations */
       limitations: string[];
       /** Next Actions */

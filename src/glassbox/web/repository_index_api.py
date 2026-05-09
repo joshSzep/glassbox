@@ -9,6 +9,15 @@ from pydantic import Field
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
+from glassbox.runtime.repository_intelligence_freshness import (
+    RepositoryIntelligenceFreshnessCue,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    repository_index_freshness_cues,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    workspace_topology_freshness_cues,
+)
 from glassbox.runtime.workspace_topology import TopologyManifestRef
 from glassbox.runtime.workspace_topology import TopologyProvenance
 from glassbox.runtime.workspace_topology import WorkspaceTopologyComponent
@@ -63,6 +72,9 @@ class RepositoryIndexStatusResponse(BaseModel):
     release_surface_count: int = 0
     memory_reference_count: int = 0
     limitations: list[str] = Field(default_factory=list)
+    freshness_cues: list[RepositoryIntelligenceFreshnessCue] = Field(
+        default_factory=list
+    )
     detail: str | None = None
 
 
@@ -165,6 +177,9 @@ class WorkspaceTopologyStatusResponse(BaseModel):
     builder_version: str | None = None
     source_digest: str | None = None
     limitations: list[str]
+    freshness_cues: list[RepositoryIntelligenceFreshnessCue] = Field(
+        default_factory=list
+    )
     failure_reason: str | None = None
     detail: str | None = None
     next_actions: list[str]
@@ -190,6 +205,7 @@ def build_repository_index_status_response(
     *,
     path: str,
 ) -> RepositoryIndexStatusResponse:
+    workspace_root = snapshot.workspace_root
     return RepositoryIndexStatusResponse(
         status=snapshot.status.value,
         path=path,
@@ -211,6 +227,7 @@ def build_repository_index_status_response(
         release_surface_count=len(snapshot.release_sensitive_surfaces),
         memory_reference_count=len(snapshot.memory_references),
         limitations=snapshot.limitations,
+        freshness_cues=repository_index_freshness_cues(workspace_root, snapshot),
     )
 
 
@@ -300,6 +317,10 @@ def build_workspace_topology_status_response(
         builder_version=snapshot.builder_version,
         source_digest=snapshot.source_digest,
         limitations=snapshot.limitations,
+        freshness_cues=workspace_topology_freshness_cues(
+            snapshot.workspace_root,
+            snapshot,
+        ),
         failure_reason=snapshot.failure_reason,
         detail=detail,
         next_actions=next_actions or [],

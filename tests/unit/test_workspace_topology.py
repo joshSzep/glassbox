@@ -7,6 +7,9 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from glassbox.runtime.repository_intelligence_freshness import (
+    workspace_topology_freshness_cues,
+)
 from glassbox.runtime.workspace_topology import TopologyComponentKind
 from glassbox.runtime.workspace_topology import TopologyManifestRef
 from glassbox.runtime.workspace_topology import TopologyProvenance
@@ -187,6 +190,15 @@ def test_stale_and_failed_topology_snapshots_degrade_recommendations() -> None:
 
     assert stale.recommendation_posture == "degraded"
     assert failed.recommendation_posture == "unavailable"
+    stale_cue = workspace_topology_freshness_cues(Path("/repo"), stale)[0]
+    failed_cue = workspace_topology_freshness_cues(Path("/repo"), failed)[0]
+    missing_cue = workspace_topology_freshness_cues(Path("/repo"), None)[0]
+    assert stale_cue.state == "stale"
+    assert stale_cue.reason == "source_digest_changed"
+    assert failed_cue.state == "degraded"
+    assert failed_cue.reason == "build_failed"
+    assert missing_cue.state == "missing"
+    assert missing_cue.reason == "topology_missing"
 
 
 def test_topology_rejects_ambiguous_or_invalid_shapes() -> None:

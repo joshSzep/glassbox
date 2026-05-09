@@ -172,6 +172,30 @@ Invalidation can be triggered by changed manifest digests, changed indexed file 
 
 `glassbox repo index status --cwd .` is the operator-facing freshness check. It reports missing, fresh, stale, building, and failed states with the retained index path, entry count, current source digest, retained source digest when available, and safe next actions. New v9 snapshots also retain bounded source input metadata so stale status can show read-only samples of added, removed, or changed paths. Older snapshots that do not have this inventory still report the digest mismatch and ask the operator to rebuild once to enable path-level stale explanations.
 
+V15 repository intelligence uses one shared freshness vocabulary across index,
+topology, command recipes, dependency manifests, memory-derived entries, eval
+metadata, and release surfaces:
+
+- `fresh`: current local evidence exists and can shape advisory guidance
+- `stale`: retained evidence exists, but source inputs changed and confidence
+  is degraded until rebuild or inspection
+- `missing`: optional intelligence is absent and consumers should fall back to
+  broader checks
+- `degraded`: the last build failed or an evidence source is not trustworthy
+  enough for current guidance
+- `conflicting`: confirmed memory or retained metadata conflicts with current
+  repository evidence and needs operator review
+- `partial`: a refresh is in progress or only part of the metadata set exists
+
+Freshness cues include a drift reason, severity, detail text, limitations, and
+safe next actions. In v15 these cues are advisory by default. They become
+blocking only when an existing readiness, handoff, release-gate, or verification
+contract already treats the affected evidence as required. Stale repository
+intelligence should lower recommendation confidence, stale memory should stay
+out of prompt context by default, failed or missing snapshots should suggest
+explicit rebuild commands, and partial eval metadata should keep recommendations
+broad rather than failing unrelated work.
+
 `glassbox repo index inspect --cwd .` returns the retained snapshot for
 operator inspection. Human output summarizes v2 counts for manifests, packages,
 roots, generated paths, policy-sensitive paths, command recipes, owner hints,

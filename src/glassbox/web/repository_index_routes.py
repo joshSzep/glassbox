@@ -15,6 +15,12 @@ from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
+from glassbox.runtime.repository_intelligence_freshness import (
+    repository_index_freshness_cues,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    workspace_topology_freshness_cues,
+)
 from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
 from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
 from glassbox.runtime.workspace_topology import load_workspace_topology
@@ -59,6 +65,7 @@ def get_repository_index_status(
             path=str(path),
             entry_count=0,
             detail="repository index has not been built",
+            freshness_cues=repository_index_freshness_cues(workspace_root, None),
         )
     return build_repository_index_status_response(snapshot, path=str(path))
 
@@ -199,6 +206,7 @@ def get_workspace_topology_status(
             dependency_count=0,
             recommendation_posture="unavailable",
             limitations=[],
+            freshness_cues=workspace_topology_freshness_cues(workspace_root, None),
             detail="workspace topology has not been built",
             next_actions=[
                 f"glassbox repo topology build --cwd {workspace_root.resolve()}",

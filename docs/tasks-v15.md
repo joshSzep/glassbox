@@ -821,7 +821,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1540: Define Freshness And Drift Model For Repository Intelligence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1514`, `GBX-1533`
 - Goal: define how Glassbox reports fresh, stale, missing, degraded,
   conflicting, and partially rebuilt repository intelligence
