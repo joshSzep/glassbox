@@ -19,6 +19,22 @@ def _add_repository_parsers(
         required=True,
     )
 
+    status_parser = repo_subparsers.add_parser(
+        "status",
+        help="show repository intelligence status",
+        description="Show index and topology freshness with safe next actions.",
+    )
+    status_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(status_parser)
+
+    stale_parser = repo_subparsers.add_parser(
+        "stale",
+        help="show stale or missing repository intelligence",
+        description="Show stale, missing, degraded, or conflicting intelligence cues.",
+    )
+    stale_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(stale_parser)
+
     refresh_parser = repo_subparsers.add_parser(
         "refresh",
         help="refresh derived repository intelligence",
@@ -40,6 +56,74 @@ def _add_repository_parsers(
     )
     refresh_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(refresh_parser)
+
+    path_parser = repo_subparsers.add_parser(
+        "path",
+        help="inspect repository intelligence for a path",
+        description="Explain packages, subsystems, recipes, and hints for one path.",
+    )
+    path_parser.add_argument("path")
+    path_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(path_parser)
+
+    recommend_parser = repo_subparsers.add_parser(
+        "recommend",
+        help="recommend verification for changed paths",
+        description="Recommend evals, profiles, recipes, and test targets for paths.",
+    )
+    recommend_parser.add_argument("paths", nargs="+")
+    recommend_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(recommend_parser)
+
+    recipes_parser = repo_subparsers.add_parser(
+        "recipes",
+        help="list or show repository command recipes",
+        description="Inspect advisory command recipes from repository intelligence.",
+    )
+    recipes_subparsers = recipes_parser.add_subparsers(
+        dest="repo_recipes_command",
+        required=True,
+    )
+    recipes_list_parser = recipes_subparsers.add_parser("list", help="list recipes")
+    recipes_list_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(recipes_list_parser)
+    recipes_show_parser = recipes_subparsers.add_parser("show", help="show a recipe")
+    recipes_show_parser.add_argument("recipe_id")
+    recipes_show_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(recipes_show_parser)
+
+    subsystem_parser = repo_subparsers.add_parser(
+        "subsystem",
+        help="list or show repository subsystems",
+        description="Inspect advisory subsystem scopes from repository intelligence.",
+    )
+    subsystem_subparsers = subsystem_parser.add_subparsers(
+        dest="repo_subsystem_command",
+        required=True,
+    )
+    subsystem_list_parser = subsystem_subparsers.add_parser(
+        "list",
+        help="list subsystems",
+    )
+    subsystem_list_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(subsystem_list_parser)
+    subsystem_show_parser = subsystem_subparsers.add_parser(
+        "show",
+        help="show a subsystem",
+    )
+    subsystem_show_parser.add_argument("subsystem_id")
+    subsystem_show_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(subsystem_show_parser)
+
+    memory_parser = repo_subparsers.add_parser(
+        "memory-candidates",
+        help="list repository intelligence memory candidates",
+        description="List review-gated memory candidates for one session.",
+    )
+    memory_parser.add_argument("--session", dest="session_id", type=_parse_uuid)
+    memory_parser.add_argument("--limit", type=int, default=25)
+    memory_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(memory_parser)
 
     index_parser = repo_subparsers.add_parser(
         "index",

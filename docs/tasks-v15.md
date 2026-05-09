@@ -929,7 +929,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1550: Add Repository Intelligence CLI Workflows
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1541`
 - Goal: make repository intelligence inspectable and useful from scriptable
   terminal commands

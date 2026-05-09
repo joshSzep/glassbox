@@ -267,6 +267,78 @@ def test_repo_refresh_queues_background_job(tmp_path: Path, capsys) -> None:
     )
 
 
+def test_repo_intelligence_workflow_commands(tmp_path: Path, capsys) -> None:
+    _seed_repository(tmp_path)
+    assert main(["repo", "refresh", "--cwd", str(tmp_path)]) == 0
+    capsys.readouterr()
+
+    status_exit = main(["repo", "status", "--cwd", str(tmp_path), "--json"])
+    status_payload = json.loads(capsys.readouterr().out)
+
+    recipes_exit = main(["repo", "recipes", "list", "--cwd", str(tmp_path), "--json"])
+    recipes_payload = json.loads(capsys.readouterr().out)
+    recipe_id = recipes_payload[0]["recipe_id"]
+
+    recipe_show_exit = main(
+        ["repo", "recipes", "show", recipe_id, "--cwd", str(tmp_path), "--json"]
+    )
+    recipe_show_payload = json.loads(capsys.readouterr().out)
+
+    subsystems_exit = main(
+        ["repo", "subsystem", "list", "--cwd", str(tmp_path), "--json"]
+    )
+    subsystems_payload = json.loads(capsys.readouterr().out)
+    subsystem_id = subsystems_payload[0]["subsystem_id"]
+
+    subsystem_show_exit = main(
+        [
+            "repo",
+            "subsystem",
+            "show",
+            subsystem_id,
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    subsystem_show_payload = json.loads(capsys.readouterr().out)
+
+    path_exit = main(
+        ["repo", "path", "src/sample.py", "--cwd", str(tmp_path), "--json"]
+    )
+    path_payload = json.loads(capsys.readouterr().out)
+
+    recommend_exit = main(
+        ["repo", "recommend", "src/sample.py", "--cwd", str(tmp_path), "--json"]
+    )
+    recommend_payload = json.loads(capsys.readouterr().out)
+
+    stale_exit = main(["repo", "stale", "--cwd", str(tmp_path), "--json"])
+    stale_payload = json.loads(capsys.readouterr().out)
+
+    assert status_exit == 0
+    assert status_payload["index"]["status"] == "fresh"
+    assert status_payload["topology"]["freshness"] == "fresh"
+    assert "glassbox repo refresh" in status_payload["next_actions"][-1]
+    assert recipes_exit == 0
+    assert recipe_show_exit == 0
+    assert recipe_show_payload["recipe_id"] == recipe_id
+    assert subsystems_exit == 0
+    assert subsystem_show_exit == 0
+    assert subsystem_show_payload["subsystem_id"] == subsystem_id
+    assert path_exit == 0
+    assert path_payload["path"] == "src/sample.py"
+    assert path_payload["command_recipes"]
+    assert recommend_exit == 0
+    assert recommend_payload["status"] == "unavailable"
+    assert "eval profile manifest" in recommend_payload["detail"]
+    assert stale_exit == 0
+    assert any(cue["state"] == "missing" for cue in stale_payload["cues"])
+    assert any(
+        "glassbox repo refresh" in action for action in stale_payload["next_actions"]
+    )
+
+
 def test_repo_index_status_human_output_explains_stale_snapshot(
     tmp_path: Path,
     capsys,
@@ -316,6 +388,6 @@ def _seed_repository(root: Path) -> None:
         encoding="utf-8",
     )
     (root / "pyproject.toml").write_text(
-        '[project]\nname = "fixture"\n',
+        '[project]\nname = "fixture"\n[project.scripts]\nfixture = "sample:main"\n',
         encoding="utf-8",
     )

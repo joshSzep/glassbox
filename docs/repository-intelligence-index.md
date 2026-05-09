@@ -212,6 +212,16 @@ managed artifact. The dashboard/API status response exposes the same counts,
 and `GET /repo/index` returns a compact inspect payload with the retained
 metadata identifiers.
 
+The top-level `glassbox repo` workflow wraps the common operator path:
+`glassbox repo status --cwd .` shows index and topology health together,
+`glassbox repo stale --cwd .` isolates stale or missing cues,
+`glassbox repo path PATH --cwd .` explains packages, subsystems, command
+recipes, owner hints, and release surfaces for one path, `glassbox repo recipes
+list --cwd .` lists advisory local commands, `glassbox repo subsystem list --cwd
+.` lists retained subsystem scopes, and `glassbox repo recommend PATH --cwd .`
+delegates to path-to-verification recommendations while preserving a graceful
+fallback when eval metadata is not present.
+
 `glassbox repo refresh --cwd .` is the explicit local refresh for derived
 repository intelligence as a set. It rebuilds the v2 repository index and then
 derives workspace topology from that fresh snapshot so path-to-verification and

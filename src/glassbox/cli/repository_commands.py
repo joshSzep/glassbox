@@ -2,15 +2,18 @@
 
 import argparse
 from pathlib import Path
+from typing import cast
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.cli.replay_eval_formatters import _print_eval_recommendations
 from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
@@ -24,6 +27,9 @@ from glassbox.runtime.repository_index_status import (
 from glassbox.runtime.repository_intelligence_freshness import (
     workspace_topology_freshness_cues,
 )
+from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
+from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
 from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
 from glassbox.runtime.workspace_topology import WorkspaceTopologySnapshot
 from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
@@ -35,12 +41,26 @@ from glassbox.runtime.workspace_topology import write_workspace_topology
 
 def _repo_command(args: argparse.Namespace) -> int:
     repo_command = getattr(args, "repo_command", None)
+    if repo_command == "status":
+        return _repo_status_command(args)
+    if repo_command == "stale":
+        return _repo_stale_command(args)
+    if repo_command == "refresh":
+        return _repo_refresh_command(args)
+    if repo_command == "path":
+        return _repo_path_command(args)
+    if repo_command == "recommend":
+        return _repo_recommend_command(args)
+    if repo_command == "recipes":
+        return _repo_recipes_command(args)
+    if repo_command == "subsystem":
+        return _repo_subsystem_command(args)
+    if repo_command == "memory-candidates":
+        return _repo_memory_candidates_command(args)
     if repo_command == "index":
         return _repo_index_command(args)
     if repo_command == "topology":
         return _repo_topology_command(args)
-    if repo_command == "refresh":
-        return _repo_refresh_command(args)
     raise ValueError(f"unsupported repo subcommand: {repo_command}")
 
 
@@ -68,6 +88,71 @@ def _repo_topology_command(args: argparse.Namespace) -> int:
     if topology_command == "show":
         return _repo_topology_show_command(args)
     raise ValueError(f"unsupported repo topology subcommand: {topology_command}")
+
+
+def _repo_status_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    index_summary = build_repository_index_status_summary(cwd)
+    topology_payload = _load_topology_status_payload(cwd)
+    payload = {
+        "index": index_summary.model_dump(mode="json"),
+        "topology": topology_payload,
+        "next_actions": _repo_status_next_actions(
+            index_summary.next_actions,
+            topology_payload.get("next_actions", []),
+            cwd,
+        ),
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        print("Repository intelligence status")
+        _print_status_summary(index_summary)
+        print("")
+        _print_topology_status_payload(topology_payload)
+        _print_next_actions(payload["next_actions"])
+    return 0
+
+
+def _repo_stale_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    index_summary = build_repository_index_status_summary(cwd)
+    topology_payload = _load_topology_status_payload(cwd)
+    cues = [
+        cue.model_dump(mode="json")
+        for cue in index_summary.freshness_cues
+        if cue.state != "fresh"
+    ]
+    topology_cues = topology_payload.get("freshness_cues", [])
+    if isinstance(topology_cues, list):
+        cues.extend(
+            cue
+            for cue in topology_cues
+            if isinstance(cue, dict)
+            and cast(dict[str, object], cue).get("state") != "fresh"
+        )
+    payload = {
+        "cues": cues,
+        "next_actions": _repo_status_next_actions(
+            index_summary.next_actions,
+            topology_payload.get("next_actions", []),
+            cwd,
+        ),
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        if not cues:
+            print("Repository intelligence has no stale or missing cues.")
+        else:
+            print("Repository intelligence cues:")
+            for cue in cues:
+                print(
+                    f"- {cue['source']}: {cue['state']} "
+                    f"({cue['reason']}) - {cue['detail']}"
+                )
+        _print_next_actions(payload["next_actions"])
+    return 0
 
 
 def _repo_refresh_command(args: argparse.Namespace) -> int:
@@ -117,6 +202,266 @@ def _repo_refresh_command(args: argparse.Namespace) -> int:
         print("")
         _print_topology_status(topology_snapshot, workspace_topology_path(cwd))
     return 0
+
+
+def _repo_path_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = load_repository_index(cwd)
+    path = _workspace_relative_path(cwd, args.path)
+    payload = _path_intelligence_payload(snapshot, path)
+    if args.json:
+        print_json_output(payload)
+    else:
+        _print_path_intelligence(payload)
+    return 0
+
+
+def _repo_recommend_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    try:
+        recommendation = recommend_eval_change_impact(
+            cwd,
+            touched_paths=list(args.paths),
+        )
+    except ValueError as exc:
+        payload = {
+            "status": "unavailable",
+            "paths": list(args.paths),
+            "detail": str(exc),
+            "next_actions": [
+                "inspect repository intelligence with `glassbox repo status --cwd .`",
+                "run `glassbox eval audit --cwd .` after eval metadata exists",
+            ],
+        }
+        if args.json:
+            print_json_output(payload)
+        else:
+            print("Repository verification recommendations unavailable.")
+            print(f"Detail: {exc}")
+            _print_next_actions(payload["next_actions"])
+        return 0
+    if args.json:
+        print_json_output(recommendation.model_dump(mode="json"))
+    else:
+        _print_eval_recommendations(recommendation)
+        print("Next action: glassbox eval recommend " + " ".join(args.paths))
+    return 0
+
+
+def _repo_recipes_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = load_repository_index(cwd)
+    command = getattr(args, "repo_recipes_command", None)
+    if command == "list":
+        recipes = snapshot.command_recipes
+        if args.json:
+            print_json_output([recipe.model_dump(mode="json") for recipe in recipes])
+        else:
+            _print_command_recipes(recipes)
+        return 0
+    if command == "show":
+        recipe = next(
+            (
+                candidate
+                for candidate in snapshot.command_recipes
+                if candidate.recipe_id == args.recipe_id
+            ),
+            None,
+        )
+        if recipe is None:
+            raise ValueError(f"unknown command recipe: {args.recipe_id}")
+        if args.json:
+            print_json_output(recipe.model_dump(mode="json"))
+        else:
+            _print_command_recipe(recipe)
+        return 0
+    raise ValueError(f"unsupported repo recipes subcommand: {command}")
+
+
+def _repo_subsystem_command(args: argparse.Namespace) -> int:
+    cwd, _ = resolve_runtime_location(args)
+    snapshot = load_repository_index(cwd)
+    command = getattr(args, "repo_subsystem_command", None)
+    if command == "list":
+        if args.json:
+            print_json_output(
+                [subsystem.model_dump(mode="json") for subsystem in snapshot.subsystems]
+            )
+        else:
+            _print_subsystems(snapshot.subsystems)
+        return 0
+    if command == "show":
+        subsystem = next(
+            (
+                candidate
+                for candidate in snapshot.subsystems
+                if candidate.subsystem_id == args.subsystem_id
+            ),
+            None,
+        )
+        if subsystem is None:
+            raise ValueError(f"unknown subsystem: {args.subsystem_id}")
+        if args.json:
+            print_json_output(subsystem.model_dump(mode="json"))
+        else:
+            _print_subsystem(subsystem)
+        return 0
+    raise ValueError(f"unsupported repo subsystem subcommand: {command}")
+
+
+def _repo_memory_candidates_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        candidates = WorkspaceMemoryCaptureService(
+            cast(
+                WorkspaceMemoryCaptureRepository,
+                runtime_context.repositories.sessions,
+            )
+        ).list_candidates(
+            args.session_id,
+            policy=MemoryExtractionPolicy(max_candidates=args.limit),
+        )
+    if args.json:
+        print_json_output(
+            [candidate.model_dump(mode="json") for candidate in candidates]
+        )
+    else:
+        if not candidates:
+            print("No repository memory candidates found.")
+        else:
+            print(f"Repository memory candidates: {len(candidates)}")
+            for candidate in candidates:
+                print(f"- {candidate.candidate_id}: {candidate.kind.value}")
+                print(f"  {candidate.summary}")
+                print(
+                    "  Review: glassbox memory confirm-candidate "
+                    f"{candidate.session_id} {candidate.candidate_id}"
+                )
+    return 0
+
+
+def _load_topology_status_payload(cwd: Path) -> dict[str, object]:
+    path = workspace_topology_path(cwd)
+    try:
+        snapshot = load_workspace_topology(cwd)
+    except WorkspaceTopologyNotFoundError:
+        return {
+            "freshness": "missing",
+            "path": str(path),
+            "component_count": 0,
+            "dependency_count": 0,
+            "recommendation_posture": "unavailable",
+            "detail": "workspace topology has not been built",
+            "freshness_cues": [
+                cue.model_dump(mode="json")
+                for cue in workspace_topology_freshness_cues(cwd, None)
+            ],
+            "next_actions": [f"glassbox repo topology build --cwd {cwd.resolve()}"],
+        }
+    return _topology_status_payload(snapshot, path)
+
+
+def _repo_status_next_actions(
+    index_actions: list[str],
+    topology_actions: object,
+    cwd: Path,
+) -> list[str]:
+    actions = [*index_actions]
+    if isinstance(topology_actions, list):
+        actions.extend(str(action) for action in topology_actions)
+    actions.append(f"glassbox repo refresh --cwd {cwd.resolve()}")
+    return list(dict.fromkeys(actions))
+
+
+def _workspace_relative_path(cwd: Path, value: str) -> Path:
+    raw_path = Path(value)
+    if raw_path.is_absolute():
+        return raw_path.resolve().relative_to(cwd.resolve())
+    if ".." in raw_path.parts:
+        raise ValueError("repository path must stay inside the workspace")
+    return raw_path
+
+
+def _path_intelligence_payload(
+    snapshot: RepositoryIndexSnapshot,
+    path: Path,
+) -> dict[str, object]:
+    packages = [
+        package
+        for package in snapshot.package_boundaries
+        if _scope_contains(package.root, path)
+        or any(_scope_contains(scope, path) for scope in package.source_roots)
+        or any(_scope_contains(scope, path) for scope in package.test_roots)
+        or any(_scope_contains(scope, path) for scope in package.doc_roots)
+    ]
+    path_hints = [
+        hint for hint in _all_path_hints(snapshot) if _scope_contains(hint.path, path)
+    ]
+    subsystems = [
+        subsystem
+        for subsystem in snapshot.subsystems
+        if any(_scope_contains(scope, path) for scope in subsystem.scope_paths)
+    ]
+    recipes = [
+        recipe
+        for recipe in snapshot.command_recipes
+        if not recipe.scope_paths
+        or any(_scope_contains(scope, path) for scope in recipe.scope_paths)
+    ]
+    owner_scope_ids = {
+        owner.hint_id
+        for owner in snapshot.ownership_hints
+        if any(_scope_contains(scope, path) for scope in owner.scope_paths)
+    }
+    owner_scope_ids.update(
+        owner_id for subsystem in subsystems for owner_id in subsystem.owner_hint_ids
+    )
+    owners = [
+        owner for owner in snapshot.ownership_hints if owner.hint_id in owner_scope_ids
+    ]
+    release_surface_ids = {
+        surface_id
+        for subsystem in subsystems
+        for surface_id in subsystem.release_surface_ids
+    }
+    release_surfaces = [
+        surface
+        for surface in snapshot.release_sensitive_surfaces
+        if surface.surface_id in release_surface_ids
+        or any(_scope_contains(scope, path) for scope in surface.scope_paths)
+    ]
+    return {
+        "path": path.as_posix(),
+        "snapshot_status": snapshot.status.value,
+        "packages": [package.model_dump(mode="json") for package in packages],
+        "path_hints": [hint.model_dump(mode="json") for hint in path_hints],
+        "subsystems": [subsystem.model_dump(mode="json") for subsystem in subsystems],
+        "command_recipes": [recipe.model_dump(mode="json") for recipe in recipes],
+        "ownership_hints": [owner.model_dump(mode="json") for owner in owners],
+        "release_surfaces": [
+            surface.model_dump(mode="json") for surface in release_surfaces
+        ],
+        "next_actions": [
+            f"glassbox repo recommend {path.as_posix()}",
+            f"glassbox eval recommend {path.as_posix()}",
+        ],
+    }
+
+
+def _all_path_hints(snapshot: RepositoryIndexSnapshot):
+    return [
+        *snapshot.source_roots,
+        *snapshot.test_roots,
+        *snapshot.doc_roots,
+        *snapshot.generated_paths,
+        *snapshot.policy_sensitive_paths,
+    ]
+
+
+def _scope_contains(scope: Path, path: Path) -> bool:
+    scope_value = Path(".") if scope.as_posix() in {"", "."} else scope
+    path_value = Path(".") if path.as_posix() in {"", "."} else path
+    return path_value == scope_value or path_value.is_relative_to(scope_value)
 
 
 def _repo_index_build_command(args: argparse.Namespace) -> int:
@@ -478,6 +823,104 @@ def _print_topology_snapshot(snapshot: WorkspaceTopologySnapshot, path: Path) ->
         for dependency in snapshot.dependencies[:20]:
             target = dependency.target_component_id or dependency.external_name
             print(f"- {dependency.source_component_id} -> {target} ({dependency.kind})")
+
+
+def _print_topology_status_payload(payload: dict[str, object]) -> None:
+    print(f"Workspace topology: {payload['freshness']}")
+    print(f"Path: {payload['path']}")
+    print(f"Components: {payload['component_count']}")
+    print(f"Dependencies: {payload['dependency_count']}")
+    print(f"Recommendation posture: {payload['recommendation_posture']}")
+    detail = payload.get("detail")
+    if isinstance(detail, str):
+        print(f"Detail: {detail}")
+
+
+def _print_next_actions(actions: object) -> None:
+    if not isinstance(actions, list) or not actions:
+        return
+    print("Next actions:")
+    for action in actions:
+        print(f"- {action}")
+
+
+def _print_path_intelligence(payload: dict[str, object]) -> None:
+    print(f"Repository path: {payload['path']}")
+    print(f"Snapshot status: {payload['snapshot_status']}")
+    for label, key in (
+        ("Packages", "packages"),
+        ("Path hints", "path_hints"),
+        ("Subsystems", "subsystems"),
+        ("Command recipes", "command_recipes"),
+        ("Owners", "ownership_hints"),
+        ("Release surfaces", "release_surfaces"),
+    ):
+        values = payload[key]
+        if isinstance(values, list):
+            print(f"{label}: {len(values)}")
+            for value in values[:8]:
+                if isinstance(value, dict):
+                    identifier = (
+                        value.get("package_id")
+                        or value.get("hint_id")
+                        or value.get("subsystem_id")
+                        or value.get("recipe_id")
+                        or value.get("surface_id")
+                        or value.get("owner_label")
+                    )
+                    name = value.get("name")
+                    print(f"  - {identifier}" + (f": {name}" if name else ""))
+    _print_next_actions(payload.get("next_actions"))
+
+
+def _print_command_recipes(recipes) -> None:
+    if not recipes:
+        print("No command recipes found.")
+        return
+    print(f"Command recipes: {len(recipes)}")
+    for recipe in recipes:
+        print(f"- {recipe.recipe_id}: {recipe.name}")
+        print(f"  Command: {recipe.command}")
+        print(f"  Purpose: {recipe.purpose.value}, risk {recipe.risk.value}")
+
+
+def _print_command_recipe(recipe) -> None:
+    print(f"Recipe: {recipe.recipe_id}")
+    print(f"Name: {recipe.name}")
+    print(f"Command: {recipe.command}")
+    print(f"Purpose: {recipe.purpose.value}")
+    print(f"Review relevance: {recipe.review_relevance.value}")
+    print(f"Risk: {recipe.risk.value}")
+    print(f"Confidence: {recipe.confidence.value}")
+    if recipe.scope_paths:
+        print("Scope: " + ", ".join(path.as_posix() for path in recipe.scope_paths))
+    for limitation in recipe.limitations:
+        print(f"Limitation: {limitation}")
+
+
+def _print_subsystems(subsystems) -> None:
+    if not subsystems:
+        print("No subsystems found.")
+        return
+    print(f"Subsystems: {len(subsystems)}")
+    for subsystem in subsystems:
+        print(f"- {subsystem.subsystem_id}: {subsystem.name}")
+        print(
+            "  Scope: " + ", ".join(path.as_posix() for path in subsystem.scope_paths)
+        )
+
+
+def _print_subsystem(subsystem) -> None:
+    print(f"Subsystem: {subsystem.subsystem_id}")
+    print(f"Name: {subsystem.name}")
+    print(f"Confidence: {subsystem.confidence.value}")
+    print("Scope: " + ", ".join(path.as_posix() for path in subsystem.scope_paths))
+    if subsystem.package_ids:
+        print("Packages: " + ", ".join(subsystem.package_ids))
+    if subsystem.owner_hint_ids:
+        print("Owner hints: " + ", ".join(subsystem.owner_hint_ids))
+    if subsystem.release_surface_ids:
+        print("Release surfaces: " + ", ".join(subsystem.release_surface_ids))
 
 
 def _print_background_job(job: BackgroundJobRecord) -> None:

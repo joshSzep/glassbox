@@ -13,6 +13,9 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert rendered.startswith("Glassbox command guide")
     assert "Start Work" in rendered
     assert "glassbox readiness check --cwd ." in rendered
+    assert "glassbox repo status --cwd ." in rendered
+    assert "glassbox repo refresh --cwd ." in rendered
+    assert "glassbox repo path PATH --cwd ." in rendered
     assert "Review Loop Maturity" in rendered
     assert "glassbox changeset create --from workspace-diff" in rendered
     assert "does not stage, commit, push, or open a PR" in rendered

@@ -185,10 +185,7 @@ def test_cli_command_guide_prints_json_payload(
         "glassbox session tool-attempt output SESSION_ID TOOL_ATTEMPT_ID "
         "--tail 80 --cwd ."
     ) in command_by_section["tool-attempts"]
-    assert (
-        "glassbox repo index status --cwd ."
-        in command_by_section["knowledge-freshness"]
-    )
+    assert "glassbox repo status --cwd ." in command_by_section["knowledge-freshness"]
     assert (
         "glassbox branch-search needs-review BRANCH_SEARCH_ID CANDIDATE_ID "
         "--reason REASON --cwd ."

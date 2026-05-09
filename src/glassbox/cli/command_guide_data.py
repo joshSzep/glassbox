@@ -251,6 +251,10 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 ),
             ),
             CommandGuideEntry(
+                "glassbox repo recommend PATH --cwd .",
+                "Use repository intelligence to explain verification options.",
+            ),
+            CommandGuideEntry(
                 "glassbox eval recommend PATH --execute --cwd .",
                 "Run deterministic recommended checks after reviewing the plan.",
             ),
@@ -314,8 +318,12 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 "Inspect reviewable memory candidates from explicit session signals.",
             ),
             CommandGuideEntry(
-                "glassbox repo index status --cwd .",
-                "Inspect rebuildable repository intelligence freshness.",
+                "glassbox repo status --cwd .",
+                "Inspect index and topology freshness with safe next actions.",
+            ),
+            CommandGuideEntry(
+                "glassbox repo stale --cwd .",
+                "Show stale, missing, degraded, or conflicting intelligence cues.",
             ),
             CommandGuideEntry(
                 "glassbox session compactions SESSION_ID --cwd .",
@@ -329,8 +337,16 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 ),
             ),
             CommandGuideEntry(
-                "glassbox repo index build --cwd .",
-                "Refresh repository intelligence after reviewing stale-index status.",
+                "glassbox repo refresh --cwd .",
+                "Refresh repository intelligence after reviewing stale status.",
+            ),
+            CommandGuideEntry(
+                "glassbox repo path PATH --cwd .",
+                "Inspect packages, subsystems, recipes, and owners for one path.",
+            ),
+            CommandGuideEntry(
+                "glassbox repo recipes list --cwd .",
+                "List advisory command recipes with provenance and risk labels.",
             ),
         ),
     ),
