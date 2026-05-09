@@ -22,6 +22,11 @@ BACKUP_DATABASE_ARCHIVE_PATH = Path(".glassbox/glassbox.sqlite3")
 _BACKUP_FORMAT = "glassbox.workspace-backup"
 _DATABASE_ROLE = "sqlite_database"
 _ARTIFACT_ROLE = "event_referenced_artifact"
+_REPOSITORY_INTELLIGENCE_ROLE = "repository_intelligence_artifact"
+_REPOSITORY_INTELLIGENCE_ARCHIVE_PATHS = (
+    Path(".glassbox") / "repository-index.json",
+    Path(".glassbox") / "workspace-topology.json",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -154,16 +159,21 @@ def create_workspace_backup(
             resolved_workspace,
             resolved_database,
         )
+        repository_intelligence_paths = _managed_repository_intelligence_paths(
+            resolved_workspace
+        )
         files = _backup_files(
             snapshot_path,
             workspace_root=resolved_workspace,
             artifact_paths=artifact_paths,
+            repository_intelligence_paths=repository_intelligence_paths,
         )
         manifest = _build_manifest(
             workspace_root=resolved_workspace,
             database_path=resolved_database,
             session_count=len(sessions),
             artifact_count=len(artifact_paths),
+            repository_intelligence_artifact_count=len(repository_intelligence_paths),
             files=files,
         )
         resolved_output.parent.mkdir(parents=True, exist_ok=True)
@@ -321,6 +331,7 @@ def _backup_files(
     *,
     workspace_root: Path,
     artifact_paths: list[Path],
+    repository_intelligence_paths: list[Path],
 ) -> list[WorkspaceBackupFile]:
     files = [
         _build_backup_file(snapshot_path, BACKUP_DATABASE_ARCHIVE_PATH, _DATABASE_ROLE)
@@ -329,7 +340,23 @@ def _backup_files(
         _build_backup_file(workspace_root / path, path, _ARTIFACT_ROLE)
         for path in artifact_paths
     )
+    files.extend(
+        _build_backup_file(
+            workspace_root / path,
+            path,
+            _REPOSITORY_INTELLIGENCE_ROLE,
+        )
+        for path in repository_intelligence_paths
+    )
     return files
+
+
+def _managed_repository_intelligence_paths(workspace_root: Path) -> list[Path]:
+    return [
+        path
+        for path in _REPOSITORY_INTELLIGENCE_ARCHIVE_PATHS
+        if (workspace_root / path).is_file()
+    ]
 
 
 def _build_backup_file(
@@ -353,6 +380,7 @@ def _build_manifest(
     database_path: Path,
     session_count: int,
     artifact_count: int,
+    repository_intelligence_artifact_count: int,
     files: list[WorkspaceBackupFile],
 ) -> dict[str, object]:
     return {
@@ -363,10 +391,13 @@ def _build_manifest(
         "source_database_path": str(database_path),
         "scope": (
             "workspace-local canonical SQLite database and event-referenced "
-            ".glassbox artifacts"
+            ".glassbox artifacts plus rebuildable repository intelligence snapshots"
         ),
         "session_count": session_count,
         "artifact_count": artifact_count,
+        "repository_intelligence_artifact_count": (
+            repository_intelligence_artifact_count
+        ),
         "file_count": len(files),
         "files": [file.to_json_payload() for file in files],
     }
@@ -420,7 +451,11 @@ def _manifest_file(raw_file: object) -> WorkspaceBackupFile:
 
 def _manifest_file_role(payload: dict[str, object]) -> str:
     role = payload.get("role")
-    if not isinstance(role, str) or role not in {_DATABASE_ROLE, _ARTIFACT_ROLE}:
+    if not isinstance(role, str) or role not in {
+        _DATABASE_ROLE,
+        _ARTIFACT_ROLE,
+        _REPOSITORY_INTELLIGENCE_ROLE,
+    }:
         raise ValueError(f"unsupported backup file role: {role!r}")
     return role
 

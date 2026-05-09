@@ -900,7 +900,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1543: Add Projection Rebuild And Backup Awareness For Intelligence Artifacts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1542`
 - Goal: make repository intelligence artifacts behave correctly under
   projection rebuild, backup, restore, artifact inspection, and package smoke

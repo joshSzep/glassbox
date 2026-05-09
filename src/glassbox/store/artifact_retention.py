@@ -14,14 +14,20 @@ from glassbox.core.events import ToolArtifactRecorded
 from glassbox.services import SessionRepository
 
 _EVENT_REFERENCED_ARTIFACT_CATEGORY = "event_referenced_artifact"
+_REPOSITORY_INTELLIGENCE_ARTIFACT_CATEGORY = "repository_intelligence_artifact"
 _ORPHAN_SESSION_ARTIFACT_CATEGORY = "orphan_session_artifact"
 _STALE_EVAL_ARTIFACT_CATEGORY = "stale_eval_artifact"
 _EVENT_REFERENCED_STATE = "event_referenced"
+_REBUILDABLE_ACTIVE_STATE = "rebuildable_active"
 _ORPHANED_STATE = "orphaned"
 _RECLAIMABLE_STATE = "reclaimable"
 _KEEP_ACTION = "keep"
 _WOULD_DELETE_ACTION = "would_delete"
 _DELETED_ACTION = "deleted"
+_REPOSITORY_INTELLIGENCE_ARTIFACTS = (
+    Path(".glassbox") / "repository-index.json",
+    Path(".glassbox") / "workspace-topology.json",
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +83,8 @@ class ArtifactGcEntry:
     def retention_state(self) -> str:
         if self.category == _EVENT_REFERENCED_ARTIFACT_CATEGORY:
             return _EVENT_REFERENCED_STATE
+        if self.category == _REPOSITORY_INTELLIGENCE_ARTIFACT_CATEGORY:
+            return _REBUILDABLE_ACTIVE_STATE
         if self.category == _ORPHAN_SESSION_ARTIFACT_CATEGORY:
             return _ORPHANED_STATE
         return _RECLAIMABLE_STATE
@@ -332,6 +340,24 @@ def _protected_entries(
                 reason="referenced by canonical event log",
                 now=now,
                 artifact_kind=artifact_kind,
+            )
+        )
+    for relative_path in _REPOSITORY_INTELLIGENCE_ARTIFACTS:
+        absolute_path = root_dir / relative_path
+        if not absolute_path.is_file():
+            continue
+        protected.append(
+            _build_entry(
+                root_dir,
+                absolute_path,
+                category=_REPOSITORY_INTELLIGENCE_ARTIFACT_CATEGORY,
+                action=_KEEP_ACTION,
+                reason=(
+                    "active rebuildable repository intelligence artifact; "
+                    "refresh with `glassbox repo refresh --cwd .` if stale"
+                ),
+                now=now,
+                artifact_kind="repository_intelligence",
             )
         )
     return protected, missing_references

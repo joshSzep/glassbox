@@ -538,6 +538,9 @@ runtime state needed to recover the same workspace history.
     roles, byte sizes, and SHA-256 hashes
 - a SQLite snapshot of the canonical database stored as `.glassbox/glassbox.sqlite3`
 - event-referenced local artifacts under `.glassbox/sessions/*/artifacts/`
+- rebuildable repository intelligence snapshots such as
+    `.glassbox/repository-index.json` and `.glassbox/workspace-topology.json`
+    when they exist
 
 The backup scope intentionally excludes source-controlled `evals/` bundles,
 curated eval baselines, provider credentials, runtime owner metadata, logs, and
@@ -548,9 +551,11 @@ archive.
 
 `glassbox backup restore <archive>` validates the manifest and every archived
 file hash before writing. Restore writes the database to the selected runtime
-database path and restores event-referenced artifacts under the target
-workspace's `.glassbox` directory. Existing target files are not overwritten
-unless `--force` is supplied.
+database path and restores event-referenced artifacts plus repository
+intelligence snapshots under the target workspace's `.glassbox` directory.
+Existing target files are not overwritten unless `--force` is supplied. Restored
+repository intelligence remains rebuildable; stale or missing snapshots should be
+refreshed with `glassbox repo refresh --cwd .`.
 
 ## Query Patterns This Design Optimizes
 

@@ -16,6 +16,10 @@ from glassbox.core import new_background_job_id
 from glassbox.core import new_session_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.runtime.repository_index import build_and_write_repository_index
+from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.store.artifact_retention import inspect_artifact_state
 from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
@@ -366,6 +370,61 @@ def test_background_job_failure_artifacts_are_protected(tmp_path: Path) -> None:
         failure_artifact.relative_path
     ]
     assert report.candidates == []
+
+
+def test_repository_intelligence_artifacts_are_protected_and_inspectable(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, *_paths = _seed_artifact_gc_workspace(tmp_path)
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+    build_and_write_workspace_topology(tmp_path)
+
+    exit_code = main(
+        [
+            "artifacts",
+            "inspect",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["protected_count"] == 3
+    assert payload["category_counts"]["repository_intelligence_artifact"] == 2
+    assert payload["retention_state_counts"]["rebuildable_active"] == 2
+    assert {
+        entry["path"]
+        for entry in payload["protected"]
+        if entry["category"] == "repository_intelligence_artifact"
+    } == {
+        repository_index_path(tmp_path).relative_to(tmp_path).as_posix(),
+        workspace_topology_path(tmp_path).relative_to(tmp_path).as_posix(),
+    }
+
+    prune_exit = main(
+        [
+            "artifacts",
+            "prune",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+
+    assert prune_exit == 0
+    assert repository_index_path(tmp_path).exists()
+    assert workspace_topology_path(tmp_path).exists()
 
 
 def _seed_artifact_gc_workspace(tmp_path: Path) -> tuple[Path, Path, Path, Path, Path]:

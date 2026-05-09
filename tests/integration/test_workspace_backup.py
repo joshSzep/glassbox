@@ -9,6 +9,10 @@ import pytest
 
 from glassbox.cli import main
 from glassbox.core.events import ReplayArtifactRecorded
+from glassbox.runtime.repository_index import build_and_write_repository_index
+from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from tests.integration.cli_test_support import _read_session_events
@@ -70,6 +74,72 @@ def test_backup_create_writes_manifest_database_and_referenced_artifacts(
     assert {path.as_posix() for path in replay_artifact_paths}.issubset(archive_names)
     assert "evals/bundles/curated.json" not in archive_names
     assert all(file_payload["content_sha256"] for file_payload in manifest["files"])
+
+
+def test_backup_create_and_restore_preserves_repository_intelligence_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, _session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Inspect the repository",
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path)
+    build_and_write_workspace_topology(tmp_path)
+    backup_path = tmp_path / "state.zip"
+    _ = capsys.readouterr()
+
+    create_exit_code = main(
+        [
+            "backup",
+            "create",
+            str(backup_path),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    _ = capsys.readouterr()
+    manifest = _read_backup_manifest(backup_path)
+    archive_names = set(_archive_names(backup_path))
+
+    restored_root = tmp_path / "restored-workspace"
+    restored_db_path = restored_root / ".glassbox" / "glassbox.sqlite3"
+    restore_exit_code = main(
+        [
+            "backup",
+            "restore",
+            str(backup_path),
+            "--cwd",
+            str(restored_root),
+            "--db-path",
+            str(restored_db_path),
+        ]
+    )
+
+    assert create_exit_code == 0
+    assert manifest["repository_intelligence_artifact_count"] == 2
+    assert {
+        file_payload["role"]
+        for file_payload in manifest["files"]
+        if file_payload["path"].endswith(
+            ("repository-index.json", "workspace-topology.json")
+        )
+    } == {"repository_intelligence_artifact"}
+    assert repository_index_path(tmp_path).relative_to(tmp_path).as_posix() in (
+        archive_names
+    )
+    assert workspace_topology_path(tmp_path).relative_to(tmp_path).as_posix() in (
+        archive_names
+    )
+    assert restore_exit_code == 0
+    assert repository_index_path(restored_root).exists()
+    assert workspace_topology_path(restored_root).exists()
 
 
 def test_backup_restore_into_clean_workspace_preserves_discovery_and_replay(

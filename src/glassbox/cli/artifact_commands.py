@@ -112,7 +112,7 @@ def _print_artifact_inspection_report(report: ArtifactGcReport) -> None:
 
     for entry in report.protected:
         print(
-            f"Protected event-referenced: {entry.relative_path.as_posix()} "
+            f"{_protected_artifact_label(entry)}: {entry.relative_path.as_posix()} "
             f"[{_format_artifact_entry_tags(entry)}, {entry.size_bytes} bytes, "
             f"age {entry.age_days} day(s), sha256 {entry.content_sha256}]"
         )
@@ -179,3 +179,9 @@ def _format_artifact_entry_tags(entry: ArtifactGcEntry) -> str:
     if not artifact_kind:
         return category
     return f"{category}, kind {artifact_kind}"
+
+
+def _protected_artifact_label(entry: ArtifactGcEntry) -> str:
+    if entry.retention_state == "rebuildable_active":
+        return "Protected rebuildable"
+    return "Protected event-referenced"

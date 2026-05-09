@@ -222,6 +222,15 @@ health surfaces see coherent evidence. `glassbox repo refresh --background
 source files, stage, commit, push, or edit policy files. Operators inspect,
 cancel, retry, or abandon it through the normal `glassbox job ...` commands.
 
+Artifact inspection treats `.glassbox/repository-index.json` and
+`.glassbox/workspace-topology.json` as protected rebuildable repository
+intelligence artifacts. They are included in `glassbox artifacts inspect`
+reports, skipped by prune, and included in workspace backups when present.
+Restoring a backup may recover the latest retained snapshots for convenience,
+but the supported recovery path is still to rebuild them with `glassbox repo
+refresh --cwd .` whenever freshness cues say they are stale, missing, degraded,
+or conflicting.
+
 ## Storage And Rebuild Strategy
 
 The first implementation may store the index as a retained JSON artifact or as a projection table. In either case:
