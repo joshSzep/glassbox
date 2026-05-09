@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from fastapi import Query
 
 from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import build_and_write_repository_index
@@ -130,7 +131,7 @@ def get_repository_index_entry_detail(
 
 
 @router.post("/rebuild", response_model=RepositoryIndexRebuildResponse)
-def rebuild_repository_index(
+async def rebuild_repository_index(
     request: RepositoryIndexRebuildRequest,
     context: RuntimeContextDep,
 ) -> RepositoryIndexRebuildResponse:
@@ -157,7 +158,13 @@ def rebuild_repository_index(
             job=build_background_job_response(job),
         )
 
-    snapshot = build_and_write_repository_index(workspace_root)
+    memory_entries = context.repositories.sessions.list_workspace_memory(
+        state=WorkspaceMemoryState.ACTIVE,
+    )
+    snapshot = build_and_write_repository_index(
+        workspace_root,
+        workspace_memory_entries=memory_entries,
+    )
     return RepositoryIndexRebuildResponse(
         mode="synchronous",
         status=snapshot.status.value,

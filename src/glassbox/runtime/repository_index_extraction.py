@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import tomllib
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -12,14 +13,18 @@ from typing import TypedDict
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIntelligenceCommandRecipe
+from glassbox.core.models import RepositoryIntelligenceMemoryReference
 from glassbox.core.models import RepositoryIntelligenceOwnershipHint
 from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
 from glassbox.core.models import RepositoryIntelligenceReleaseSurface
 from glassbox.core.models import RepositoryIntelligenceSourceManifest
 from glassbox.core.models import RepositoryIntelligenceSubsystem
+from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import RepositoryIndexEntityKind
 from glassbox.core.types import RepositoryIndexSourceType
+from glassbox.core.types import RepositoryIntelligenceConfidence
+from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.repository_intelligence_layout import (
     discover_repository_intelligence_layout,
 )
@@ -39,6 +44,7 @@ class RepositoryIntelligenceLayoutFields(TypedDict):
     ownership_hints: list[RepositoryIntelligenceOwnershipHint]
     subsystems: list[RepositoryIntelligenceSubsystem]
     release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface]
+    memory_references: list[RepositoryIntelligenceMemoryReference]
     limitations: list[str]
 
 
@@ -177,8 +183,40 @@ def repository_intelligence_layout_fields(
         "ownership_hints": layout.ownership_hints,
         "subsystems": layout.subsystems,
         "release_sensitive_surfaces": layout.release_sensitive_surfaces,
+        "memory_references": [],
         "limitations": layout.limitations,
     }
+
+
+def memory_reference_entries(
+    entries: Sequence[WorkspaceMemoryEntry],
+) -> list[RepositoryIntelligenceMemoryReference]:
+    """Convert confirmed active workspace memory into repository intelligence refs."""
+
+    references: list[RepositoryIntelligenceMemoryReference] = []
+    for entry in entries:
+        if entry.state != WorkspaceMemoryState.ACTIVE or entry.confirmed_at is None:
+            continue
+        references.append(
+            RepositoryIntelligenceMemoryReference(
+                reference_id=f"memory:{entry.memory_id}",
+                memory_id=entry.memory_id,
+                kind=entry.kind,
+                summary=entry.summary or entry.content[:160],
+                source_label=entry.provenance.source_label,
+                confirmed_by=entry.confirmed_by,
+                confirmed_at=entry.confirmed_at,
+                tags=list(entry.tags),
+                redacted=entry.redacted,
+                confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                provenance=entry.provenance,
+                limitations=[
+                    "Memory-derived intelligence is advisory and does not "
+                    "override current repository source metadata."
+                ],
+            )
+        )
+    return references
 
 
 def dedupe_entry_id(

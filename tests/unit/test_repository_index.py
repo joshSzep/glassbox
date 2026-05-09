@@ -1,6 +1,8 @@
 """Unit coverage for deterministic repository intelligence indexing."""
 
 import json
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -15,6 +17,7 @@ from glassbox.core import RepositoryIndexSourceType
 from glassbox.core import RepositoryIntelligenceCommandRecipe
 from glassbox.core import RepositoryIntelligenceCommandRisk
 from glassbox.core import RepositoryIntelligenceConfidence
+from glassbox.core import RepositoryIntelligenceMemoryReference
 from glassbox.core import RepositoryIntelligenceOwnershipHint
 from glassbox.core import RepositoryIntelligencePackageBoundary
 from glassbox.core import RepositoryIntelligencePackageKind
@@ -23,6 +26,13 @@ from glassbox.core import RepositoryIntelligencePathKind
 from glassbox.core import RepositoryIntelligenceReleaseSurface
 from glassbox.core import RepositoryIntelligenceReleaseSurfaceKind
 from glassbox.core import RepositoryIntelligenceSourceManifest
+from glassbox.core import WorkspaceMemoryEntry
+from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
+from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryState
+from glassbox.core import new_session_id
+from glassbox.core import new_workspace_memory_id
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
@@ -34,6 +44,8 @@ from glassbox.runtime.repository_index_discovery import classify_repository_path
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
+
+_BUILT_AT = datetime(2026, 4, 29, 12, tzinfo=UTC)
 
 
 def test_repository_index_builds_searchable_local_snapshot(tmp_path: Path) -> None:
@@ -285,6 +297,23 @@ def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(
                     provenance=[provenance],
                 )
             ],
+            "memory_references": [
+                RepositoryIntelligenceMemoryReference(
+                    reference_id="memory:pytest",
+                    memory_id=new_workspace_memory_id(),
+                    kind=WorkspaceMemoryKind.COMMAND,
+                    summary="Prefer uv run pytest for backend tests.",
+                    source_label="operator note",
+                    confirmed_by="operator",
+                    confirmed_at=snapshot.built_at,
+                    confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                    provenance=WorkspaceMemoryProvenance(
+                        source_type=WorkspaceMemorySourceType.OPERATOR,
+                        source_label="operator note",
+                    ),
+                    limitations=["Memory-derived intelligence remains advisory."],
+                )
+            ],
             "limitations": [
                 "Schema test data does not imply command approval or "
                 "ownership authority."
@@ -300,6 +329,53 @@ def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(
     assert restored.release_sensitive_surfaces[0].command_recipe_ids == [
         "recipe:pytest"
     ]
+    assert restored.memory_references[0].kind == WorkspaceMemoryKind.COMMAND
+
+
+def test_repository_index_includes_confirmed_active_memory_references(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    memory = WorkspaceMemoryEntry(
+        memory_id=new_workspace_memory_id(),
+        session_id=new_session_id(),
+        kind=WorkspaceMemoryKind.CONVENTION,
+        state=WorkspaceMemoryState.ACTIVE,
+        content="Generated frontend API types live in frontend/generated.",
+        summary="Generated API type location",
+        provenance=WorkspaceMemoryProvenance(
+            source_type=WorkspaceMemorySourceType.OPERATOR,
+            source_label="operator confirmation",
+        ),
+        created_at=_BUILT_AT,
+        updated_at=_BUILT_AT,
+        confirmed_by="operator",
+        confirmed_at=_BUILT_AT,
+        last_sequence=3,
+        tags=["repository-intelligence", "generated-output"],
+    )
+    stale_memory = memory.model_copy(
+        update={
+            "memory_id": new_workspace_memory_id(),
+            "state": WorkspaceMemoryState.STALE,
+            "summary": "Stale memory should not enter repository intelligence",
+        }
+    )
+
+    snapshot = build_and_write_repository_index(
+        tmp_path,
+        workspace_memory_entries=[memory, stale_memory],
+    )
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert [reference.memory_id for reference in snapshot.memory_references] == [
+        memory.memory_id
+    ]
+    assert snapshot.memory_references[0].summary == "Generated API type location"
+    assert snapshot.memory_references[0].provenance.source_label == (
+        "operator confirmation"
+    )
+    assert summary.memory_reference_count == 1
 
 
 def test_repository_intelligence_snapshot_loads_legacy_v1_payload() -> None:

@@ -210,6 +210,7 @@ from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexProvenance
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.models import RepositoryIntelligenceCommandRecipe
+from glassbox.core.models import RepositoryIntelligenceMemoryReference
 from glassbox.core.models import RepositoryIntelligenceOwnershipHint
 from glassbox.core.models import RepositoryIntelligencePackageBoundary
 from glassbox.core.models import RepositoryIntelligencePathHint
@@ -477,6 +478,7 @@ __all__ = [
     "RepositoryIntelligenceCommandRecipe",
     "RepositoryIntelligenceCommandRisk",
     "RepositoryIntelligenceConfidence",
+    "RepositoryIntelligenceMemoryReference",
     "RepositoryIntelligenceOwnershipHint",
     "RepositoryIntelligencePackageBoundary",
     "RepositoryIntelligencePackageKind",

@@ -813,6 +813,25 @@ class RepositoryIntelligenceReleaseSurface(BaseModel):
         return _repository_relative_paths(value)
 
 
+class RepositoryIntelligenceMemoryReference(BaseModel):
+    """Confirmed workspace memory retained as repository intelligence input."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    reference_id: str = Field(min_length=1, max_length=200)
+    memory_id: WorkspaceMemoryId
+    kind: WorkspaceMemoryKind
+    summary: str = Field(min_length=1, max_length=500)
+    source_label: str | None = Field(default=None, max_length=500)
+    confirmed_by: str | None = Field(default=None, max_length=200)
+    confirmed_at: datetime | None = None
+    tags: list[str] = Field(default_factory=list)
+    redacted: bool = False
+    confidence: RepositoryIntelligenceConfidence = RepositoryIntelligenceConfidence.LOW
+    provenance: WorkspaceMemoryProvenance
+    limitations: list[str] = Field(default_factory=list)
+
+
 class RepositoryIndexSnapshot(BaseModel):
     """Versioned rebuildable repository intelligence snapshot."""
 
@@ -851,6 +870,9 @@ class RepositoryIndexSnapshot(BaseModel):
     release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface] = Field(
         default_factory=list
     )
+    memory_references: list[RepositoryIntelligenceMemoryReference] = Field(
+        default_factory=list
+    )
     limitations: list[str] = Field(default_factory=list)
     failure_reason: str | None = Field(default=None, max_length=2000)
 
@@ -887,6 +909,7 @@ class RepositoryIndexSnapshot(BaseModel):
                 self.ownership_hints,
                 self.subsystems,
                 self.release_sensitive_surfaces,
+                self.memory_references,
                 self.limitations,
             )
         )
@@ -929,6 +952,10 @@ class RepositoryIndexSnapshot(BaseModel):
         _ensure_unique(
             "repository intelligence release surface ids",
             (surface.surface_id for surface in self.release_sensitive_surfaces),
+        )
+        _ensure_unique(
+            "repository intelligence memory reference ids",
+            (reference.reference_id for reference in self.memory_references),
         )
 
 

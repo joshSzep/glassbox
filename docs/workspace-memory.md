@@ -145,6 +145,13 @@ and release-sensitive path notes. Stale snapshots, failed snapshots, missing
 snapshots, and low-confidence repository intelligence do not produce active
 candidates by default.
 
+Repository intelligence rebuilds may also retain confirmed active memory as
+snapshot `memory_references`. These references include memory IDs,
+confirmation metadata, tags, redaction posture, provenance, confidence, and
+limitations, but they do not flatten memory into hidden repository facts.
+Snapshots exclude stale, invalidated, imported-unreviewed, rejected, pruned, and
+unconfirmed memory by default.
+
 When memory-derived repository intelligence influences a model turn, the context
 builder must record `WorkspaceMemoryUsedInContext` for each included memory ID
 and retain enough context snapshot metadata for replay to distinguish behavior

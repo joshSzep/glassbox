@@ -58,6 +58,7 @@ class RepositoryIndexStatusSummary(BaseModel):
     ownership_hint_count: int = 0
     subsystem_count: int = 0
     release_surface_count: int = 0
+    memory_reference_count: int = 0
     failure_reason: str | None = None
     detail: str
     stale_reason: str | None = None
@@ -126,6 +127,7 @@ def build_repository_index_status_summary(
         ownership_hint_count=len(snapshot.ownership_hints),
         subsystem_count=len(snapshot.subsystems),
         release_surface_count=len(snapshot.release_sensitive_surfaces),
+        memory_reference_count=len(snapshot.memory_references),
         failure_reason=snapshot.failure_reason,
         detail=_status_detail(snapshot),
         stale_reason=stale_reason,

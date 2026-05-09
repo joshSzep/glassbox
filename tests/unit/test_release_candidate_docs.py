@@ -770,11 +770,27 @@ def test_workspace_memory_documents_repository_intelligence_integration() -> Non
         "imported entries that have not passed the local review posture",
         "`repository_intelligence`",
         "stable command recipes, package conventions, generated-output conventions",
+        "snapshot `memory_references`",
         "Memory-derived intelligence does not override stronger deterministic source",
         "WorkspaceMemoryUsedInContext",
         "automatic memory capture",
         "cross-repository memory sync",
         "release authority",
+    ):
+        assert required_text in content
+
+
+def test_repository_index_documents_memory_reference_snapshots() -> None:
+    content = (REPO_ROOT / "docs" / "repository-intelligence-index.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "`memory_references`",
+        "confirmed active workspace memory IDs",
+        "Stale, invalidated, imported-unreviewed, rejected, pruned, and",
+        "Memory references remain",
+        "snapshot must cite the memory ID",
     ):
         assert required_text in content
 

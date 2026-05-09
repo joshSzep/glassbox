@@ -36,6 +36,7 @@ from glassbox.core import WorkspaceMemoryKind
 from glassbox.core import WorkspaceMemoryProvenance
 from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import WorkspaceMemoryState
+from glassbox.core import WorkspaceMemoryUsedInContext
 from glassbox.core import new_approval_id
 from glassbox.core import new_artifact_id
 from glassbox.core import new_context_compaction_id
@@ -169,7 +170,9 @@ class FakeSessionRepository:
         return event
 
     def append_events(self, events):
-        return list(events)
+        stored = list(events)
+        self._events.extend(stored)
+        return stored
 
     def record_runtime_note(self, session_id, *, category, message):
         return EventEnvelope(
@@ -1742,6 +1745,67 @@ def test_derive_runtime_context_snapshot_preserves_shared_structured_inputs() ->
     assert runtime_context.artifact_context.summaries[0].failing_tests == [
         "tests/unit/test_context_builder.py::test_example"
     ]
+
+
+def test_derive_runtime_context_records_workspace_memory_prompt_use() -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    memory_id = new_workspace_memory_id()
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=Path("/tmp/glassbox"),
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            current_turn_id=turn_id,
+            last_sequence=4,
+        ),
+        [],
+        workspace_memory=[
+            WorkspaceMemoryEntry(
+                memory_id=memory_id,
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.CONVENTION,
+                state=WorkspaceMemoryState.ACTIVE,
+                content="Use uv run pytest for backend tests.",
+                summary="Backend test command",
+                provenance=WorkspaceMemoryProvenance(
+                    source_type=WorkspaceMemorySourceType.OPERATOR,
+                    source_label="operator note",
+                ),
+                created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+                updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+                confirmed_by="operator",
+                confirmed_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+                last_sequence=3,
+            )
+        ],
+    )
+
+    runtime_context = derive_runtime_context_snapshot(
+        repository,
+        session_id,
+        Path("/tmp/glassbox"),
+    )
+    used_events = [
+        event.payload
+        for event in repository.read_session_events(session_id)
+        if isinstance(event.payload, WorkspaceMemoryUsedInContext)
+    ]
+
+    assert [item.memory_id for item in runtime_context.workspace_memory] == [memory_id]
+    assert len(used_events) == 1
+    assert used_events[0].memory_id == memory_id
+    assert used_events[0].turn_id == turn_id
+    assert used_events[0].prompt_section == "workspace_memory"
 
 
 def _workspace_memory_entry(

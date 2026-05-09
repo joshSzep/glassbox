@@ -4337,6 +4337,8 @@ export interface components {
       index: components["schemas"]["RepositoryIndexStatusResponse"];
       /** Limitations */
       limitations: string[];
+      /** Memory References */
+      memory_references: string[];
       /** Ownership Hints */
       ownership_hints: string[];
       /** Package Boundaries */
@@ -4432,6 +4434,11 @@ export interface components {
       generated_path_count: number;
       /** Limitations */
       limitations?: string[];
+      /**
+       * Memory Reference Count
+       * @default 0
+       */
+      memory_reference_count: number;
       /**
        * Ownership Hint Count
        * @default 0

@@ -65,6 +65,7 @@ function makeRepositoryStatus(
     entry_count: 1,
     generated_path_count: 0,
     limitations: [],
+    memory_reference_count: 0,
     ownership_hint_count: 0,
     package_boundary_count: 0,
     path: "/tmp/.glassbox/repository-index.json",

@@ -763,7 +763,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1532: Use Confirmed Memory In Repository Intelligence Snapshots
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1531`
 - Goal: incorporate confirmed active workspace memory into repository
   intelligence snapshots and recommendations with provenance and freshness

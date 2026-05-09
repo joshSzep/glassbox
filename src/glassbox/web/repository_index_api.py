@@ -61,6 +61,7 @@ class RepositoryIndexStatusResponse(BaseModel):
     ownership_hint_count: int = 0
     subsystem_count: int = 0
     release_surface_count: int = 0
+    memory_reference_count: int = 0
     limitations: list[str] = Field(default_factory=list)
     detail: str | None = None
 
@@ -77,6 +78,7 @@ class RepositoryIndexInspectResponse(BaseModel):
     ownership_hints: list[str]
     subsystems: list[str]
     release_sensitive_surfaces: list[str]
+    memory_references: list[str]
     limitations: list[str]
 
 
@@ -207,6 +209,7 @@ def build_repository_index_status_response(
         ownership_hint_count=len(snapshot.ownership_hints),
         subsystem_count=len(snapshot.subsystems),
         release_surface_count=len(snapshot.release_sensitive_surfaces),
+        memory_reference_count=len(snapshot.memory_references),
         limitations=snapshot.limitations,
     )
 
@@ -233,6 +236,9 @@ def build_repository_index_inspect_response(
         subsystems=[subsystem.subsystem_id for subsystem in snapshot.subsystems],
         release_sensitive_surfaces=[
             surface.surface_id for surface in snapshot.release_sensitive_surfaces
+        ],
+        memory_references=[
+            reference.reference_id for reference in snapshot.memory_references
         ],
         limitations=snapshot.limitations,
     )

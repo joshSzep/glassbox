@@ -102,6 +102,10 @@ adds typed repository-intelligence sections to the same managed artifact:
   subsystems; these are not access-control or reviewer-assignment authority
 - `release_sensitive_surfaces`: commit-time, push-time, release-candidate, and
   advisory surfaces that can later explain verification recommendations
+- `memory_references`: confirmed active workspace memory IDs that contributed
+  advisory repository facts, conventions, verified commands, failure patterns,
+  architecture notes, owner hints, package quirks, generated-output
+  conventions, release-sensitive path notes, or task outcomes
 - `limitations`: snapshot-wide caveats for missing, weak, stale, or partial
   intelligence
 
@@ -147,6 +151,16 @@ groups command recipes into commit-time, push-time, release-candidate, and
 advisory release surfaces. These records are explainability aids only; they do
 not assign reviewers, enforce access control, or promote advisory checks into
 release authority.
+
+Confirmed active workspace memory can be attached to v2 snapshots as
+`memory_references` when the rebuild path has access to the workspace memory
+projection. Memory references retain memory IDs, kinds, summaries,
+confirmation metadata, tags, redaction posture, provenance, confidence, and
+limitations. Stale, invalidated, imported-unreviewed, rejected, pruned, and
+unconfirmed memory stays out of snapshots by default. Memory references remain
+advisory and do not override current manifests, source roots, topology,
+dependency metadata, command evidence, generated-path rules, or release-surface
+records.
 
 Layout discovery remains bounded and advisory. Excluded directories such as
 `node_modules`, `.venv`, `.git`, `.glassbox`, static build outputs, and cache
@@ -203,4 +217,4 @@ The first builder should be validated against:
 
 ## Relationship To Memory
 
-Repository intelligence is rebuildable from local sources; workspace memory is operator-reviewed durable knowledge. The two can complement each other, but neither should silently overwrite or hide the other. If an index-derived observation should become durable memory, it must pass through the operator-confirmed memory capture flow.
+Repository intelligence is rebuildable from local sources; workspace memory is operator-reviewed durable knowledge. The two can complement each other, but neither should silently overwrite or hide the other. If an index-derived observation should become durable memory, it must pass through the operator-confirmed memory capture flow. If confirmed memory enriches an index snapshot, the snapshot must cite the memory ID and preserve enough metadata for recommendations, context, and replay surfaces to explain the influence.

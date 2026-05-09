@@ -5,6 +5,7 @@ from typing import cast
 from uuid import UUID
 
 from glassbox.core.models import BackgroundJobRecord
+from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.background_job_records import record_background_job_progress
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
@@ -114,7 +115,13 @@ def _run_repository_index_refresh(
     workspace_root: Path,
     job: BackgroundJobRecord,
 ) -> None:
-    snapshot = build_and_write_repository_index(workspace_root)
+    memory_entries = runtime_context.repositories.sessions.list_workspace_memory(
+        state=WorkspaceMemoryState.ACTIVE,
+    )
+    snapshot = build_and_write_repository_index(
+        workspace_root,
+        workspace_memory_entries=memory_entries,
+    )
     index_path = repository_index_path(workspace_root)
     record_background_job_progress(
         runtime_context,

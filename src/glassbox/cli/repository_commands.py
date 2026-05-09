@@ -9,6 +9,7 @@ from glassbox.core.models import BackgroundJobRecord
 from glassbox.core.models import RepositoryIndexEntry
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.types import BackgroundJobKind
+from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
@@ -81,7 +82,14 @@ def _repo_index_build_command(args: argparse.Namespace) -> int:
             _print_background_job(job)
         return 0
 
-    snapshot = build_and_write_repository_index(cwd)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        memory_entries = runtime_context.repositories.sessions.list_workspace_memory(
+            state=WorkspaceMemoryState.ACTIVE,
+        )
+    snapshot = build_and_write_repository_index(
+        cwd,
+        workspace_memory_entries=memory_entries,
+    )
     if args.json:
         print_json_output(snapshot.model_dump(mode="json"))
     else:
@@ -217,6 +225,7 @@ def _print_status_summary(summary: RepositoryIndexStatusSummary) -> None:
         ownership_hint_count=summary.ownership_hint_count,
         subsystem_count=summary.subsystem_count,
         release_surface_count=summary.release_surface_count,
+        memory_reference_count=summary.memory_reference_count,
     )
     for limitation in summary.limitations:
         print(f"Limitation: {limitation}")
@@ -266,6 +275,7 @@ def _print_index_snapshot(snapshot: RepositoryIndexSnapshot, path: Path) -> None
         ownership_hint_count=len(snapshot.ownership_hints),
         subsystem_count=len(snapshot.subsystems),
         release_surface_count=len(snapshot.release_sensitive_surfaces),
+        memory_reference_count=len(snapshot.memory_references),
     )
     for limitation in snapshot.limitations:
         print(f"Limitation: {limitation}")
@@ -284,6 +294,7 @@ def _print_repository_intelligence_counts(
     ownership_hint_count: int,
     subsystem_count: int,
     release_surface_count: int,
+    memory_reference_count: int = 0,
 ) -> None:
     if not any(
         (
@@ -298,6 +309,7 @@ def _print_repository_intelligence_counts(
             ownership_hint_count,
             subsystem_count,
             release_surface_count,
+            memory_reference_count,
         )
     ):
         return
@@ -316,7 +328,8 @@ def _print_repository_intelligence_counts(
         f"{command_recipe_count} command recipes, "
         f"{ownership_hint_count} owners, "
         f"{subsystem_count} subsystems, "
-        f"{release_surface_count} release surfaces"
+        f"{release_surface_count} release surfaces, "
+        f"{memory_reference_count} memory references"
     )
 
 

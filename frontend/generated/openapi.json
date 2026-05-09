@@ -7908,6 +7908,13 @@
             "title": "Limitations",
             "type": "array"
           },
+          "memory_references": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Memory References",
+            "type": "array"
+          },
           "ownership_hints": {
             "items": {
               "type": "string"
@@ -7970,6 +7977,7 @@
           "ownership_hints",
           "subsystems",
           "release_sensitive_surfaces",
+          "memory_references",
           "limitations"
         ],
         "title": "RepositoryIndexInspectResponse",
@@ -8218,6 +8226,11 @@
             },
             "title": "Limitations",
             "type": "array"
+          },
+          "memory_reference_count": {
+            "default": 0,
+            "title": "Memory Reference Count",
+            "type": "integer"
           },
           "ownership_hint_count": {
             "default": 0,
