@@ -6,6 +6,12 @@ import type {
   RepositoryIndexRebuildResponse,
   RepositoryIndexSearchPageResponse,
   RepositoryIndexStatusResponse,
+  RepositoryIntelligenceCommandRecipeListPageResponse,
+  RepositoryIntelligenceFreshnessResponse,
+  RepositoryIntelligenceMemoryCandidateListPageResponse,
+  RepositoryIntelligenceOverviewResponse,
+  RepositoryIntelligencePathInspectionResponse,
+  RepositoryIntelligenceVerificationRecommendationResponse,
   WorkspaceMemoryDetailResponse,
   WorkspaceMemoryKind,
   WorkspaceMemoryListPageResponse,
@@ -47,8 +53,14 @@ export type MemoryInspectorState = {
 };
 
 export type RepositoryInspectorState = {
+  commandRecipes: RepositoryIntelligenceCommandRecipeListPageResponse["items"];
   error: string | null;
+  freshness: RepositoryIntelligenceFreshnessResponse | null;
   items: RepositoryIndexSearchPageResponse["items"];
+  memoryCandidates: RepositoryIntelligenceMemoryCandidateListPageResponse["items"];
+  overview: RepositoryIntelligenceOverviewResponse | null;
+  pathInspection: RepositoryIntelligencePathInspectionResponse | null;
+  pathQuery: string;
   query: string;
   rebuild: RepositoryIndexRebuildResponse | null;
   searchState: LoadState;
@@ -56,6 +68,7 @@ export type RepositoryInspectorState = {
   selectedEntryId: string | null;
   status: RepositoryIndexStatusResponse | null;
   statusState: LoadState;
+  verification: RepositoryIntelligenceVerificationRecommendationResponse | null;
 };
 
 export type KnowledgeStoreState = {
@@ -67,6 +80,8 @@ export type KnowledgeStoreState = {
     kind?: WorkspaceMemoryKind | null;
     query?: string;
   }) => Promise<void>;
+  inspectRepositoryPath: (path?: string) => Promise<void>;
+  loadRepositoryMemoryCandidates: (sessionId: string) => Promise<void>;
   loadRepositoryStatus: () => Promise<void>;
   memory: MemoryInspectorState;
   previewPruneMemory: (input?: { memoryId?: string; reason?: string | null }) => Promise<void>;
@@ -87,6 +102,8 @@ export type KnowledgeStoreState = {
 
 const MEMORY_PAGE_SIZE = 200;
 const REPOSITORY_INDEX_SEARCH_SIZE = 50;
+const REPOSITORY_RECIPE_PAGE_SIZE = 50;
+const REPOSITORY_MEMORY_CANDIDATE_PAGE_SIZE = 25;
 
 export function createKnowledgeStore(apiClient: GlassboxApiClient): StoreApi<KnowledgeStoreState> {
   const memoryRequests = createRequestTracker();
@@ -158,19 +175,97 @@ export function createKnowledgeStore(apiClient: GlassboxApiClient): StoreApi<Kno
         }));
       }
     },
+    inspectRepositoryPath: async (path = get().repository.pathQuery) => {
+      const normalizedPath = path.trim();
+      if (!normalizedPath) {
+        return;
+      }
+      set((state) => ({
+        repository: {
+          ...state.repository,
+          error: null,
+          pathQuery: normalizedPath,
+        },
+      }));
+      try {
+        const [pathInspection, verification] = await Promise.all([
+          apiClient.inspectRepositoryIntelligencePath(normalizedPath),
+          apiClient.recommendRepositoryIntelligenceVerification({
+            paths: [normalizedPath],
+          }),
+        ]);
+        set((state) => ({
+          repository: {
+            ...state.repository,
+            error: null,
+            pathInspection,
+            pathQuery: normalizedPath,
+            verification,
+          },
+        }));
+      } catch (error) {
+        set((state) => ({
+          repository: { ...state.repository, error: errorMessage(error) },
+        }));
+      }
+    },
+    loadRepositoryMemoryCandidates: async (sessionId) => {
+      try {
+        const page = await apiClient.listRepositoryIntelligenceMemoryCandidates({
+          limit: REPOSITORY_MEMORY_CANDIDATE_PAGE_SIZE,
+          session_id: sessionId,
+        });
+        set((state) => ({
+          repository: {
+            ...state.repository,
+            error: null,
+            memoryCandidates: page.items,
+          },
+        }));
+      } catch (error) {
+        set((state) => ({
+          repository: { ...state.repository, error: errorMessage(error) },
+        }));
+      }
+    },
     loadRepositoryStatus: async () => {
       const currentRequestId = repositoryRequests.next();
       set((state) => ({
         repository: { ...state.repository, error: null, statusState: "loading" },
       }));
       try {
-        const status = await apiClient.getRepositoryIndexStatus();
+        const [status, freshness] = await Promise.all([
+          apiClient.getRepositoryIndexStatus(),
+          apiClient.getRepositoryIntelligenceFreshness(),
+        ]);
+        const [overviewResult, recipeResult] = await Promise.allSettled([
+          apiClient.getRepositoryIntelligenceOverview(),
+          apiClient.listRepositoryIntelligenceCommandRecipes({
+            limit: REPOSITORY_RECIPE_PAGE_SIZE,
+          }),
+        ]);
+        const overview = overviewResult.status === "fulfilled" ? overviewResult.value : null;
+        const recipes = recipeResult.status === "fulfilled" ? recipeResult.value.items : [];
         if (!repositoryRequests.isCurrent(currentRequestId)) {
           return;
         }
+        const currentPath = get().repository.pathQuery.trim();
+        const defaultPath = currentPath || overview?.source_roots[0]?.path || "";
         set((state) => ({
-          repository: { ...state.repository, error: null, status, statusState: "loaded" },
+          repository: {
+            ...state.repository,
+            commandRecipes: recipes,
+            error: null,
+            freshness,
+            overview,
+            pathQuery: defaultPath,
+            status,
+            statusState: "loaded",
+          },
         }));
+        if (defaultPath) {
+          await get().inspectRepositoryPath(defaultPath);
+        }
       } catch (error) {
         if (!repositoryRequests.isCurrent(currentRequestId)) {
           return;
@@ -343,8 +438,14 @@ function createIdleMemoryInspectorState(): MemoryInspectorState {
 
 function createIdleRepositoryInspectorState(): RepositoryInspectorState {
   return {
+    commandRecipes: [],
     error: null,
+    freshness: null,
     items: [],
+    memoryCandidates: [],
+    overview: null,
+    pathInspection: null,
+    pathQuery: "",
     query: "",
     rebuild: null,
     searchState: "idle",
@@ -352,6 +453,7 @@ function createIdleRepositoryInspectorState(): RepositoryInspectorState {
     selectedEntryId: null,
     status: null,
     statusState: "idle",
+    verification: null,
   };
 }
 

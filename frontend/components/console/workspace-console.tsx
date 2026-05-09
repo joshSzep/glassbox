@@ -83,7 +83,7 @@ export function WorkspaceConsole() {
         memory={knowledgeState.memory}
         repository={knowledgeState.repository}
         surface={route.surface}
-        {...knowledgeConsoleActions({ knowledgeStore, route })}
+        {...knowledgeConsoleActions({ anchorSessionId, knowledgeStore, route })}
       />
     );
   }

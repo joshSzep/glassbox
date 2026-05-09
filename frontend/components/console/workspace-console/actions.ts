@@ -79,9 +79,11 @@ export function taskConsoleActions({
 }
 
 export function knowledgeConsoleActions({
+  anchorSessionId,
   knowledgeStore,
   route,
 }: Pick<WorkspaceConsoleStores, "knowledgeStore"> & {
+  anchorSessionId?: string | null;
   route: AppRouteState;
 }) {
   return {
@@ -128,7 +130,13 @@ export function knowledgeConsoleActions({
       void (async () => {
         await knowledgeStore.getState().loadRepositoryStatus();
         await knowledgeStore.getState().searchRepositoryIndex();
+        if (anchorSessionId !== null && anchorSessionId !== undefined) {
+          await knowledgeStore.getState().loadRepositoryMemoryCandidates(anchorSessionId);
+        }
       })();
+    },
+    onRepositoryPathQuery: (path: string) => {
+      void knowledgeStore.getState().inspectRepositoryPath(path);
     },
     onRepositoryQuery: (query: string) => {
       void knowledgeStore.getState().setRepositoryQuery(query);

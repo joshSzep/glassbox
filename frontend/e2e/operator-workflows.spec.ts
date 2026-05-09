@@ -253,11 +253,11 @@ test("operator can review memory and repository inspectors from the keyboard", a
 
   await openClientRoute(page, "/app/repository-index");
   await expect(page.getByRole("heading", { name: "Repository Index" })).toBeVisible();
-  await page.getByLabel("Search repository index").fill("TaskAutonomyConsole");
+  await page.getByLabel("Search repository intelligence").fill("TaskAutonomyConsole");
   await page.keyboard.press("Tab");
   await page.getByRole("button", { name: "TaskAutonomyConsole" }).press("Enter");
   await expect(page.getByRole("region", { name: "Repository index detail" })).toBeVisible();
-  await page.getByRole("button", { name: "Rebuild Index" }).press("Enter");
+  await page.getByRole("button", { name: "Refresh Intelligence" }).press("Enter");
   await expect.poll(() => fixture.actions.length).toBe(5);
 
   expect(fixture.actions.map((action) => action.url)).toEqual([

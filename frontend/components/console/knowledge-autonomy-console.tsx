@@ -31,6 +31,7 @@ export type KnowledgeAutonomyConsoleProps = {
   onPruneMemory?: (memoryId: string) => void;
   onRebuildRepositoryIndex?: (input?: { background?: boolean; sessionId?: string | null }) => void;
   onRefresh?: () => void;
+  onRepositoryPathQuery?: (path: string) => void;
   onRepositoryQuery?: (query: string) => void;
   onSelectMemory?: (memoryId: string) => void;
   onSelectRepositoryEntry?: (entryId: string) => void;
@@ -50,6 +51,7 @@ export function KnowledgeAutonomyConsole({
   onPruneMemory,
   onRebuildRepositoryIndex,
   onRefresh,
+  onRepositoryPathQuery,
   onRepositoryQuery,
   onSelectMemory,
   onSelectRepositoryEntry,
@@ -110,6 +112,7 @@ export function KnowledgeAutonomyConsole({
           <RepositoryIndexInspector
             action={action}
             anchorSessionId={anchorSessionId}
+            onRepositoryPathQuery={onRepositoryPathQuery}
             onRebuildRepositoryIndex={onRebuildRepositoryIndex}
             onRepositoryQuery={onRepositoryQuery}
             onSelectRepositoryEntry={onSelectRepositoryEntry}

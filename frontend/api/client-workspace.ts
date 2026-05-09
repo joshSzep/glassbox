@@ -14,6 +14,18 @@ export type RepositoryIndexEntryDetailResponse =
   components["schemas"]["RepositoryIndexEntryDetailResponse"];
 export type RepositoryIndexRebuildResponse =
   components["schemas"]["RepositoryIndexRebuildResponse"];
+export type RepositoryIntelligenceOverviewResponse =
+  components["schemas"]["RepositoryIntelligenceOverviewResponse"];
+export type RepositoryIntelligenceFreshnessResponse =
+  components["schemas"]["RepositoryIntelligenceFreshnessResponse"];
+export type RepositoryIntelligencePathInspectionResponse =
+  components["schemas"]["RepositoryIntelligencePathInspectionResponse"];
+export type RepositoryIntelligenceCommandRecipeListPageResponse =
+  components["schemas"]["RepositoryIntelligenceCommandRecipeListPageResponse"];
+export type RepositoryIntelligenceVerificationRecommendationResponse =
+  components["schemas"]["RepositoryIntelligenceVerificationRecommendationResponse"];
+export type RepositoryIntelligenceMemoryCandidateListPageResponse =
+  components["schemas"]["RepositoryIntelligenceMemoryCandidateListPageResponse"];
 export type WorkspaceMemoryKind = components["schemas"]["WorkspaceMemoryKind"];
 export type WorkspaceMemoryState = components["schemas"]["WorkspaceMemoryState"];
 
@@ -22,6 +34,15 @@ export type WorkspaceMemoryListPageQuery = NonNullable<
 >;
 export type RepositoryIndexSearchQuery = NonNullable<
   paths["/repo/index/search"]["get"]["parameters"]["query"]
+>;
+export type RepositoryIntelligenceCommandRecipeListQuery = NonNullable<
+  paths["/repo/intelligence/command-recipes"]["get"]["parameters"]["query"]
+>;
+export type RepositoryIntelligenceVerificationQuery = NonNullable<
+  paths["/repo/intelligence/verification"]["get"]["parameters"]["query"]
+>;
+export type RepositoryIntelligenceMemoryCandidateListQuery = NonNullable<
+  paths["/repo/intelligence/memory-candidates"]["get"]["parameters"]["query"]
 >;
 
 export function createWorkspaceEndpoints(requestJson: RequestJson) {
@@ -123,5 +144,73 @@ export function createWorkspaceEndpoints(requestJson: RequestJson) {
           session_id: input.sessionId ?? null,
         },
       }),
+
+    getRepositoryIntelligenceOverview: (requestOptions?: RequestOptions) =>
+      requestJson<RepositoryIntelligenceOverviewResponse>(
+        "GET",
+        "/repo/intelligence",
+        requestOptions,
+      ),
+
+    getRepositoryIntelligenceFreshness: (requestOptions?: RequestOptions) =>
+      requestJson<RepositoryIntelligenceFreshnessResponse>(
+        "GET",
+        "/repo/intelligence/freshness",
+        requestOptions,
+      ),
+
+    inspectRepositoryIntelligencePath: (path: string, requestOptions?: RequestOptions) =>
+      requestJson<RepositoryIntelligencePathInspectionResponse>(
+        "GET",
+        `/repo/intelligence/paths/${encodeRepositoryPath(path)}`,
+        requestOptions,
+      ),
+
+    listRepositoryIntelligenceCommandRecipes: (
+      query: RepositoryIntelligenceCommandRecipeListQuery = {},
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<RepositoryIntelligenceCommandRecipeListPageResponse>(
+        "GET",
+        "/repo/intelligence/command-recipes",
+        {
+          ...requestOptions,
+          query,
+        },
+      ),
+
+    recommendRepositoryIntelligenceVerification: (
+      query: RepositoryIntelligenceVerificationQuery,
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<RepositoryIntelligenceVerificationRecommendationResponse>(
+        "GET",
+        "/repo/intelligence/verification",
+        {
+          ...requestOptions,
+          query,
+        },
+      ),
+
+    listRepositoryIntelligenceMemoryCandidates: (
+      query: RepositoryIntelligenceMemoryCandidateListQuery,
+      requestOptions?: RequestOptions,
+    ) =>
+      requestJson<RepositoryIntelligenceMemoryCandidateListPageResponse>(
+        "GET",
+        "/repo/intelligence/memory-candidates",
+        {
+          ...requestOptions,
+          query,
+        },
+      ),
   };
+}
+
+function encodeRepositoryPath(path: string): string {
+  return path
+    .split("/")
+    .filter((part) => part.length > 0)
+    .map((part) => encodeURIComponent(part))
+    .join("/");
 }

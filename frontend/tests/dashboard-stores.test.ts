@@ -82,6 +82,142 @@ function makeRepositoryStatus(
   };
 }
 
+function makeRepositoryOverview(overrides: Partial<RepositoryOverview> = {}): RepositoryOverview {
+  return {
+    doc_roots: [],
+    generated_paths: [],
+    index: makeRepositoryStatus({ command_recipe_count: 1, source_root_count: 1 }),
+    limitations: [],
+    memory_references: [],
+    package_boundaries: [
+      {
+        confidence: "high",
+        doc_roots: [],
+        generated_paths: [],
+        kind: "python",
+        limitations: [],
+        manifest_paths: ["pyproject.toml"],
+        name: "fixture",
+        package_id: "package:fixture",
+        provenance: [],
+        root: ".",
+        source_roots: ["src"],
+        test_roots: ["tests"],
+      },
+    ],
+    policy_sensitive_paths: [],
+    release_surfaces: [],
+    source_manifests: [],
+    source_roots: [
+      {
+        confidence: "high",
+        hint_id: "source:src",
+        kind: "source_root",
+        language: "python",
+        limitations: [],
+        package_id: "package:fixture",
+        path: "src",
+        provenance: [],
+      },
+    ],
+    subsystems: [
+      {
+        confidence: "high",
+        limitations: [],
+        name: "Runtime",
+        owner_hint_ids: [],
+        package_ids: ["package:fixture"],
+        provenance: [],
+        release_surface_ids: [],
+        scope_paths: ["src"],
+        subsystem_id: "subsystem:runtime",
+        tags: ["runtime"],
+      },
+    ],
+    test_roots: [],
+    topology: null,
+    ...overrides,
+  };
+}
+
+function makeRepositoryFreshness(
+  overrides: Partial<RepositoryFreshness> = {},
+): RepositoryFreshness {
+  return {
+    cues: [],
+    index: makeRepositoryStatus(),
+    next_actions: [],
+    topology: null,
+    ...overrides,
+  };
+}
+
+function makeRepositoryCommandRecipes(
+  overrides: Partial<RepositoryCommandRecipes> = {},
+): RepositoryCommandRecipes {
+  return {
+    items: [
+      {
+        command: "uv run pytest tests",
+        confidence: "high",
+        limitations: [],
+        name: "Backend tests",
+        provenance: [],
+        purpose: "test",
+        recipe_id: "recipe:pytest",
+        review_relevance: "direct",
+        risk: "read_only",
+        scope_paths: ["src", "tests"],
+        timeout_seconds: null,
+        toolchain: "uv",
+      },
+    ],
+    page: { cursor: 0, has_more: false, limit: 50, next_cursor: null, returned_count: 1 },
+    ...overrides,
+  };
+}
+
+function makeRepositoryPathInspection(
+  overrides: Partial<RepositoryPathInspection> = {},
+): RepositoryPathInspection {
+  return {
+    command_recipes: makeRepositoryCommandRecipes().items,
+    next_actions: ["glassbox repo recommend src"],
+    ownership_hints: [],
+    packages: makeRepositoryOverview().package_boundaries,
+    path: "src",
+    path_hints: makeRepositoryOverview().source_roots,
+    release_surfaces: [],
+    snapshot_status: "fresh",
+    subsystems: makeRepositoryOverview().subsystems,
+    ...overrides,
+  };
+}
+
+function makeRepositoryVerification(
+  overrides: Partial<RepositoryVerification> = {},
+): RepositoryVerification {
+  return {
+    detail: null,
+    next_actions: ["uv run pytest tests"],
+    paths: ["src"],
+    report: null,
+    status: "ok",
+    ...overrides,
+  };
+}
+
+function makeRepositoryMemoryCandidates(
+  overrides: Partial<RepositoryMemoryCandidates> = {},
+): RepositoryMemoryCandidates {
+  return {
+    items: [],
+    page: { cursor: 0, has_more: false, limit: 25, next_cursor: null, returned_count: 0 },
+    session_id: "session-1",
+    ...overrides,
+  };
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (error: unknown) => void;
@@ -194,11 +330,19 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getReviewFeedbackPage: async () => ({ items: [] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => makeRepositoryStatus(),
+    getRepositoryIntelligenceFreshness: async () => makeRepositoryFreshness(),
+    getRepositoryIntelligenceOverview: async () => makeRepositoryOverview(),
     getWorkspaceMemoryDetail: async (memoryId) => ({ entry: makeMemoryEntry(memoryId) }),
+    inspectRepositoryIntelligencePath: async (path) => makeRepositoryPathInspection({ path }),
+    listRepositoryIntelligenceCommandRecipes: async () => makeRepositoryCommandRecipes(),
+    listRepositoryIntelligenceMemoryCandidates: async (query) =>
+      makeRepositoryMemoryCandidates({ session_id: query.session_id }),
     listWorkspaceMemory: async () => ({
       items: [makeMemoryEntry("memory-1")],
       page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 1 },
     }),
+    recommendRepositoryIntelligenceVerification: async (query) =>
+      makeRepositoryVerification({ paths: query.paths }),
     searchRepositoryIndex: async () => ({
       items: [makeRepositoryEntry("entry-1")],
       page: { cursor: 0, has_more: false, limit: 50, next_cursor: null, returned_count: 1 },
@@ -1100,6 +1244,26 @@ describe("knowledge store", () => {
             entry_count: 2,
           });
         },
+        getRepositoryIntelligenceFreshness: async () => {
+          calls.push("freshness");
+          return makeRepositoryFreshness();
+        },
+        getRepositoryIntelligenceOverview: async () => {
+          calls.push("overview");
+          return makeRepositoryOverview();
+        },
+        inspectRepositoryIntelligencePath: async (path) => {
+          calls.push(`path:${path}`);
+          return makeRepositoryPathInspection({ path });
+        },
+        listRepositoryIntelligenceCommandRecipes: async () => {
+          calls.push("recipes");
+          return makeRepositoryCommandRecipes();
+        },
+        recommendRepositoryIntelligenceVerification: async (query) => {
+          calls.push(`verification:${query.paths.join(",")}`);
+          return makeRepositoryVerification({ paths: query.paths });
+        },
         rebuildRepositoryIndex: async (input = {}) => {
           calls.push(`rebuild:${input.sessionId ?? "sync"}`);
           return {
@@ -1128,10 +1292,20 @@ describe("knowledge store", () => {
 
     expect(calls).toEqual([
       "status",
+      "freshness",
+      "overview",
+      "recipes",
+      "path:src",
+      "verification:src",
       "search:UsefulThing",
       "detail:entry-1",
       "rebuild:session-1",
       "status",
+      "freshness",
+      "overview",
+      "recipes",
+      "path:src",
+      "verification:src",
       "search:UsefulThing",
     ]);
     expect(store.getState().repository.status?.status).toBe("fresh");
@@ -1491,6 +1665,16 @@ type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
+type RepositoryCommandRecipes =
+  components["schemas"]["RepositoryIntelligenceCommandRecipeListPageResponse"];
+type RepositoryFreshness = components["schemas"]["RepositoryIntelligenceFreshnessResponse"];
+type RepositoryMemoryCandidates =
+  components["schemas"]["RepositoryIntelligenceMemoryCandidateListPageResponse"];
+type RepositoryOverview = components["schemas"]["RepositoryIntelligenceOverviewResponse"];
+type RepositoryPathInspection =
+  components["schemas"]["RepositoryIntelligencePathInspectionResponse"];
+type RepositoryVerification =
+  components["schemas"]["RepositoryIntelligenceVerificationRecommendationResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
 type TranscriptMessage = components["schemas"]["TranscriptMessageResponse"];

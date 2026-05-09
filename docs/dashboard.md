@@ -71,6 +71,14 @@ The dashboard shell exposes the operator surfaces backed by the snapshot and SSE
 - pending approvals
 - event log
 
+The repository intelligence surface at `/app/repository-index` is the v15
+local repository console. It uses the typed `/repo/intelligence` API family
+for repository map data, freshness cues, path inspection, command recipes,
+verification recommendations, confirmed memory references, and review-only
+memory candidates. Stale or missing intelligence is rendered as advisory
+posture with refresh commands; owner hints, recipes, and memory-derived facts
+remain local evidence, not approval or execution authority.
+
 The changeset surface at `/app/changesets` is the v13 review-loop panel for
 local changesets. Terminal `/review dashboard CHANGESET_ID` and post-create
 review output hand off directly to `/app/changesets/CHANGESET_ID` when a

@@ -31,9 +31,24 @@ type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionRes
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
+type RepositoryIntelligenceCommandRecipe =
+  components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"];
+type RepositoryIntelligenceMemoryReference =
+  components["schemas"]["RepositoryIntelligenceMemoryReferenceResponse"];
+type RepositoryIntelligenceOwnershipHint =
+  components["schemas"]["RepositoryIntelligenceOwnershipHintResponse"];
+type RepositoryIntelligencePackageBoundary =
+  components["schemas"]["RepositoryIntelligencePackageBoundaryResponse"];
+type RepositoryIntelligencePathHint =
+  components["schemas"]["RepositoryIntelligencePathHintResponse"];
+type RepositoryIntelligenceReleaseSurface =
+  components["schemas"]["RepositoryIntelligenceReleaseSurfaceResponse"];
+type RepositoryIntelligenceSubsystem =
+  components["schemas"]["RepositoryIntelligenceSubsystemResponse"];
 type TaskDetail = components["schemas"]["TaskDetailResponse"];
 type TaskEvent = components["schemas"]["TaskEventResponse"];
 type TaskSummary = components["schemas"]["TaskSummaryResponse"];
+type WorkspaceMemoryCandidate = components["schemas"]["WorkspaceMemoryCandidateResponse"];
 type WorkspaceMemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"];
 
 export type GlassboxApiFixtureState = {
@@ -289,6 +304,89 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
     }
     if (path === `/memory/${memory.memory_id}`) {
       await route.fulfill({ json: { entry: memory } });
+      return;
+    }
+    await route.fulfill({ json: { detail: "not found" }, status: 404 });
+  });
+
+  await page.route("**/repo/intelligence**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (!path.startsWith("/repo/intelligence")) {
+      await route.fallback();
+      return;
+    }
+    const status = makeRepositoryStatus();
+    const sourceRoot = makeRepositoryPathHint("path-source", "source_root", "frontend");
+    const testRoot = makeRepositoryPathHint("path-test", "test_root", "frontend/tests");
+    const packageBoundary = makeRepositoryPackageBoundary("package-frontend");
+    const subsystem = makeRepositorySubsystem("subsystem-dashboard");
+    const recipe = makeRepositoryCommandRecipe("recipe-frontend-tests");
+    const releaseSurface = makeRepositoryReleaseSurface("surface-dashboard");
+    const ownershipHint = makeRepositoryOwnershipHint("owner-dashboard");
+    const memoryReference = makeRepositoryMemoryReference("memory-reference-1");
+    const memoryCandidate = makeRepositoryMemoryCandidate("memory-candidate-1");
+
+    if (path === "/repo/intelligence") {
+      await route.fulfill({
+        json: {
+          doc_roots: [],
+          generated_paths: [],
+          index: status,
+          limitations: [],
+          memory_references: [memoryReference],
+          package_boundaries: [packageBoundary],
+          policy_sensitive_paths: [],
+          release_surfaces: [releaseSurface],
+          source_manifests: [],
+          source_roots: [sourceRoot],
+          subsystems: [subsystem],
+          test_roots: [testRoot],
+          topology: null,
+        },
+      });
+      return;
+    }
+    if (path === "/repo/intelligence/freshness") {
+      await route.fulfill({ json: { cues: [], index: status, next_actions: [], topology: null } });
+      return;
+    }
+    if (path.startsWith("/repo/intelligence/paths/")) {
+      await route.fulfill({
+        json: {
+          command_recipes: [recipe],
+          next_actions: ["pnpm --dir frontend test"],
+          ownership_hints: [ownershipHint],
+          packages: [packageBoundary],
+          path: decodeURIComponent(path.slice("/repo/intelligence/paths/".length)),
+          path_hints: [sourceRoot],
+          release_surfaces: [releaseSurface],
+          snapshot_status: "fresh",
+          subsystems: [subsystem],
+        },
+      });
+      return;
+    }
+    if (path === "/repo/intelligence/command-recipes") {
+      await route.fulfill({ json: { items: [recipe], page: makeFixturePage(1) } });
+      return;
+    }
+    if (path === "/repo/intelligence/verification") {
+      await route.fulfill({
+        json: {
+          detail: null,
+          next_actions: ["pnpm --dir frontend test"],
+          paths: ["frontend/components/console/task-autonomy-console.tsx"],
+          report: null,
+          status: "ok",
+        },
+      });
+      return;
+    }
+    if (path === "/repo/intelligence/memory-candidates") {
+      await route.fulfill({
+        json: { items: [memoryCandidate], page: makeFixturePage(1), session_id: defaultSessionId },
+      });
       return;
     }
     await route.fulfill({ json: { detail: "not found" }, status: 404 });
@@ -632,12 +730,18 @@ function makeRepositoryStatus() {
   return {
     builder_version: "fixture",
     built_at: timestamp(1),
+    command_recipe_count: 1,
     detail: null,
     entry_count: 1,
+    eval_metadata_count: 0,
+    memory_reference_count: 1,
+    package_count: 1,
     path: "/tmp/glassbox/repo-index.json",
+    release_surface_count: 1,
     schema_version: 1,
     source_digest: "digest-fixture",
     status: "fresh",
+    subsystem_count: 1,
   };
 }
 
@@ -665,6 +769,153 @@ function makeRepositoryEntry(entryId: string): RepositoryEntry {
     tags: ["frontend", "autonomy"],
     updated_at: timestamp(2),
   };
+}
+
+function makeRepositoryPathHint(
+  hintId: string,
+  kind: string,
+  path: string,
+): RepositoryIntelligencePathHint {
+  return {
+    confidence: "high",
+    hint_id: hintId,
+    kind,
+    language: kind === "source_root" ? "typescript" : null,
+    limitations: [],
+    package_id: "package-frontend",
+    path,
+    provenance: makeRepositoryProvenance(path),
+  };
+}
+
+function makeRepositoryPackageBoundary(packageId: string): RepositoryIntelligencePackageBoundary {
+  return {
+    confidence: "high",
+    doc_roots: [],
+    generated_paths: [],
+    kind: "frontend",
+    limitations: [],
+    manifest_paths: ["frontend/package.json"],
+    name: "frontend",
+    package_id: packageId,
+    provenance: makeRepositoryProvenance("frontend/package.json"),
+    root: "frontend",
+    source_roots: ["frontend"],
+    test_roots: ["frontend/tests"],
+  };
+}
+
+function makeRepositorySubsystem(subsystemId: string): RepositoryIntelligenceSubsystem {
+  return {
+    confidence: "high",
+    limitations: [],
+    name: "Dashboard console",
+    owner_hint_ids: ["owner-dashboard"],
+    package_ids: ["package-frontend"],
+    provenance: makeRepositoryProvenance("frontend/components/console"),
+    release_surface_ids: ["surface-dashboard"],
+    scope_paths: ["frontend/components/console"],
+    subsystem_id: subsystemId,
+    tags: ["frontend", "dashboard"],
+  };
+}
+
+function makeRepositoryCommandRecipe(recipeId: string): RepositoryIntelligenceCommandRecipe {
+  return {
+    command: "pnpm --dir frontend test",
+    confidence: "high",
+    limitations: [],
+    name: "Frontend unit tests",
+    provenance: makeRepositoryProvenance("frontend/package.json"),
+    purpose: "Run frontend unit and component tests.",
+    recipe_id: recipeId,
+    review_relevance: "verification",
+    risk: "read_only",
+    scope_paths: ["frontend"],
+    timeout_seconds: 120,
+    toolchain: "pnpm",
+  };
+}
+
+function makeRepositoryReleaseSurface(surfaceId: string): RepositoryIntelligenceReleaseSurface {
+  return {
+    command_recipe_ids: ["recipe-frontend-tests"],
+    confidence: "medium",
+    kind: "dashboard",
+    limitations: [],
+    name: "Operator dashboard",
+    provenance: makeRepositoryProvenance("frontend/components/console"),
+    scope_paths: ["frontend/components/console"],
+    surface_id: surfaceId,
+  };
+}
+
+function makeRepositoryOwnershipHint(hintId: string): RepositoryIntelligenceOwnershipHint {
+  return {
+    confidence: "medium",
+    hint_id: hintId,
+    limitations: [],
+    owner_label: "dashboard operators",
+    provenance: makeRepositoryProvenance("frontend/components/console"),
+    scope_paths: ["frontend/components/console"],
+    subsystem: "Dashboard console",
+  };
+}
+
+function makeRepositoryMemoryReference(referenceId: string): RepositoryIntelligenceMemoryReference {
+  return {
+    confidence: "medium",
+    confirmed_at: timestamp(1),
+    confirmed_by: "operator",
+    kind: "command",
+    limitations: [],
+    memory_id: "memory-1",
+    provenance: { source_type: "session_event" },
+    redacted: false,
+    reference_id: referenceId,
+    source_label: "workspace memory",
+    summary: "Frontend checks use pnpm",
+    tags: ["frontend", "tests"],
+  };
+}
+
+function makeRepositoryMemoryCandidate(candidateId: string): WorkspaceMemoryCandidate {
+  return {
+    candidate_id: candidateId,
+    content: "Repository dashboard changes should run frontend tests.",
+    created_at: timestamp(1),
+    kind: "command",
+    provenance: {
+      artifact_id: null,
+      note: null,
+      session_id: defaultSessionId,
+      source_label: "fixture",
+      source_sequence: 3,
+      source_type: "session_event",
+      task_id: "task-1",
+      tool_call_id: null,
+    },
+    redacted: false,
+    session_id: defaultSessionId,
+    source_label: "fixture",
+    summary: "Run frontend tests for dashboard work",
+    tags: ["frontend", "tests"],
+  };
+}
+
+function makeRepositoryProvenance(path: string) {
+  return [
+    {
+      content_sha256: null,
+      line_end: 1,
+      line_start: 1,
+      note: null,
+      path,
+      source_label: null,
+      source_type: "fixture",
+      tool_name: "fixture-indexer",
+    },
+  ];
 }
 
 function makeBranchSearchSummary(searchId: string): BranchSearchSummary {

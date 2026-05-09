@@ -980,7 +980,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1552: Build Repository Intelligence Dashboard Console
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1551`
 - Goal: give operators a focused dashboard surface for local repository
   intelligence

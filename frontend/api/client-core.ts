@@ -55,7 +55,8 @@ export type GlassboxApiClientOptions = {
   fetch?: FetchLike;
 };
 
-type QueryValue = string | number | boolean | null | undefined;
+type QueryPrimitive = string | number | boolean;
+type QueryValue = QueryPrimitive | QueryPrimitive[] | null | undefined;
 export type Query = Record<string, QueryValue>;
 
 export type JsonRequestOptions = RequestOptions & {
@@ -126,7 +127,11 @@ export function buildApiUrl(baseUrl: string | undefined, path: string, query?: Q
   const params = new URLSearchParams();
 
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        params.append(key, String(item));
+      }
+    } else if (value !== undefined && value !== null) {
       params.set(key, String(value));
     }
   }

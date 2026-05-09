@@ -41,6 +41,11 @@ describe("buildApiUrl", () => {
         status: null,
       }),
     ).toBe("http://127.0.0.1:8765/sessions/aggregate?limit=25&queue=approvals");
+    expect(
+      buildApiUrl(undefined, "/repo/intelligence/verification", {
+        paths: ["src/a.py", "tests/a_test.py"],
+      }),
+    ).toBe("/repo/intelligence/verification?paths=src%2Fa.py&paths=tests%2Fa_test.py");
   });
 });
 

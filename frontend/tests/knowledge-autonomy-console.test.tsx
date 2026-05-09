@@ -69,9 +69,13 @@ describe("knowledge autonomy console", () => {
     );
 
     expect(markup).toContain("Repository Index");
-    expect(markup).toContain('aria-label="Search repository index"');
+    expect(markup).toContain("Intelligence Status");
+    expect(markup).toContain('aria-label="Search repository intelligence"');
+    expect(markup).toContain("Repository path inspector");
+    expect(markup).toContain("Command Recipes");
+    expect(markup).toContain("Memory Facts");
     expect(markup).toContain("repository index has not been built");
-    expect(markup).toContain("Rebuild Index");
+    expect(markup).toContain("Refresh Intelligence");
     expect(markup).toContain("UsefulThing");
     expect(markup).toContain("src/sample.py");
     expect(markup).toContain("static_analysis");
@@ -94,8 +98,14 @@ const idleMemory: MemoryInspectorState = {
 };
 
 const idleRepository: RepositoryInspectorState = {
+  commandRecipes: [],
   error: null,
+  freshness: null,
   items: [],
+  memoryCandidates: [],
+  overview: null,
+  pathInspection: null,
+  pathQuery: "",
   query: "",
   rebuild: null,
   searchState: "idle",
@@ -103,6 +113,7 @@ const idleRepository: RepositoryInspectorState = {
   selectedEntryId: null,
   status: null,
   statusState: "idle",
+  verification: null,
 };
 
 function makeRepositoryStatus(overrides: Partial<RepositoryStatus> = {}): RepositoryStatus {
