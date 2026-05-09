@@ -12,6 +12,8 @@ from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.observability import build_background_job_observability
+from glassbox.runtime.observability import build_repository_intelligence_observability
+from glassbox.runtime.observability import build_workspace_memory_observability
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
@@ -86,6 +88,14 @@ def get_session_aggregate_response(
     response = build_session_aggregate_response(aggregate)
     response.provider_evidence = build_provider_evidence_summary_response(
         load_provider_canary_evidence(workspace_root)
+    )
+    memory = build_workspace_memory_observability(
+        context.repositories.sessions,
+        workspace_root=workspace_root,
+    )
+    response.repository_intelligence = build_repository_intelligence_observability(
+        workspace_root,
+        memory=memory,
     )
     response.knowledge_posture = build_workspace_knowledge_posture(
         workspace_root,

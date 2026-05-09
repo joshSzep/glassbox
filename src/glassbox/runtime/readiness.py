@@ -20,6 +20,9 @@ from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_rep
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.repository_index_status import (
+    build_repository_index_status_summary,
+)
 from glassbox.runtime.workspace_profile import load_workspace_profile
 from glassbox.runtime.workspace_profile import workspace_profile_path
 from glassbox.tools import DEFAULT_TOOL_POLICY_PATH
@@ -426,6 +429,7 @@ def _dashboard_static_assets_check(static_root: Path) -> FirstRunReadinessCheck:
 
 def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
     path = repository_index_path(workspace_root)
+    summary = build_repository_index_status_summary(workspace_root)
     try:
         snapshot = load_repository_index(workspace_root)
     except RepositoryIndexNotFoundError:
@@ -446,10 +450,20 @@ def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
             check_id="repository-index",
             title="Repository index posture",
             status="pass",
-            detail=f"Repository index is fresh with {len(snapshot.entries)} entries.",
+            detail=(
+                f"Repository index is fresh with {len(snapshot.entries)} entries, "
+                f"{summary.command_recipe_count} command recipe(s), "
+                f"{summary.release_surface_count} release surface(s), and "
+                f"{summary.memory_reference_count} memory reference(s)."
+            ),
             path=str(path),
         )
     status = "fail" if snapshot.status == "failed" else "warning"
+    warning_sources = [
+        cue.source
+        for cue in summary.freshness_cues
+        if cue.severity == "warning" or cue.state in {"stale", "degraded"}
+    ]
     next_actions = [
         "`glassbox repo index status --cwd .`",
         "`glassbox repo index build --cwd .`",
@@ -464,6 +478,11 @@ def _repository_index_check(workspace_root: Path) -> FirstRunReadinessCheck:
         detail=(
             f"Repository index is {snapshot.status.value}"
             + (f": {snapshot.failure_reason}" if snapshot.failure_reason else ".")
+            + (
+                f" Review freshness cues for {', '.join(warning_sources)}."
+                if warning_sources
+                else ""
+            )
         ),
         next_actions=next_actions,
         path=str(path),

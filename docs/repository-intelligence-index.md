@@ -196,6 +196,14 @@ out of prompt context by default, failed or missing snapshots should suggest
 explicit rebuild commands, and partial eval metadata should keep recommendations
 broad rather than failing unrelated work.
 
+`glassbox observability status --cwd .` now includes a repository-intelligence
+health row that aggregates index freshness, topology freshness, command recipe
+posture, memory conflict posture, eval metadata, release surfaces, and rebuild
+guidance. The same structured health payload is exposed on the dashboard session
+aggregate response so workspace overview clients can tell whether repository
+intelligence is fresh, stale, missing, degraded, conflicting, or only advisory
+before trusting recommendations.
+
 `glassbox repo index inspect --cwd .` returns the retained snapshot for
 operator inspection. Human output summarizes v2 counts for manifests, packages,
 roots, generated paths, policy-sensitive paths, command recipes, owner hints,

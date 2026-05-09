@@ -18,6 +18,7 @@ from glassbox.web.session_api_actions import ToolAttemptRecoveryResponse
 from glassbox.web.session_api_aggregate import OperatorSessionSummaryResponse
 from glassbox.web.session_api_aggregate import ProjectionHealthCountsAggregateResponse
 from glassbox.web.session_api_aggregate import ProviderEvidenceSummaryResponse
+from glassbox.web.session_api_aggregate import RepositoryIntelligenceObservability
 from glassbox.web.session_api_aggregate import SessionAggregateResponse
 from glassbox.web.session_api_aggregate import SessionQueueCountsResponse
 from glassbox.web.session_api_aggregate import WorkspaceRuntimeSummaryResponse
@@ -83,6 +84,7 @@ __all__ = [
     "ProjectionHealthCountsAggregateResponse",
     "ProjectionHealthResponse",
     "ProviderEvidenceSummaryResponse",
+    "RepositoryIntelligenceObservability",
     "ProviderRecoveryResponse",
     "RefreshContextCompactionRequest",
     "RefreshContextCompactionResponse",

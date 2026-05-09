@@ -16,6 +16,7 @@ from glassbox.runtime.observability_models import BranchSearchObservability
 from glassbox.runtime.observability_models import EventTransportObservability
 from glassbox.runtime.observability_models import ProjectionObservability
 from glassbox.runtime.observability_models import RepositoryIndexObservability
+from glassbox.runtime.observability_models import RepositoryIntelligenceObservability
 from glassbox.runtime.observability_models import RuntimeObservability
 from glassbox.runtime.observability_models import TaskAutonomyObservability
 from glassbox.runtime.observability_models import VerificationObservability
@@ -24,6 +25,9 @@ from glassbox.runtime.observability_models import WorkspaceObservabilityReport
 from glassbox.runtime.observability_projections import build_projection_observability
 from glassbox.runtime.observability_repository_index import (
     build_repository_index_observability,
+)
+from glassbox.runtime.observability_repository_intelligence import (
+    build_repository_intelligence_observability,
 )
 from glassbox.runtime.observability_runtime import build_event_transport_observability
 from glassbox.runtime.observability_runtime import build_runtime_observability
@@ -61,6 +65,10 @@ def build_workspace_observability_report(
         workspace_root=workspace_root,
     )
     repository_index = build_repository_index_observability(workspace_root)
+    repository_intelligence = build_repository_intelligence_observability(
+        workspace_root,
+        memory=memory,
+    )
     branch_searches = build_branch_search_observability(session_repository)
     artifacts = build_artifact_observability(workspace_root, session_repository)
     verification = build_verification_observability(workspace_root)
@@ -74,6 +82,7 @@ def build_workspace_observability_report(
             background_jobs,
             memory,
             repository_index,
+            repository_intelligence,
             branch_searches,
             artifacts,
             verification,
@@ -89,6 +98,7 @@ def build_workspace_observability_report(
         background_jobs=background_jobs,
         memory=memory,
         repository_index=repository_index,
+        repository_intelligence=repository_intelligence,
         branch_searches=branch_searches,
         artifacts=artifacts,
         verification=verification,
@@ -104,6 +114,7 @@ __all__ = [
     "EventTransportObservability",
     "ProjectionObservability",
     "RepositoryIndexObservability",
+    "RepositoryIntelligenceObservability",
     "RuntimeObservability",
     "TaskAutonomyObservability",
     "VerificationObservability",
@@ -115,6 +126,7 @@ __all__ = [
     "build_event_transport_observability",
     "build_projection_observability",
     "build_repository_index_observability",
+    "build_repository_intelligence_observability",
     "build_runtime_observability",
     "build_task_autonomy_observability",
     "build_verification_observability",

@@ -4533,6 +4533,36 @@ export interface components {
       state: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
     };
     /**
+     * RepositoryIntelligenceObservability
+     * @description Unified repository-intelligence health across derived local sources.
+     */
+    RepositoryIntelligenceObservability: {
+      /** Command Recipe Status */
+      command_recipe_status: string;
+      /** Cue Count */
+      cue_count: number;
+      /** Eval Metadata Status */
+      eval_metadata_status: string;
+      /** Freshness Cues */
+      freshness_cues?: components["schemas"]["RepositoryIntelligenceFreshnessCue"][];
+      /** Index Status */
+      index_status: string;
+      /** Memory Conflict Status */
+      memory_conflict_status: string;
+      /** Missing Count */
+      missing_count: number;
+      /** Next Actions */
+      next_actions?: string[];
+      /** Release Surface Status */
+      release_surface_status: string;
+      /** Status */
+      status: string;
+      /** Topology Status */
+      topology_status: string;
+      /** Warning Count */
+      warning_count: number;
+    };
+    /**
      * ResolveApprovalRequest
      * @description Request body for resolving a pending approval.
      */
@@ -4944,6 +4974,7 @@ export interface components {
       /** Queue */
       queue: string | null;
       queue_counts: components["schemas"]["SessionQueueCountsResponse"];
+      repository_intelligence?: components["schemas"]["RepositoryIntelligenceObservability"] | null;
       runtime: components["schemas"]["WorkspaceRuntimeSummaryResponse"];
       /** Sessions */
       sessions: components["schemas"]["OperatorSessionSummaryResponse"][];

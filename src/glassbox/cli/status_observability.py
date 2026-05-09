@@ -69,6 +69,16 @@ def print_observability_report(
     if report.repository_index.failure_reason is not None:
         print(f"Repository index failure: {report.repository_index.failure_reason}")
     print(
+        "Repository intelligence: "
+        f"{report.repository_intelligence.status}; "
+        f"index {report.repository_intelligence.index_status}, "
+        f"topology {report.repository_intelligence.topology_status}, "
+        f"recipes {report.repository_intelligence.command_recipe_status}, "
+        f"memory {report.repository_intelligence.memory_conflict_status}, "
+        f"eval metadata {report.repository_intelligence.eval_metadata_status}, "
+        f"release surfaces {report.repository_intelligence.release_surface_status}"
+    )
+    print(
         "Branch searches: "
         f"{report.branch_searches.active_count} active, "
         f"{report.branch_searches.completed_count} completed, "
@@ -134,6 +144,17 @@ def format_observability_safe_workflow_lines(
         lines.append(
             "  - Refresh index after status review: glassbox repo index build --cwd ."
         )
+    if report.repository_intelligence.topology_status in {
+        "missing",
+        "stale",
+        "degraded",
+    }:
+        lines.append(
+            "  - Refresh topology after status review: "
+            "glassbox repo topology build --cwd ."
+        )
+    if report.repository_intelligence.memory_conflict_status == "conflicting":
+        lines.append("  - Review memory conflicts: glassbox memory list --cwd .")
     if report.background_jobs.pending_count or report.background_jobs.failed_count:
         lines.append("  - Jobs: glassbox job list --cwd .")
     if report.tasks.latest_failed_task_id is not None:

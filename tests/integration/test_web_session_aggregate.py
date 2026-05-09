@@ -319,6 +319,10 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
             assert body["provider_evidence"]["next_actions"] == [
                 f"glassbox provider canary run --cwd {tmp_path}"
             ]
+            assert body["repository_intelligence"]["index_status"] == "missing"
+            assert body["repository_intelligence"]["topology_status"] == "missing"
+            assert body["repository_intelligence"]["command_recipe_status"] == "missing"
+            assert body["repository_intelligence"]["freshness_cues"]
             assert body["knowledge_posture"]["overall_status"] in {
                 "degraded",
                 "missing",

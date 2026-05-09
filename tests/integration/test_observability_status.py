@@ -107,6 +107,10 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert payload["background_jobs"]["abandoned_count"] == 0
     assert payload["memory"]["active_count"] == 0
     assert payload["repository_index"]["status"] == "missing"
+    assert payload["repository_intelligence"]["index_status"] == "missing"
+    assert payload["repository_intelligence"]["topology_status"] == "missing"
+    assert payload["repository_intelligence"]["command_recipe_status"] == "missing"
+    assert payload["repository_intelligence"]["next_actions"]
     assert payload["branch_searches"]["search_count"] == 0
     assert payload["artifacts"]["glassbox_size_bytes"] > 0
     assert payload["artifacts"]["protected_count"] >= 0
@@ -163,6 +167,7 @@ def test_observability_status_text_reports_next_actions(
     assert "0 failed, 0 retryable, 0 abandoned" in captured.out
     assert "Workspace memory:" in captured.out
     assert "Repository index:" in captured.out
+    assert "Repository intelligence:" in captured.out
     assert "Branch searches:" in captured.out
     assert "Artifacts:" in captured.out
     assert "Verification: not run" in captured.out
@@ -219,6 +224,8 @@ def test_observability_status_json_reports_v8_autonomy_recovery_posture(
     assert payload["memory"]["last_invalidated_memory_id"] == str(ids["memory_id"])
     assert payload["repository_index"]["status"] == "stale"
     assert payload["repository_index"]["entry_count"] > 0
+    assert payload["repository_intelligence"]["status"] in {"stale", "advisory"}
+    assert payload["repository_intelligence"]["index_status"] == "stale"
     assert payload["branch_searches"]["active_count"] == 1
     assert payload["branch_searches"]["needs_review_count"] == 1
     assert payload["branch_searches"]["failed_verification_count"] == 1

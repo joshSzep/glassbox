@@ -846,7 +846,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1541: Add Repository Intelligence Health And Observability Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1540`
 - Goal: make repository intelligence health visible in status, observability,
   readiness, API, and dashboard aggregate views

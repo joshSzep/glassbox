@@ -8380,6 +8380,80 @@
         "title": "RepositoryIntelligenceFreshnessCue",
         "type": "object"
       },
+      "RepositoryIntelligenceObservability": {
+        "additionalProperties": false,
+        "description": "Unified repository-intelligence health across derived local sources.",
+        "properties": {
+          "command_recipe_status": {
+            "title": "Command Recipe Status",
+            "type": "string"
+          },
+          "cue_count": {
+            "title": "Cue Count",
+            "type": "integer"
+          },
+          "eval_metadata_status": {
+            "title": "Eval Metadata Status",
+            "type": "string"
+          },
+          "freshness_cues": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceFreshnessCue"
+            },
+            "title": "Freshness Cues",
+            "type": "array"
+          },
+          "index_status": {
+            "title": "Index Status",
+            "type": "string"
+          },
+          "memory_conflict_status": {
+            "title": "Memory Conflict Status",
+            "type": "string"
+          },
+          "missing_count": {
+            "title": "Missing Count",
+            "type": "integer"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "release_surface_status": {
+            "title": "Release Surface Status",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "topology_status": {
+            "title": "Topology Status",
+            "type": "string"
+          },
+          "warning_count": {
+            "title": "Warning Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "index_status",
+          "topology_status",
+          "command_recipe_status",
+          "memory_conflict_status",
+          "eval_metadata_status",
+          "release_surface_status",
+          "cue_count",
+          "warning_count",
+          "missing_count"
+        ],
+        "title": "RepositoryIntelligenceObservability",
+        "type": "object"
+      },
       "ResolveApprovalRequest": {
         "description": "Request body for resolving a pending approval.",
         "properties": {
@@ -9685,6 +9759,16 @@
           },
           "queue_counts": {
             "$ref": "#/components/schemas/SessionQueueCountsResponse"
+          },
+          "repository_intelligence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepositoryIntelligenceObservability"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "runtime": {
             "$ref": "#/components/schemas/WorkspaceRuntimeSummaryResponse"

@@ -31,6 +31,8 @@ def test_first_run_readiness_reports_healthy_workspace(tmp_path: Path) -> None:
     assert _check_status(report, "provider-configuration") == "pass"
     assert _check_status(report, "dashboard-static-assets") == "pass"
     assert _check_status(report, "repository-index") == "pass"
+    assert "command recipe" in _check(report, "repository-index").detail
+    assert "release surface" in _check(report, "repository-index").detail
     assert _check_status(report, "eval-profile-availability") == "pass"
     assert _check_status(report, "package-build-posture") == "pass"
     profile_check = _check(report, "workspace-profile-defaults")

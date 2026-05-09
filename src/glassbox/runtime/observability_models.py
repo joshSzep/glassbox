@@ -5,6 +5,9 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
+from glassbox.runtime.repository_intelligence_freshness import (
+    RepositoryIntelligenceFreshnessCue,
+)
 
 
 class EventTransportObservability(BaseModel):
@@ -153,6 +156,27 @@ class RepositoryIndexObservability(BaseModel):
     next_actions: list[str] = Field(default_factory=list)
 
 
+class RepositoryIntelligenceObservability(BaseModel):
+    """Unified repository-intelligence health across derived local sources."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: str
+    index_status: str
+    topology_status: str
+    command_recipe_status: str
+    memory_conflict_status: str
+    eval_metadata_status: str
+    release_surface_status: str
+    cue_count: int
+    warning_count: int
+    missing_count: int
+    freshness_cues: list[RepositoryIntelligenceFreshnessCue] = Field(
+        default_factory=list
+    )
+    next_actions: list[str] = Field(default_factory=list)
+
+
 class BranchSearchObservability(BaseModel):
     """Branch-search queue and candidate review posture."""
 
@@ -182,6 +206,7 @@ class WorkspaceObservabilityReport(BaseModel):
     background_jobs: BackgroundJobObservability
     memory: WorkspaceMemoryObservability
     repository_index: RepositoryIndexObservability
+    repository_intelligence: RepositoryIntelligenceObservability
     branch_searches: BranchSearchObservability
     artifacts: ArtifactObservability
     verification: VerificationObservability
@@ -196,6 +221,7 @@ __all__ = [
     "EventTransportObservability",
     "ProjectionObservability",
     "RepositoryIndexObservability",
+    "RepositoryIntelligenceObservability",
     "RuntimeObservability",
     "TaskAutonomyObservability",
     "VerificationObservability",
