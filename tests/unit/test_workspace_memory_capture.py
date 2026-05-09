@@ -42,8 +42,11 @@ from glassbox.core import VerificationFailureCategory
 from glassbox.core import VerificationFailureDigest
 from glassbox.core import VerificationPlanEntry
 from glassbox.core import VerificationPlanSource
+from glassbox.core import WorkspaceMemoryEntry
 from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemoryProvenance
 from glassbox.core import WorkspaceMemorySourceType
+from glassbox.core import WorkspaceMemoryState
 from glassbox.core import new_artifact_id
 from glassbox.core import new_context_compaction_id
 from glassbox.core import new_session_id
@@ -52,10 +55,12 @@ from glassbox.core import new_task_id
 from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.core import new_workspace_memory_id
 from glassbox.runtime.repository_index_persistence import write_repository_index
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_capture import ModelMemorySuggestion
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
+from glassbox.runtime.workspace_memory_conflicts import workspace_memory_conflicts
 
 
 def test_automatic_extraction_suppresses_dedupes_expires_and_redacts() -> None:
@@ -431,6 +436,76 @@ def test_stale_repository_intelligence_does_not_generate_memory_candidates(
     assert all(
         "repository-intelligence" not in candidate.tags for candidate in candidates
     )
+
+
+def test_workspace_memory_conflict_detection_names_repo_drift(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    confirmed_at = datetime(2026, 4, 29, 12, tzinfo=UTC)
+    manifest = tmp_path / "pyproject.toml"
+    manifest.write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+    snapshot = RepositoryIndexSnapshot(
+        schema_version=2,
+        workspace_root=tmp_path,
+        status=RepositoryIndexFreshness.FRESH,
+        built_at=confirmed_at,
+        builder_version="test-builder",
+        command_recipes=[
+            RepositoryIntelligenceCommandRecipe(
+                recipe_id="recipe:current-tests",
+                name="current tests",
+                command="uv run pytest tests/unit/test_current_surface.py",
+                purpose=CommandPurpose.TEST,
+                confidence=RepositoryIntelligenceConfidence.HIGH,
+                provenance=[_repository_provenance(Path("pyproject.toml"))],
+            )
+        ],
+    )
+    write_repository_index(tmp_path, snapshot)
+    entries = [
+        WorkspaceMemoryEntry(
+            memory_id=new_workspace_memory_id(),
+            session_id=session_id,
+            kind=WorkspaceMemoryKind.FACT,
+            state=WorkspaceMemoryState.ACTIVE,
+            content="Repository fact mentions src/renamed_module.py.",
+            summary="Old path fact",
+            provenance=WorkspaceMemoryProvenance(
+                source_type=WorkspaceMemorySourceType.OPERATOR,
+                source_label="operator note",
+            ),
+            created_at=confirmed_at,
+            updated_at=confirmed_at,
+            confirmed_by="operator",
+            confirmed_at=confirmed_at,
+            last_sequence=1,
+        ),
+        WorkspaceMemoryEntry(
+            memory_id=new_workspace_memory_id(),
+            session_id=session_id,
+            kind=WorkspaceMemoryKind.COMMAND,
+            state=WorkspaceMemoryState.ACTIVE,
+            content="uv run pytest tests/unit/test_old_surface.py",
+            summary="Old test command",
+            provenance=WorkspaceMemoryProvenance(
+                source_type=WorkspaceMemorySourceType.OPERATOR,
+                source_label="operator note",
+            ),
+            created_at=confirmed_at,
+            updated_at=confirmed_at,
+            confirmed_by="operator",
+            confirmed_at=confirmed_at,
+            last_sequence=2,
+        ),
+    ]
+
+    conflicts = workspace_memory_conflicts(tmp_path, entries)
+
+    reasons = {conflict.reason for conflict in conflicts}
+    assert {"missing_path", "unmatched_command_recipe"} <= reasons
+    assert all(conflict.safe_next_actions for conflict in conflicts)
+    assert all("memory" in conflict.safe_next_actions[0] for conflict in conflicts)
 
 
 def _runtime_note(

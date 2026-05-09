@@ -38,7 +38,13 @@ def build_knowledge_cues_from_sources(
 
 def _memory_cue(sources: KnowledgePostureSources) -> KnowledgePostureCue:
     memory = sources.memory
-    if memory.stale_count:
+    if memory.conflict_count:
+        status: KnowledgePostureStatus = "stale"
+        summary = (
+            f"{memory.conflict_count} active memory entrie(s) conflict with "
+            "current repository intelligence."
+        )
+    elif memory.stale_count:
         status: KnowledgePostureStatus = "stale"
         summary = f"{memory.stale_count} stale memory entrie(s) need review."
     elif memory.invalidated_count and not memory.active_count:

@@ -791,7 +791,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1533: Add Memory Freshness And Conflict Detection For Repository Facts
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1532`
 - Goal: detect when remembered repository facts conflict with current
   repository structure, command outcomes, dependency manifests, or topology

@@ -132,6 +132,20 @@ roots, topology, command evidence, dependency metadata, or release-surface
 records, consumers should lower confidence, name the conflict, and suggest
 inspection or memory review instead of silently trusting the remembered fact.
 
+Glassbox detects repository-memory conflicts as advisory review cues rather
+than automatic invalidations. Current heuristics look for confirmed active
+memory that cites missing paths, manifests changed after confirmation,
+remembered commands no longer present in repository command recipes,
+generated-output paths no longer present in the current repository intelligence
+snapshot, or release-surface notes that no longer match release-sensitive paths.
+These cues appear in memory and knowledge-posture observability with safe next
+actions such as `glassbox memory show MEMORY_ID --cwd .`,
+`glassbox repo index status --cwd . --json`, and an explicit
+`glassbox memory invalidate MEMORY_ID --reason 'repository conflict reviewed'`
+after operator review. Conflicted memory remains inspectable, but default turn
+context excludes it so stale remembered repository facts do not silently shape
+model prompts.
+
 Model-assisted suggestions, command-derived candidates, topology-derived
 candidates, release-outcome candidates, and failure-pattern candidates remain
 review-only until confirmed through the workspace memory flow. Repository

@@ -132,6 +132,8 @@ class WorkspaceMemoryObservability(BaseModel):
     invalidated_count: int
     pruned_count: int
     redacted_count: int
+    conflict_count: int = 0
+    conflicted_memory_ids: list[str] = Field(default_factory=list)
     last_invalidated_memory_id: str | None = None
     next_actions: list[str] = Field(default_factory=list)
 

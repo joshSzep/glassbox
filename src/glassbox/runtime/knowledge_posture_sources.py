@@ -57,7 +57,10 @@ def collect_workspace_knowledge_sources(
     checkpoints = _collect_checkpoints(session_repository, sessions)
     compactions = _collect_compactions(session_repository, sessions)
     return KnowledgePostureSources(
-        memory=build_workspace_memory_observability(session_repository),
+        memory=build_workspace_memory_observability(
+            session_repository,
+            workspace_root=workspace_root,
+        ),
         memory_entries=session_repository.list_workspace_memory(
             include_pruned=True,
             limit=5,

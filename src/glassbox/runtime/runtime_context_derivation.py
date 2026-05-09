@@ -45,7 +45,10 @@ def derive_runtime_context_snapshot(
         )
 
     workspace_memory, additional_workspace_memory_count, workspace_memory_bytes = (
-        build_workspace_memory_context_snapshot(session_repository)
+        build_workspace_memory_context_snapshot(
+            session_repository,
+            workspace_root=workspace_root,
+        )
     )
     session_state = session_repository.get_session_state(session_id)
     if session_state is not None and session_state.current_turn_id is not None:

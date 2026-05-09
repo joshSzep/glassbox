@@ -1196,6 +1196,54 @@ def test_memory_and_repository_index_context_snapshots_are_bounded(
     assert repository_index.additional_item_count == repository_index.entry_count - 2
 
 
+def test_workspace_memory_context_excludes_conflicting_memory_by_default(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    stable = _workspace_memory_entry(
+        session_id,
+        summary="Run backend tests with uv",
+        content="Use pytest for backend unit tests.",
+        source_sequence=2,
+    )
+    conflicting = _workspace_memory_entry(
+        session_id,
+        summary="Old source path",
+        content="The old source file src/renamed_module.py owns this behavior.",
+        source_sequence=3,
+    )
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            cwd=tmp_path,
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            last_sequence=4,
+        ),
+        [],
+        workspace_memory=[stable, conflicting],
+    )
+
+    memory_items, additional_memory, _memory_bytes = (
+        build_workspace_memory_context_snapshot(
+            repository,
+            workspace_root=tmp_path,
+        )
+    )
+
+    assert [item.memory_id for item in memory_items] == [stable.memory_id]
+    assert conflicting.memory_id not in {item.memory_id for item in memory_items}
+    assert additional_memory == 0
+
+
 def test_runtime_context_snapshot_includes_artifact_backed_summary() -> None:
     runtime_context = build_runtime_context_snapshot(
         Path("/tmp/glassbox"),

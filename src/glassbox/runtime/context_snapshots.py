@@ -30,6 +30,7 @@ from glassbox.runtime.context_models import WorkspaceMemoryContextProvenanceSnap
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.workspace_memory_conflicts import conflicted_memory_ids
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -145,6 +146,7 @@ def build_runtime_context_snapshot(
 def build_workspace_memory_context_snapshot(
     session_repository: SessionRepository,
     *,
+    workspace_root: Path | None = None,
     memory_limit: int = _DEFAULT_WORKSPACE_MEMORY_LIMIT,
     context_byte_limit: int = _DEFAULT_WORKSPACE_MEMORY_CONTEXT_BYTES,
 ) -> tuple[list[WorkspaceMemoryContextItemSnapshot], int, int]:
@@ -154,7 +156,16 @@ def build_workspace_memory_context_snapshot(
         state=WorkspaceMemoryState.ACTIVE,
         limit=memory_limit + 25,
     )
-    candidates = [row for row in rows if row.confirmed_at is not None]
+    conflicting_ids = (
+        conflicted_memory_ids(workspace_root, rows)
+        if workspace_root is not None
+        else set()
+    )
+    candidates = [
+        row
+        for row in rows
+        if row.confirmed_at is not None and row.memory_id not in conflicting_ids
+    ]
     selected: list[WorkspaceMemoryContextItemSnapshot] = []
     used_bytes = 0
     for row in candidates:

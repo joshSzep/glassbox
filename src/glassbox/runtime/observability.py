@@ -56,7 +56,10 @@ def build_workspace_observability_report(
     projections = build_projection_observability(session_repository)
     tasks = build_task_autonomy_observability(session_repository)
     background_jobs = build_background_job_observability(session_repository)
-    memory = build_workspace_memory_observability(session_repository)
+    memory = build_workspace_memory_observability(
+        session_repository,
+        workspace_root=workspace_root,
+    )
     repository_index = build_repository_index_observability(workspace_root)
     branch_searches = build_branch_search_observability(session_repository)
     artifacts = build_artifact_observability(workspace_root, session_repository)

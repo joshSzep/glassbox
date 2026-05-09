@@ -200,6 +200,41 @@ def test_knowledge_posture_ranks_degraded_above_stale_and_missing() -> None:
     assert "glassbox eval audit --cwd ." in posture.next_actions
 
 
+def test_knowledge_posture_surfaces_memory_conflict_cues() -> None:
+    posture = build_knowledge_posture_from_sources(
+        memory=WorkspaceMemoryObservability(
+            active_count=1,
+            stale_count=0,
+            imported_count=0,
+            invalidated_count=0,
+            pruned_count=0,
+            redacted_count=0,
+            conflict_count=1,
+            conflicted_memory_ids=["memory-1"],
+            next_actions=["glassbox memory show memory-1 --cwd ."],
+        ),
+        repository_index=RepositoryIndexObservability(
+            status="fresh",
+            path=".glassbox/repository-index.json",
+            entry_count=12,
+        ),
+        checkpoint_count=0,
+        compaction_count=0,
+        stale_compaction_count=0,
+        verification=VerificationObservability(summary_count=0),
+        provider_canary=ProviderCanaryEvidenceSummary(
+            summary_count=0,
+            latest_status="missing",
+            freshness_status="missing",
+        ),
+    )
+
+    cue = _cue(posture, "workspace-memory")
+    assert cue.status == "stale"
+    assert "conflict" in cue.summary
+    assert "glassbox memory show memory-1 --cwd ." in posture.next_actions
+
+
 def _cue_status(posture, key: str) -> str:
     return _cue(posture, key).status
 
