@@ -196,6 +196,16 @@
       "notes": "GBX-950 keeps this advisory. Repository-index prompt-source drift remains advisory because index freshness depends on local file state. Focused repository-index tests and rebuild smoke remain the stronger blocking evidence."
     },
     {
+      "capability_id": "repository_intelligence_context_drift",
+      "title": "Repository-intelligence context drift",
+      "kind": "product_behavior",
+      "criticality": "advisory",
+      "verification_stages": ["advisory"],
+      "expected_case_ids": ["repository-intelligence.context-drift"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1563 keeps this advisory until v15 release promotion. Repository-intelligence prompt-source drift depends on local snapshot freshness, excluded sources, and memory-derived context, so focused context/replay tests remain the stronger blocking evidence."
+    },
+    {
       "capability_id": "branch_search_candidate_comparison",
       "title": "Branch-search candidate comparison",
       "kind": "operator_workflow",

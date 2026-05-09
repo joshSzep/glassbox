@@ -54,7 +54,8 @@
                 "context_inheritance",
                 "context_drift_detection",
                 "artifact_backed_context",
-                "selected_invariant_contract"
+                "selected_invariant_contract",
+                "repository_intelligence_context_drift"
             ],
             "notes": "Runtime context changes should review inherited notes, working-set budgets, artifact-backed summaries, and selected-invariant replay drift."
         },
@@ -217,11 +218,13 @@
             "owners": ["runtime.memory", "runtime.repository-index"],
             "capabilities": [
                 "memory_context_drift",
-                "repository_index_context_drift"
+                "repository_index_context_drift",
+                "repository_intelligence_context_drift"
             ],
             "case_ids": [
                 "memory.context-drift",
-                "repository-index.context-drift"
+                "repository-index.context-drift",
+                "repository-intelligence.context-drift"
             ],
             "profile_ids": ["v8-autonomy-advisory"],
             "notes": "Workspace-memory and repository-index changes should pair the advisory replay context cases with focused freshness, provenance, invalidation, and rebuild tests."

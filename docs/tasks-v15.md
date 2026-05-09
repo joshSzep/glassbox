@@ -1146,7 +1146,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1563: Add Repository Intelligence Eval Fixtures
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1562`
 - Goal: promote stable repository intelligence behavior into deterministic
   eval coverage

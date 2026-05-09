@@ -1,0 +1,76 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Use repository intelligence context while planning"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves repository-intelligence context posture",
+        "turn_id": "00000000-0000-0000-0000-000000156307"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves repository-intelligence context posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000156307"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "RepositoryIndexBuilt",
+      "ContextSnapshotRecorded",
+      "UserMessageReceived",
+      "TurnStarted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "questions": [],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Use repository intelligence context while planning"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000015603",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "context_source": "repository_intelligence",
+        "fixture": "repository-intelligence.context-drift"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

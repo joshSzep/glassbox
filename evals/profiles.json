@@ -128,6 +128,24 @@
       }
     },
     {
+      "profile_id": "v15-repository-intelligence-advisory",
+      "title": "v15 repository intelligence advisory suite",
+      "description": "Non-blocking deterministic v15 repository intelligence coverage for prompt-source drift while release promotion remains pending.",
+      "verification_stage": "advisory",
+      "case_ids": ["repository-intelligence.context-drift"],
+      "blocking": false,
+      "budget": {
+        "max_selected_case_count": 3,
+        "max_selected_invariant_case_count": 0,
+        "max_recorded_model_call_count": 0,
+        "max_case_artifact_bytes": 200000,
+        "allow_unsupported_cases": false,
+        "allow_advisory_cases": true,
+        "promotion_policy": "Promote stable repository-intelligence cases into release-candidate only after their replay contracts cover fresh, stale, missing, and memory-derived context without local snapshot noise.",
+        "demotion_policy": "Keep repository-intelligence cases advisory when they depend on local freshness, manual dashboard evidence, or broad repository fixture state."
+      }
+    },
+    {
       "profile_id": "live-provider-canary",
       "title": "Live-provider canary scaffold",
       "description": "Non-blocking advisory scaffold for future live-provider comparison work kept outside deterministic release sign-off.",
