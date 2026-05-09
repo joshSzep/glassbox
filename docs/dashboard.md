@@ -121,6 +121,10 @@ candidate, rejected alternatives, retained rationale, verification and risk
 posture, accepted risks, and follow-up actions while stating that Glassbox did
 not merge, rebase, stage, commit, push, or open a PR.
 
+Fresh v15 advisory browser and accessibility-adjacent evidence for the
+repository intelligence console and changeset deep links is retained in
+[v15-repository-intelligence-evidence.md](./v15-repository-intelligence-evidence.md).
+
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
 Session summary and snapshot responses include a `long_run_status` read model
 derived from persisted events, latest checkpoints, recent durable tool-attempt

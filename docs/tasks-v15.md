@@ -1035,7 +1035,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1554: Add Repository Intelligence Accessibility And Browser Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1552`, `GBX-1553`
 - Goal: collect bounded advisory UX evidence for the repository intelligence
   console and changed changeset surfaces
