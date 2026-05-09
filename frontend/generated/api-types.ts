@@ -872,6 +872,206 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/repo/intelligence": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Intelligence Overview
+     * @description Return repository intelligence map data for dashboard inspection.
+     */
+    get: operations["get_repository_intelligence_overview_repo_intelligence_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/command-recipes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Repository Intelligence Command Recipes
+     * @description Return advisory command recipes with provenance and risk labels.
+     */
+    get: operations["list_repository_intelligence_command_recipes_repo_intelligence_command_recipes_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/command-recipes/{recipe_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Intelligence Command Recipe
+     * @description Return one advisory command recipe.
+     */
+    get: operations["get_repository_intelligence_command_recipe_repo_intelligence_command_recipes__recipe_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/freshness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Intelligence Freshness
+     * @description Return shared freshness, drift, and rebuild guidance.
+     */
+    get: operations["get_repository_intelligence_freshness_repo_intelligence_freshness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/memory-candidates": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Repository Intelligence Memory Candidates
+     * @description Return review-only memory candidates relevant to repository intelligence.
+     */
+    get: operations["list_repository_intelligence_memory_candidates_repo_intelligence_memory_candidates_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/paths/{path}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Inspect Repository Intelligence Path Route
+     * @description Return packages, subsystems, recipes, owners, and release hints for a path.
+     */
+    get: operations["inspect_repository_intelligence_path_route_repo_intelligence_paths__path__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/search": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Search Repository Intelligence
+     * @description Search repository intelligence entries with cursor pagination.
+     */
+    get: operations["search_repository_intelligence_repo_intelligence_search_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/subsystems": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Repository Intelligence Subsystems
+     * @description Return repository subsystem hints.
+     */
+    get: operations["list_repository_intelligence_subsystems_repo_intelligence_subsystems_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/subsystems/{subsystem_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Repository Intelligence Subsystem
+     * @description Return one subsystem with linked owner, release, and command hints.
+     */
+    get: operations["get_repository_intelligence_subsystem_repo_intelligence_subsystems__subsystem_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/repo/intelligence/verification": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Recommend Repository Intelligence Verification
+     * @description Return path-to-verification recommendations for changed paths.
+     */
+    get: operations["recommend_repository_intelligence_verification_repo_intelligence_verification_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/repo/topology": {
     parameters: {
       query?: never;
@@ -3441,6 +3641,324 @@ export interface components {
             [key: string]: unknown;
           };
     };
+    /**
+     * EvalCaseRecommendation
+     * @description Recommended replay/eval case for one change set.
+     */
+    EvalCaseRecommendation: {
+      /** Capabilities */
+      capabilities?: string[];
+      /** Case Id */
+      case_id: string;
+      confidence: components["schemas"]["EvalRecommendationConfidence"];
+      /** Matched Paths */
+      matched_paths?: string[];
+      /** Owner */
+      owner?: string | null;
+      /** Reasons */
+      reasons?: components["schemas"]["EvalRecommendationReason"][];
+      /** Safe Next Commands */
+      safe_next_commands?: string[];
+      /** Source Metadata */
+      source_metadata?: components["schemas"]["EvalRecommendationSourceMetadata"][];
+      /** Title */
+      title: string;
+      /** Verification Stages */
+      verification_stages?: string[];
+    };
+    /**
+     * EvalLongRunSurfaceRecommendation
+     * @description Long-running-task view of when recommended verification should run.
+     */
+    EvalLongRunSurfaceRecommendation: {
+      /**
+       * Impacted
+       * @default false
+       */
+      impacted: boolean;
+      /** Reasons */
+      reasons?: string[];
+      /** Recommended Case Ids */
+      recommended_case_ids?: string[];
+      /** Recommended Profile Ids */
+      recommended_profile_ids?: string[];
+      /** Suggested Commands */
+      suggested_commands?: string[];
+      surface: components["schemas"]["LongRunVerificationSurface"];
+    };
+    /**
+     * EvalProfileRecommendation
+     * @description Recommended eval profile for one change set.
+     */
+    EvalProfileRecommendation: {
+      /** Blocking */
+      blocking: boolean;
+      /** Budget Implications */
+      budget_implications?: string[];
+      confidence: components["schemas"]["EvalRecommendationConfidence"];
+      /** Matched Paths */
+      matched_paths?: string[];
+      /** Profile Id */
+      profile_id: string;
+      /** Reasons */
+      reasons?: components["schemas"]["EvalRecommendationReason"][];
+      /** Safe Next Commands */
+      safe_next_commands?: string[];
+      /** Source Metadata */
+      source_metadata?: components["schemas"]["EvalRecommendationSourceMetadata"][];
+      /** Title */
+      title: string;
+      track: components["schemas"]["EvalProfileTrack"];
+      /** Verification Stage */
+      verification_stage: string;
+    };
+    /** @enum {string} */
+    EvalProfileTrack: "deterministic" | "live-provider-canary";
+    /** @enum {string} */
+    EvalRecommendationConfidence:
+      | "direct"
+      | "owner-derived"
+      | "capability-derived"
+      | "stage-derived"
+      | "fallback";
+    /**
+     * EvalRecommendationReason
+     * @description One explanation for why a case or profile was recommended.
+     */
+    EvalRecommendationReason: {
+      /** Capability Id */
+      capability_id?: string | null;
+      confidence: components["schemas"]["EvalRecommendationConfidence"];
+      /** @default unknown */
+      freshness: components["schemas"]["PathVerificationFreshness"];
+      group: components["schemas"]["EvalRecommendationReasonGroupKind"];
+      /** Matched Path */
+      matched_path?: string | null;
+      /** Owner */
+      owner?: string | null;
+      /** Rule Id */
+      rule_id?: string | null;
+      source?: components["schemas"]["EvalRecommendationSourceKind"] | null;
+      /** Source Id */
+      source_id?: string | null;
+      /** Summary */
+      summary: string;
+      /** Verification Stage */
+      verification_stage?: string | null;
+    };
+    /**
+     * EvalRecommendationReasonGroup
+     * @description Grouped explanation rows for recommendation output.
+     */
+    EvalRecommendationReasonGroup: {
+      group: components["schemas"]["EvalRecommendationReasonGroupKind"];
+      /** Matched Paths */
+      matched_paths?: string[];
+      /** Recommended Case Ids */
+      recommended_case_ids?: string[];
+      /** Recommended Profile Ids */
+      recommended_profile_ids?: string[];
+      /** Release Gate Commands */
+      release_gate_commands?: string[];
+      /** Rule Ids */
+      rule_ids?: string[];
+      /** Summaries */
+      summaries?: string[];
+      /** Title */
+      title: string;
+    };
+    /** @enum {string} */
+    EvalRecommendationReasonGroupKind:
+      | "direct-path"
+      | "owner-derived-rule"
+      | "capability-derived-rule"
+      | "stage-derived-profile"
+      | "repository-intelligence"
+      | "release-gate-recommendation"
+      | "fallback-policy";
+    /**
+     * EvalRecommendationReport
+     * @description Structured replay/eval recommendation report for one change set.
+     */
+    EvalRecommendationReport: {
+      /** Cases */
+      cases?: components["schemas"]["EvalCaseRecommendation"][];
+      /** Cheapest Next Command */
+      cheapest_next_command?: string | null;
+      /**
+       * Coverage Audit Recommended
+       * @default false
+       */
+      coverage_audit_recommended: boolean;
+      /** Fallback Policy Commands */
+      fallback_policy_commands?: string[];
+      /** Long Run Surfaces */
+      long_run_surfaces?: components["schemas"]["EvalLongRunSurfaceRecommendation"][];
+      /** Matched Rule Ids */
+      matched_rule_ids?: string[];
+      /** Profiles */
+      profiles?: components["schemas"]["EvalProfileRecommendation"][];
+      /** Reason Groups */
+      reason_groups?: components["schemas"]["EvalRecommendationReasonGroup"][];
+      /** Recipes */
+      recipes?: components["schemas"]["EvalVerificationRecipeRecommendation"][];
+      /** Release Surfaces */
+      release_surfaces?: components["schemas"]["EvalReleaseSurfaceRecommendation"][];
+      /** Suggested Commands */
+      suggested_commands?: string[];
+      /** Test Targets */
+      test_targets?: components["schemas"]["EvalTestTargetRecommendation"][];
+      /** Touched Paths */
+      touched_paths?: string[];
+      /** Unmatched Paths */
+      unmatched_paths?: string[];
+      /** Warnings */
+      warnings?: string[];
+      /**
+       * Workspace Root
+       * Format: path
+       */
+      workspace_root: string;
+    };
+    /** @enum {string} */
+    EvalRecommendationSourceKind:
+      | "eval-impact"
+      | "eval-coverage"
+      | "eval-profile"
+      | "eval-case"
+      | "eval-recipe"
+      | "repository-intelligence-snapshot"
+      | "workspace-topology"
+      | "fallback-policy";
+    /**
+     * EvalRecommendationSourceMetadata
+     * @description Inspectable source metadata that shaped one recommendation row.
+     */
+    EvalRecommendationSourceMetadata: {
+      /** Explanation */
+      explanation: string;
+      /** @default unknown */
+      freshness: components["schemas"]["PathVerificationFreshness"];
+      /** Limitations */
+      limitations?: string[];
+      /** Matched Paths */
+      matched_paths?: string[];
+      source: components["schemas"]["EvalRecommendationSourceKind"];
+      /** Source Id */
+      source_id: string;
+      /** Source Path */
+      source_path?: string | null;
+    };
+    /**
+     * EvalReleaseSurfaceRecommendation
+     * @description Daily-development view of one release verification surface.
+     */
+    EvalReleaseSurfaceRecommendation: {
+      /** Blocking Profile Ids */
+      blocking_profile_ids?: string[];
+      /**
+       * Impacted
+       * @default false
+       */
+      impacted: boolean;
+      /** Impacted Capability Ids */
+      impacted_capability_ids?: string[];
+      /** Owner Ids */
+      owner_ids?: string[];
+      /** Profile Budget Notes */
+      profile_budget_notes?: string[];
+      /** Recommended Case Ids */
+      recommended_case_ids?: string[];
+      /** Recommended Profile Ids */
+      recommended_profile_ids?: string[];
+      /** Release Gate Commands */
+      release_gate_commands?: string[];
+      /** Release Gate Notes */
+      release_gate_notes?: string[];
+      verification_stage: components["schemas"]["EvalVerificationStage"];
+    };
+    /** @enum {string} */
+    EvalTestTargetConfidence:
+      | "direct"
+      | "topology-derived"
+      | "naming-derived"
+      | "package-derived"
+      | "recipe-derived"
+      | "fallback";
+    /**
+     * EvalTestTargetRecommendation
+     * @description Likely test target for one changed path set.
+     */
+    EvalTestTargetRecommendation: {
+      /** Command */
+      command?: string | null;
+      /** Component Ids */
+      component_ids?: string[];
+      confidence: components["schemas"]["EvalTestTargetConfidence"];
+      /** @default unknown */
+      freshness: components["schemas"]["PathVerificationFreshness"];
+      /** Limitations */
+      limitations?: string[];
+      /** Matched Paths */
+      matched_paths?: string[];
+      /** Package Ids */
+      package_ids?: string[];
+      /** Reasons */
+      reasons?: string[];
+      source: components["schemas"]["EvalTestTargetSource"];
+      /** Target Id */
+      target_id: string;
+      /** Target Paths */
+      target_paths?: string[];
+      /** Title */
+      title: string;
+    };
+    /** @enum {string} */
+    EvalTestTargetSource:
+      | "repository-intelligence"
+      | "topology"
+      | "naming"
+      | "package"
+      | "recipe"
+      | "fallback";
+    /** @enum {string} */
+    EvalVerificationRecipeConfidence: "direct" | "topology" | "degraded";
+    /**
+     * EvalVerificationRecipeRecommendation
+     * @description Recommended verification recipe for one change set.
+     */
+    EvalVerificationRecipeRecommendation: {
+      /** Case Ids */
+      case_ids?: string[];
+      /** Commands */
+      commands?: string[];
+      /** Component Ids */
+      component_ids?: string[];
+      /** @default direct */
+      confidence: components["schemas"]["EvalVerificationRecipeConfidence"];
+      /** @default unknown */
+      freshness: components["schemas"]["PathVerificationFreshness"];
+      /** Limitations */
+      limitations?: string[];
+      /** Matched Paths */
+      matched_paths?: string[];
+      /** Notes */
+      notes?: string | null;
+      /** Profile Ids */
+      profile_ids?: string[];
+      /** Recipe Id */
+      recipe_id: string;
+      /** Safe Next Commands */
+      safe_next_commands?: string[];
+      /** @default recipe */
+      source: components["schemas"]["EvalVerificationRecipeSource"];
+      /** Title */
+      title: string;
+    };
+    /** @enum {string} */
+    EvalVerificationRecipeSource: "recipe" | "topology" | "repository-intelligence";
+    /** @enum {string} */
+    EvalVerificationStage: "commit-time" | "push-time" | "release-candidate" | "advisory";
     /** EventLogEntryResponse */
     EventLogEntryResponse: {
       /**
@@ -3742,6 +4260,13 @@ export interface components {
       /** Stuck Reason */
       stuck_reason?: string | null;
     };
+    /** @enum {string} */
+    LongRunVerificationSurface:
+      | "immediate"
+      | "checkpoint"
+      | "pre-resume"
+      | "pre-merge"
+      | "release-candidate";
     /** ManualEvidenceActionResponse */
     ManualEvidenceActionResponse: {
       /** Artifact Id */
@@ -3971,6 +4496,8 @@ export interface components {
       /** Returned Count */
       returned_count: number;
     };
+    /** @enum {string} */
+    PathVerificationFreshness: "fresh" | "stale" | "missing" | "degraded" | "unknown";
     /**
      * PauseWindowPolicy
      * @description Local pause-window boundaries for long-running task work.
@@ -4490,6 +5017,43 @@ export interface components {
        */
       test_root_count: number;
     };
+    /** RepositoryIntelligenceCommandRecipeDetailResponse */
+    RepositoryIntelligenceCommandRecipeDetailResponse: {
+      recipe: components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"];
+    };
+    /** RepositoryIntelligenceCommandRecipeListPageResponse */
+    RepositoryIntelligenceCommandRecipeListPageResponse: {
+      /** Items */
+      items: components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+    };
+    /** RepositoryIntelligenceCommandRecipeResponse */
+    RepositoryIntelligenceCommandRecipeResponse: {
+      /** Command */
+      command: string;
+      /** Confidence */
+      confidence: string;
+      /** Limitations */
+      limitations: string[];
+      /** Name */
+      name: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Purpose */
+      purpose: string;
+      /** Recipe Id */
+      recipe_id: string;
+      /** Review Relevance */
+      review_relevance: string;
+      /** Risk */
+      risk: string;
+      /** Scope Paths */
+      scope_paths: string[];
+      /** Timeout Seconds */
+      timeout_seconds?: number | null;
+      /** Toolchain */
+      toolchain?: string | null;
+    };
     /**
      * RepositoryIntelligenceFreshnessCue
      * @description Operator-facing state, reason, and remediation for one intelligence input.
@@ -4532,6 +5096,52 @@ export interface components {
        */
       state: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
     };
+    /** RepositoryIntelligenceFreshnessResponse */
+    RepositoryIntelligenceFreshnessResponse: {
+      /** Cues */
+      cues?: components["schemas"]["RepositoryIntelligenceFreshnessCue"][];
+      index: components["schemas"]["RepositoryIndexStatusResponse"];
+      /** Next Actions */
+      next_actions?: string[];
+      topology?: components["schemas"]["WorkspaceTopologyStatusResponse"] | null;
+    };
+    /** RepositoryIntelligenceMemoryCandidateListPageResponse */
+    RepositoryIntelligenceMemoryCandidateListPageResponse: {
+      /** Items */
+      items: components["schemas"]["WorkspaceMemoryCandidateResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Session Id */
+      session_id: string;
+    };
+    /** RepositoryIntelligenceMemoryReferenceResponse */
+    RepositoryIntelligenceMemoryReferenceResponse: {
+      /** Confidence */
+      confidence: string;
+      /** Confirmed At */
+      confirmed_at?: string | null;
+      /** Confirmed By */
+      confirmed_by?: string | null;
+      /** Kind */
+      kind: string;
+      /** Limitations */
+      limitations: string[];
+      /** Memory Id */
+      memory_id: string;
+      /** Provenance */
+      provenance: {
+        [key: string]: unknown;
+      };
+      /** Redacted */
+      redacted: boolean;
+      /** Reference Id */
+      reference_id: string;
+      /** Source Label */
+      source_label?: string | null;
+      /** Summary */
+      summary: string;
+      /** Tags */
+      tags: string[];
+    };
     /**
      * RepositoryIntelligenceObservability
      * @description Unified repository-intelligence health across derived local sources.
@@ -4561,6 +5171,212 @@ export interface components {
       topology_status: string;
       /** Warning Count */
       warning_count: number;
+    };
+    /** RepositoryIntelligenceOverviewResponse */
+    RepositoryIntelligenceOverviewResponse: {
+      /** Doc Roots */
+      doc_roots: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      /** Generated Paths */
+      generated_paths: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      index: components["schemas"]["RepositoryIndexStatusResponse"];
+      /** Limitations */
+      limitations: string[];
+      /** Memory References */
+      memory_references: components["schemas"]["RepositoryIntelligenceMemoryReferenceResponse"][];
+      /** Package Boundaries */
+      package_boundaries: components["schemas"]["RepositoryIntelligencePackageBoundaryResponse"][];
+      /** Policy Sensitive Paths */
+      policy_sensitive_paths: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      /** Release Surfaces */
+      release_surfaces: components["schemas"]["RepositoryIntelligenceReleaseSurfaceResponse"][];
+      /** Source Manifests */
+      source_manifests: components["schemas"]["RepositoryIntelligenceSourceManifestResponse"][];
+      /** Source Roots */
+      source_roots: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      /** Subsystems */
+      subsystems: components["schemas"]["RepositoryIntelligenceSubsystemResponse"][];
+      /** Test Roots */
+      test_roots: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      topology?: components["schemas"]["WorkspaceTopologyStatusResponse"] | null;
+    };
+    /** RepositoryIntelligenceOwnershipHintResponse */
+    RepositoryIntelligenceOwnershipHintResponse: {
+      /** Confidence */
+      confidence: string;
+      /** Hint Id */
+      hint_id: string;
+      /** Limitations */
+      limitations: string[];
+      /** Owner Label */
+      owner_label: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Scope Paths */
+      scope_paths: string[];
+      /** Subsystem */
+      subsystem?: string | null;
+    };
+    /** RepositoryIntelligencePackageBoundaryResponse */
+    RepositoryIntelligencePackageBoundaryResponse: {
+      /** Confidence */
+      confidence: string;
+      /** Doc Roots */
+      doc_roots: string[];
+      /** Generated Paths */
+      generated_paths: string[];
+      /** Kind */
+      kind: string;
+      /** Limitations */
+      limitations: string[];
+      /** Manifest Paths */
+      manifest_paths: string[];
+      /** Name */
+      name: string;
+      /** Package Id */
+      package_id: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Root */
+      root: string;
+      /** Source Roots */
+      source_roots: string[];
+      /** Test Roots */
+      test_roots: string[];
+    };
+    /** RepositoryIntelligencePathHintResponse */
+    RepositoryIntelligencePathHintResponse: {
+      /** Confidence */
+      confidence: string;
+      /** Hint Id */
+      hint_id: string;
+      /** Kind */
+      kind: string;
+      /** Language */
+      language?: string | null;
+      /** Limitations */
+      limitations: string[];
+      /** Package Id */
+      package_id?: string | null;
+      /** Path */
+      path: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+    };
+    /** RepositoryIntelligencePathInspectionResponse */
+    RepositoryIntelligencePathInspectionResponse: {
+      /** Command Recipes */
+      command_recipes: components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"][];
+      /** Next Actions */
+      next_actions: string[];
+      /** Ownership Hints */
+      ownership_hints: components["schemas"]["RepositoryIntelligenceOwnershipHintResponse"][];
+      /** Packages */
+      packages: components["schemas"]["RepositoryIntelligencePackageBoundaryResponse"][];
+      /** Path */
+      path: string;
+      /** Path Hints */
+      path_hints: components["schemas"]["RepositoryIntelligencePathHintResponse"][];
+      /** Release Surfaces */
+      release_surfaces: components["schemas"]["RepositoryIntelligenceReleaseSurfaceResponse"][];
+      /** Snapshot Status */
+      snapshot_status: string;
+      /** Subsystems */
+      subsystems: components["schemas"]["RepositoryIntelligenceSubsystemResponse"][];
+    };
+    /** RepositoryIntelligenceReleaseSurfaceResponse */
+    RepositoryIntelligenceReleaseSurfaceResponse: {
+      /** Command Recipe Ids */
+      command_recipe_ids: string[];
+      /** Confidence */
+      confidence: string;
+      /** Kind */
+      kind: string;
+      /** Limitations */
+      limitations: string[];
+      /** Name */
+      name: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Scope Paths */
+      scope_paths: string[];
+      /** Surface Id */
+      surface_id: string;
+    };
+    /** RepositoryIntelligenceSearchPageResponse */
+    RepositoryIntelligenceSearchPageResponse: {
+      /** Items */
+      items: components["schemas"]["RepositoryIndexEntryResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+      /** Query */
+      query: string;
+    };
+    /** RepositoryIntelligenceSourceManifestResponse */
+    RepositoryIntelligenceSourceManifestResponse: {
+      /** Digest */
+      digest?: string | null;
+      /** Limitations */
+      limitations: string[];
+      /** Manifest Id */
+      manifest_id: string;
+      /** Path */
+      path: string;
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Role */
+      role: string;
+      /** Source Type */
+      source_type: string;
+    };
+    /** RepositoryIntelligenceSubsystemDetailResponse */
+    RepositoryIntelligenceSubsystemDetailResponse: {
+      /** Command Recipes */
+      command_recipes: components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"][];
+      /** Ownership Hints */
+      ownership_hints: components["schemas"]["RepositoryIntelligenceOwnershipHintResponse"][];
+      /** Release Surfaces */
+      release_surfaces: components["schemas"]["RepositoryIntelligenceReleaseSurfaceResponse"][];
+      subsystem: components["schemas"]["RepositoryIntelligenceSubsystemResponse"];
+    };
+    /** RepositoryIntelligenceSubsystemListPageResponse */
+    RepositoryIntelligenceSubsystemListPageResponse: {
+      /** Items */
+      items: components["schemas"]["RepositoryIntelligenceSubsystemResponse"][];
+      page: components["schemas"]["PageInfoResponse"];
+    };
+    /** RepositoryIntelligenceSubsystemResponse */
+    RepositoryIntelligenceSubsystemResponse: {
+      /** Confidence */
+      confidence: string;
+      /** Limitations */
+      limitations: string[];
+      /** Name */
+      name: string;
+      /** Owner Hint Ids */
+      owner_hint_ids: string[];
+      /** Package Ids */
+      package_ids: string[];
+      /** Provenance */
+      provenance: components["schemas"]["RepositoryIndexProvenanceResponse"][];
+      /** Release Surface Ids */
+      release_surface_ids: string[];
+      /** Scope Paths */
+      scope_paths: string[];
+      /** Subsystem Id */
+      subsystem_id: string;
+      /** Tags */
+      tags: string[];
+    };
+    /** RepositoryIntelligenceVerificationRecommendationResponse */
+    RepositoryIntelligenceVerificationRecommendationResponse: {
+      /** Detail */
+      detail?: string | null;
+      /** Next Actions */
+      next_actions?: string[];
+      /** Paths */
+      paths: string[];
+      report?: components["schemas"]["EvalRecommendationReport"] | null;
+      /** Status */
+      status: string;
     };
     /**
      * ResolveApprovalRequest
@@ -8217,6 +9033,302 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RepositoryIndexStatusResponse"];
+        };
+      };
+    };
+  };
+  get_repository_intelligence_overview_repo_intelligence_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceOverviewResponse"];
+        };
+      };
+    };
+  };
+  list_repository_intelligence_command_recipes_repo_intelligence_command_recipes_get: {
+    parameters: {
+      query?: {
+        query?: string | null;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceCommandRecipeListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_repository_intelligence_command_recipe_repo_intelligence_command_recipes__recipe_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        recipe_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceCommandRecipeDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_repository_intelligence_freshness_repo_intelligence_freshness_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceFreshnessResponse"];
+        };
+      };
+    };
+  };
+  list_repository_intelligence_memory_candidates_repo_intelligence_memory_candidates_get: {
+    parameters: {
+      query: {
+        session_id: string;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceMemoryCandidateListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inspect_repository_intelligence_path_route_repo_intelligence_paths__path__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        path: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligencePathInspectionResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  search_repository_intelligence_repo_intelligence_search_get: {
+    parameters: {
+      query: {
+        query: string;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceSearchPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_repository_intelligence_subsystems_repo_intelligence_subsystems_get: {
+    parameters: {
+      query?: {
+        query?: string | null;
+        cursor?: number;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceSubsystemListPageResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_repository_intelligence_subsystem_repo_intelligence_subsystems__subsystem_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        subsystem_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceSubsystemDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  recommend_repository_intelligence_verification_repo_intelligence_verification_get: {
+    parameters: {
+      query: {
+        paths: string[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RepositoryIntelligenceVerificationRecommendationResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
         };
       };
     };

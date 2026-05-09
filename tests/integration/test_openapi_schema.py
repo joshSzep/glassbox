@@ -55,6 +55,16 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/repo/index/status" in paths
     assert "/repo/index/search" in paths
     assert "/repo/index/entries/{entry_id}" in paths
+    assert "/repo/intelligence" in paths
+    assert "/repo/intelligence/freshness" in paths
+    assert "/repo/intelligence/paths/{path}" in paths
+    assert "/repo/intelligence/command-recipes" in paths
+    assert "/repo/intelligence/command-recipes/{recipe_id}" in paths
+    assert "/repo/intelligence/subsystems" in paths
+    assert "/repo/intelligence/subsystems/{subsystem_id}" in paths
+    assert "/repo/intelligence/verification" in paths
+    assert "/repo/intelligence/memory-candidates" in paths
+    assert "/repo/intelligence/search" in paths
 
     assert "HealthResponse" in components
     assert "SessionAggregateResponse" in components
@@ -88,6 +98,11 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "RepositoryIndexStatusResponse" in components
     assert "RepositoryIndexSearchPageResponse" in components
     assert "RepositoryIndexEntryDetailResponse" in components
+    assert "RepositoryIntelligenceOverviewResponse" in components
+    assert "RepositoryIntelligencePathInspectionResponse" in components
+    assert "RepositoryIntelligenceCommandRecipeListPageResponse" in components
+    assert "RepositoryIntelligenceSubsystemDetailResponse" in components
+    assert "RepositoryIntelligenceVerificationRecommendationResponse" in components
     assert "RepositoryIndexContextSnapshot" in components
     assert "WorkspaceMemoryContextItemSnapshot" in components
     assert "ErrorDetailResponse" in components

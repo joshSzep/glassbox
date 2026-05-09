@@ -954,7 +954,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1551: Add Repository Intelligence API And Generated Types
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1550`
 - Goal: expose repository intelligence through typed web APIs without forcing
   the frontend to derive meaning from raw artifacts

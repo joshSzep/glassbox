@@ -6,8 +6,13 @@ from pathlib import Path
 
 import httpx
 
+from glassbox.core import EventEnvelope
+from glassbox.core import SessionStarted
+from glassbox.core import new_session_id
 from glassbox.runtime.bootstrap import _build_runtime_context  # noqa: PLC2701
 from glassbox.runtime.repository_index import build_and_write_repository_index
+from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
+from glassbox.store import SQLiteSessionRepository
 from glassbox.store.sqlite import initialize_database
 from glassbox.store.sqlite import open_database
 from glassbox.web import create_app
@@ -115,10 +120,94 @@ def test_repository_index_route_rebuilds_snapshot(tmp_path: Path) -> None:
     asyncio.run(scenario())
 
 
+def test_repository_intelligence_routes_return_typed_dashboard_data(
+    tmp_path: Path,
+) -> None:
+    async def scenario() -> None:
+        _seed_repository(tmp_path)
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+            build_and_write_repository_index(tmp_path)
+            build_and_write_workspace_topology(tmp_path)
+            session_id = new_session_id()
+            SQLiteSessionRepository(connection).append_event(
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=SessionStarted(
+                        cwd=str(tmp_path),
+                        model_name="openai:gpt-5.4",
+                        approval_mode="confirm",
+                    ),
+                )
+            )
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                overview_response = await client.get("/repo/intelligence")
+                freshness_response = await client.get("/repo/intelligence/freshness")
+                path_response = await client.get(
+                    "/repo/intelligence/paths/src/sample.py"
+                )
+                recipes_response = await client.get(
+                    "/repo/intelligence/command-recipes",
+                    params={"query": "frontend", "limit": 1},
+                )
+                subsystem_response = await client.get(
+                    "/repo/intelligence/subsystems/subsystem:frontend"
+                )
+                verification_response = await client.get(
+                    "/repo/intelligence/verification",
+                    params={"paths": "src/sample.py"},
+                )
+                candidates_response = await client.get(
+                    "/repo/intelligence/memory-candidates",
+                    params={"session_id": str(session_id), "limit": 5},
+                )
+                search_response = await client.get(
+                    "/repo/intelligence/search",
+                    params={"query": "UsefulThing", "limit": 1},
+                )
+
+            assert overview_response.status_code == 200
+            overview = overview_response.json()
+            assert overview["index"]["status"] in {"fresh", "stale"}
+            assert overview["topology"]["freshness"] in {"fresh", "stale"}
+            assert any(
+                recipe["command"] == "npm --prefix frontend run test"
+                for recipe in recipes_response.json()["items"]
+            )
+            assert freshness_response.status_code == 200
+            assert freshness_response.json()["cues"][0]["source"] == "repository-index"
+            assert path_response.status_code == 200
+            assert path_response.json()["path"] == "src/sample.py"
+            assert (
+                path_response.json()["packages"][0]["package_id"] == "package:fixture"
+            )
+            assert subsystem_response.status_code == 200
+            assert (
+                subsystem_response.json()["subsystem"]["subsystem_id"]
+                == "subsystem:frontend"
+            )
+            assert verification_response.status_code == 200
+            assert verification_response.json()["status"] in {"ok", "unavailable"}
+            assert verification_response.json()["paths"] == ["src/sample.py"]
+            assert candidates_response.status_code == 200
+            assert candidates_response.json()["session_id"] == str(session_id)
+            assert search_response.status_code == 200
+            assert search_response.json()["items"][0]["symbol"] == "UsefulThing"
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def test_workspace_topology_routes_rebuild_status_and_detail(tmp_path: Path) -> None:
     async def scenario() -> None:
         _seed_repository(tmp_path)
-        (tmp_path / "frontend").mkdir()
         (tmp_path / "frontend" / "package.json").write_text(
             '{"name":"fixture-dashboard","dependencies":{"react":"latest"}}',
             encoding="utf-8",
@@ -173,6 +262,11 @@ def _seed_repository(root: Path) -> None:
     (root / "src").mkdir()
     (root / "src" / "sample.py").write_text(
         "class UsefulThing:\n    pass\n",
+        encoding="utf-8",
+    )
+    (root / "frontend").mkdir()
+    (root / "frontend" / "package.json").write_text(
+        '{"name":"fixture-dashboard","scripts":{"test":"vitest run"}}',
         encoding="utf-8",
     )
     (root / "pyproject.toml").write_text(

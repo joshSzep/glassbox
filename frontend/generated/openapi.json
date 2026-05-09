@@ -5286,6 +5286,826 @@
         "title": "ErrorDetailResponse",
         "type": "object"
       },
+      "EvalCaseRecommendation": {
+        "additionalProperties": false,
+        "description": "Recommended replay/eval case for one change set.",
+        "properties": {
+          "capabilities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Capabilities",
+            "type": "array"
+          },
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvalRecommendationConfidence"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/EvalRecommendationReason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "safe_next_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Commands",
+            "type": "array"
+          },
+          "source_metadata": {
+            "items": {
+              "$ref": "#/components/schemas/EvalRecommendationSourceMetadata"
+            },
+            "title": "Source Metadata",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "verification_stages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Verification Stages",
+            "type": "array"
+          }
+        },
+        "required": ["case_id", "title", "confidence"],
+        "title": "EvalCaseRecommendation",
+        "type": "object"
+      },
+      "EvalLongRunSurfaceRecommendation": {
+        "additionalProperties": false,
+        "description": "Long-running-task view of when recommended verification should run.",
+        "properties": {
+          "impacted": {
+            "default": false,
+            "title": "Impacted",
+            "type": "boolean"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "recommended_case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Case Ids",
+            "type": "array"
+          },
+          "recommended_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Profile Ids",
+            "type": "array"
+          },
+          "suggested_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Commands",
+            "type": "array"
+          },
+          "surface": {
+            "$ref": "#/components/schemas/LongRunVerificationSurface"
+          }
+        },
+        "required": ["surface"],
+        "title": "EvalLongRunSurfaceRecommendation",
+        "type": "object"
+      },
+      "EvalProfileRecommendation": {
+        "additionalProperties": false,
+        "description": "Recommended eval profile for one change set.",
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "budget_implications": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Budget Implications",
+            "type": "array"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvalRecommendationConfidence"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "profile_id": {
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/EvalRecommendationReason"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "safe_next_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Commands",
+            "type": "array"
+          },
+          "source_metadata": {
+            "items": {
+              "$ref": "#/components/schemas/EvalRecommendationSourceMetadata"
+            },
+            "title": "Source Metadata",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "track": {
+            "$ref": "#/components/schemas/EvalProfileTrack"
+          },
+          "verification_stage": {
+            "title": "Verification Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_id",
+          "title",
+          "confidence",
+          "verification_stage",
+          "track",
+          "blocking"
+        ],
+        "title": "EvalProfileRecommendation",
+        "type": "object"
+      },
+      "EvalProfileTrack": {
+        "enum": ["deterministic", "live-provider-canary"],
+        "type": "string"
+      },
+      "EvalRecommendationConfidence": {
+        "enum": ["direct", "owner-derived", "capability-derived", "stage-derived", "fallback"],
+        "type": "string"
+      },
+      "EvalRecommendationReason": {
+        "additionalProperties": false,
+        "description": "One explanation for why a case or profile was recommended.",
+        "properties": {
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capability Id"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvalRecommendationConfidence"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/PathVerificationFreshness",
+            "default": "unknown"
+          },
+          "group": {
+            "$ref": "#/components/schemas/EvalRecommendationReasonGroupKind"
+          },
+          "matched_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Matched Path"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvalRecommendationSourceKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "verification_stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Stage"
+          }
+        },
+        "required": ["confidence", "group", "summary"],
+        "title": "EvalRecommendationReason",
+        "type": "object"
+      },
+      "EvalRecommendationReasonGroup": {
+        "additionalProperties": false,
+        "description": "Grouped explanation rows for recommendation output.",
+        "properties": {
+          "group": {
+            "$ref": "#/components/schemas/EvalRecommendationReasonGroupKind"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "recommended_case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Case Ids",
+            "type": "array"
+          },
+          "recommended_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Profile Ids",
+            "type": "array"
+          },
+          "release_gate_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Gate Commands",
+            "type": "array"
+          },
+          "rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Rule Ids",
+            "type": "array"
+          },
+          "summaries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Summaries",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["group", "title"],
+        "title": "EvalRecommendationReasonGroup",
+        "type": "object"
+      },
+      "EvalRecommendationReasonGroupKind": {
+        "enum": [
+          "direct-path",
+          "owner-derived-rule",
+          "capability-derived-rule",
+          "stage-derived-profile",
+          "repository-intelligence",
+          "release-gate-recommendation",
+          "fallback-policy"
+        ],
+        "type": "string"
+      },
+      "EvalRecommendationReport": {
+        "additionalProperties": false,
+        "description": "Structured replay/eval recommendation report for one change set.",
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/EvalCaseRecommendation"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "cheapest_next_command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cheapest Next Command"
+          },
+          "coverage_audit_recommended": {
+            "default": false,
+            "title": "Coverage Audit Recommended",
+            "type": "boolean"
+          },
+          "fallback_policy_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Fallback Policy Commands",
+            "type": "array"
+          },
+          "long_run_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/EvalLongRunSurfaceRecommendation"
+            },
+            "title": "Long Run Surfaces",
+            "type": "array"
+          },
+          "matched_rule_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Rule Ids",
+            "type": "array"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/EvalProfileRecommendation"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "reason_groups": {
+            "items": {
+              "$ref": "#/components/schemas/EvalRecommendationReasonGroup"
+            },
+            "title": "Reason Groups",
+            "type": "array"
+          },
+          "recipes": {
+            "items": {
+              "$ref": "#/components/schemas/EvalVerificationRecipeRecommendation"
+            },
+            "title": "Recipes",
+            "type": "array"
+          },
+          "release_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/EvalReleaseSurfaceRecommendation"
+            },
+            "title": "Release Surfaces",
+            "type": "array"
+          },
+          "suggested_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggested Commands",
+            "type": "array"
+          },
+          "test_targets": {
+            "items": {
+              "$ref": "#/components/schemas/EvalTestTargetRecommendation"
+            },
+            "title": "Test Targets",
+            "type": "array"
+          },
+          "touched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Touched Paths",
+            "type": "array"
+          },
+          "unmatched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Unmatched Paths",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "workspace_root": {
+            "format": "path",
+            "title": "Workspace Root",
+            "type": "string"
+          }
+        },
+        "required": ["workspace_root"],
+        "title": "EvalRecommendationReport",
+        "type": "object"
+      },
+      "EvalRecommendationSourceKind": {
+        "enum": [
+          "eval-impact",
+          "eval-coverage",
+          "eval-profile",
+          "eval-case",
+          "eval-recipe",
+          "repository-intelligence-snapshot",
+          "workspace-topology",
+          "fallback-policy"
+        ],
+        "type": "string"
+      },
+      "EvalRecommendationSourceMetadata": {
+        "additionalProperties": false,
+        "description": "Inspectable source metadata that shaped one recommendation row.",
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/PathVerificationFreshness",
+            "default": "unknown"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EvalRecommendationSourceKind"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          }
+        },
+        "required": ["source", "source_id", "explanation"],
+        "title": "EvalRecommendationSourceMetadata",
+        "type": "object"
+      },
+      "EvalReleaseSurfaceRecommendation": {
+        "additionalProperties": false,
+        "description": "Daily-development view of one release verification surface.",
+        "properties": {
+          "blocking_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocking Profile Ids",
+            "type": "array"
+          },
+          "impacted": {
+            "default": false,
+            "title": "Impacted",
+            "type": "boolean"
+          },
+          "impacted_capability_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Impacted Capability Ids",
+            "type": "array"
+          },
+          "owner_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Owner Ids",
+            "type": "array"
+          },
+          "profile_budget_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profile Budget Notes",
+            "type": "array"
+          },
+          "recommended_case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Case Ids",
+            "type": "array"
+          },
+          "recommended_profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommended Profile Ids",
+            "type": "array"
+          },
+          "release_gate_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Gate Commands",
+            "type": "array"
+          },
+          "release_gate_notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Gate Notes",
+            "type": "array"
+          },
+          "verification_stage": {
+            "$ref": "#/components/schemas/EvalVerificationStage"
+          }
+        },
+        "required": ["verification_stage"],
+        "title": "EvalReleaseSurfaceRecommendation",
+        "type": "object"
+      },
+      "EvalTestTargetConfidence": {
+        "enum": [
+          "direct",
+          "topology-derived",
+          "naming-derived",
+          "package-derived",
+          "recipe-derived",
+          "fallback"
+        ],
+        "type": "string"
+      },
+      "EvalTestTargetRecommendation": {
+        "additionalProperties": false,
+        "description": "Likely test target for one changed path set.",
+        "properties": {
+          "command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Command"
+          },
+          "component_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Component Ids",
+            "type": "array"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvalTestTargetConfidence"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/PathVerificationFreshness",
+            "default": "unknown"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "package_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Package Ids",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EvalTestTargetSource"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Target Paths",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["target_id", "title", "confidence", "source"],
+        "title": "EvalTestTargetRecommendation",
+        "type": "object"
+      },
+      "EvalTestTargetSource": {
+        "enum": ["repository-intelligence", "topology", "naming", "package", "recipe", "fallback"],
+        "type": "string"
+      },
+      "EvalVerificationRecipeConfidence": {
+        "enum": ["direct", "topology", "degraded"],
+        "type": "string"
+      },
+      "EvalVerificationRecipeRecommendation": {
+        "additionalProperties": false,
+        "description": "Recommended verification recipe for one change set.",
+        "properties": {
+          "case_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Case Ids",
+            "type": "array"
+          },
+          "commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Commands",
+            "type": "array"
+          },
+          "component_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Component Ids",
+            "type": "array"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvalVerificationRecipeConfidence",
+            "default": "direct"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/PathVerificationFreshness",
+            "default": "unknown"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "profile_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profile Ids",
+            "type": "array"
+          },
+          "recipe_id": {
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "safe_next_commands": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/EvalVerificationRecipeSource",
+            "default": "recipe"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["recipe_id", "title"],
+        "title": "EvalVerificationRecipeRecommendation",
+        "type": "object"
+      },
+      "EvalVerificationRecipeSource": {
+        "enum": ["recipe", "topology", "repository-intelligence"],
+        "type": "string"
+      },
+      "EvalVerificationStage": {
+        "enum": ["commit-time", "push-time", "release-candidate", "advisory"],
+        "type": "string"
+      },
       "EventLogEntryResponse": {
         "properties": {
           "created_at": {
@@ -6144,6 +6964,10 @@
         "title": "LongRunStatusResponse",
         "type": "object"
       },
+      "LongRunVerificationSurface": {
+        "enum": ["immediate", "checkpoint", "pre-resume", "pre-merge", "release-candidate"],
+        "type": "string"
+      },
       "ManualEvidenceActionResponse": {
         "properties": {
           "artifact_id": {
@@ -6950,6 +7774,10 @@
         "required": ["cursor", "limit", "next_cursor", "has_more", "returned_count"],
         "title": "PageInfoResponse",
         "type": "object"
+      },
+      "PathVerificationFreshness": {
+        "enum": ["fresh", "stale", "missing", "degraded", "unknown"],
+        "type": "string"
       },
       "PauseWindowPolicy": {
         "description": "Local pause-window boundaries for long-running task work.",
@@ -8314,6 +9142,122 @@
         "title": "RepositoryIndexStatusResponse",
         "type": "object"
       },
+      "RepositoryIntelligenceCommandRecipeDetailResponse": {
+        "properties": {
+          "recipe": {
+            "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeResponse"
+          }
+        },
+        "required": ["recipe"],
+        "title": "RepositoryIntelligenceCommandRecipeDetailResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceCommandRecipeListPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          }
+        },
+        "required": ["page", "items"],
+        "title": "RepositoryIntelligenceCommandRecipeListPageResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceCommandRecipeResponse": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "recipe_id": {
+            "title": "Recipe Id",
+            "type": "string"
+          },
+          "review_relevance": {
+            "title": "Review Relevance",
+            "type": "string"
+          },
+          "risk": {
+            "title": "Risk",
+            "type": "string"
+          },
+          "scope_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope Paths",
+            "type": "array"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          },
+          "toolchain": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toolchain"
+          }
+        },
+        "required": [
+          "recipe_id",
+          "name",
+          "command",
+          "purpose",
+          "review_relevance",
+          "risk",
+          "scope_paths",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceCommandRecipeResponse",
+        "type": "object"
+      },
       "RepositoryIntelligenceFreshnessCue": {
         "additionalProperties": false,
         "description": "Operator-facing state, reason, and remediation for one intelligence input.",
@@ -8378,6 +9322,155 @@
         },
         "required": ["source", "state", "reason", "detail"],
         "title": "RepositoryIntelligenceFreshnessCue",
+        "type": "object"
+      },
+      "RepositoryIntelligenceFreshnessResponse": {
+        "properties": {
+          "cues": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceFreshnessCue"
+            },
+            "title": "Cues",
+            "type": "array"
+          },
+          "index": {
+            "$ref": "#/components/schemas/RepositoryIndexStatusResponse"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "topology": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceTopologyStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["index"],
+        "title": "RepositoryIntelligenceFreshnessResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceMemoryCandidateListPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkspaceMemoryCandidateResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          },
+          "session_id": {
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": ["session_id", "page", "items"],
+        "title": "RepositoryIntelligenceMemoryCandidateListPageResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceMemoryReferenceResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "confirmed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "memory_id": {
+            "title": "Memory Id",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "redacted": {
+            "title": "Redacted",
+            "type": "boolean"
+          },
+          "reference_id": {
+            "title": "Reference Id",
+            "type": "string"
+          },
+          "source_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Label"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reference_id",
+          "memory_id",
+          "kind",
+          "summary",
+          "tags",
+          "redacted",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceMemoryReferenceResponse",
         "type": "object"
       },
       "RepositoryIntelligenceObservability": {
@@ -8452,6 +9545,698 @@
           "missing_count"
         ],
         "title": "RepositoryIntelligenceObservability",
+        "type": "object"
+      },
+      "RepositoryIntelligenceOverviewResponse": {
+        "properties": {
+          "doc_roots": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Doc Roots",
+            "type": "array"
+          },
+          "generated_paths": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Generated Paths",
+            "type": "array"
+          },
+          "index": {
+            "$ref": "#/components/schemas/RepositoryIndexStatusResponse"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "memory_references": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceMemoryReferenceResponse"
+            },
+            "title": "Memory References",
+            "type": "array"
+          },
+          "package_boundaries": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePackageBoundaryResponse"
+            },
+            "title": "Package Boundaries",
+            "type": "array"
+          },
+          "policy_sensitive_paths": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Policy Sensitive Paths",
+            "type": "array"
+          },
+          "release_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceReleaseSurfaceResponse"
+            },
+            "title": "Release Surfaces",
+            "type": "array"
+          },
+          "source_manifests": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceSourceManifestResponse"
+            },
+            "title": "Source Manifests",
+            "type": "array"
+          },
+          "source_roots": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Source Roots",
+            "type": "array"
+          },
+          "subsystems": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemResponse"
+            },
+            "title": "Subsystems",
+            "type": "array"
+          },
+          "test_roots": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Test Roots",
+            "type": "array"
+          },
+          "topology": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkspaceTopologyStatusResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "index",
+          "source_manifests",
+          "source_roots",
+          "test_roots",
+          "doc_roots",
+          "generated_paths",
+          "policy_sensitive_paths",
+          "package_boundaries",
+          "subsystems",
+          "release_surfaces",
+          "memory_references",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceOverviewResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceOwnershipHintResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "hint_id": {
+            "title": "Hint Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "owner_label": {
+            "title": "Owner Label",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "scope_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope Paths",
+            "type": "array"
+          },
+          "subsystem": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subsystem"
+          }
+        },
+        "required": [
+          "hint_id",
+          "owner_label",
+          "scope_paths",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceOwnershipHintResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligencePackageBoundaryResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "doc_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Doc Roots",
+            "type": "array"
+          },
+          "generated_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Generated Paths",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manifest_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Manifest Paths",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "package_id": {
+            "title": "Package Id",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "root": {
+            "title": "Root",
+            "type": "string"
+          },
+          "source_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Roots",
+            "type": "array"
+          },
+          "test_roots": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Test Roots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "package_id",
+          "name",
+          "kind",
+          "root",
+          "manifest_paths",
+          "source_roots",
+          "test_roots",
+          "doc_roots",
+          "generated_paths",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligencePackageBoundaryResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligencePathHintResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "hint_id": {
+            "title": "Hint Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "package_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Id"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          }
+        },
+        "required": ["hint_id", "kind", "path", "confidence", "provenance", "limitations"],
+        "title": "RepositoryIntelligencePathHintResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligencePathInspectionResponse": {
+        "properties": {
+          "command_recipes": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeResponse"
+            },
+            "title": "Command Recipes",
+            "type": "array"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "ownership_hints": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceOwnershipHintResponse"
+            },
+            "title": "Ownership Hints",
+            "type": "array"
+          },
+          "packages": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePackageBoundaryResponse"
+            },
+            "title": "Packages",
+            "type": "array"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "path_hints": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligencePathHintResponse"
+            },
+            "title": "Path Hints",
+            "type": "array"
+          },
+          "release_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceReleaseSurfaceResponse"
+            },
+            "title": "Release Surfaces",
+            "type": "array"
+          },
+          "snapshot_status": {
+            "title": "Snapshot Status",
+            "type": "string"
+          },
+          "subsystems": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemResponse"
+            },
+            "title": "Subsystems",
+            "type": "array"
+          }
+        },
+        "required": [
+          "path",
+          "snapshot_status",
+          "packages",
+          "path_hints",
+          "subsystems",
+          "command_recipes",
+          "ownership_hints",
+          "release_surfaces",
+          "next_actions"
+        ],
+        "title": "RepositoryIntelligencePathInspectionResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceReleaseSurfaceResponse": {
+        "properties": {
+          "command_recipe_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command Recipe Ids",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "scope_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope Paths",
+            "type": "array"
+          },
+          "surface_id": {
+            "title": "Surface Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "surface_id",
+          "name",
+          "kind",
+          "scope_paths",
+          "command_recipe_ids",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceReleaseSurfaceResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceSearchPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexEntryResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": ["query", "page", "items"],
+        "title": "RepositoryIntelligenceSearchPageResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceSourceManifestResponse": {
+        "properties": {
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manifest_id": {
+            "title": "Manifest Id",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "source_type": {
+            "title": "Source Type",
+            "type": "string"
+          }
+        },
+        "required": ["manifest_id", "path", "source_type", "role", "provenance", "limitations"],
+        "title": "RepositoryIntelligenceSourceManifestResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceSubsystemDetailResponse": {
+        "properties": {
+          "command_recipes": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeResponse"
+            },
+            "title": "Command Recipes",
+            "type": "array"
+          },
+          "ownership_hints": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceOwnershipHintResponse"
+            },
+            "title": "Ownership Hints",
+            "type": "array"
+          },
+          "release_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceReleaseSurfaceResponse"
+            },
+            "title": "Release Surfaces",
+            "type": "array"
+          },
+          "subsystem": {
+            "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemResponse"
+          }
+        },
+        "required": ["subsystem", "ownership_hints", "release_surfaces", "command_recipes"],
+        "title": "RepositoryIntelligenceSubsystemDetailResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceSubsystemListPageResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "$ref": "#/components/schemas/PageInfoResponse"
+          }
+        },
+        "required": ["page", "items"],
+        "title": "RepositoryIntelligenceSubsystemListPageResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceSubsystemResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_hint_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Owner Hint Ids",
+            "type": "array"
+          },
+          "package_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Package Ids",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIndexProvenanceResponse"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "release_surface_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Surface Ids",
+            "type": "array"
+          },
+          "scope_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope Paths",
+            "type": "array"
+          },
+          "subsystem_id": {
+            "title": "Subsystem Id",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          }
+        },
+        "required": [
+          "subsystem_id",
+          "name",
+          "scope_paths",
+          "package_ids",
+          "owner_hint_ids",
+          "release_surface_ids",
+          "tags",
+          "confidence",
+          "provenance",
+          "limitations"
+        ],
+        "title": "RepositoryIntelligenceSubsystemResponse",
+        "type": "object"
+      },
+      "RepositoryIntelligenceVerificationRecommendationResponse": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Actions",
+            "type": "array"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvalRecommendationReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status", "paths"],
+        "title": "RepositoryIntelligenceVerificationRecommendationResponse",
         "type": "object"
       },
       "ResolveApprovalRequest": {
@@ -17236,6 +19021,486 @@
           }
         },
         "summary": "Get Repository Index Status",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence": {
+      "get": {
+        "description": "Return repository intelligence map data for dashboard inspection.",
+        "operationId": "get_repository_intelligence_overview_repo_intelligence_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceOverviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Repository Intelligence Overview",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/command-recipes": {
+      "get": {
+        "description": "Return advisory command recipes with provenance and risk labels.",
+        "operationId": "list_repository_intelligence_command_recipes_repo_intelligence_command_recipes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeListPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Repository Intelligence Command Recipes",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/command-recipes/{recipe_id}": {
+      "get": {
+        "description": "Return one advisory command recipe.",
+        "operationId": "get_repository_intelligence_command_recipe_repo_intelligence_command_recipes__recipe_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "recipe_id",
+            "required": true,
+            "schema": {
+              "title": "Recipe Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceCommandRecipeDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Repository Intelligence Command Recipe",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/freshness": {
+      "get": {
+        "description": "Return shared freshness, drift, and rebuild guidance.",
+        "operationId": "get_repository_intelligence_freshness_repo_intelligence_freshness_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceFreshnessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Repository Intelligence Freshness",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/memory-candidates": {
+      "get": {
+        "description": "Return review-only memory candidates relevant to repository intelligence.",
+        "operationId": "list_repository_intelligence_memory_candidates_repo_intelligence_memory_candidates_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceMemoryCandidateListPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Repository Intelligence Memory Candidates",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/paths/{path}": {
+      "get": {
+        "description": "Return packages, subsystems, recipes, owners, and release hints for a path.",
+        "operationId": "inspect_repository_intelligence_path_route_repo_intelligence_paths__path__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "title": "Path",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligencePathInspectionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inspect Repository Intelligence Path Route",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/search": {
+      "get": {
+        "description": "Search repository intelligence entries with cursor pagination.",
+        "operationId": "search_repository_intelligence_repo_intelligence_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "title": "Query",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceSearchPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search Repository Intelligence",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/subsystems": {
+      "get": {
+        "description": "Return repository subsystem hints.",
+        "operationId": "list_repository_intelligence_subsystems_repo_intelligence_subsystems_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Query"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Cursor",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemListPageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Repository Intelligence Subsystems",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/subsystems/{subsystem_id}": {
+      "get": {
+        "description": "Return one subsystem with linked owner, release, and command hints.",
+        "operationId": "get_repository_intelligence_subsystem_repo_intelligence_subsystems__subsystem_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subsystem_id",
+            "required": true,
+            "schema": {
+              "title": "Subsystem Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceSubsystemDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Repository Intelligence Subsystem",
+        "tags": ["repo"]
+      }
+    },
+    "/repo/intelligence/verification": {
+      "get": {
+        "description": "Return path-to-verification recommendations for changed paths.",
+        "operationId": "recommend_repository_intelligence_verification_repo_intelligence_verification_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "paths",
+            "required": true,
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "title": "Paths",
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryIntelligenceVerificationRecommendationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Recommend Repository Intelligence Verification",
         "tags": ["repo"]
       }
     },

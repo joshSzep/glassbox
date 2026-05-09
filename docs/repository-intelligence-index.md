@@ -212,6 +212,19 @@ managed artifact. The dashboard/API status response exposes the same counts,
 and `GET /repo/index` returns a compact inspect payload with the retained
 metadata identifiers.
 
+The dashboard-facing repository intelligence API now lives under
+`/repo/intelligence`. `GET /repo/intelligence` returns typed repository map
+data, `GET /repo/intelligence/freshness` returns shared freshness and rebuild
+guidance, `GET /repo/intelligence/paths/{path}` explains packages,
+subsystems, command recipes, owner hints, and release surfaces for one
+workspace path, and paginated `command-recipes`, `subsystems`, and `search`
+routes keep large responses bounded. `GET /repo/intelligence/verification`
+wraps the existing eval recommendation engine instead of duplicating
+path-to-verification logic in HTTP handlers, and
+`GET /repo/intelligence/memory-candidates` exposes review-only memory
+candidates for a supplied session. The older `/repo/index` and `/repo/topology`
+routes remain compatible for existing clients.
+
 The top-level `glassbox repo` workflow wraps the common operator path:
 `glassbox repo status --cwd .` shows index and topology health together,
 `glassbox repo stale --cwd .` isolates stale or missing cues,
