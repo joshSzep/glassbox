@@ -653,7 +653,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1523: Add Stale Evidence And Verification Drift Risk Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1522`
 - Goal: use repository intelligence to detect when changed paths make retained
   verification, review evidence, or topology-derived checks stale

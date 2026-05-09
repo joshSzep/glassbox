@@ -152,6 +152,48 @@ def test_readiness_uses_eval_recipe_recommendations_and_passed_ledger() -> None:
     assert readiness.requirements[0].verification_id == ledger[0].verification_id
 
 
+def test_readiness_surfaces_stale_repository_intelligence_recommendations() -> None:
+    inventory = _inventory("src/glassbox/runtime/repository_index.py")
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=["src/glassbox/runtime/repository_index.py"],
+        warnings=[
+            "Repository intelligence snapshot is stale; eval recommendation "
+            "source metadata and command recipes are degraded until rebuild."
+        ],
+        recipes=[
+            EvalVerificationRecipeRecommendation(
+                recipe_id="repo-intelligence-runtime",
+                title="Repository intelligence runtime",
+                confidence="degraded",
+                source="repository-intelligence",
+                freshness="stale",
+                matched_paths=["src/glassbox/runtime/repository_index.py"],
+                commands=["uv run pytest tests/unit/test_repository_index.py -q"],
+                safe_next_commands=[
+                    "uv run pytest tests/unit/test_repository_index.py -q"
+                ],
+            )
+        ],
+    )
+
+    readiness = derive_changeset_verification_readiness(
+        inventory=inventory,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        eval_recommendation=recommendation,
+    )
+
+    requirement_ids = [
+        requirement.requirement_id for requirement in readiness.requirements
+    ]
+    assert readiness.state == ChangesetVerificationState.STALE
+    assert "repository-intelligence-stale" in requirement_ids
+    assert "recipe-stale:repo-intelligence-runtime" in requirement_ids
+    assert any(
+        "glassbox repo index build" in action for action in readiness.safe_next_actions
+    )
+
+
 def test_readiness_failed_ledger_blocks_review_posture() -> None:
     inventory = _inventory("src/glassbox/runtime/changesets.py")
     ledger = [

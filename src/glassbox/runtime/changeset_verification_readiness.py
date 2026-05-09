@@ -195,6 +195,7 @@ def _requirements_from_eval_recommendation(
     if recommendation is None:
         return []
     requirements: list[ChangesetVerificationRequirement] = []
+    requirements.extend(_stale_intelligence_requirements(recommendation))
     for command in recommendation.suggested_commands:
         command_parts = _command_parts(command)
         requirements.append(
@@ -240,6 +241,75 @@ def _requirements_from_eval_recommendation(
                 reason="eval recommendation selected this profile",
                 task_ledger=task_ledger,
                 inventory_sequence=inventory_sequence,
+            )
+        )
+    return requirements
+
+
+def _stale_intelligence_requirements(
+    recommendation: EvalRecommendationReport,
+) -> list[ChangesetVerificationRequirement]:
+    requirements: list[ChangesetVerificationRequirement] = []
+    warning_text = "\n".join(recommendation.warnings).lower()
+    if "repository intelligence snapshot is stale" in warning_text:
+        requirements.append(
+            ChangesetVerificationRequirement(
+                requirement_id="repository-intelligence-stale",
+                state=ChangesetVerificationState.STALE,
+                check_name="Repository intelligence freshness",
+                reason=(
+                    "repository intelligence is stale; verification guidance may "
+                    "not reflect current changed paths"
+                ),
+                source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                changed_paths=recommendation.touched_paths,
+                safe_next_actions=["glassbox repo index build --cwd ."],
+            )
+        )
+    if "workspace topology is stale" in warning_text:
+        requirements.append(
+            ChangesetVerificationRequirement(
+                requirement_id="workspace-topology-stale",
+                state=ChangesetVerificationState.STALE,
+                check_name="Workspace topology freshness",
+                reason=(
+                    "workspace topology is stale; topology-derived checks may "
+                    "not reflect current changed paths"
+                ),
+                source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                changed_paths=recommendation.touched_paths,
+                safe_next_actions=["glassbox repo topology build --cwd ."],
+            )
+        )
+    requirements.extend(_stale_recipe_requirements(recommendation))
+    return requirements
+
+
+def _stale_recipe_requirements(
+    recommendation: EvalRecommendationReport,
+) -> list[ChangesetVerificationRequirement]:
+    requirements: list[ChangesetVerificationRequirement] = []
+    for recipe in recommendation.recipes:
+        if recipe.freshness != "stale" and recipe.confidence != "degraded":
+            continue
+        requirements.append(
+            ChangesetVerificationRequirement(
+                requirement_id=f"recipe-stale:{recipe.recipe_id}",
+                state=ChangesetVerificationState.STALE,
+                check_name=f"Stale recipe {recipe.title}",
+                reason=(
+                    "verification recipe guidance is stale or degraded; refresh "
+                    "repository intelligence before trusting this command"
+                ),
+                source=VerificationPlanSource.EVAL_RECOMMENDATION,
+                kind=VerificationCheckKind.COMMAND,
+                command=_command_parts(recipe.commands[0]) if recipe.commands else [],
+                changed_paths=recipe.matched_paths,
+                blocking=False,
+                safe_next_actions=[
+                    "glassbox repo index build --cwd .",
+                    *recipe.safe_next_commands,
+                ],
             )
         )
     return requirements

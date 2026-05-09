@@ -170,6 +170,16 @@ provenance, and safe next actions such as rebuilding repository intelligence,
 refreshing topology, running `glassbox eval audit --cwd .`, or attaching new
 verification evidence.
 
+`VerificationDriftAssessment.stale_evidence` records repository-aware stale
+evidence rows for changed paths. Rows can name stale or missing retained
+verification, repository intelligence, workspace topology, command recipes,
+workspace memory, and eval metadata without inventing new release authority.
+Changeset verification readiness promotes these rows into stale or missing
+requirements when the existing readiness model already treats the evidence as
+review-relevant. `.glassbox` artifact churn is ignored for source-drift
+purposes; rebuild commands such as `glassbox repo index build --cwd .` and
+`glassbox repo topology build --cwd .` are safe next actions, not proof.
+
 ## Non-Claims
 
 Path-to-verification recommendations do not claim that:

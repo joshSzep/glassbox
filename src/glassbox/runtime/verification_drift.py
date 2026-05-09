@@ -14,6 +14,10 @@ from glassbox.core.ids import TaskVerificationId
 from glassbox.core.models import TaskVerificationLedgerRecord
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.runtime.repository_index_discovery import is_generated_repository_path
+from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index_persistence import load_repository_index
+from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
+from glassbox.runtime.workspace_topology import load_workspace_topology
 
 VerificationDriftPosture = Literal[
     "not_assessed",
@@ -24,6 +28,15 @@ VerificationDriftPosture = Literal[
     "generated_drift",
     "unknown",
 ]
+StaleEvidenceKind = Literal[
+    "verification",
+    "repository-intelligence",
+    "topology",
+    "command-recipe",
+    "workspace-memory",
+    "eval-metadata",
+]
+StaleEvidenceState = Literal["stale", "missing", "degraded"]
 
 _POLICY_DOC_PREFIXES = (
     "docs/tasks-v",
@@ -31,6 +44,20 @@ _POLICY_DOC_PREFIXES = (
     "docs/replay-evals",
     "docs/version-release-policy",
 )
+
+
+class StaleEvidenceRecommendation(BaseModel):
+    """Actionable stale-evidence row for repository-aware verification."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: StaleEvidenceKind
+    state: StaleEvidenceState
+    reason: str
+    changed_paths: list[str] = Field(default_factory=list)
+    source_id: str | None = None
+    safe_next_actions: list[str] = Field(default_factory=list)
+    blocking: bool = False
 
 
 class VerificationDriftAssessment(BaseModel):
@@ -47,6 +74,7 @@ class VerificationDriftAssessment(BaseModel):
     generated_changed_paths: list[str] = Field(default_factory=list)
     stale_verification_ids: list[TaskVerificationId] = Field(default_factory=list)
     stale_changed_paths: list[str] = Field(default_factory=list)
+    stale_evidence: list[StaleEvidenceRecommendation] = Field(default_factory=list)
     changed_path_digest: str | None = None
     diff_summary_command: str | None = None
     reason: str
@@ -106,6 +134,12 @@ def assess_verification_drift(
             if path in material_paths
         }
     )
+    stale_evidence = _stale_evidence_recommendations(
+        workspace_root,
+        material_paths=material_paths,
+        stale_verification_ids=[entry.verification_id for entry in stale_entries],
+        stale_paths=stale_paths,
+    )
 
     if stale_entries:
         posture: VerificationDriftPosture = "stale"
@@ -133,6 +167,7 @@ def assess_verification_drift(
         generated_changed_paths=generated_paths,
         stale_verification_ids=[entry.verification_id for entry in stale_entries],
         stale_changed_paths=stale_paths,
+        stale_evidence=stale_evidence,
         changed_path_digest=changed_path_digest,
         diff_summary_command=_diff_summary_command(task_id),
         reason=reason,
@@ -182,7 +217,134 @@ def _run_git(root: Path, command: list[str]) -> subprocess.CompletedProcess[str]
 
 
 def _parse_path_lines(output: str) -> list[str]:
-    return [line.strip().replace("\\", "/") for line in output.splitlines() if line]
+    return [
+        path
+        for line in output.splitlines()
+        if (path := line.strip().replace("\\", "/")) and not _is_artifact_churn(path)
+    ]
+
+
+def _stale_evidence_recommendations(
+    workspace_root: Path,
+    *,
+    material_paths: list[str],
+    stale_verification_ids: list[TaskVerificationId],
+    stale_paths: list[str],
+) -> list[StaleEvidenceRecommendation]:
+    recommendations: list[StaleEvidenceRecommendation] = []
+    if stale_verification_ids:
+        recommendations.append(
+            StaleEvidenceRecommendation(
+                kind="verification",
+                state="stale",
+                reason="previously passed verification overlaps material changes",
+                changed_paths=stale_paths,
+                safe_next_actions=["rerun the stale verification command"],
+                blocking=True,
+            )
+        )
+    if not material_paths:
+        return recommendations
+
+    recommendations.extend(
+        _repository_index_stale_evidence(workspace_root, material_paths)
+    )
+    recommendations.extend(_topology_stale_evidence(workspace_root, material_paths))
+    return recommendations
+
+
+def _repository_index_stale_evidence(
+    workspace_root: Path,
+    material_paths: list[str],
+) -> list[StaleEvidenceRecommendation]:
+    try:
+        snapshot = load_repository_index(workspace_root)
+    except RepositoryIndexNotFoundError:
+        return [
+            StaleEvidenceRecommendation(
+                kind="repository-intelligence",
+                state="missing",
+                reason="repository intelligence snapshot is missing",
+                changed_paths=material_paths,
+                safe_next_actions=["glassbox repo index build --cwd ."],
+            )
+        ]
+    except ValueError as exc:
+        return [
+            StaleEvidenceRecommendation(
+                kind="repository-intelligence",
+                state="degraded",
+                reason=f"repository intelligence snapshot could not be read: {exc}",
+                changed_paths=material_paths,
+                safe_next_actions=["glassbox repo index status --cwd . --json"],
+            )
+        ]
+    if snapshot.status == "stale":
+        return [
+            StaleEvidenceRecommendation(
+                kind="repository-intelligence",
+                state="stale",
+                reason="repository intelligence digest differs from current sources",
+                changed_paths=material_paths,
+                source_id="repository-index",
+                safe_next_actions=["glassbox repo index build --cwd ."],
+            )
+        ]
+    if snapshot.status == "failed":
+        return [
+            StaleEvidenceRecommendation(
+                kind="repository-intelligence",
+                state="degraded",
+                reason=snapshot.failure_reason or "repository intelligence failed",
+                changed_paths=material_paths,
+                source_id="repository-index",
+                safe_next_actions=["glassbox repo index status --cwd . --json"],
+            )
+        ]
+    return []
+
+
+def _topology_stale_evidence(
+    workspace_root: Path,
+    material_paths: list[str],
+) -> list[StaleEvidenceRecommendation]:
+    try:
+        topology = load_workspace_topology(workspace_root)
+    except WorkspaceTopologyNotFoundError:
+        return []
+    except ValueError as exc:
+        return [
+            StaleEvidenceRecommendation(
+                kind="topology",
+                state="degraded",
+                reason=f"workspace topology could not be read: {exc}",
+                changed_paths=material_paths,
+                safe_next_actions=["glassbox repo topology status --cwd . --json"],
+            )
+        ]
+    if topology.freshness == "stale":
+        return [
+            StaleEvidenceRecommendation(
+                kind="topology",
+                state="stale",
+                reason="workspace topology digest differs from current sources",
+                changed_paths=material_paths,
+                source_id="workspace-topology",
+                safe_next_actions=["glassbox repo topology build --cwd ."],
+            )
+        ]
+    if topology.freshness == "failed":
+        return [
+            StaleEvidenceRecommendation(
+                kind="topology",
+                state="degraded",
+                reason=topology.failure_reason or "workspace topology failed",
+                changed_paths=material_paths,
+                source_id="workspace-topology",
+                safe_next_actions=["glassbox repo topology status --cwd . --json"],
+            )
+        ]
+    return []
 
 
 def _normalized_paths(paths: list[Path]) -> list[str]:
@@ -214,6 +376,10 @@ def _is_docs_only_path(path: str) -> bool:
     return path.startswith("docs/") or path.endswith(".md")
 
 
+def _is_artifact_churn(path: str) -> bool:
+    return path == ".glassbox" or path.startswith(".glassbox/")
+
+
 def _diff_summary_command(task_id: TaskId) -> str:
     return f"glassbox task show {task_id} --json"
 
@@ -221,6 +387,7 @@ def _diff_summary_command(task_id: TaskId) -> str:
 __all__ = [
     "VerificationDriftAssessment",
     "VerificationDriftPosture",
+    "StaleEvidenceRecommendation",
     "assess_verification_drift",
     "not_assessed_verification_drift",
 ]

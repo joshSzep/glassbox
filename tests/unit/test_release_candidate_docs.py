@@ -744,6 +744,8 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "## Eval Scope Enrichment",
         "repository intelligence as an advisory enrichment layer",
         "Stale snapshots keep their provenance",
+        "VerificationDriftAssessment.stale_evidence",
+        "`.glassbox` artifact churn is ignored",
     ):
         assert required_text in content
 
