@@ -737,7 +737,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1531: Generate Repository Intelligence Memory Candidates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1530`
 - Goal: propose review-only memory candidates from successful commands,
   repeated failures, verified recipes, topology findings, and release outcomes

@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Protocol
 
 from glassbox.core.events import ApprovalRequested
@@ -18,13 +19,18 @@ from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import WorkspaceMemoryCandidateRejected
 from glassbox.core.events import WorkspaceMemoryConfirmed
 from glassbox.core.ids import SessionId
+from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.models import RuntimeNoteRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import WorkspaceMemoryProvenance
+from glassbox.core.types import RepositoryIndexFreshness
+from glassbox.core.types import RepositoryIntelligenceConfidence
 from glassbox.core.types import TaskPlanStatus
 from glassbox.core.types import TaskVerificationStatus
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
+from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index_persistence import load_repository_index
 from glassbox.runtime.workspace_memory_candidates import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_candidates import ModelMemorySuggestion
 from glassbox.runtime.workspace_memory_candidates import WorkspaceMemoryCandidate
@@ -47,6 +53,11 @@ _STABLE_COMMAND_PREFIXES = (
     "make ",
     "glassbox ",
 )
+
+_MEMORY_CONFIDENCE_THRESHOLD = {
+    RepositoryIntelligenceConfidence.HIGH,
+    RepositoryIntelligenceConfidence.MEDIUM,
+}
 
 
 class WorkspaceMemoryExtractionRepository(Protocol):
@@ -378,6 +389,152 @@ def long_run_verification_candidates(
     ]
 
 
+def repository_intelligence_candidates_for_workspace(
+    session_id: SessionId,
+    workspace_root: Path,
+) -> list[WorkspaceMemoryCandidate]:
+    """Return review-only candidates from a fresh retained repository snapshot."""
+
+    try:
+        snapshot = load_repository_index(workspace_root)
+    except RepositoryIndexNotFoundError, OSError, ValueError:
+        return []
+    return repository_intelligence_candidates_from_snapshot(session_id, snapshot)
+
+
+def repository_intelligence_candidates_from_snapshot(
+    session_id: SessionId,
+    snapshot: RepositoryIndexSnapshot,
+) -> list[WorkspaceMemoryCandidate]:
+    """Propose durable memory candidates from repository intelligence evidence."""
+
+    if snapshot.status != RepositoryIndexFreshness.FRESH:
+        return []
+
+    candidates: list[WorkspaceMemoryCandidate] = []
+    for recipe in snapshot.command_recipes:
+        if recipe.confidence not in _MEMORY_CONFIDENCE_THRESHOLD:
+            continue
+        content, redacted = redact_sensitive_text(
+            "Repository command recipe: "
+            f"{recipe.command}. Purpose: {recipe.purpose.value}. "
+            f"Review relevance: {recipe.review_relevance.value}. "
+            f"Scope: {_format_paths(recipe.scope_paths)}."
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.COMMAND,
+                content=content,
+                summary=f"Repository recipe: {recipe.command}",
+                provenance=_repository_intelligence_provenance(
+                    snapshot,
+                    f"command_recipe:{recipe.recipe_id}",
+                    "; ".join(recipe.limitations),
+                ),
+                tags=[
+                    "repository-intelligence",
+                    "command-recipe",
+                    recipe.purpose.value,
+                ],
+                redacted=redacted,
+                source_label=f"repository recipe {recipe.recipe_id}",
+                created_at=snapshot.built_at,
+            )
+        )
+
+    for package in snapshot.package_boundaries:
+        if package.confidence not in _MEMORY_CONFIDENCE_THRESHOLD:
+            continue
+        content, redacted = redact_sensitive_text(
+            f"Repository package convention: {package.name} is a "
+            f"{package.kind.value} boundary at {package.root.as_posix()}. "
+            f"Source roots: {_format_paths(package.source_roots)}. "
+            f"Test roots: {_format_paths(package.test_roots)}. "
+            f"Doc roots: {_format_paths(package.doc_roots)}. "
+            f"Generated paths: {_format_paths(package.generated_paths)}."
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.CONVENTION,
+                content=content,
+                summary=f"Package convention: {package.name}",
+                provenance=_repository_intelligence_provenance(
+                    snapshot,
+                    f"package:{package.package_id}",
+                    "; ".join(package.limitations),
+                ),
+                tags=[
+                    "repository-intelligence",
+                    "package-convention",
+                    package.kind.value,
+                ],
+                redacted=redacted,
+                source_label=f"repository package {package.package_id}",
+                created_at=snapshot.built_at,
+            )
+        )
+
+    for generated_path in snapshot.generated_paths:
+        if generated_path.confidence not in _MEMORY_CONFIDENCE_THRESHOLD:
+            continue
+        content, redacted = redact_sensitive_text(
+            "Generated-output convention: "
+            f"{generated_path.path.as_posix()} is classified as "
+            f"{generated_path.kind.value}; retain path-level posture without "
+            "treating generated content as source evidence."
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.CONVENTION,
+                content=content,
+                summary=f"Generated output: {generated_path.path.as_posix()}",
+                provenance=_repository_intelligence_provenance(
+                    snapshot,
+                    f"generated_path:{generated_path.hint_id}",
+                    "; ".join(generated_path.limitations),
+                ),
+                tags=["repository-intelligence", "generated-output"],
+                redacted=redacted,
+                source_label=f"repository path {generated_path.hint_id}",
+                created_at=snapshot.built_at,
+            )
+        )
+
+    for surface in snapshot.release_sensitive_surfaces:
+        if surface.confidence not in _MEMORY_CONFIDENCE_THRESHOLD:
+            continue
+        content, redacted = redact_sensitive_text(
+            f"Release-sensitive repository surface: {surface.name} "
+            f"({surface.kind.value}). Scope: {_format_paths(surface.scope_paths)}. "
+            f"Command recipes: {', '.join(surface.command_recipe_ids) or 'none'}."
+        )
+        candidates.append(
+            build_candidate(
+                session_id=session_id,
+                kind=WorkspaceMemoryKind.FACT,
+                content=content,
+                summary=f"Release surface: {surface.name}",
+                provenance=_repository_intelligence_provenance(
+                    snapshot,
+                    f"release_surface:{surface.surface_id}",
+                    "; ".join(surface.limitations),
+                ),
+                tags=[
+                    "repository-intelligence",
+                    "release-surface",
+                    surface.kind.value,
+                ],
+                redacted=redacted,
+                source_label=f"repository release surface {surface.surface_id}",
+                created_at=snapshot.built_at,
+            )
+        )
+    return candidates
+
+
 def last_known_good_candidates(
     events: list[EventEnvelope],
     session_id: SessionId,
@@ -563,6 +720,33 @@ def _artifact_note(artifact_id) -> str | None:
     return f"artifact_id={artifact_id}" if artifact_id is not None else None
 
 
+def _repository_intelligence_provenance(
+    snapshot: RepositoryIndexSnapshot,
+    source_label: str,
+    limitation_note: str | None = None,
+) -> WorkspaceMemoryProvenance:
+    note_parts = [
+        f"schema_version={snapshot.schema_version}",
+        f"builder_version={snapshot.builder_version}",
+        f"status={snapshot.status.value}",
+    ]
+    if snapshot.source_digest is not None:
+        note_parts.append(f"source_digest={snapshot.source_digest}")
+    if limitation_note:
+        note_parts.append(f"limitations={limitation_note}")
+    return WorkspaceMemoryProvenance(
+        source_type=WorkspaceMemorySourceType.REPOSITORY_INTELLIGENCE,
+        source_label=source_label,
+        note="; ".join(note_parts),
+    )
+
+
+def _format_paths(paths: Sequence[Path]) -> str:
+    if not paths:
+        return "none"
+    return ", ".join(path.as_posix() for path in paths)
+
+
 def _tool_requests_by_id(
     events: Sequence[EventEnvelope],
 ) -> dict[object, ModelToolCallRequested]:
@@ -603,6 +787,8 @@ __all__ = [
     "excluded_candidate_ids",
     "model_assisted_candidates",
     "repeated_failure_candidates",
+    "repository_intelligence_candidates_for_workspace",
+    "repository_intelligence_candidates_from_snapshot",
     "runtime_note_candidates",
     "stable_command_candidates",
     "task_outcome_candidates",

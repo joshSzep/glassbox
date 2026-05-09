@@ -5,12 +5,27 @@ from datetime import datetime
 from datetime import timedelta
 from pathlib import Path
 
+from glassbox.core import CommandPurpose
+from glassbox.core import CommandReviewRelevance
 from glassbox.core import ContextCompactionCreated
 from glassbox.core import ContextCompactionFreshness
 from glassbox.core import ContextCompactionScope
 from glassbox.core import EventEnvelope
 from glassbox.core import LongRunPhase
 from glassbox.core import ModelToolCallRequested
+from glassbox.core import RepositoryIndexFreshness
+from glassbox.core import RepositoryIndexProvenance
+from glassbox.core import RepositoryIndexSnapshot
+from glassbox.core import RepositoryIndexSourceType
+from glassbox.core import RepositoryIntelligenceCommandRecipe
+from glassbox.core import RepositoryIntelligenceCommandRisk
+from glassbox.core import RepositoryIntelligenceConfidence
+from glassbox.core import RepositoryIntelligencePackageBoundary
+from glassbox.core import RepositoryIntelligencePackageKind
+from glassbox.core import RepositoryIntelligencePathHint
+from glassbox.core import RepositoryIntelligencePathKind
+from glassbox.core import RepositoryIntelligenceReleaseSurface
+from glassbox.core import RepositoryIntelligenceReleaseSurfaceKind
 from glassbox.core import RuntimeNoteRecord
 from glassbox.core import SessionRecord
 from glassbox.core import SessionState
@@ -28,6 +43,7 @@ from glassbox.core import VerificationFailureDigest
 from glassbox.core import VerificationPlanEntry
 from glassbox.core import VerificationPlanSource
 from glassbox.core import WorkspaceMemoryKind
+from glassbox.core import WorkspaceMemorySourceType
 from glassbox.core import new_artifact_id
 from glassbox.core import new_context_compaction_id
 from glassbox.core import new_session_id
@@ -36,6 +52,7 @@ from glassbox.core import new_task_id
 from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
+from glassbox.runtime.repository_index_persistence import write_repository_index
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_capture import ModelMemorySuggestion
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
@@ -291,6 +308,131 @@ def test_long_run_memory_candidates_preserve_review_gate_and_provenance() -> Non
     assert repeated.provenance.note == f"artifact_id={artifact_id}"
 
 
+def test_repository_intelligence_candidates_are_review_only_with_provenance(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    now = datetime(2026, 4, 29, 12, tzinfo=UTC)
+    snapshot = RepositoryIndexSnapshot(
+        schema_version=2,
+        workspace_root=tmp_path,
+        status=RepositoryIndexFreshness.FRESH,
+        built_at=now,
+        builder_version="test-builder",
+        package_boundaries=[
+            RepositoryIntelligencePackageBoundary(
+                package_id="package:glassbox",
+                name="glassbox",
+                kind=RepositoryIntelligencePackageKind.PYTHON,
+                root=Path("."),
+                source_roots=[Path("src")],
+                test_roots=[Path("tests")],
+                doc_roots=[Path("docs")],
+                generated_paths=[Path("src/glassbox/web/static_next")],
+                confidence=RepositoryIntelligenceConfidence.HIGH,
+                provenance=[_repository_provenance(Path("pyproject.toml"))],
+            )
+        ],
+        command_recipes=[
+            RepositoryIntelligenceCommandRecipe(
+                recipe_id="recipe:unit-tests",
+                name="unit tests",
+                command="uv run pytest tests/unit/test_workspace_memory_capture.py",
+                purpose=CommandPurpose.TEST,
+                review_relevance=CommandReviewRelevance.VERIFICATION,
+                risk=RepositoryIntelligenceCommandRisk.READ_ONLY,
+                toolchain="uv",
+                scope_paths=[Path("tests")],
+                confidence=RepositoryIntelligenceConfidence.HIGH,
+                provenance=[_repository_provenance(Path("pyproject.toml"))],
+            )
+        ],
+        generated_paths=[
+            RepositoryIntelligencePathHint(
+                hint_id="generated:static-next",
+                kind=RepositoryIntelligencePathKind.GENERATED_PATH,
+                path=Path("src/glassbox/web/static_next"),
+                confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                provenance=[_repository_provenance(Path("pyproject.toml"))],
+            )
+        ],
+        release_sensitive_surfaces=[
+            RepositoryIntelligenceReleaseSurface(
+                surface_id="release:v15",
+                name="v15 release gate",
+                kind=RepositoryIntelligenceReleaseSurfaceKind.RELEASE_CANDIDATE,
+                scope_paths=[Path("scripts"), Path("docs")],
+                command_recipe_ids=["recipe:unit-tests"],
+                confidence=RepositoryIntelligenceConfidence.MEDIUM,
+                provenance=[_repository_provenance(Path("docs/tasks-v15.md"))],
+            )
+        ],
+    )
+    write_repository_index(tmp_path, snapshot)
+    repository = FakeMemoryCaptureRepository(session_id, cwd=tmp_path)
+
+    candidates = WorkspaceMemoryCaptureService(repository).list_candidates(
+        session_id,
+        now=now,
+    )
+
+    repo_candidates = [
+        candidate
+        for candidate in candidates
+        if "repository-intelligence" in candidate.tags
+    ]
+    assert repository.appended_events == []
+    assert {candidate.kind for candidate in repo_candidates} == {
+        WorkspaceMemoryKind.COMMAND,
+        WorkspaceMemoryKind.CONVENTION,
+        WorkspaceMemoryKind.FACT,
+    }
+    assert any("command-recipe" in candidate.tags for candidate in repo_candidates)
+    assert any("package-convention" in candidate.tags for candidate in repo_candidates)
+    assert any("generated-output" in candidate.tags for candidate in repo_candidates)
+    assert any("release-surface" in candidate.tags for candidate in repo_candidates)
+    assert all(
+        candidate.provenance.source_type
+        == WorkspaceMemorySourceType.REPOSITORY_INTELLIGENCE
+        for candidate in repo_candidates
+    )
+    assert all(
+        candidate.provenance.note is not None
+        and "builder_version=test-builder" in candidate.provenance.note
+        for candidate in repo_candidates
+    )
+
+
+def test_stale_repository_intelligence_does_not_generate_memory_candidates(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    snapshot = RepositoryIndexSnapshot(
+        schema_version=2,
+        workspace_root=tmp_path,
+        status=RepositoryIndexFreshness.STALE,
+        built_at=datetime(2026, 4, 29, 12, tzinfo=UTC),
+        builder_version="test-builder",
+        command_recipes=[
+            RepositoryIntelligenceCommandRecipe(
+                recipe_id="recipe:stale",
+                name="stale recipe",
+                command="uv run pytest tests/unit",
+                purpose=CommandPurpose.TEST,
+                confidence=RepositoryIntelligenceConfidence.HIGH,
+                provenance=[_repository_provenance(Path("pyproject.toml"))],
+            )
+        ],
+    )
+    assert write_repository_index(tmp_path, snapshot)
+    candidates = WorkspaceMemoryCaptureService(
+        FakeMemoryCaptureRepository(session_id, cwd=tmp_path)
+    ).list_candidates(session_id)
+    assert all(
+        "repository-intelligence" not in candidate.tags for candidate in candidates
+    )
+
+
 def _runtime_note(
     session_id,
     sequence: int,
@@ -366,11 +508,19 @@ def _verification_failed(
     )
 
 
+def _repository_provenance(path: Path) -> RepositoryIndexProvenance:
+    return RepositoryIndexProvenance(
+        source_type=RepositoryIndexSourceType.MANIFEST,
+        path=path,
+    )
+
+
 class FakeMemoryCaptureRepository:
     def __init__(
         self,
         session_id,
         *,
+        cwd: Path | None = None,
         runtime_notes=None,
         events=None,
     ) -> None:
@@ -379,7 +529,7 @@ class FakeMemoryCaptureRepository:
             status=SessionStatus.RUNNING,
             created_at=datetime(2026, 4, 29, 12, tzinfo=UTC),
             updated_at=datetime(2026, 4, 29, 12, tzinfo=UTC),
-            cwd=Path("/tmp/glassbox"),
+            cwd=cwd or Path("/tmp/glassbox"),
             model_name="openai:gpt-5.4",
             approval_mode="confirm",
             last_sequence=0,

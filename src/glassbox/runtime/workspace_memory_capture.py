@@ -10,6 +10,7 @@ from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import SessionId
 from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.core.models import RuntimeNoteRecord
+from glassbox.core.models import SessionRecord
 from glassbox.core.models import TaskRecord
 from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import WorkspaceMemoryKind
@@ -32,6 +33,9 @@ from glassbox.runtime.workspace_memory_extraction import (
 )
 from glassbox.runtime.workspace_memory_extraction import model_assisted_candidates
 from glassbox.runtime.workspace_memory_extraction import repeated_failure_candidates
+from glassbox.runtime.workspace_memory_extraction import (
+    repository_intelligence_candidates_for_workspace,
+)
 from glassbox.runtime.workspace_memory_extraction import runtime_note_candidates
 from glassbox.runtime.workspace_memory_extraction import stable_command_candidates
 from glassbox.runtime.workspace_memory_extraction import task_outcome_candidates
@@ -41,7 +45,7 @@ from glassbox.runtime.workspace_memory_redaction import redact_sensitive_text
 class WorkspaceMemoryCaptureRepository(Protocol):
     """Repository methods used by the memory capture service."""
 
-    def get_session(self, session_id: SessionId): ...
+    def get_session(self, session_id: SessionId) -> SessionRecord | None: ...
 
     def list_runtime_notes(
         self,
@@ -85,7 +89,7 @@ class WorkspaceMemoryCaptureService:
         model_suggestions: Sequence[ModelMemorySuggestion] = (),
         now: datetime | None = None,
     ) -> list[WorkspaceMemoryCandidate]:
-        self._ensure_session_exists(session_id)
+        session = self._ensure_session_exists(session_id)
         extraction_policy = policy or MemoryExtractionPolicy(max_candidates=limit)
         if not extraction_policy.enabled:
             return []
@@ -103,6 +107,10 @@ class WorkspaceMemoryCaptureService:
                     *long_run_checkpoint_candidates(self._repository, session_id),
                     *long_run_compaction_candidates(self._repository, session_id),
                     *long_run_verification_candidates(self._repository, session_id),
+                    *repository_intelligence_candidates_for_workspace(
+                        session_id,
+                        session.cwd,
+                    ),
                     *model_assisted_candidates(
                         session_id,
                         model_suggestions,
@@ -258,9 +266,11 @@ class WorkspaceMemoryCaptureService:
             raise ValueError(f"workspace memory was not projected: {memory_id}")
         return entry
 
-    def _ensure_session_exists(self, session_id: SessionId) -> None:
-        if self._repository.get_session(session_id) is None:
+    def _ensure_session_exists(self, session_id: SessionId) -> SessionRecord:
+        session = self._repository.get_session(session_id)
+        if session is None:
             raise ValueError(f"unknown session_id: {session_id}")
+        return session
 
 
 __all__ = [

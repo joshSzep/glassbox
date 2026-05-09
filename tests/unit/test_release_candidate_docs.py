@@ -768,6 +768,8 @@ def test_workspace_memory_documents_repository_intelligence_integration() -> Non
         "rejected candidates",
         "stale, invalidated, or pruned entries",
         "imported entries that have not passed the local review posture",
+        "`repository_intelligence`",
+        "stable command recipes, package conventions, generated-output conventions",
         "Memory-derived intelligence does not override stronger deterministic source",
         "WorkspaceMemoryUsedInContext",
         "automatic memory capture",

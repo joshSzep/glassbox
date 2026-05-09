@@ -51,9 +51,11 @@ Every memory entry requires inspectable provenance. Valid source classes are:
 - `artifact`: a retained artifact
 - `tool_result`: a tool call result
 - `runtime_note`: a runtime note promoted by the operator
+- `repository_intelligence`: a retained repository intelligence snapshot or
+  derived repository intelligence record
 - `import`: explicit import bundle or file
 
-A memory entry should link to the strongest available source. Session-event provenance requires both `session_id` and `source_sequence`; task, artifact, and tool-result provenance require their corresponding IDs.
+A memory entry should link to the strongest available source. Session-event provenance requires both `session_id` and `source_sequence`; task, artifact, and tool-result provenance require their corresponding IDs. Repository-intelligence provenance requires a source label such as a command recipe, package, generated path, or release surface, plus freshness and snapshot metadata in the note field.
 
 ## Confirmation And Invalidation
 
@@ -136,6 +138,12 @@ review-only until confirmed through the workspace memory flow. Repository
 intelligence can show these as memory candidates in review surfaces, but it must
 not treat them as active facts, owner assignments, command approvals, release
 evidence, or prompt context.
+
+Fresh repository-intelligence snapshots may also propose review-only candidates
+for stable command recipes, package conventions, generated-output conventions,
+and release-sensitive path notes. Stale snapshots, failed snapshots, missing
+snapshots, and low-confidence repository intelligence do not produce active
+candidates by default.
 
 When memory-derived repository intelligence influences a model turn, the context
 builder must record `WorkspaceMemoryUsedInContext` for each included memory ID

@@ -673,6 +673,7 @@ class WorkspaceMemorySourceType(StrEnum):
     ARTIFACT = "artifact"
     TOOL_RESULT = "tool_result"
     RUNTIME_NOTE = "runtime_note"
+    REPOSITORY_INTELLIGENCE = "repository_intelligence"
     IMPORT = "import"
 
 
