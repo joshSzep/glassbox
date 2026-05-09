@@ -217,6 +217,7 @@ PYTHON_FACADE_RULES: tuple[
             "glassbox.runtime.eval_recommendation_plans",
             "glassbox.runtime.eval_recommendation_reason_groups",
             "glassbox.runtime.eval_recommendation_recipes",
+            "glassbox.runtime.eval_recommendation_repository_intelligence",
             "glassbox.runtime.eval_recommendation_release_surfaces",
             "glassbox.runtime.eval_recommendation_rows",
             "glassbox.runtime.eval_recommendation_test_targets",

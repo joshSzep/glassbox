@@ -12,6 +12,9 @@ from glassbox.runtime.eval_recommendation_recipes import build_recipe_recommenda
 from glassbox.runtime.eval_recommendation_release_surfaces import (
     build_release_surface_recommendations,
 )
+from glassbox.runtime.eval_recommendation_repository_intelligence import (
+    apply_repository_intelligence_recommendations,
+)
 from glassbox.runtime.eval_recommendation_rows import build_case_recommendations
 from glassbox.runtime.eval_recommendation_rows import build_profile_recommendations
 from glassbox.runtime.eval_recommendation_test_targets import (
@@ -29,5 +32,6 @@ __all__ = [
     "build_release_surface_recommendations",
     "build_suggested_commands",
     "build_test_target_recommendations",
+    "apply_repository_intelligence_recommendations",
     "dedupe_strings",
 ]

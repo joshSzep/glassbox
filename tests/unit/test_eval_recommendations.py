@@ -1090,6 +1090,114 @@ def test_recommend_eval_change_impact_discovers_release_script_test_by_naming(
     assert report.test_targets[0].confidence == "naming-derived"
 
 
+def test_recommend_eval_change_impact_uses_repository_intelligence_release_surface(
+    tmp_path: Path,
+) -> None:
+    _write_profiles_payload(
+        tmp_path,
+        [
+            {
+                "profile_id": "commit-smoke",
+                "title": "Commit smoke",
+                "verification_stage": "commit-time",
+                "blocking": True,
+                "budget": {
+                    "max_selected_case_count": 3,
+                    "allow_advisory_cases": False,
+                },
+            }
+        ],
+    )
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/demo/widget.py"],
+    )
+
+    assert [profile.profile_id for profile in report.profiles] == ["commit-smoke"]
+    profile = report.profiles[0]
+    assert profile.confidence == "stage-derived"
+    assert profile.matched_paths == ["src/demo/widget.py"]
+    assert profile.source_metadata[0].source == "repository-intelligence-snapshot"
+    assert profile.source_metadata[0].source_id == "release-surface:commit-time"
+    assert profile.source_metadata[0].freshness == "fresh"
+    assert "Budget allows up to 3 selected cases." in profile.budget_implications
+    assert profile.safe_next_commands == [
+        "uv run glassbox eval run --profile commit-smoke --cwd ."
+    ]
+    assert [group.group for group in report.reason_groups] == [
+        "repository-intelligence"
+    ]
+    assert report.unmatched_paths == []
+
+
+def test_recommend_eval_change_impact_adds_repository_intelligence_recipes(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_recipes(
+        tmp_path,
+        [
+            {
+                "recipe_id": "frontend-dashboard",
+                "title": "Frontend dashboard",
+                "path_globs": ["frontend/**/*.tsx"],
+                "commands": ["pnpm --dir frontend test"],
+            }
+        ],
+    )
+    _write_mixed_workspace(tmp_path)
+    build_and_write_repository_index(tmp_path)
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["frontend/components/console/widget.tsx"],
+    )
+
+    repository_recipes = [
+        recipe
+        for recipe in report.recipes
+        if recipe.source == "repository-intelligence"
+    ]
+    assert [recipe.recipe_id for recipe in repository_recipes] == [
+        "repo-intelligence-recipe-eval-recipe-frontend-dashboard-0"
+    ]
+    assert repository_recipes[0].freshness == "fresh"
+    assert repository_recipes[0].matched_paths == [
+        "frontend/components/console/widget.tsx"
+    ]
+    assert repository_recipes[0].safe_next_commands == ["pnpm --dir frontend test"]
+
+
+def test_recommend_eval_change_impact_marks_stale_repository_intelligence(
+    tmp_path: Path,
+) -> None:
+    _write_profiles(tmp_path)
+    _write_coverage(tmp_path)
+    _write_impact(tmp_path)
+    _write_mixed_workspace(tmp_path)
+    build_and_write_repository_index(tmp_path)
+    (tmp_path / "src" / "demo" / "extra.py").write_text("VALUE = 2\n", encoding="utf-8")
+
+    report = recommend_eval_change_impact(
+        tmp_path,
+        touched_paths=["src/demo/widget.py"],
+    )
+
+    profile = report.profiles[0]
+    assert profile.source_metadata[0].freshness == "stale"
+    assert any(
+        "Repository intelligence snapshot is stale" in warning
+        for warning in report.warnings
+    )
+
+
 def test_recommend_eval_change_impact_degrades_missing_test_roots(
     tmp_path: Path,
 ) -> None:

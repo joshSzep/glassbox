@@ -23,11 +23,26 @@ type EvalRecommendationReasonGroupKind = Literal[
     "owner-derived-rule",
     "capability-derived-rule",
     "stage-derived-profile",
+    "repository-intelligence",
     "release-gate-recommendation",
     "fallback-policy",
 ]
+type EvalRecommendationSourceKind = Literal[
+    "eval-impact",
+    "eval-coverage",
+    "eval-profile",
+    "eval-case",
+    "eval-recipe",
+    "repository-intelligence-snapshot",
+    "workspace-topology",
+    "fallback-policy",
+]
 type EvalVerificationRecipeConfidence = Literal["direct", "topology", "degraded"]
-type EvalVerificationRecipeSource = Literal["recipe", "topology"]
+type EvalVerificationRecipeSource = Literal[
+    "recipe",
+    "topology",
+    "repository-intelligence",
+]
 type EvalTestTargetConfidence = Literal[
     "direct",
     "topology-derived",
@@ -160,6 +175,23 @@ class EvalRecommendationReason(BaseModel):
     owner: str | None = None
     capability_id: str | None = None
     verification_stage: str | None = None
+    source: EvalRecommendationSourceKind | None = None
+    source_id: str | None = None
+    freshness: PathVerificationFreshness = "unknown"
+
+
+class EvalRecommendationSourceMetadata(BaseModel):
+    """Inspectable source metadata that shaped one recommendation row."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: EvalRecommendationSourceKind
+    source_id: str
+    source_path: str | None = None
+    freshness: PathVerificationFreshness = "unknown"
+    matched_paths: list[str] = Field(default_factory=list)
+    explanation: str
+    limitations: list[str] = Field(default_factory=list)
 
 
 class EvalRecommendationReasonGroup(BaseModel):
@@ -188,6 +220,11 @@ class EvalCaseRecommendation(BaseModel):
     owner: str | None = None
     capabilities: list[str] = Field(default_factory=list)
     verification_stages: list[str] = Field(default_factory=list)
+    matched_paths: list[str] = Field(default_factory=list)
+    source_metadata: list[EvalRecommendationSourceMetadata] = Field(
+        default_factory=list
+    )
+    safe_next_commands: list[str] = Field(default_factory=list)
     reasons: list[EvalRecommendationReason] = Field(default_factory=list)
 
 
@@ -202,6 +239,12 @@ class EvalProfileRecommendation(BaseModel):
     verification_stage: str
     track: EvalProfileTrack
     blocking: bool
+    matched_paths: list[str] = Field(default_factory=list)
+    source_metadata: list[EvalRecommendationSourceMetadata] = Field(
+        default_factory=list
+    )
+    budget_implications: list[str] = Field(default_factory=list)
+    safe_next_commands: list[str] = Field(default_factory=list)
     reasons: list[EvalRecommendationReason] = Field(default_factory=list)
 
 
@@ -214,6 +257,7 @@ class EvalVerificationRecipeRecommendation(BaseModel):
     title: str
     confidence: EvalVerificationRecipeConfidence = "direct"
     source: EvalVerificationRecipeSource = "recipe"
+    freshness: PathVerificationFreshness = "unknown"
     matched_paths: list[str] = Field(default_factory=list)
     component_ids: list[str] = Field(default_factory=list)
     commands: list[str] = Field(default_factory=list)
@@ -221,6 +265,7 @@ class EvalVerificationRecipeRecommendation(BaseModel):
     case_ids: list[str] = Field(default_factory=list)
     notes: str | None = None
     limitations: list[str] = Field(default_factory=list)
+    safe_next_commands: list[str] = Field(default_factory=list)
 
 
 class EvalTestTargetRecommendation(BaseModel):

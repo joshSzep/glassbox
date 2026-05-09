@@ -2,9 +2,6 @@
 
 from pathlib import Path
 
-from glassbox.runtime.eval_coverage import DEFAULT_EVAL_COVERAGE_PATH
-from glassbox.runtime.eval_coverage import EvalCapabilityDefinition
-from glassbox.runtime.eval_coverage import load_eval_coverage_manifest
 from glassbox.runtime.eval_impact_rules import maybe_load_eval_impact_manifest
 from glassbox.runtime.eval_recommendation_case_expansion import (
     add_capability_derived_case_recommendations,
@@ -17,6 +14,8 @@ from glassbox.runtime.eval_recommendation_common import dedupe_strings
 from glassbox.runtime.eval_recommendation_long_run_surfaces import (
     build_long_run_surface_recommendations,
 )
+from glassbox.runtime.eval_recommendation_manifests import load_all_eval_cases
+from glassbox.runtime.eval_recommendation_manifests import load_capabilities
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReason
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_path_matching import (
@@ -40,6 +39,9 @@ from glassbox.runtime.eval_recommendation_recipes import build_recipe_recommenda
 from glassbox.runtime.eval_recommendation_release_surfaces import (
     build_release_surface_recommendations,
 )
+from glassbox.runtime.eval_recommendation_repository_intelligence import (
+    apply_repository_intelligence_recommendations,
+)
 from glassbox.runtime.eval_recommendation_rows import build_case_recommendations
 from glassbox.runtime.eval_recommendation_rows import build_profile_recommendations
 from glassbox.runtime.eval_recommendation_test_targets import (
@@ -51,10 +53,7 @@ from glassbox.runtime.eval_recommendation_topology import (
 from glassbox.runtime.eval_verification_recipes import (
     maybe_load_eval_verification_recipe_manifest,
 )
-from glassbox.runtime.evals import EvalCase
 from glassbox.runtime.evals import _ensure_path_within_root
-from glassbox.runtime.evals import discover_eval_case_files
-from glassbox.runtime.evals import load_eval_case
 from glassbox.runtime.evals import load_eval_profiles
 
 
@@ -74,7 +73,7 @@ def recommend_eval_change_impact(
         for touched_path in touched_paths
     ]
 
-    cases = _load_all_eval_cases(resolved_workspace_root)
+    cases = load_all_eval_cases(resolved_workspace_root)
     cases_by_id = {case.case_id: case for case in cases}
     case_paths = {
         str(case.case_path.relative_to(resolved_workspace_root)).replace("\\", "/"): (
@@ -84,7 +83,7 @@ def recommend_eval_change_impact(
     }
     profiles = load_eval_profiles(resolved_workspace_root)
     profiles_by_id = {profile.profile_id: profile for profile in profiles}
-    capabilities = _load_capabilities(
+    capabilities = load_capabilities(
         resolved_workspace_root,
         coverage_path=coverage_path,
     )
@@ -136,6 +135,15 @@ def recommend_eval_change_impact(
         matched_capabilities=matched_capabilities,
         case_reasons=case_reasons,
     )
+    repository_enrichment = apply_repository_intelligence_recommendations(
+        workspace_root=resolved_workspace_root,
+        normalized_paths=normalized_paths,
+        cases=cases,
+        profiles=profiles,
+        case_reasons=case_reasons,
+        profile_reasons=profile_reasons,
+    )
+    matched_paths.update(repository_enrichment.matched_paths)
 
     impacted_stages = build_impacted_stages(
         cases_by_id=cases_by_id,
@@ -157,10 +165,17 @@ def recommend_eval_change_impact(
         warnings=warnings,
     )
 
-    case_recommendations = build_case_recommendations(cases_by_id, case_reasons)
+    case_recommendations = build_case_recommendations(
+        cases_by_id,
+        case_reasons,
+        source_metadata_by_case_id=repository_enrichment.case_source_metadata,
+        safe_next_commands_by_case_id=repository_enrichment.case_safe_next_commands,
+    )
     profile_recommendations = build_profile_recommendations(
         profiles_by_id,
         profile_reasons,
+        source_metadata_by_profile_id=repository_enrichment.profile_source_metadata,
+        safe_next_commands_by_profile_id=repository_enrichment.profile_safe_next_commands,
     )
     unmatched_paths = [path for path in normalized_paths if path not in matched_paths]
     suggested_commands = build_suggested_commands(
@@ -188,6 +203,7 @@ def recommend_eval_change_impact(
         normalized_paths=normalized_paths,
         recipes=recipes,
     )
+    recipe_recommendations.extend(repository_enrichment.recipe_recommendations)
     topology_recipe_recommendations, topology_warnings = (
         build_topology_recipe_recommendations(
             workspace_root=resolved_workspace_root,
@@ -207,7 +223,14 @@ def recommend_eval_change_impact(
         matched_rule_ids=sorted(matched_rule_ids),
         unmatched_paths=unmatched_paths,
         coverage_audit_recommended=coverage_audit_recommended,
-        warnings=dedupe_strings([*warnings, *topology_warnings, *test_target_warnings]),
+        warnings=dedupe_strings(
+            [
+                *warnings,
+                *repository_enrichment.warnings,
+                *topology_warnings,
+                *test_target_warnings,
+            ]
+        ),
         release_surfaces=release_surfaces,
         long_run_surfaces=long_run_surfaces,
         cases=case_recommendations,
@@ -237,44 +260,3 @@ def _normalize_touched_path(workspace_root: Path, touched_path: str) -> str:
     )
     _ensure_path_within_root(resolved_path, workspace_root, kind="touched path")
     return str(resolved_path.relative_to(workspace_root)).replace("\\", "/")
-
-
-def _load_all_eval_cases(workspace_root: Path) -> list[EvalCase]:
-    cases: list[EvalCase] = []
-    for case_path in discover_eval_case_files(workspace_root):
-        cases.append(load_eval_case(case_path, workspace_root=workspace_root))
-    cases.sort(key=lambda case: case.case_id)
-    return cases
-
-
-def _load_capabilities(
-    workspace_root: Path,
-    *,
-    coverage_path: Path | None,
-) -> list[EvalCapabilityDefinition]:
-    try:
-        return load_eval_coverage_manifest(
-            workspace_root,
-            coverage_path=coverage_path,
-        ).capabilities
-    except ValueError as exc:
-        resolved_path = _resolve_optional_manifest_path(
-            workspace_root,
-            coverage_path,
-            DEFAULT_EVAL_COVERAGE_PATH,
-        )
-        if "missing eval coverage manifest" in str(exc) and not resolved_path.exists():
-            return []
-        raise
-
-
-def _resolve_optional_manifest_path(
-    workspace_root: Path,
-    path: Path | None,
-    default_path: Path,
-) -> Path:
-    if path is None:
-        return (workspace_root.resolve() / default_path).resolve()
-    if path.is_absolute():
-        return path.resolve()
-    return (workspace_root.resolve() / path).resolve()

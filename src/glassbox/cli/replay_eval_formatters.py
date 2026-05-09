@@ -7,6 +7,7 @@ from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import build_eval_coverage_summary_lines
 from glassbox.runtime.eval_recommendations import EvalLongRunSurfaceRecommendation
 from glassbox.runtime.eval_recommendations import EvalRecommendationReport
+from glassbox.runtime.eval_recommendations import EvalRecommendationSourceMetadata
 from glassbox.runtime.eval_recommendations import EvalReleaseSurfaceRecommendation
 from glassbox.runtime.eval_runner import EvalSuiteResult
 from glassbox.runtime.replay import ReplayResult
@@ -310,6 +311,13 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         print("Recommended cases:")
         for case in result.cases:
             print(f"  - {case.case_id}: {case.title} ({case.confidence})")
+            _print_optional_joined_line("Paths", case.matched_paths, indent="    ")
+            _print_source_metadata(case.source_metadata, indent="    ")
+            _print_optional_joined_line(
+                "Safe next commands",
+                case.safe_next_commands,
+                indent="    ",
+            )
             for reason in case.reasons:
                 print(f"    Reason: {reason.summary}")
     else:
@@ -322,6 +330,17 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
                 f"({profile.confidence}, {profile.verification_stage}, "
                 f"{profile.track})"
             )
+            _print_optional_joined_line("Paths", profile.matched_paths, indent="    ")
+            if profile.budget_implications:
+                print("    Budget:")
+                for implication in profile.budget_implications:
+                    print("      - " + implication)
+            _print_source_metadata(profile.source_metadata, indent="    ")
+            _print_optional_joined_line(
+                "Safe next commands",
+                profile.safe_next_commands,
+                indent="    ",
+            )
             for reason in profile.reasons:
                 print(f"    Reason: {reason.summary}")
     else:
@@ -331,7 +350,7 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         for recipe in result.recipes:
             print(
                 f"  - {recipe.recipe_id}: {recipe.title} "
-                f"({recipe.confidence}, {recipe.source})"
+                f"({recipe.confidence}, {recipe.source}, {recipe.freshness})"
             )
             _print_optional_joined_line("Paths", recipe.matched_paths, indent="    ")
             _print_optional_joined_line(
@@ -349,6 +368,11 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
                 print("    Commands:")
                 for command in recipe.commands:
                     print("      - " + command)
+            _print_optional_joined_line(
+                "Safe next commands",
+                recipe.safe_next_commands,
+                indent="    ",
+            )
     else:
         print("Verification recipes: none")
     if result.test_targets:
@@ -467,6 +491,30 @@ def _print_optional_joined_line(
 ) -> None:
     if values:
         print(f"{indent}{label}: " + ", ".join(values))
+
+
+def _print_source_metadata(
+    metadata: Sequence[EvalRecommendationSourceMetadata],
+    *,
+    indent: str,
+) -> None:
+    if not metadata:
+        return
+    print(f"{indent}Sources:")
+    for source in metadata:
+        print(f"{indent}  - {source.source_id} ({source.source}, {source.freshness})")
+        _print_optional_joined_line(
+            "Paths",
+            source.matched_paths,
+            indent=f"{indent}    ",
+        )
+        if source.source_path:
+            print(f"{indent}    Source path: {source.source_path}")
+        print(f"{indent}    Why: {source.explanation}")
+        if source.limitations:
+            print(f"{indent}    Limitations:")
+            for limitation in source.limitations:
+                print(f"{indent}      - {limitation}")
 
 
 def _replay_detail_lines(result: ReplayResult) -> list[str]:

@@ -712,6 +712,8 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "PathVerificationRecommendationReport",
         "PathVerificationImpact",
         "EvalTestTargetRecommendation",
+        "source metadata",
+        "profile budget implications",
         "PathVerificationTarget",
         "PathVerificationCommandRecipeTarget",
         "PathVerificationEvalCaseTarget",
@@ -739,6 +741,9 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         "test targets separately from advisory command",
         "generated paths warn operators",
         "packages with no discovered test roots",
+        "## Eval Scope Enrichment",
+        "repository intelligence as an advisory enrichment layer",
+        "Stale snapshots keep their provenance",
     ):
         assert required_text in content
 

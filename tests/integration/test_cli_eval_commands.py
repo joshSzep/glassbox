@@ -1102,6 +1102,7 @@ def test_cli_eval_recommend_reports_verification_recipes(
             "title": "Frontend dashboard",
             "confidence": "direct",
             "source": "recipe",
+            "freshness": "unknown",
             "matched_paths": ["frontend/components/console/workspace-overview.tsx"],
             "component_ids": [],
             "commands": [
@@ -1112,6 +1113,7 @@ def test_cli_eval_recommend_reports_verification_recipes(
             "case_ids": [],
             "notes": None,
             "limitations": [],
+            "safe_next_commands": [],
         }
     ]
 

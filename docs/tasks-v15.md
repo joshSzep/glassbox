@@ -624,7 +624,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1522: Improve Eval Case, Profile, And Recipe Recommendations
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1521`
 - Goal: connect repository intelligence to eval metadata so recommendations
   are more precise and easier to review

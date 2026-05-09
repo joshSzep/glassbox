@@ -49,6 +49,10 @@ Runtime reports use typed path-to-verification models exported from
 - `EvalTestTargetRecommendation` records likely test targets discovered from
   repository intelligence source roots, test roots, package boundaries, naming
   conventions, topology, recipes, and fallback policy.
+- Eval case, profile, and recipe rows carry repository-intelligence source
+  metadata when a v2 snapshot shaped the recommendation. Rows name matched
+  paths, source IDs, freshness, limitations, profile budget implications, and
+  safe next commands separately from execution authority.
 - `PathVerificationTarget` records one recommended target and its evidence
   class.
 - `PathVerificationCommandRecipeTarget` records advisory command recipes with
@@ -134,6 +138,21 @@ Common behavior:
   trusting generated-file test guidance
 - packages with no discovered test roots emit degraded guidance rather than a
   pretend target
+
+## Eval Scope Enrichment
+
+`eval recommend` keeps repository-owned eval metadata authoritative, then uses
+repository intelligence as an advisory enrichment layer. A fresh v2 repository
+index can add source metadata to existing case and profile rows, derive profile
+guidance from release-sensitive surfaces, and surface safe command recipes from
+local manifests or eval recipe files. Stale snapshots keep their provenance but
+downgrade freshness and warn operators to rebuild before relying on current
+path-to-eval guidance.
+
+Missing repository intelligence does not block eval recommendations. Glassbox
+falls back to eval impact rules, coverage metadata, profiles, recipes, topology,
+and manual fallback policy. Live-provider canary profiles remain skipped from
+executable plans unless the operator explicitly selects them.
 
 ## Freshness And Stale Evidence
 

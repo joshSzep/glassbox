@@ -52,6 +52,7 @@ def build_reason_groups(
             "direct-path",
             "owner-derived-rule",
             "capability-derived-rule",
+            "repository-intelligence",
             "stage-derived-profile",
             "release-gate-recommendation",
             "fallback-policy",
@@ -82,6 +83,8 @@ def _reason_group_title(group: EvalRecommendationReasonGroupKind) -> str:
         return "Owner-derived rule matches"
     if group == "capability-derived-rule":
         return "Capability-derived rule matches"
+    if group == "repository-intelligence":
+        return "Repository intelligence matches"
     if group == "stage-derived-profile":
         return "Stage-derived profile matches"
     if group == "release-gate-recommendation":
