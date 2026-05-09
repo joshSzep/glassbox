@@ -1119,7 +1119,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1562: Add Replay, Eval, And Drift Semantics For Repository Intelligence Context
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1561`
 - Goal: make repository intelligence context changes visible in replay and eval
   results

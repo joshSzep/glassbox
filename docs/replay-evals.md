@@ -158,6 +158,32 @@ reproduce. If cancellation evidence changes, evals report `cancellations drift`
 or `final_state drift` instead of timeout, provider failure, or generic tool
 failure.
 
+## Repository Intelligence Context Drift
+
+Repository intelligence context is replayed as a named enriched-context source:
+`repository_intelligence`. Replay manifests fingerprint the bounded source
+summary rather than raw repository artifacts. The fingerprint covers the
+context status, schema version, source digest, included sources, excluded
+sources, selected items, overflow counts, limitations, and safe next actions.
+
+When repository intelligence changes, replay should report source-level
+manifest drift such as:
+
+- `recorded enriched context source drifted: repository_intelligence`
+- `enriched context source missing: repository_intelligence`
+- `enriched context source added: repository_intelligence`
+
+Read those as context drift first, not behavior drift. Inspect the runtime
+context snapshot, repository intelligence freshness, excluded stale sources,
+and path-to-verification recommendations before refreshing a baseline.
+
+Portable replay keeps older bundles compatible. If a recorded bundle predates
+repository intelligence context, a newly available live
+`repository_intelligence` source can be ignored for portable replay in the same
+way live `repository_context` is ignored. Bundles that recorded repository
+intelligence still compare it by source fingerprint so stale, missing, or
+changed intelligence remains explainable.
+
 ## Local-First Verification Policy
 
 Glassbox assumes a direct-to-`main` workflow where the important regression barrier happens before `git commit`.

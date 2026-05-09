@@ -348,6 +348,45 @@ def test_replay_can_ignore_live_repository_intelligence_for_portable_bundles() -
     )
 
 
+def test_replay_reports_repository_intelligence_source_drift() -> None:
+    expected = build_replay_enriched_context_sources(
+        {
+            "repository_intelligence": {
+                "status": "fresh",
+                "schema_version": 1,
+                "items": [
+                    {
+                        "item_kind": "subsystem",
+                        "title": "runtime",
+                        "summary": "Runtime context was included.",
+                    }
+                ],
+            }
+        }
+    )
+    actual = build_replay_enriched_context_sources(
+        {
+            "repository_intelligence": {
+                "status": "fresh",
+                "schema_version": 1,
+                "items": [
+                    {
+                        "item_kind": "command_recipe",
+                        "title": "pytest",
+                        "summary": "Run focused tests.",
+                    }
+                ],
+            }
+        }
+    )
+
+    assert diff_enriched_context_sources(
+        expected_sources=expected,
+        actual_sources=actual,
+        prefix="enriched context",
+    ) == ["enriched context source drifted: repository_intelligence"]
+
+
 @pytest.mark.anyio
 async def test_replay_orchestrator_maps_execution_failures_to_replay_results(
     monkeypatch: pytest.MonkeyPatch,
