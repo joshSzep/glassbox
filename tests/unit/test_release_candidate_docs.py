@@ -563,6 +563,7 @@ def test_v15_repository_intelligence_contract_covers_product_boundary() -> None:
         "## Vocabulary",
         "## Supported Workflow Set",
         "## Repository Intelligence Sources",
+        "## Memory-To-Repository Intelligence Rules",
         "## Evidence Expectations",
         "## Advisory Boundaries",
         "## Release Authority",
@@ -574,6 +575,8 @@ def test_v15_repository_intelligence_contract_covers_product_boundary() -> None:
         "eval metadata",
         "command recipes",
         "confirmed active workspace memory",
+        "candidate-only, rejected, stale, invalidated, imported-unreviewed",
+        "WorkspaceMemoryUsedInContext",
         "dependency manifests",
         "source roots, test roots, docs roots",
         "release-sensitive surfaces",
@@ -752,6 +755,26 @@ def test_v15_path_to_verification_contract_covers_recommendation_boundary() -> N
         assert required_text in content
 
     assert "path-to-verification-recommendations.md" in replay_evals
+
+
+def test_workspace_memory_documents_repository_intelligence_integration() -> None:
+    content = (REPO_ROOT / "docs" / "workspace-memory.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Repository Intelligence Integration",
+        "Confirmed active entries can enrich repository-intelligence snapshots",
+        "verified commands and command recipes",
+        "generated candidates that have not been confirmed",
+        "rejected candidates",
+        "stale, invalidated, or pruned entries",
+        "imported entries that have not passed the local review posture",
+        "Memory-derived intelligence does not override stronger deterministic source",
+        "WorkspaceMemoryUsedInContext",
+        "automatic memory capture",
+        "cross-repository memory sync",
+        "release authority",
+    ):
+        assert required_text in content
 
 
 def test_v14_review_loop_maturity_audit_maps_dogfooding_followups() -> None:

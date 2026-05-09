@@ -710,7 +710,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1530: Define Memory-To-Repository-Intelligence Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1500`, `GBX-1514`
 - Goal: define how confirmed workspace memory, candidate memory, and command
   evidence may influence repository intelligence

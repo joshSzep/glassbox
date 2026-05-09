@@ -111,6 +111,46 @@ summary, review brief, handoff posture, or prompt fragment must be named with
 source class, source path or event ID when available, freshness, confidence,
 and limitations.
 
+## Memory-To-Repository Intelligence Rules
+
+Workspace memory may enrich repository intelligence only after it is confirmed,
+active, local to the workspace, and traceable to the workspace memory event
+model. Memory-derived entries must cite memory IDs and source labels just like
+file, manifest, eval, topology, command-evidence, or artifact-derived entries.
+
+Confirmed memory may contribute advisory repository facts, local conventions,
+verified command recipes, repeated failure patterns, architecture notes, owner
+hints, package quirks, generated-output conventions, release-sensitive path
+notes, and durable task outcomes. These contributions can appear in snapshots,
+path-to-verification explanations, dashboard cues, changeset guidance, review
+briefs, handoff summaries, and bounded context only with provenance, freshness,
+confidence, and limitations visible to operators.
+
+The following memory states are excluded from active repository intelligence by
+default: candidate-only, rejected, stale, invalidated, imported-unreviewed,
+pruned, unresolved-provenance, and redaction-blocked. They may appear in review
+or conflict surfaces when clearly labeled, but they must not silently shape
+recommendations or prompts.
+
+Generated candidates remain review-only. Glassbox may propose candidates from
+successful verification commands, repeated failures, verified recipes, topology
+findings, release outcomes, eval recommendations, changesets, or repository
+intelligence artifacts, but those suggestions are not repository facts until an
+operator confirms them through the workspace memory flow.
+
+Memory-derived intelligence is weaker than current deterministic source
+metadata. When confirmed memory disagrees with manifests, source roots, topology
+snapshots, command evidence, dependency metadata, generated-path rules, or
+release-surface records, consumers should report a degraded or conflicting
+posture and provide safe review actions instead of overriding the newer local
+evidence.
+
+When memory-derived repository intelligence enters model context, the context
+snapshot must make the memory influence inspectable and
+`WorkspaceMemoryUsedInContext` must record the memory ID, turn ID, prompt
+section, state at use, and reason. Replay can then fingerprint both the
+repository-intelligence snapshot and the memory state that shaped the prompt.
+
 ## Evidence Expectations
 
 Repository intelligence claims must be backed by deterministic local inputs,

@@ -93,6 +93,60 @@ Pruning removes entries from active projections or marks them as pruned, but it 
 
 Workspace memory complements, but does not replace, the bounded runtime context described in [runtime-context.md](./runtime-context.md). It should support team workflows described in [team-workflows.md](./team-workflows.md) by making local conventions and repeated outcomes inspectable. Session export behavior must preserve the source events needed to explain memory provenance and prompt use.
 
+## Repository Intelligence Integration
+
+Repository intelligence may use workspace memory only as review-gated local
+evidence. Confirmed active entries can enrich repository-intelligence snapshots,
+path-to-verification recommendations, dashboard cues, and bounded turn context
+when the consumer can cite the memory ID, kind, state, confirmation metadata,
+source label, freshness posture, confidence, and limitations.
+
+Eligible memory-derived repository intelligence includes:
+
+- repository facts about local structure, retained artifacts, package quirks, or
+  generated-output conventions
+- conventions for coding, testing, docs, release, review, or handoff workflows
+- verified commands and command recipes that remain advisory until explicitly
+  executed
+- repeated failure patterns and recovery notes with redaction applied before
+  display or export
+- architecture notes, owner hints, subsystem notes, and task outcomes that help
+  explain why a path matters
+
+Ineligible memory must stay out of repository-intelligence snapshots,
+recommendations, and prompt context by default:
+
+- generated candidates that have not been confirmed
+- rejected candidates
+- stale, invalidated, or pruned entries
+- imported entries that have not passed the local review posture
+- entries whose provenance cannot be resolved to a canonical event, artifact,
+  task, tool result, runtime note, or explicit operator source
+- sensitive entries that redaction policy marks unsafe for the target surface
+
+Memory-derived intelligence does not override stronger deterministic source
+metadata. If a confirmed convention conflicts with current manifests, source
+roots, topology, command evidence, dependency metadata, or release-surface
+records, consumers should lower confidence, name the conflict, and suggest
+inspection or memory review instead of silently trusting the remembered fact.
+
+Model-assisted suggestions, command-derived candidates, topology-derived
+candidates, release-outcome candidates, and failure-pattern candidates remain
+review-only until confirmed through the workspace memory flow. Repository
+intelligence can show these as memory candidates in review surfaces, but it must
+not treat them as active facts, owner assignments, command approvals, release
+evidence, or prompt context.
+
+When memory-derived repository intelligence influences a model turn, the context
+builder must record `WorkspaceMemoryUsedInContext` for each included memory ID
+and retain enough context snapshot metadata for replay to distinguish behavior
+drift from memory availability or freshness drift.
+
+Non-goals for this integration are automatic memory capture, automatic memory
+confirmation, cross-repository memory sync, provider-side memory, hidden vector
+retrieval authority, automatic owner assignment, command execution approval, or
+release authority.
+
 ## Canonical Events
 
 GBX-850 introduces these canonical event payloads:
