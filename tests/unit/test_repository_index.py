@@ -60,6 +60,12 @@ from glassbox.runtime.repository_intelligence_layout_docs import (
 from glassbox.runtime.repository_intelligence_layout_evals import (
     discover_eval_command_recipes,
 )
+from glassbox.runtime.repository_intelligence_layout_ownership import (
+    discover_codeowners_ownership_hints,
+)
+from glassbox.runtime.repository_intelligence_layout_ownership import (
+    discover_subsystem_owner_hints,
+)
 from glassbox.runtime.repository_intelligence_layout_packages import (
     discover_repository_intelligence_packages,
 )
@@ -74,6 +80,12 @@ from glassbox.runtime.repository_intelligence_layout_recipes import (
 )
 from glassbox.runtime.repository_intelligence_layout_recipes import (
     discover_release_script_command_recipes,
+)
+from glassbox.runtime.repository_intelligence_layout_release import (
+    discover_release_surface_hints,
+)
+from glassbox.runtime.repository_intelligence_layout_subsystems import (
+    discover_repository_intelligence_subsystems,
 )
 from glassbox.runtime.repository_intelligence_queries import (
     inspect_repository_intelligence_path,
@@ -419,6 +431,57 @@ def test_repository_command_recipe_source_helpers_preserve_metadata(
         Path("evals/recipes.json"),
         Path("docs/recipe.md"),
     }
+
+
+def test_repository_owner_subsystem_release_helpers_preserve_advisory_metadata(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+
+    packages = discover_repository_intelligence_packages(tmp_path)
+    package_recipes = discover_package_command_recipes(
+        tmp_path, packages.package_boundaries
+    )
+    command_recipes = dedupe_command_recipes(
+        [
+            *package_recipes,
+            *discover_eval_command_recipes(tmp_path),
+            *discover_release_script_command_recipes(tmp_path),
+        ]
+    )
+    codeowners = discover_codeowners_ownership_hints(tmp_path)
+    subsystems = discover_repository_intelligence_subsystems(
+        tmp_path, packages.package_boundaries
+    )
+    subsystem_owners = discover_subsystem_owner_hints(tmp_path, subsystems)
+    release_surfaces = discover_release_surface_hints(tmp_path, command_recipes)
+
+    assert any(
+        hint.owner_label == "@docs-team"
+        and hint.scope_paths == [Path("docs")]
+        and hint.provenance[0].line_start == 1
+        for hint in codeowners
+    )
+    frontend_subsystem = next(
+        subsystem
+        for subsystem in subsystems
+        if subsystem.subsystem_id == "subsystem:frontend"
+    )
+    assert frontend_subsystem.package_ids == ["app:frontend"]
+    frontend_owner = next(
+        owner for owner in subsystem_owners if owner.subsystem == "subsystem:frontend"
+    )
+    assert "not a person" in frontend_owner.limitations[0]
+    release_candidate = next(
+        surface
+        for surface in release_surfaces
+        if surface.kind == RepositoryIntelligenceReleaseSurfaceKind.RELEASE_CANDIDATE
+    )
+    assert release_candidate.surface_id == "release-surface:release-candidate"
+    assert {
+        "recipe:eval-profile:release-candidate",
+        "recipe:release-script:scripts:validate_v1_release_gate.py",
+    } <= set(release_candidate.command_recipe_ids)
 
 
 def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(

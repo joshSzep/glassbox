@@ -559,7 +559,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R723: Split Ownership, Subsystem, And Release-Surface Hint Discovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R720, GBX-R722
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_layout.py`
