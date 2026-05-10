@@ -1,7 +1,6 @@
 """Inspection and recommendation handlers for repository intelligence CLI."""
 
 import argparse
-from pathlib import Path
 
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
@@ -16,13 +15,21 @@ from glassbox.cli.repository_command_formatters import _print_path_intelligence
 from glassbox.cli.repository_command_formatters import _print_subsystem
 from glassbox.cli.repository_command_formatters import _print_subsystems
 from glassbox.cli.repository_command_formatters import _print_topology_snapshot
-from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
 from glassbox.runtime.repository_index import RepositoryIndexLoadError
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
+from glassbox.runtime.repository_intelligence_queries import (
+    RepositoryIntelligencePathInspection,
+)
+from glassbox.runtime.repository_intelligence_queries import (
+    inspect_repository_intelligence_path,
+)
+from glassbox.runtime.repository_intelligence_queries import (
+    workspace_relative_repository_path,
+)
 from glassbox.runtime.workspace_topology import load_workspace_topology
 from glassbox.runtime.workspace_topology import workspace_topology_path
 
@@ -33,8 +40,10 @@ def _repo_path_command(args: argparse.Namespace) -> int:
         snapshot = load_repository_index(cwd)
     except RepositoryIndexLoadError as exc:
         raise _repository_index_cli_error(exc) from exc
-    path = _workspace_relative_path(cwd, args.path)
-    payload = _path_intelligence_payload(snapshot, path)
+    path = workspace_relative_repository_path(cwd, args.path)
+    payload = _path_intelligence_payload(
+        inspect_repository_intelligence_path(snapshot, path)
+    )
     if args.json:
         print_json_output(payload)
     else:
@@ -199,95 +208,30 @@ def _repository_index_cli_error(error: RepositoryIndexLoadError) -> ValueError:
     )
 
 
-def _workspace_relative_path(cwd: Path, value: str) -> Path:
-    raw_path = Path(value)
-    if raw_path.is_absolute():
-        return raw_path.resolve().relative_to(cwd.resolve())
-    if ".." in raw_path.parts:
-        raise ValueError("repository path must stay inside the workspace")
-    return raw_path
-
-
 def _path_intelligence_payload(
-    snapshot: RepositoryIndexSnapshot,
-    path: Path,
+    inspection: RepositoryIntelligencePathInspection,
 ) -> dict[str, object]:
-    packages = [
-        package
-        for package in snapshot.package_boundaries
-        if _scope_contains(package.root, path)
-        or any(_scope_contains(scope, path) for scope in package.source_roots)
-        or any(_scope_contains(scope, path) for scope in package.test_roots)
-        or any(_scope_contains(scope, path) for scope in package.doc_roots)
-    ]
-    path_hints = [
-        hint for hint in _all_path_hints(snapshot) if _scope_contains(hint.path, path)
-    ]
-    subsystems = [
-        subsystem
-        for subsystem in snapshot.subsystems
-        if any(_scope_contains(scope, path) for scope in subsystem.scope_paths)
-    ]
-    recipes = [
-        recipe
-        for recipe in snapshot.command_recipes
-        if not recipe.scope_paths
-        or any(_scope_contains(scope, path) for scope in recipe.scope_paths)
-    ]
-    owner_scope_ids = {
-        owner.hint_id
-        for owner in snapshot.ownership_hints
-        if any(_scope_contains(scope, path) for scope in owner.scope_paths)
-    }
-    owner_scope_ids.update(
-        owner_id for subsystem in subsystems for owner_id in subsystem.owner_hint_ids
-    )
-    owners = [
-        owner for owner in snapshot.ownership_hints if owner.hint_id in owner_scope_ids
-    ]
-    release_surface_ids = {
-        surface_id
-        for subsystem in subsystems
-        for surface_id in subsystem.release_surface_ids
-    }
-    release_surfaces = [
-        surface
-        for surface in snapshot.release_sensitive_surfaces
-        if surface.surface_id in release_surface_ids
-        or any(_scope_contains(scope, path) for scope in surface.scope_paths)
-    ]
     return {
-        "path": path.as_posix(),
-        "snapshot_status": snapshot.status.value,
-        "packages": [package.model_dump(mode="json") for package in packages],
-        "path_hints": [hint.model_dump(mode="json") for hint in path_hints],
-        "subsystems": [subsystem.model_dump(mode="json") for subsystem in subsystems],
-        "command_recipes": [recipe.model_dump(mode="json") for recipe in recipes],
-        "ownership_hints": [owner.model_dump(mode="json") for owner in owners],
+        "path": inspection.path.as_posix(),
+        "snapshot_status": inspection.snapshot_status,
+        "packages": [
+            package.model_dump(mode="json") for package in inspection.packages
+        ],
+        "path_hints": [hint.model_dump(mode="json") for hint in inspection.path_hints],
+        "subsystems": [
+            subsystem.model_dump(mode="json") for subsystem in inspection.subsystems
+        ],
+        "command_recipes": [
+            recipe.model_dump(mode="json") for recipe in inspection.command_recipes
+        ],
+        "ownership_hints": [
+            owner.model_dump(mode="json") for owner in inspection.ownership_hints
+        ],
         "release_surfaces": [
-            surface.model_dump(mode="json") for surface in release_surfaces
+            surface.model_dump(mode="json") for surface in inspection.release_surfaces
         ],
-        "next_actions": [
-            f"glassbox repo recommend {path.as_posix()}",
-            f"glassbox eval recommend {path.as_posix()}",
-        ],
+        "next_actions": inspection.next_actions,
     }
-
-
-def _all_path_hints(snapshot: RepositoryIndexSnapshot):
-    return [
-        *snapshot.source_roots,
-        *snapshot.test_roots,
-        *snapshot.doc_roots,
-        *snapshot.generated_paths,
-        *snapshot.policy_sensitive_paths,
-    ]
-
-
-def _scope_contains(scope: Path, path: Path) -> bool:
-    scope_value = Path(".") if scope.as_posix() in {"", "."} else scope
-    path_value = Path(".") if path.as_posix() in {"", "."} else path
-    return path_value == scope_value or path_value.is_relative_to(scope_value)
 
 
 __all__ = [

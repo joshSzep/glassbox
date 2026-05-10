@@ -436,7 +436,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R711: Deduplicate CLI Path Inspection With Runtime Query Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R710
 - Target files:
   - `src/glassbox/cli/repository_command_inspection.py`
