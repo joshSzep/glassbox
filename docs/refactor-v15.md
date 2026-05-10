@@ -405,7 +405,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R710: Split Repository Command Handler Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R701
 - Target files:
   - `src/glassbox/cli/repository_commands.py`
