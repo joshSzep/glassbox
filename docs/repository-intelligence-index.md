@@ -248,6 +248,28 @@ budgets`. If the limit is reached, prefer rebuilding in a narrower checkout,
 reviewing generated/excluded path posture, or using paginated search and detail
 routes instead of widening dashboard overview payloads.
 
+## Recovery Behavior
+
+Missing repository intelligence is advisory: status routes report `missing` and
+name a rebuild command. Retained snapshots that exist but cannot be used are
+classified instead of bubbling up as vague runtime errors:
+
+- `corrupted_snapshot`: the JSON artifact cannot be parsed
+- `invalid_snapshot`: the JSON exists but does not match the supported snapshot
+  contract
+- `unsupported_schema_version`: the artifact was written by a newer schema than
+  this Glassbox build supports
+- `unreadable_snapshot`: the artifact exists but cannot be read from disk
+
+`glassbox repo index status --cwd .` and `GET /repo/index/status` stay
+available in these states and report `failed`, the load reason, limitations,
+and safe next actions. Detail, search, path inspection, and repository
+intelligence dashboard routes return an actionable error with the artifact path
+and rebuild command instead of treating the corrupted or future-schema data as
+current. Basic sessions and chat are expected to continue without repository
+intelligence; operators can rebuild with `glassbox repo index build --cwd .` or
+the broader `glassbox repo refresh --cwd .`.
+
 The top-level `glassbox repo` workflow wraps the common operator path:
 `glassbox repo status --cwd .` shows index and topology health together,
 `glassbox repo stale --cwd .` isolates stale or missing cues,

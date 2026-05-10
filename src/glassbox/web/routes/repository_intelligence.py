@@ -11,7 +11,11 @@ from fastapi import Query
 
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
+from glassbox.runtime.repository_index import RepositoryIndexLoadError
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index import (
+    failed_repository_index_snapshot_from_error,
+)
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_intelligence_freshness import (
@@ -135,6 +139,13 @@ def get_repository_intelligence_freshness(
             entry_count=0,
             detail="repository index has not been built",
             freshness_cues=repository_index_freshness_cues(workspace_root, None),
+        )
+    except RepositoryIndexLoadError as error:
+        snapshot = failed_repository_index_snapshot_from_error(workspace_root, error)
+        index = build_repository_index_status_response(
+            snapshot,
+            path=str(index_path),
+            detail=error.detail,
         )
     topology = _load_topology_status(workspace_root)
     cues = list(index.freshness_cues)
@@ -443,6 +454,16 @@ def _load_index_or_404(workspace_root: Path) -> RepositoryIndexSnapshot:
         return load_repository_index(workspace_root)
     except RepositoryIndexNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except RepositoryIndexLoadError as error:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "reason": error.reason,
+                "message": error.detail,
+                "path": str(error.path),
+                "safe_next_actions": error.safe_next_actions,
+            },
+        ) from error
 
 
 def _load_topology_status(

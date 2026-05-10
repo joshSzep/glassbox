@@ -14,6 +14,7 @@ from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.eval_recommendations import recommend_eval_change_impact
+from glassbox.runtime.repository_index import RepositoryIndexLoadError
 from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
@@ -206,7 +207,10 @@ def _repo_refresh_command(args: argparse.Namespace) -> int:
 
 def _repo_path_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    snapshot = load_repository_index(cwd)
+    try:
+        snapshot = load_repository_index(cwd)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     path = _workspace_relative_path(cwd, args.path)
     payload = _path_intelligence_payload(snapshot, path)
     if args.json:
@@ -250,7 +254,10 @@ def _repo_recommend_command(args: argparse.Namespace) -> int:
 
 def _repo_recipes_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    snapshot = load_repository_index(cwd)
+    try:
+        snapshot = load_repository_index(cwd)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     command = getattr(args, "repo_recipes_command", None)
     if command == "list":
         recipes = snapshot.command_recipes
@@ -280,7 +287,10 @@ def _repo_recipes_command(args: argparse.Namespace) -> int:
 
 def _repo_subsystem_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    snapshot = load_repository_index(cwd)
+    try:
+        snapshot = load_repository_index(cwd)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     command = getattr(args, "repo_subsystem_command", None)
     if command == "list":
         if args.json:
@@ -512,7 +522,10 @@ def _repo_index_search_command(args: argparse.Namespace) -> int:
     if args.limit is not None and args.limit < 1:
         raise ValueError("--limit must be greater than zero")
     cwd, _ = resolve_runtime_location(args)
-    entries = search_repository_index(cwd, args.query, limit=args.limit)
+    try:
+        entries = search_repository_index(cwd, args.query, limit=args.limit)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     if args.json:
         print_json_output([entry.model_dump(mode="json") for entry in entries])
     else:
@@ -522,7 +535,10 @@ def _repo_index_search_command(args: argparse.Namespace) -> int:
 
 def _repo_index_show_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    entry = get_repository_index_entry(cwd, args.entry_id)
+    try:
+        entry = get_repository_index_entry(cwd, args.entry_id)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     if args.json:
         print_json_output(entry.model_dump(mode="json"))
     else:
@@ -532,12 +548,22 @@ def _repo_index_show_command(args: argparse.Namespace) -> int:
 
 def _repo_index_inspect_command(args: argparse.Namespace) -> int:
     cwd, _ = resolve_runtime_location(args)
-    snapshot = load_repository_index(cwd)
+    try:
+        snapshot = load_repository_index(cwd)
+    except RepositoryIndexLoadError as exc:
+        raise _repository_index_cli_error(exc) from exc
     if args.json:
         print_json_output(snapshot.model_dump(mode="json"))
     else:
         _print_index_snapshot(snapshot, repository_index_path(cwd))
     return 0
+
+
+def _repository_index_cli_error(error: RepositoryIndexLoadError) -> ValueError:
+    actions = "; ".join(error.safe_next_actions)
+    return ValueError(
+        f"{error.detail}. Safe next actions: {actions}. Path: {error.path}"
+    )
 
 
 def _repo_topology_build_command(args: argparse.Namespace) -> int:

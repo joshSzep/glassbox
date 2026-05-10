@@ -472,3 +472,36 @@ def test_cli_rebuild_surfaces_projection_failure(
 
     assert exit_code == 1
     assert captured.err.strip() == "projection rebuild failed"
+
+
+def test_cli_repository_index_status_recovers_from_corrupted_snapshot(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    index_path = tmp_path / ".glassbox" / "repository-index.json"
+    index_path.parent.mkdir()
+    index_path.write_text("{not-json", encoding="utf-8")
+
+    exit_code = main(["repo", "index", "status", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Repository index: failed" in captured.out
+    assert "not valid JSON" in captured.out
+    assert f"glassbox repo index build --cwd {tmp_path.resolve()}" in captured.out
+
+
+def test_cli_repository_index_search_reports_rebuild_action_for_corruption(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    index_path = tmp_path / ".glassbox" / "repository-index.json"
+    index_path.parent.mkdir()
+    index_path.write_text("{not-json", encoding="utf-8")
+
+    exit_code = main(["repo", "index", "search", "anything", "--cwd", str(tmp_path)])
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert "repository intelligence snapshot is not valid JSON" in captured.err
+    assert f"glassbox repo index build --cwd {tmp_path.resolve()}" in captured.err

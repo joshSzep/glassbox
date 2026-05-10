@@ -92,6 +92,49 @@ def test_repository_index_routes_report_missing_snapshot(tmp_path: Path) -> None
     asyncio.run(scenario())
 
 
+def test_repository_index_routes_classify_corrupted_snapshot(tmp_path: Path) -> None:
+    async def scenario() -> None:
+        _seed_repository(tmp_path)
+        index_path = tmp_path / ".glassbox" / "repository-index.json"
+        index_path.parent.mkdir()
+        index_path.write_text("{not-json", encoding="utf-8")
+        connection = _open_initialized_db(tmp_path)
+        try:
+            app = _make_app(tmp_path, connection)
+
+            async with httpx.AsyncClient(
+                transport=httpx.ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                status_response = await client.get("/repo/index/status")
+                inspect_response = await client.get("/repo/index")
+                search_response = await client.get(
+                    "/repo/index/search",
+                    params={"query": "anything"},
+                )
+                intelligence_response = await client.get("/repo/intelligence")
+
+            assert status_response.status_code == 200
+            status_payload = status_response.json()
+            assert status_payload["status"] == "failed"
+            assert "not valid JSON" in status_payload["detail"]
+            assert inspect_response.status_code == 409
+            assert inspect_response.json()["detail"]["reason"] == "corrupted_snapshot"
+            assert search_response.status_code == 409
+            assert (
+                search_response.json()["detail"]["safe_next_actions"][1]
+                == f"glassbox repo index build --cwd {tmp_path.resolve()}"
+            )
+            assert intelligence_response.status_code == 409
+            assert intelligence_response.json()["detail"]["reason"] == (
+                "corrupted_snapshot"
+            )
+        finally:
+            connection.close()
+
+    asyncio.run(scenario())
+
+
 def test_repository_index_route_rebuilds_snapshot(tmp_path: Path) -> None:
     async def scenario() -> None:
         _seed_repository(tmp_path)

@@ -1200,7 +1200,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1571: Harden Repository Intelligence Error Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1570`
 - Goal: make indexing and recommendation failures recoverable and easy to
   diagnose

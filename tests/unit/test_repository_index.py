@@ -42,6 +42,7 @@ from glassbox.runtime.repository_index import write_repository_index
 from glassbox.runtime.repository_index_discovery import INDEX_SCAN_LIMITATION
 from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
 from glassbox.runtime.repository_index_discovery import classify_repository_path
+from glassbox.runtime.repository_index_persistence import RepositoryIndexLoadError
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
@@ -541,6 +542,53 @@ def test_repository_index_status_reports_failed_guidance(tmp_path: Path) -> None
         f"glassbox repo index status --cwd {tmp_path.resolve()} --json",
         f"glassbox repo index build --cwd {tmp_path.resolve()}",
     ]
+
+
+def test_repository_index_status_classifies_corrupted_snapshot(tmp_path: Path) -> None:
+    _seed_repository(tmp_path)
+    repository_index_path(tmp_path).parent.mkdir()
+    repository_index_path(tmp_path).write_text("{not-json", encoding="utf-8")
+
+    with pytest.raises(RepositoryIndexLoadError) as exc_info:
+        load_repository_index(tmp_path)
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert exc_info.value.reason == "corrupted_snapshot"
+    assert summary.status == "failed"
+    assert summary.failure_reason is not None
+    assert "not valid JSON" in summary.failure_reason
+    assert summary.freshness_cues[0].state == "degraded"
+    assert summary.freshness_cues[0].safe_next_actions == [
+        f"glassbox repo index status --cwd {tmp_path.resolve()} --json",
+        f"glassbox repo index build --cwd {tmp_path.resolve()}",
+    ]
+
+
+def test_repository_index_status_classifies_unsupported_schema(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    repository_index_path(tmp_path).parent.mkdir()
+    repository_index_path(tmp_path).write_text(
+        json.dumps(
+            {
+                "schema_version": 99,
+                "workspace_root": str(tmp_path),
+                "status": "fresh",
+                "built_at": _BUILT_AT.isoformat(),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RepositoryIndexLoadError) as exc_info:
+        load_repository_index(tmp_path)
+    summary = build_repository_index_status_summary(tmp_path)
+
+    assert exc_info.value.reason == "unsupported_schema_version"
+    assert summary.status == "failed"
+    assert summary.failure_reason is not None
+    assert "unsupported schema version 99" in summary.failure_reason
 
 
 def _seed_repository(root: Path) -> None:

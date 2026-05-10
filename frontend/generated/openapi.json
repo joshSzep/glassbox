@@ -9258,6 +9258,220 @@
         "title": "RepositoryIntelligenceCommandRecipeResponse",
         "type": "object"
       },
+      "RepositoryIntelligenceContextItemSnapshot": {
+        "additionalProperties": false,
+        "description": "One bounded repository-intelligence item selected for turn context.",
+        "properties": {
+          "confidence": {
+            "default": "unknown",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "freshness": {
+            "default": "fresh",
+            "enum": ["fresh", "stale", "missing", "degraded", "conflicting", "partial"],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "item_kind": {
+            "title": "Item Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "source_names": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Names",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["item_kind", "title", "summary"],
+        "title": "RepositoryIntelligenceContextItemSnapshot",
+        "type": "object"
+      },
+      "RepositoryIntelligenceContextSnapshot": {
+        "additionalProperties": false,
+        "description": "Bounded repository-intelligence context with replay-visible sources.",
+        "properties": {
+          "additional_item_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Additional Item Count",
+            "type": "integer"
+          },
+          "budget_bytes": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Bytes"
+          },
+          "context_bytes": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Context Bytes",
+            "type": "integer"
+          },
+          "excluded_sources": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceContextSourceSnapshot"
+            },
+            "title": "Excluded Sources",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceContextItemSnapshot"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "schema_version": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Digest"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/RepositoryIntelligenceContextSourceSnapshot"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "status": {
+            "enum": ["fresh", "stale", "missing", "degraded", "conflicting", "partial"],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["status"],
+        "title": "RepositoryIntelligenceContextSnapshot",
+        "type": "object"
+      },
+      "RepositoryIntelligenceContextSourceSnapshot": {
+        "additionalProperties": false,
+        "description": "One repository-intelligence source considered for prompt context.",
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "freshness": {
+            "enum": ["fresh", "stale", "missing", "degraded", "conflicting", "partial"],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "included": {
+            "title": "Included",
+            "type": "boolean"
+          },
+          "item_count": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Item Count"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance"
+          },
+          "source_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Digest"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_name": {
+            "title": "Source Name",
+            "type": "string"
+          }
+        },
+        "required": ["source_name", "source_kind", "freshness", "confidence", "included"],
+        "title": "RepositoryIntelligenceContextSourceSnapshot",
+        "type": "object"
+      },
       "RepositoryIntelligenceFreshnessCue": {
         "additionalProperties": false,
         "description": "Operator-facing state, reason, and remediation for one intelligence input.",
@@ -11468,6 +11682,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/RepositoryIndexContextSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "repository_intelligence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RepositoryIntelligenceContextSnapshot"
               },
               {
                 "type": "null"

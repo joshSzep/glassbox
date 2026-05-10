@@ -204,6 +204,7 @@ def build_repository_index_status_response(
     snapshot: RepositoryIndexSnapshot,
     *,
     path: str,
+    detail: str | None = None,
 ) -> RepositoryIndexStatusResponse:
     workspace_root = snapshot.workspace_root
     return RepositoryIndexStatusResponse(
@@ -228,6 +229,7 @@ def build_repository_index_status_response(
         memory_reference_count=len(snapshot.memory_references),
         limitations=snapshot.limitations,
         freshness_cues=repository_index_freshness_cues(workspace_root, snapshot),
+        detail=detail,
     )
 
 

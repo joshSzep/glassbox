@@ -9,8 +9,12 @@ from fastapi import Query
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.repository_index import RepositoryIndexLoadError
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import build_and_write_repository_index
+from glassbox.runtime.repository_index import (
+    failed_repository_index_snapshot_from_error,
+)
 from glassbox.runtime.repository_index import get_repository_index_entry
 from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
@@ -67,6 +71,13 @@ def get_repository_index_status(
             detail="repository index has not been built",
             freshness_cues=repository_index_freshness_cues(workspace_root, None),
         )
+    except RepositoryIndexLoadError as error:
+        snapshot = failed_repository_index_snapshot_from_error(workspace_root, error)
+        return build_repository_index_status_response(
+            snapshot,
+            path=str(path),
+            detail=error.detail,
+        )
     return build_repository_index_status_response(snapshot, path=str(path))
 
 
@@ -82,6 +93,8 @@ def inspect_repository_index(
         snapshot = load_repository_index(workspace_root)
     except RepositoryIndexNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except RepositoryIndexLoadError as error:
+        raise _repository_index_load_http_error(error) from error
     return build_repository_index_inspect_response(snapshot, path=str(path))
 
 
@@ -101,6 +114,8 @@ def search_repository_index_entries(
         )
     except RepositoryIndexNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except RepositoryIndexLoadError as error:
+        raise _repository_index_load_http_error(error) from error
     return RepositoryIndexSearchPageResponse(
         query=query,
         page=PageInfoResponse(
@@ -128,12 +143,26 @@ def get_repository_index_entry_detail(
         )
     except RepositoryIndexNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except RepositoryIndexLoadError as error:
+        raise _repository_index_load_http_error(error) from error
     except KeyError as error:
         raise HTTPException(
             status_code=404, detail=f"unknown repository index entry: {entry_id}"
         ) from error
     return RepositoryIndexEntryDetailResponse(
         entry=build_repository_index_entry_response(entry),
+    )
+
+
+def _repository_index_load_http_error(error: RepositoryIndexLoadError) -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "reason": error.reason,
+            "message": error.detail,
+            "path": str(error.path),
+            "safe_next_actions": error.safe_next_actions,
+        },
     )
 
 

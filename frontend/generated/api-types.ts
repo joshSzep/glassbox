@@ -5055,6 +5055,102 @@ export interface components {
       toolchain?: string | null;
     };
     /**
+     * RepositoryIntelligenceContextItemSnapshot
+     * @description One bounded repository-intelligence item selected for turn context.
+     */
+    RepositoryIntelligenceContextItemSnapshot: {
+      /**
+       * Confidence
+       * @default unknown
+       */
+      confidence: string;
+      /**
+       * Freshness
+       * @default fresh
+       * @enum {string}
+       */
+      freshness: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
+      /** Item Kind */
+      item_kind: string;
+      /** Limitations */
+      limitations?: string[];
+      /** Provenance */
+      provenance?: string[];
+      /** Source Names */
+      source_names?: string[];
+      /** Summary */
+      summary: string;
+      /** Title */
+      title: string;
+    };
+    /**
+     * RepositoryIntelligenceContextSnapshot
+     * @description Bounded repository-intelligence context with replay-visible sources.
+     */
+    RepositoryIntelligenceContextSnapshot: {
+      /**
+       * Additional Item Count
+       * @default 0
+       */
+      additional_item_count: number;
+      /** Budget Bytes */
+      budget_bytes?: number | null;
+      /**
+       * Context Bytes
+       * @default 0
+       */
+      context_bytes: number;
+      /** Excluded Sources */
+      excluded_sources?: components["schemas"]["RepositoryIntelligenceContextSourceSnapshot"][];
+      /** Items */
+      items?: components["schemas"]["RepositoryIntelligenceContextItemSnapshot"][];
+      /** Limitations */
+      limitations?: string[];
+      /** Safe Next Actions */
+      safe_next_actions?: string[];
+      /**
+       * Schema Version
+       * @default 1
+       */
+      schema_version: number;
+      /** Source Digest */
+      source_digest?: string | null;
+      /** Sources */
+      sources?: components["schemas"]["RepositoryIntelligenceContextSourceSnapshot"][];
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
+    };
+    /**
+     * RepositoryIntelligenceContextSourceSnapshot
+     * @description One repository-intelligence source considered for prompt context.
+     */
+    RepositoryIntelligenceContextSourceSnapshot: {
+      /** Confidence */
+      confidence: string;
+      /**
+       * Freshness
+       * @enum {string}
+       */
+      freshness: "fresh" | "stale" | "missing" | "degraded" | "conflicting" | "partial";
+      /** Included */
+      included: boolean;
+      /** Item Count */
+      item_count?: number | null;
+      /** Limitations */
+      limitations?: string[];
+      /** Provenance */
+      provenance?: string | null;
+      /** Source Digest */
+      source_digest?: string | null;
+      /** Source Kind */
+      source_kind: string;
+      /** Source Name */
+      source_name: string;
+    };
+    /**
      * RepositoryIntelligenceFreshnessCue
      * @description Operator-facing state, reason, and remediation for one intelligence input.
      */
@@ -5769,6 +5865,9 @@ export interface components {
       context_compactions?: components["schemas"]["ContextCompactionContextSnapshot"];
       repository_context: components["schemas"]["RepositoryContextSnapshot"];
       repository_index?: components["schemas"]["RepositoryIndexContextSnapshot"] | null;
+      repository_intelligence?:
+        | components["schemas"]["RepositoryIntelligenceContextSnapshot"]
+        | null;
       /** Runtime Notes */
       runtime_notes?: components["schemas"]["RuntimeContextNoteSnapshot"][];
       working_set?: components["schemas"]["WorkingSetSnapshot"];

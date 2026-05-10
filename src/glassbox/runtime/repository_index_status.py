@@ -12,7 +12,11 @@ from glassbox.runtime.repository_index_discovery import repository_index_path
 from glassbox.runtime.repository_index_discovery import scan_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
+from glassbox.runtime.repository_index_persistence import RepositoryIndexLoadError
 from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
+from glassbox.runtime.repository_index_persistence import (
+    failed_repository_index_snapshot_from_error,
+)
 from glassbox.runtime.repository_index_persistence import load_repository_index
 from glassbox.runtime.repository_intelligence_freshness import (
     RepositoryIntelligenceFreshnessCue,
@@ -104,6 +108,8 @@ def build_repository_index_status_summary(
             limitations=scan.limitations,
             next_actions=[f"glassbox repo index build --cwd {root}"],
         )
+    except RepositoryIndexLoadError as exc:
+        snapshot = failed_repository_index_snapshot_from_error(root, exc)
 
     stale_reason: str | None = None
     source_diff: RepositoryIndexSourceDiff | None = None
