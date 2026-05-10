@@ -4,6 +4,7 @@ import json
 from datetime import UTC
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
@@ -46,6 +47,13 @@ from glassbox.runtime.repository_index_persistence import RepositoryIndexLoadErr
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
+from glassbox.runtime.repository_intelligence_layout_common import _dedupe_by_id
+from glassbox.runtime.repository_intelligence_layout_common import _existing_paths
+from glassbox.runtime.repository_intelligence_layout_common import _file_digest
+from glassbox.runtime.repository_intelligence_layout_common import _provenance
+from glassbox.runtime.repository_intelligence_layout_common import _read_json
+from glassbox.runtime.repository_intelligence_layout_common import _read_toml
+from glassbox.runtime.repository_intelligence_layout_common import _slug
 from glassbox.runtime.repository_intelligence_queries import (
     inspect_repository_intelligence_path,
 )
@@ -145,6 +153,52 @@ def test_repository_path_classifier_identifies_generated_and_sensitive_paths() -
     assert build.build_output
     assert build.excluded
     assert policy.policy_sensitive
+
+
+def test_repository_intelligence_layout_common_helpers_are_stable(
+    tmp_path: Path,
+) -> None:
+    manifest = tmp_path / "pyproject.toml"
+    manifest.write_text("[project]\nname = 'fixture'\n", encoding="utf-8")
+    payload = tmp_path / "payload.json"
+    payload.write_text('{"ok": true}', encoding="utf-8")
+
+    assert _slug(Path(".")) == "root"
+    assert _slug(Path("frontend/package.json")) == "frontend:package.json"
+    assert _existing_paths(
+        tmp_path,
+        [
+            "pyproject.toml",
+            "../outside.toml",
+            tmp_path / "pyproject.toml",
+            "missing.toml",
+        ],
+    ) == [Path("pyproject.toml")]
+    assert _read_toml(manifest)["project"]["name"] == "fixture"
+    assert _read_toml(tmp_path / "missing.toml") == {}
+    assert _read_json(payload) == {"ok": True}
+    assert _read_json(manifest) == {}
+    assert _file_digest(manifest) == (
+        "874ce04b7320d550993d21feb306fd772ba7238b58020423133bf68c6feb4ef7"
+    )
+    assert _file_digest(tmp_path / "missing.toml") is None
+    provenance = _provenance(
+        RepositoryIndexSourceType.MANIFEST,
+        Path("pyproject.toml"),
+    )
+    assert provenance.source_type == RepositoryIndexSourceType.MANIFEST
+    assert provenance.path == Path("pyproject.toml")
+    assert [
+        item.item_id
+        for item in _dedupe_by_id(
+            [
+                SimpleNamespace(item_id="one"),
+                SimpleNamespace(item_id="one"),
+                SimpleNamespace(item_id="two"),
+            ],
+            "item_id",
+        )
+    ] == ["one", "two"]
 
 
 def test_repository_path_inspection_matches_runtime_query_families(

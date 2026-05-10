@@ -1,10 +1,5 @@
 """Repository intelligence layout discovery for v2 index snapshots."""
 
-import hashlib
-import json
-import tomllib
-from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -30,28 +25,20 @@ from glassbox.runtime.repository_index_discovery import classify_repository_path
 from glassbox.runtime.repository_index_discovery import (
     is_policy_sensitive_repository_path,
 )
-
-EXCLUDED_PATH_LIMITATION = (
-    "Excluded from file crawling; retained as path-level posture only."
+from glassbox.runtime.repository_intelligence_layout_common import (
+    EXCLUDED_PATH_LIMITATION,
 )
-
-
-@dataclass(frozen=True)
-class RepositoryIntelligenceLayout:
-    """Derived layout sections ready for a repository index snapshot."""
-
-    source_manifests: list[RepositoryIntelligenceSourceManifest]
-    source_roots: list[RepositoryIntelligencePathHint]
-    test_roots: list[RepositoryIntelligencePathHint]
-    doc_roots: list[RepositoryIntelligencePathHint]
-    generated_paths: list[RepositoryIntelligencePathHint]
-    policy_sensitive_paths: list[RepositoryIntelligencePathHint]
-    package_boundaries: list[RepositoryIntelligencePackageBoundary]
-    command_recipes: list[RepositoryIntelligenceCommandRecipe]
-    ownership_hints: list[RepositoryIntelligenceOwnershipHint]
-    subsystems: list[RepositoryIntelligenceSubsystem]
-    release_sensitive_surfaces: list[RepositoryIntelligenceReleaseSurface]
-    limitations: list[str]
+from glassbox.runtime.repository_intelligence_layout_common import _dedupe_by_id
+from glassbox.runtime.repository_intelligence_layout_common import _dedupe_paths
+from glassbox.runtime.repository_intelligence_layout_common import _existing_paths
+from glassbox.runtime.repository_intelligence_layout_common import _file_digest
+from glassbox.runtime.repository_intelligence_layout_common import _provenance
+from glassbox.runtime.repository_intelligence_layout_common import _read_json
+from glassbox.runtime.repository_intelligence_layout_common import _read_toml
+from glassbox.runtime.repository_intelligence_layout_common import _slug
+from glassbox.runtime.repository_intelligence_layout_models import (
+    RepositoryIntelligenceLayout,
+)
 
 
 def discover_repository_intelligence_layout(
@@ -991,76 +978,6 @@ def _dedupe_command_recipes(
             }
         )
     return sorted(by_command.values(), key=lambda item: item.recipe_id)
-
-
-def _dedupe_paths(paths: list[Path]) -> list[Path]:
-    return list(dict.fromkeys(paths))
-
-
-def _existing_paths(root: Path, candidates: Sequence[str | Path]) -> list[Path]:
-    paths: list[Path] = []
-    for candidate in candidates:
-        relative = Path(candidate)
-        if relative.is_absolute() or ".." in relative.parts:
-            continue
-        if (root / relative).exists():
-            paths.append(relative)
-    return paths
-
-
-def _provenance(
-    source_type: RepositoryIndexSourceType,
-    path: Path,
-) -> RepositoryIndexProvenance:
-    return RepositoryIndexProvenance(source_type=source_type, path=path)
-
-
-def _file_digest(path: Path) -> str | None:
-    try:
-        data = path.read_bytes()
-    except OSError:
-        return None
-    return hashlib.sha256(data).hexdigest()
-
-
-def _read_toml(path: Path) -> dict[str, Any]:
-    try:
-        with path.open("rb") as handle:
-            data = tomllib.load(handle)
-    except OSError:
-        return {}
-    except tomllib.TOMLDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _read_json(path: Path) -> dict[str, Any]:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except OSError:
-        return {}
-    except json.JSONDecodeError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _dedupe_by_id[T](items: list[T], field_name: str) -> list[T]:
-    seen: set[str] = set()
-    deduped: list[T] = []
-    for item in items:
-        value = str(getattr(item, field_name))
-        if value in seen:
-            continue
-        seen.add(value)
-        deduped.append(item)
-    return deduped
-
-
-def _slug(path: Path) -> str:
-    value = path.as_posix()
-    if value in {"", "."}:
-        return "root"
-    return value.replace("/", ":")
 
 
 __all__ = [
