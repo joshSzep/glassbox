@@ -1227,7 +1227,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1572: Package Repository Intelligence Assets And Smoke Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1571`
 - Goal: ensure repository intelligence commands, schemas, docs, eval fixtures,
   generated frontend types, and static dashboard assets ship cleanly

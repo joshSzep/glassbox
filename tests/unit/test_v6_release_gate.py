@@ -42,6 +42,8 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "installed first-run: profile example",
         "installed memory: list",
         "installed repository index: status",
+        "installed repository intelligence: status",
+        "installed repository intelligence: stale cues",
         "installed background jobs: list",
         "installed branch-search: list",
         "installed daemon: start",
@@ -158,6 +160,8 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed first-run: profile example",
         "installed memory: list",
         "installed repository index: status",
+        "installed repository intelligence: status",
+        "installed repository intelligence: stale cues",
         "installed background jobs: list",
         "installed branch-search: list",
         "installed daemon: status before start",
@@ -211,13 +215,23 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "--cwd",
         str(tmp_path / "index"),
     )
-    assert checks[14].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
+    assert checks[14].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "index"),
+    )
     assert checks[15].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "index"),
+    )
+    assert checks[16].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
+    assert checks[17].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "branch-search"),
     )
-    assert "9876" in checks[17].command
+    assert "9876" in checks[19].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:

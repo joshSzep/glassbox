@@ -16,7 +16,12 @@ pnpm --dir frontend build
 
 The frontend build exports the Next.js app and copies `frontend/out/` into `src/glassbox/web/static_next/`. The `pyproject.toml` wheel and sdist targets include `src/glassbox/web/static_next/**` as release artifacts.
 
-The source distribution also carries repository-owned eval fixtures and generated frontend API contracts: `evals/**`, `frontend/generated/openapi.json`, and `frontend/generated/api-types.ts`. Refresh the generated API files before building whenever FastAPI routes or response schemas change.
+The source distribution also carries repository-owned eval fixtures, v15
+repository-intelligence docs, and generated frontend API contracts: `evals/**`,
+`docs/v15-repository-intelligence-*.md`, `docs/tasks-v15.md`,
+`frontend/generated/openapi.json`, and `frontend/generated/api-types.ts`.
+Refresh the generated API files before building whenever FastAPI routes or
+response schemas change.
 
 For the v9 public baseline, package validation also checks the operator-facing
 v9 docs, dogfooding summary, cockpit contract, eval promotion plan, generated
@@ -41,6 +46,8 @@ glassbox autonomy profile list --cwd .
 glassbox task list --cwd .
 glassbox memory list --cwd .
 glassbox repo index status --cwd .
+glassbox repo status --cwd .
+glassbox repo stale --cwd .
 glassbox job list --cwd .
 glassbox branch-search list --cwd .
 glassbox eval profile list --cwd .
@@ -83,7 +90,14 @@ uv build --wheel --sdist
 uv run python scripts/validate_package_contents.py
 ```
 
-Before publishing, validate the wheel and sdist contents and confirm `glassbox/web/static_next/index.html`, `_next/static/...` assets, Python package modules, source-distribution docs, `textual>=6,<7`, and the `glassbox` console script are present. The FastAPI app validates the static export at startup time for dashboard requests: if `index.html` is missing or references a missing `/app/_next/...` file, `/` returns a developer-facing 503 that points back to `pnpm --dir frontend build`.
+Before publishing, validate the wheel and sdist contents and confirm
+`glassbox/web/static_next/index.html`, `_next/static/...` assets, Python package
+modules, repository-intelligence runtime/API modules, source-distribution docs,
+eval fixtures, generated API contracts, `textual>=6,<7`, and the `glassbox`
+console script are present. The FastAPI app validates the static export at
+startup time for dashboard requests: if `index.html` is missing or references a
+missing `/app/_next/...` file, `/` returns a developer-facing 503 that points
+back to `pnpm --dir frontend build`.
 
 The v6 release gate also refreshes generated API files with `pnpm --dir frontend api:generate`, fails if `frontend/generated/openapi.json` or `frontend/generated/api-types.ts` changed, runs `pnpm --dir frontend build`, validates `src/glassbox/web/static_next/` with `uv run python scripts/validate_frontend_release_assets.py`, builds both distributions, and runs `uv run python scripts/validate_package_contents.py`.
 
@@ -122,6 +136,8 @@ glassbox session chat --plain --no-dashboard --cwd .
 glassbox task list --json --cwd .
 glassbox memory list --json --cwd .
 glassbox repo index status --json --cwd .
+glassbox repo status --json --cwd .
+glassbox repo stale --json --cwd .
 glassbox job list --json --cwd .
 glassbox branch-search list --json --cwd .
 glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
@@ -135,7 +151,7 @@ glassbox eval run smoke.hello --cwd .
 
 `glassbox --help`, `command tree`, `session chat --help`, and `session attach --help` prove the installed console script can import the command inventory and TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. The v6 gate starts the dashboard from the installed wheel and requests `/`, `/app`, and one referenced `/app/_next/...` asset without a Node process. It also runs daemon status/start/stop in a temporary workspace and executes the deterministic `smoke.hello` eval against copied eval fixtures.
 
-The installed smoke matrix now also covers the v8 local-autonomy surfaces from a wheel: autonomy profile listing, task inspection, workspace-memory listing, repository-index status, background-job listing, and branch-search listing. These checks run against empty temporary workspaces, so they remain credential-free and do not require provider access.
+The installed smoke matrix now also covers the v8 local-autonomy surfaces from a wheel: autonomy profile listing, task inspection, workspace-memory listing, repository-index status, background-job listing, and branch-search listing. V15 extends that installed smoke posture with `glassbox repo status --json` and `glassbox repo stale --json` so installed packages can inspect repository-intelligence health and stale cues without Node.js, pnpm, or a source checkout. These checks run against empty temporary workspaces, so they remain credential-free and do not require provider access.
 
 The v9 smoke matrix adds first-run readiness, workflow-oriented command
 discovery, and promoted `release-candidate` profile inspection. These checks

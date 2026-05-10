@@ -42,6 +42,8 @@ def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
     assert "installed first-run: provider diagnostics" in result.stdout
     assert "installed memory: list" in result.stdout
     assert "installed repository index: status" in result.stdout
+    assert "installed repository intelligence: status" in result.stdout
+    assert "installed repository intelligence: stale cues" in result.stdout
     assert "installed background jobs: list" in result.stdout
     assert "installed branch-search: list" in result.stdout
     assert "installed dashboard: static routes" in result.stdout
@@ -53,5 +55,9 @@ def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
     assert summary["artifacts"]["wheel_path"] == str(wheel_path.resolve())
     assert any(
         stage["label"] == "installed first-run: readiness check"
+        for stage in summary["stages"]
+    )
+    assert any(
+        stage["label"] == "installed repository intelligence: status"
         for stage in summary["stages"]
     )

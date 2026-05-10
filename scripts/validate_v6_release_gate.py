@@ -456,6 +456,28 @@ def build_installed_wheel_smoke_checks(
             ),
         ),
         InstalledSmokeCheck(
+            "installed repository intelligence: status",
+            _installed_glassbox_command(
+                wheel_path,
+                "repo",
+                "status",
+                "--json",
+                "--cwd",
+                str(index_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed repository intelligence: stale cues",
+            _installed_glassbox_command(
+                wheel_path,
+                "repo",
+                "stale",
+                "--json",
+                "--cwd",
+                str(index_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
             "installed background jobs: list",
             _installed_glassbox_command(
                 wheel_path,

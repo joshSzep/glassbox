@@ -90,6 +90,14 @@ def test_wheel_content_validator_reports_missing_metadata_and_assets(
     assert "wheel missing required file: glassbox/cli/task_commands.py" in problems
     assert "wheel missing required file: glassbox/runtime/task_queries.py" in problems
     assert (
+        "wheel missing required file: glassbox/runtime/repository_index_builder.py"
+        in problems
+    )
+    assert (
+        "wheel missing required file: glassbox/web/repository_intelligence_api.py"
+        in problems
+    )
+    assert (
         "wheel missing required file under: glassbox/web/static_next/_next/" in problems
     )
     assert "wheel missing dist-info METADATA" in problems
@@ -169,6 +177,19 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v14-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/v14-release-candidate.md" in problems
     assert "sdist missing required file: docs/tasks-v14.md" in problems
+    assert (
+        "sdist missing required file: "
+        "docs/v15-repository-intelligence-contract.md" in problems
+    )
+    assert (
+        "sdist missing required file: docs/v15-repository-intelligence-audit.md"
+        in problems
+    )
+    assert (
+        "sdist missing required file: docs/v15-repository-intelligence-evidence.md"
+        in problems
+    )
+    assert "sdist missing required file: docs/tasks-v15.md" in problems
     assert "sdist missing required file: docs/tasks-v13.md" in problems
     assert "sdist missing required file: docs/review-feedback.md" in problems
     assert "sdist missing required file: docs/manual-evidence.md" in problems
@@ -336,11 +357,25 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/runtime/provider_recommendations.py", "")
         wheel.writestr("glassbox/runtime/readiness.py", "")
         wheel.writestr("glassbox/runtime/repository_index.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_builder.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_discovery.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_extraction.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_persistence.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_search.py", "")
+        wheel.writestr("glassbox/runtime/repository_index_status.py", "")
+        wheel.writestr("glassbox/runtime/repository_intelligence_freshness.py", "")
+        wheel.writestr("glassbox/runtime/repository_intelligence_layout.py", "")
+        wheel.writestr("glassbox/runtime/repository_intelligence_queries.py", "")
         wheel.writestr("glassbox/runtime/task_plan_capture.py", "")
         wheel.writestr("glassbox/runtime/task_queries.py", "")
         wheel.writestr("glassbox/runtime/verification.py", "")
+        wheel.writestr("glassbox/runtime/workspace_topology.py", "")
         wheel.writestr("glassbox/runtime/workspace_memory_capture.py", "")
         wheel.writestr("glassbox/web/app.py", "")
+        wheel.writestr("glassbox/web/repository_index_api.py", "")
+        wheel.writestr("glassbox/web/repository_index_routes.py", "")
+        wheel.writestr("glassbox/web/repository_intelligence_api.py", "")
+        wheel.writestr("glassbox/web/routes/repository_intelligence.py", "")
         wheel.writestr("glassbox/web/static_next/index.html", "<html></html>")
         wheel.writestr("glassbox/web/static_next/_next/static/chunks/app.js", "")
         wheel.writestr(
@@ -438,6 +473,10 @@ def _write_sdist(
                 "docs/v14-dogfooding-summary.md",
                 "docs/v14-release-candidate.md",
                 "docs/tasks-v14.md",
+                "docs/v15-repository-intelligence-contract.md",
+                "docs/v15-repository-intelligence-audit.md",
+                "docs/v15-repository-intelligence-evidence.md",
+                "docs/tasks-v15.md",
                 "docs/review-feedback.md",
                 "docs/review-responses.md",
                 "docs/manual-evidence.md",
@@ -532,6 +571,7 @@ def _write_sdist(
                 "evals/cases/long-run.recovery-boundaries.json",
                 "evals/cases/memory.context-drift.json",
                 "evals/cases/repository-index.context-drift.json",
+                "evals/cases/repository-intelligence.context-drift.json",
                 "evals/cases/task-plan.proposal-capture.json",
                 "evals/cases/task.continuation-blocked.json",
                 "evals/cases/tool-attempt.partial-retry.json",
@@ -552,6 +592,7 @@ def _write_sdist(
                 "evals/bundles/long-run.recovery-boundaries.json",
                 "evals/bundles/memory.context-drift.json",
                 "evals/bundles/repository-index.context-drift.json",
+                "evals/bundles/repository-intelligence.context-drift.json",
                 "evals/bundles/task-plan.proposal-capture.json",
                 "evals/bundles/task.continuation-blocked.json",
                 "evals/bundles/tool-attempt.partial-retry.json",
@@ -614,10 +655,24 @@ def _write_sdist(
                 "src/glassbox/runtime/provider_recommendations.py",
                 "src/glassbox/runtime/readiness.py",
                 "src/glassbox/runtime/repository_index.py",
+                "src/glassbox/runtime/repository_index_builder.py",
+                "src/glassbox/runtime/repository_index_discovery.py",
+                "src/glassbox/runtime/repository_index_extraction.py",
+                "src/glassbox/runtime/repository_index_persistence.py",
+                "src/glassbox/runtime/repository_index_search.py",
+                "src/glassbox/runtime/repository_index_status.py",
+                "src/glassbox/runtime/repository_intelligence_freshness.py",
+                "src/glassbox/runtime/repository_intelligence_layout.py",
+                "src/glassbox/runtime/repository_intelligence_queries.py",
                 "src/glassbox/runtime/task_plan_capture.py",
                 "src/glassbox/runtime/task_queries.py",
                 "src/glassbox/runtime/verification.py",
+                "src/glassbox/runtime/workspace_topology.py",
                 "src/glassbox/runtime/workspace_memory_capture.py",
+                "src/glassbox/web/repository_index_api.py",
+                "src/glassbox/web/repository_index_routes.py",
+                "src/glassbox/web/repository_intelligence_api.py",
+                "src/glassbox/web/routes/repository_intelligence.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{source_path}", "\n")
         if include_static_assets:
