@@ -54,11 +54,26 @@ from glassbox.runtime.repository_intelligence_layout_common import _provenance
 from glassbox.runtime.repository_intelligence_layout_common import _read_json
 from glassbox.runtime.repository_intelligence_layout_common import _read_toml
 from glassbox.runtime.repository_intelligence_layout_common import _slug
+from glassbox.runtime.repository_intelligence_layout_docs import (
+    discover_docs_command_recipes,
+)
+from glassbox.runtime.repository_intelligence_layout_evals import (
+    discover_eval_command_recipes,
+)
 from glassbox.runtime.repository_intelligence_layout_packages import (
     discover_repository_intelligence_packages,
 )
 from glassbox.runtime.repository_intelligence_layout_paths import (
     discover_repository_intelligence_paths,
+)
+from glassbox.runtime.repository_intelligence_layout_recipes import (
+    dedupe_command_recipes,
+)
+from glassbox.runtime.repository_intelligence_layout_recipes import (
+    discover_package_command_recipes,
+)
+from glassbox.runtime.repository_intelligence_layout_recipes import (
+    discover_release_script_command_recipes,
 )
 from glassbox.runtime.repository_intelligence_queries import (
     inspect_repository_intelligence_path,
@@ -352,6 +367,58 @@ def test_repository_command_recipes_dedupe_and_explain_sources(
     assert docs_recipe.review_relevance == CommandReviewRelevance.VERIFICATION
     assert release_recipe.purpose == CommandPurpose.RELEASE_GATE
     assert release_recipe.timeout_seconds == 600
+
+
+def test_repository_command_recipe_source_helpers_preserve_metadata(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    (tmp_path / "docs" / "recipe.md").write_text(
+        "$ uv run pytest tests/unit/test_release_candidate_docs.py -q\n",
+        encoding="utf-8",
+    )
+
+    packages = discover_repository_intelligence_packages(tmp_path)
+    package_recipes = discover_package_command_recipes(
+        tmp_path, packages.package_boundaries
+    )
+    eval_recipes = discover_eval_command_recipes(tmp_path)
+    docs_recipes = discover_docs_command_recipes(tmp_path)
+    release_recipes = discover_release_script_command_recipes(tmp_path)
+    recipes = {
+        recipe.recipe_id: recipe
+        for recipe in [
+            *package_recipes,
+            *eval_recipes,
+            *docs_recipes,
+            *release_recipes,
+        ]
+    }
+
+    assert recipes["recipe:pyproject:glassbox-fixture"].confidence == (
+        RepositoryIntelligenceConfidence.LOW
+    )
+    assert recipes["recipe:node:frontend:test"].command == "pnpm --dir frontend test"
+    assert recipes["recipe:eval-recipe:docs-only:0"].scope_paths == [Path("docs")]
+    assert recipes["recipe:eval-profile:release-candidate"].timeout_seconds == 600
+    release_script_recipe = recipes[
+        "recipe:release-script:scripts:validate_v1_release_gate.py"
+    ]
+    assert release_script_recipe.risk == RepositoryIntelligenceCommandRisk.READ_ONLY
+    assert recipes["recipe:docs:docs:recipe.md:0"].provenance[0].source_type == (
+        RepositoryIndexSourceType.DOCUMENTATION
+    )
+
+    deduped_recipe = next(
+        recipe
+        for recipe in dedupe_command_recipes([*eval_recipes, *docs_recipes])
+        if recipe.command
+        == "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+    )
+    assert {source.path for source in deduped_recipe.provenance} == {
+        Path("evals/recipes.json"),
+        Path("docs/recipe.md"),
+    }
 
 
 def test_repository_intelligence_snapshot_v2_round_trips_rich_schema(

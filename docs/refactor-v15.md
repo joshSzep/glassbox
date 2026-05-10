@@ -514,7 +514,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R721: Split Manifest, Package, Root, And Generated-Path Discovery
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R720
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_layout.py`
@@ -535,7 +535,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R722: Split Command Recipe Extraction By Source Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R720
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_layout.py`
