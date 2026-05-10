@@ -487,6 +487,33 @@ def test_recommend_eval_change_impact_names_v11_release_gate() -> None:
     assert "release-candidate" in release_surface.recommended_profile_ids
 
 
+def test_recommend_eval_change_impact_routes_v15_repository_intelligence_paths() -> (
+    None
+):
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=["src/glassbox/runtime/repository_intelligence_queries.py"],
+    )
+    case_ids = {recommendation.case_id for recommendation in report.cases}
+    profile_ids = {recommendation.profile_id for recommendation in report.profiles}
+
+    assert "v15-repository-intelligence" in report.matched_rule_ids
+    assert "src/glassbox/runtime/repository_intelligence_queries.py" not in (
+        report.unmatched_paths
+    )
+    assert {
+        "repository-intelligence.snapshot-rich",
+        "repository-intelligence.path-verification",
+        "repository-intelligence.stale-degradation",
+        "repository-intelligence.memory-command",
+        "repository-intelligence.context-drift",
+    }.issubset(case_ids)
+    assert "release-candidate" in profile_ids
+    assert "uv run glassbox eval run --profile release-candidate --cwd ." in (
+        report.suggested_commands
+    )
+
+
 def test_recommend_eval_change_impact_routes_changeset_runtime_paths() -> None:
     report = recommend_eval_change_impact(
         _REPO_ROOT,

@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Inspect stale repository intelligence before trusting recommendations"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves stale repository intelligence posture",
+        "turn_id": "00000000-0000-0000-0000-000000158103"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves stale repository intelligence posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000158103"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect stale repository intelligence before trusting recommendations"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Keep stale repository intelligence visible instead of optimistic.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Detect stale index, topology, command recipe, memory, and eval metadata posture.",
+            "order": 0,
+            "status": "completed",
+            "title": "Classify stale inputs"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Report degraded confidence, limitations, and safe rebuild or inspection commands.",
+            "order": 1,
+            "status": "completed",
+            "title": "Surface remediation"
+          }
+        ],
+        "title": "Repository intelligence stale-state review",
+        "verifications": [
+          {
+            "check_name": "repository intelligence stale degradation fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "stale intelligence remains visible with degraded confidence and rebuild guidance"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect stale repository intelligence before trusting recommendations"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000158003",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "repository-intelligence.stale-degradation"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

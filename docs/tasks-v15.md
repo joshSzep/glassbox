@@ -1257,7 +1257,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1580: Add Deterministic V15 Repository Intelligence Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1563`, `GBX-1572`
 - Goal: ensure the stable repository intelligence v2 behaviors participate in
   deterministic release evidence

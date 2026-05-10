@@ -1,0 +1,127 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Use confirmed memory to explain repository command recommendations"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves memory-derived command recommendation posture",
+        "turn_id": "00000000-0000-0000-0000-000000158104"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves memory-derived command recommendation posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000158104"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "WorkspaceMemoryConfirmed",
+      "RepositoryIndexBuilt",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Use confirmed memory to explain repository command recommendations"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Use only confirmed active memory as provenance for repository command recommendations.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Exclude stale, invalidated, imported-unreviewed, rejected, and pruned memory from command recommendations.",
+            "order": 0,
+            "status": "completed",
+            "title": "Filter memory sources"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Attach memory IDs, freshness, confidence, limitations, and safe commands to memory-derived recommendations.",
+            "order": 1,
+            "status": "completed",
+            "title": "Explain command recommendation"
+          }
+        ],
+        "title": "Memory-derived repository command review",
+        "verifications": [
+          {
+            "check_name": "repository intelligence memory command fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "confirmed memory influences command recommendations only as reviewable provenance"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Use confirmed memory to explain repository command recommendations"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000158004",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "repository-intelligence.memory-command"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

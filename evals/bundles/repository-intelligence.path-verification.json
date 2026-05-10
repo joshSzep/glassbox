@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Recommend verification for repository intelligence runtime changes"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves repository intelligence verification guidance",
+        "turn_id": "00000000-0000-0000-0000-000000158102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves repository intelligence verification guidance",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000158102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Recommend verification for repository intelligence runtime changes"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Explain why repository intelligence changes map to focused tests, evals, and command recipes.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Match changed paths to repository-intelligence subsystems and release surfaces.",
+            "order": 0,
+            "status": "completed",
+            "title": "Map changed paths"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Recommend focused repository index, topology, eval recommendation, and release-candidate checks with confidence and limitations.",
+            "order": 1,
+            "status": "completed",
+            "title": "Explain verification guidance"
+          }
+        ],
+        "title": "Repository intelligence path-to-verification review",
+        "verifications": [
+          {
+            "check_name": "repository intelligence path verification fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "verification recommendations keep why-this evidence and safe commands visible"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Recommend verification for repository intelligence runtime changes"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000158002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "repository-intelligence.path-verification"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

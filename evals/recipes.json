@@ -213,6 +213,40 @@
             "notes": "Topology changes should prove the builder and the topology-aware recommendation layer; the build command only refreshes local .glassbox topology evidence."
         },
         {
+            "recipe_id": "repository-intelligence-v15",
+            "title": "Repository intelligence v15 checks",
+            "path_globs": [
+                "src/glassbox/runtime/repository_index*.py",
+                "src/glassbox/runtime/repository_intelligence*.py",
+                "src/glassbox/runtime/eval_recommendation_repository_intelligence.py",
+                "src/glassbox/runtime/eval_recommendation_test_targets.py",
+                "src/glassbox/runtime/workspace_memory*.py",
+                "src/glassbox/cli/repository_commands.py",
+                "src/glassbox/web/repository_index_api.py",
+                "src/glassbox/web/repository_intelligence_api.py",
+                "src/glassbox/web/routes/repository_intelligence.py",
+                "docs/v15-repository-intelligence-*.md",
+                "docs/repository-intelligence-index.md",
+                "docs/path-to-verification-recommendations.md",
+                "evals/cases/repository-intelligence*.json",
+                "evals/bundles/repository-intelligence*.json"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_repository_index.py tests/unit/test_workspace_topology.py tests/unit/test_workspace_memory_capture.py tests/unit/test_eval_recommendations.py tests/unit/test_runtime_eval_coverage.py -q",
+                "uv run glassbox eval run --profile release-candidate --cwd .",
+                "uv run glassbox eval audit --profile release-candidate --cwd ."
+            ],
+            "case_ids": [
+                "repository-intelligence.snapshot-rich",
+                "repository-intelligence.path-verification",
+                "repository-intelligence.stale-degradation",
+                "repository-intelligence.memory-command",
+                "repository-intelligence.context-drift"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Use for repository-intelligence snapshot, path-to-verification, freshness, memory-derived command, and context-drift changes. Keep dashboard/browser/accessibility evidence advisory unless promoted by a deterministic fixture."
+        },
+        {
             "recipe_id": "packaging",
             "title": "Packaging and installed smoke checks",
             "path_globs": [

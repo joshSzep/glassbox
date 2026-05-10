@@ -4,13 +4,13 @@
   "title": "Repository-intelligence context drift remains source-level evidence",
   "bundle_path": "../bundles/repository-intelligence.context-drift.json",
   "tags": ["v15-repository-intelligence", "repository-intelligence"],
-  "notes": "Advisory deterministic evidence that repository-intelligence context is represented as a named replay source. Focused context, replay, and repository-index tests remain the stronger blocking evidence until v15 release promotion.",
+  "notes": "Deterministic v15 fixture evidence that repository-intelligence context is represented as a named replay source with source-level drift semantics.",
   "release_contract": {
     "owner": "runtime.repository-intelligence",
     "capabilities": ["repository_intelligence_context_drift"],
-    "severity": "medium",
-    "verification_stages": ["advisory"],
-    "baseline_refresh_policy": "advisory"
+    "severity": "high",
+    "verification_stages": ["advisory", "release-candidate"],
+    "baseline_refresh_policy": "review_required"
   },
   "expectation": {
     "mode": "exact_match"
@@ -21,6 +21,12 @@
       "recorded_at": "2026-05-09T17:45:00Z",
       "source_session_id": "00000000-0000-0000-0000-000000015603",
       "rationale": "Promoted for GBX-1563 to retain advisory repository-intelligence context drift coverage before v15 release-profile promotion."
+    },
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-10T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000158005",
+      "rationale": "Promoted for GBX-1580 so repository-intelligence context drift participates in deterministic release-candidate evidence."
     }
   ]
 }

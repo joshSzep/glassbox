@@ -199,11 +199,11 @@
       "capability_id": "repository_intelligence_context_drift",
       "title": "Repository-intelligence context drift",
       "kind": "product_behavior",
-      "criticality": "advisory",
-      "verification_stages": ["advisory"],
+      "criticality": "important",
+      "verification_stages": ["advisory", "release-candidate"],
       "expected_case_ids": ["repository-intelligence.context-drift"],
       "coverage_mode": "single_case",
-      "notes": "GBX-1563 keeps this advisory until v15 release promotion. Repository-intelligence prompt-source drift depends on local snapshot freshness, excluded sources, and memory-derived context, so focused context/replay tests remain the stronger blocking evidence."
+      "notes": "GBX-1580 promotes repository-intelligence prompt-source drift into deterministic release-candidate evidence while keeping the same source-level context fingerprint interpretation available in the advisory suite."
     },
     {
       "capability_id": "branch_search_candidate_comparison",
@@ -534,6 +534,46 @@
       "expected_case_ids": ["changeset.in-session-review-ux"],
       "coverage_mode": "single_case",
       "notes": "GBX-1390 keeps dashboard changeset quick actions in the deterministic release map while focused frontend tests remain the authority for live interaction details."
+    },
+    {
+      "capability_id": "repository_intelligence_snapshot_generation",
+      "title": "Repository intelligence rich snapshot generation",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["repository-intelligence.snapshot-rich"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1580 promotes compact deterministic v15 evidence that repository intelligence snapshots retain roots, packages, generated paths, command recipes, owner hints, release surfaces, freshness, provenance, confidence, and limitations."
+    },
+    {
+      "capability_id": "repository_intelligence_path_verification",
+      "title": "Repository intelligence path-to-verification guidance",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["repository-intelligence.path-verification"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1580 promotes deterministic v15 evidence that changed paths can map to likely tests, evals, command recipes, release surfaces, stale evidence, and safe next actions with why-this explanations."
+    },
+    {
+      "capability_id": "repository_intelligence_stale_degradation",
+      "title": "Repository intelligence stale-state degradation",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["repository-intelligence.stale-degradation"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1580 promotes deterministic v15 evidence that stale or missing repository intelligence visibly degrades confidence, names limitations, and points operators at rebuild or inspection commands."
+    },
+    {
+      "capability_id": "repository_intelligence_memory_command_recommendation",
+      "title": "Repository intelligence memory-derived command recommendations",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["repository-intelligence.memory-command"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1580 promotes deterministic v15 evidence that confirmed active workspace memory may enrich repository command recommendations only with provenance, freshness, limitations, and review-gated boundaries."
     }
   ]
 }

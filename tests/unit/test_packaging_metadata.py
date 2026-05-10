@@ -267,6 +267,14 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: "
         "evals/bundles/changeset.skipped-advisory-evidence-posture.json" in problems
     )
+    assert (
+        "sdist missing required file: "
+        "evals/cases/repository-intelligence.snapshot-rich.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/bundles/repository-intelligence.snapshot-rich.json" in problems
+    )
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
@@ -572,6 +580,10 @@ def _write_sdist(
                 "evals/cases/memory.context-drift.json",
                 "evals/cases/repository-index.context-drift.json",
                 "evals/cases/repository-intelligence.context-drift.json",
+                "evals/cases/repository-intelligence.memory-command.json",
+                "evals/cases/repository-intelligence.path-verification.json",
+                "evals/cases/repository-intelligence.snapshot-rich.json",
+                "evals/cases/repository-intelligence.stale-degradation.json",
                 "evals/cases/task-plan.proposal-capture.json",
                 "evals/cases/task.continuation-blocked.json",
                 "evals/cases/tool-attempt.partial-retry.json",
@@ -593,6 +605,10 @@ def _write_sdist(
                 "evals/bundles/memory.context-drift.json",
                 "evals/bundles/repository-index.context-drift.json",
                 "evals/bundles/repository-intelligence.context-drift.json",
+                "evals/bundles/repository-intelligence.memory-command.json",
+                "evals/bundles/repository-intelligence.path-verification.json",
+                "evals/bundles/repository-intelligence.snapshot-rich.json",
+                "evals/bundles/repository-intelligence.stale-degradation.json",
                 "evals/bundles/task-plan.proposal-capture.json",
                 "evals/bundles/task.continuation-blocked.json",
                 "evals/bundles/tool-attempt.partial-retry.json",

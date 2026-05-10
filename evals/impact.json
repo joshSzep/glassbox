@@ -478,6 +478,51 @@
             "notes": "Release-gate scripts, release-candidate docs, and packaging gate docs should recommend the deterministic release-candidate eval profile while separately naming the full gate script or package validation command."
         },
         {
+            "rule_id": "v15-repository-intelligence",
+            "title": "Repository intelligence runtime, metadata, and contract surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/repository_index*.py",
+                "src/glassbox/runtime/repository_intelligence*.py",
+                "src/glassbox/runtime/eval_recommendation_repository_intelligence.py",
+                "src/glassbox/runtime/eval_recommendation_test_targets.py",
+                "src/glassbox/runtime/workspace_memory*.py",
+                "src/glassbox/cli/repository_commands.py",
+                "src/glassbox/web/repository_index_api.py",
+                "src/glassbox/web/repository_intelligence_api.py",
+                "src/glassbox/web/routes/repository_intelligence.py",
+                "tests/unit/test_repository_index.py",
+                "tests/unit/test_eval_recommendations.py",
+                "tests/unit/test_workspace_memory_capture.py",
+                "tests/integration/test_web_repository_index_routes.py",
+                "docs/v15-repository-intelligence-*.md",
+                "docs/repository-intelligence-index.md",
+                "docs/path-to-verification-recommendations.md",
+                "docs/runtime-context.md",
+                "evals/cases/repository-intelligence*.json",
+                "evals/bundles/repository-intelligence*.json"
+            ],
+            "owners": ["runtime.repository-intelligence"],
+            "capabilities": [
+                "repository_intelligence_snapshot_generation",
+                "repository_intelligence_path_verification",
+                "repository_intelligence_stale_degradation",
+                "repository_intelligence_memory_command_recommendation",
+                "repository_intelligence_context_drift"
+            ],
+            "case_ids": [
+                "repository-intelligence.snapshot-rich",
+                "repository-intelligence.path-verification",
+                "repository-intelligence.stale-degradation",
+                "repository-intelligence.memory-command",
+                "repository-intelligence.context-drift"
+            ],
+            "profile_ids": [
+                "release-candidate",
+                "v15-repository-intelligence-advisory"
+            ],
+            "notes": "Repository-intelligence changes should run the deterministic v15 fixture set, focused repository index/topology/memory/eval recommendation tests, and the release-candidate profile before release signoff. Dashboard/browser/accessibility evidence remains advisory."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],
@@ -487,7 +532,8 @@
                 "release-candidate",
                 "advisory-context",
                 "v7-workflow-advisory",
-                "v8-autonomy-advisory"
+                "v8-autonomy-advisory",
+                "v15-repository-intelligence-advisory"
             ]
         }
     ]

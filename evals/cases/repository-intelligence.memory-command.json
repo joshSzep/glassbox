@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "repository-intelligence.memory-command",
+  "title": "Confirmed memory can explain repository command recommendations",
+  "bundle_path": "../bundles/repository-intelligence.memory-command.json",
+  "tags": ["v15-repository-intelligence", "repository-intelligence", "memory"],
+  "notes": "Deterministic v15 fixture evidence that confirmed active workspace memory may enrich command recommendations only with provenance, freshness, limitations, and review-gated boundaries.",
+  "release_contract": {
+    "owner": "runtime.repository-intelligence",
+    "capabilities": ["repository_intelligence_memory_command_recommendation"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-10T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000158004",
+      "rationale": "Promoted for GBX-1580 to retain deterministic release-candidate evidence for memory-derived repository command recommendations."
+    }
+  ]
+}

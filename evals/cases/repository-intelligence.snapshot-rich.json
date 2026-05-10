@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "repository-intelligence.snapshot-rich",
+  "title": "Repository intelligence snapshot retains rich local structure",
+  "bundle_path": "../bundles/repository-intelligence.snapshot-rich.json",
+  "tags": ["v15-repository-intelligence", "repository-intelligence"],
+  "notes": "Deterministic v15 fixture evidence that rich repository snapshots preserve local roots, packages, commands, ownership hints, generated paths, and release surfaces as reviewable evidence.",
+  "release_contract": {
+    "owner": "runtime.repository-intelligence",
+    "capabilities": ["repository_intelligence_snapshot_generation"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-10T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000158001",
+      "rationale": "Promoted for GBX-1580 to retain deterministic release-candidate evidence for rich repository intelligence snapshot behavior."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "repository-intelligence.path-verification",
+  "title": "Repository intelligence explains path-to-verification guidance",
+  "bundle_path": "../bundles/repository-intelligence.path-verification.json",
+  "tags": ["v15-repository-intelligence", "repository-intelligence", "recommendation"],
+  "notes": "Deterministic v15 fixture evidence that path-to-verification guidance keeps likely tests, evals, recipes, confidence, freshness, provenance, limitations, and safe next commands visible.",
+  "release_contract": {
+    "owner": "runtime.repository-intelligence",
+    "capabilities": ["repository_intelligence_path_verification"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-10T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000158002",
+      "rationale": "Promoted for GBX-1580 to retain deterministic release-candidate evidence for repository-intelligence path-to-verification guidance."
+    }
+  ]
+}

@@ -364,6 +364,30 @@ change contract. They are intentionally compact; focused runtime, CLI, API,
 dashboard, export, redaction, and policy tests remain the stronger authority
 for live derivation details.
 
+## V15 Repository Intelligence Fixtures
+
+The `release-candidate` profile includes five compact v15 repository
+intelligence fixtures:
+
+- `repository-intelligence.snapshot-rich` for rich local snapshot generation
+  across roots, packages, generated paths, command recipes, ownership hints,
+  release surfaces, freshness, provenance, confidence, and limitations
+- `repository-intelligence.path-verification` for path-to-verification
+  guidance that keeps likely tests, evals, recipes, stale-evidence posture, and
+  safe next commands explainable
+- `repository-intelligence.stale-degradation` for visible confidence
+  degradation and rebuild guidance when repository intelligence is stale or
+  missing
+- `repository-intelligence.memory-command` for confirmed active memory shaping
+  command recommendations only as provenance-backed, review-gated evidence
+- `repository-intelligence.context-drift` for source-level replay drift of the
+  bounded `repository_intelligence` context source
+
+These cases make core v15 behavior part of deterministic release-candidate
+evidence. They do not replace focused repository index, topology, memory,
+context, eval recommendation, CLI/API, frontend, browser, accessibility, or
+dogfooding checks.
+
 `eval recommend --execute` is the operator-approved path for turning the visible
 recommendation rows into local verification. It runs planned deterministic eval
 cases or profiles, writes the usual eval artifacts, and reports skipped checks

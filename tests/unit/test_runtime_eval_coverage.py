@@ -198,6 +198,50 @@ def test_v14_review_loop_maturity_cases_are_release_candidate_covered() -> None:
         assert status.selected_case_ids == [case_id]
 
 
+def test_v15_repository_intelligence_cases_are_release_candidate_covered() -> None:
+    release_cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    release_case_ids = {case.case_id for case in release_cases}
+    expected_case_ids = {
+        "repository-intelligence.snapshot-rich",
+        "repository-intelligence.path-verification",
+        "repository-intelligence.stale-degradation",
+        "repository-intelligence.memory-command",
+        "repository-intelligence.context-drift",
+    }
+
+    assert expected_case_ids.issubset(release_case_ids)
+
+    result = audit_eval_coverage(REPO_ROOT, profile_id="release-candidate")
+    statuses = {status.capability_id: status for status in result.capability_statuses}
+
+    for capability_id, case_id in (
+        (
+            "repository_intelligence_snapshot_generation",
+            "repository-intelligence.snapshot-rich",
+        ),
+        (
+            "repository_intelligence_path_verification",
+            "repository-intelligence.path-verification",
+        ),
+        (
+            "repository_intelligence_stale_degradation",
+            "repository-intelligence.stale-degradation",
+        ),
+        (
+            "repository_intelligence_memory_command_recommendation",
+            "repository-intelligence.memory-command",
+        ),
+        (
+            "repository_intelligence_context_drift",
+            "repository-intelligence.context-drift",
+        ),
+    ):
+        status = statuses[capability_id]
+        assert status.covered is True
+        assert status.expected_case_ids == [case_id]
+        assert status.selected_case_ids == [case_id]
+
+
 def _write_eval_case(
     workspace_root: Path,
     *,
