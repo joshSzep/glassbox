@@ -94,8 +94,8 @@ with evidence-backed review briefs, verification readiness, commit readiness,
 worktree isolation, topology, and command evidence. The v13 review-loop release
 candidate adds local feedback, fixups, manual evidence, lifecycle briefs,
 publication boundaries, and integrated changeset UX.
-The v14 release candidate is the latest review-loop maturity guide. The active
-v15 planning track is repository intelligence v2: local, rebuildable,
+The v14 release candidate is the latest review-loop maturity guide. The v15
+release candidate adds repository intelligence v2: local, rebuildable,
 freshness-aware, provenance-backed repository awareness that remains advisory
 and subordinate to deterministic release evidence.
 
@@ -127,7 +127,10 @@ V15 repository intelligence planning starts with
 [docs/v15-repository-intelligence-contract.md](docs/v15-repository-intelligence-contract.md),
 the source-linked
 [docs/v15-repository-intelligence-audit.md](docs/v15-repository-intelligence-audit.md),
-and the task graph in [docs/tasks-v15.md](docs/tasks-v15.md).
+the dogfooding summary in
+[docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md), and the
+release-candidate guide in
+[docs/v15-release-candidate.md](docs/v15-release-candidate.md).
 
 ## Documentation
 
@@ -157,6 +160,7 @@ Start here based on what you need:
 - [docs/v15-repository-intelligence-contract.md](docs/v15-repository-intelligence-contract.md)
 - [docs/v15-repository-intelligence-audit.md](docs/v15-repository-intelligence-audit.md)
 - [docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md)
+- [docs/v15-release-candidate.md](docs/v15-release-candidate.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

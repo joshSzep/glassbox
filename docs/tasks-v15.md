@@ -1338,7 +1338,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1583: Publish V15 Repository Intelligence Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1582`
 - Goal: publish the operator-facing v15 repository intelligence guide and final
   milestone decision

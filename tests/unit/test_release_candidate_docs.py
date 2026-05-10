@@ -674,8 +674,9 @@ def test_v15_repository_intelligence_docs_are_discoverable() -> None:
     for required_text in (
         "docs/v15-repository-intelligence-contract.md",
         "docs/v15-repository-intelligence-audit.md",
+        "docs/v15-release-candidate.md",
         "docs/tasks-v15.md",
-        "v15 planning track is",
+        "release candidate adds",
         "repository intelligence v2",
     ):
         assert required_text in root_readme
@@ -683,6 +684,7 @@ def test_v15_repository_intelligence_docs_are_discoverable() -> None:
     for required_text in (
         "v15-repository-intelligence-contract.md",
         "v15-repository-intelligence-audit.md",
+        "v15-release-candidate.md",
         "tasks-v15.md",
         "path-to-verification-recommendations.md",
         "## Repository Intelligence Map",
@@ -694,7 +696,7 @@ def test_v15_repository_intelligence_docs_are_discoverable() -> None:
         "changeset-verification-readiness.md",
         "command recipes remain recommendations, not",
         "planned repository intelligence console",
-        "task graph are the active planning",
+        "candidate adds repository intelligence v2",
     ):
         assert required_text in docs_readme
 
@@ -1479,6 +1481,47 @@ def test_v15_dogfooding_summary_records_repository_intelligence_passes() -> None
 
     assert "docs/v15-dogfooding-summary.md" in root_readme
     assert "v15-dogfooding-summary.md" in docs_readme
+
+
+def test_v15_release_candidate_guide_covers_repository_intelligence_model() -> None:
+    content = (REPO_ROOT / "docs" / "v15-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "Decision: GO for v15 release candidate publication.",
+        ".glassbox/releases/gbx-1583-v15-release-candidate/",
+        ".glassbox/evals/gbx-1583-v15-release-candidate/",
+        ".glassbox/releases/gbx-1582-v15-dogfooding/",
+        "| Automated v15 gate | passed |",
+        "| Package and installed smoke | passed |",
+        "106 passing stages",
+        "81 planned blocking stages",
+        "repository-intelligence.snapshot-rich",
+        "repository-intelligence.path-verification",
+        "repository-intelligence.stale-degradation",
+        "repository-intelligence.memory-command",
+        "repository-intelligence.context-drift",
+        "Repository snapshot rebuild",
+        "1,210 source files",
+        "97 command recipes",
+        "unknown session_id: None",
+        "0.10.0",
+        "automatic pull request creation",
+        "No deterministic blocker remains open",
+    ):
+        assert required_text in content
+
+    assert "docs/v15-release-candidate.md" in root_readme
+    assert "v15-release-candidate.md" in docs_readme
 
 
 def test_v14_release_candidate_guide_covers_maturity_model() -> None:
@@ -2358,6 +2401,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "dashboard-cockpit-contract.md",
         REPO_ROOT / "docs" / "operator-quickstart.md",
         REPO_ROOT / "docs" / "version-release-policy.md",
+        REPO_ROOT / "docs" / "v15-release-candidate.md",
     )
 
     for doc_path in doc_paths:

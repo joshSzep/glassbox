@@ -11,10 +11,10 @@ Use this page by audience. Start with the current `0.10.0` package line and
 v10 long-running-task model for the product story, then follow the daily
 workflow guides before diving into release evidence or milestone history. The
 v13 review-loop contract is the current implemented review lifecycle, and the
-v14 release candidate is the latest review-loop maturity guide. The v15
-repository intelligence contract, audit, and task graph are the active planning
-track for making local repository awareness richer while preserving advisory
-boundaries and deterministic release authority.
+v14 release candidate is the latest review-loop maturity guide. The v15 release
+candidate adds repository intelligence v2 for making local repository
+awareness richer while preserving advisory boundaries and deterministic release
+authority.
 
 ## Start Here
 
@@ -109,6 +109,10 @@ boundaries and deterministic release authority.
   repository-intelligence dogfooding evidence for snapshot rebuild, path
   inspection, verification recommendations, memory candidates, changeset
   review, dashboard console checks, stale recovery, and turn-context inspection
+- [v15-release-candidate.md](./v15-release-candidate.md): v15
+  release-candidate guide for the supported repository intelligence operating
+  model, validation path, advisory evidence expectations, residual risks, and
+  decision
 - [tasks-v15.md](./tasks-v15.md): v15 repository intelligence v2 task graph for
   snapshot schema, discovery, command recipes, owner/subsystem hints,
   path-to-verification guidance, memory integration, freshness, CLI/API,

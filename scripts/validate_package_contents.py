@@ -114,6 +114,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/v15-repository-intelligence-evidence.md",
     "docs/v15-release-gate.md",
     "docs/v15-dogfooding-summary.md",
+    "docs/v15-release-candidate.md",
     "docs/tasks-v15.md",
     "docs/review-feedback.md",
     "docs/review-responses.md",
