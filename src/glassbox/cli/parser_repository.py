@@ -120,7 +120,17 @@ def _add_repository_parsers(
         help="list repository intelligence memory candidates",
         description="List review-gated memory candidates for one session.",
     )
-    memory_parser.add_argument("--session", dest="session_id", type=_parse_uuid)
+    memory_parser.add_argument(
+        "--session",
+        dest="session_id",
+        type=_parse_uuid,
+        default=None,
+        metavar="SESSION_ID",
+        help=(
+            "session used to anchor review-gated memory candidates; find one "
+            "with `glassbox session list --json --cwd .`"
+        ),
+    )
     memory_parser.add_argument("--limit", type=int, default=25)
     memory_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(memory_parser)

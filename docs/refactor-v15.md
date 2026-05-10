@@ -462,7 +462,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R712: Improve Repository Memory-Candidate Command Error Copy
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R710
 - Target files:
   - `src/glassbox/cli/repository_command_memory.py`

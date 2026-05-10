@@ -13,6 +13,11 @@ from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureServ
 
 def _repo_memory_candidates_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
+    if args.session_id is None:
+        raise ValueError(
+            "repo memory-candidates requires --session SESSION_ID. "
+            "Find a session with `glassbox session list --json --cwd .`."
+        )
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         candidates = WorkspaceMemoryCaptureService(
             cast(

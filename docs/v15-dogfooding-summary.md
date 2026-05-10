@@ -26,7 +26,7 @@ Reviewer-safe outcomes and friction findings are summarized here.
 | Verification recommendation | `uv run glassbox repo recommend src/glassbox/runtime/repository_intelligence_queries.py docs/v15-release-gate.md --json --cwd .` | Passed | Recommended the five v15 repository-intelligence cases, release-candidate profile, v15 runtime tests, docs guardrail, package checks, lint, typecheck, and topology fallbacks with fresh source metadata. |
 | Stale intelligence recovery | `uv run glassbox repo stale --json --cwd .` | Passed | After refresh, the only remaining cue was missing optional memory-derived entries. The recommended safe next actions stayed inspection and refresh oriented. |
 | Session discovery for memory review | `uv run glassbox session list --json --cwd .` | Passed | Found local sessions suitable for explicit memory-candidate review. The output is retained locally because summaries can include historical user and assistant text. |
-| Memory candidates without session | `uv run glassbox repo memory-candidates --limit 5 --json --cwd .` | Advisory friction | Returned `unknown session_id: None`. The command is safe, but the no-session error text is terse compared with the help text. |
+| Memory candidates without session | `uv run glassbox repo memory-candidates --limit 5 --json --cwd .` | Fixed in post-v15 refactor | GBX-R712 now fails with explicit `--session SESSION_ID` guidance and points operators to `glassbox session list --json --cwd .`. |
 | Memory candidates with session | `uv run glassbox repo memory-candidates --session 27b0b5ed-e48f-485e-a9a5-8a6880eb4446 --limit 5 --json --cwd .` | Passed | Returned review-gated repository command candidates with repository-intelligence provenance, fresh snapshot digest notes, command tags, and redaction for one v15 advisory profile token. |
 | Turn-context eval inspection | `uv run glassbox eval run repository-intelligence.context-drift --cwd .` | Passed | Exact match for the context-drift case with retained eval artifacts under `.glassbox/evals/20260510T160910Z`. |
 | Turn-context and replay tests | `uv run pytest tests/unit/test_context_builder.py tests/unit/test_replay_orchestrator.py -q` | `41 passed` | Retained focused confidence for context construction and replay orchestration while dogfooding repository-intelligence context guidance. |
@@ -71,9 +71,10 @@ Reviewer-safe outcomes and friction findings are summarized here.
 - `repo memory-candidates` works when the operator supplies `--session`.
   Candidates retain repository-intelligence provenance, command tags, fresh
   snapshot notes, and redaction.
-- Running the command without `--session` returned `unknown session_id: None`.
-  This is safe but terse. The disposition is a post-v15 CLI copy follow-up, not
-  a release blocker.
+- Running the command without `--session` originally returned
+  `unknown session_id: None`. GBX-R712 keeps the command safe while making the
+  failure actionable: operators now get explicit `--session SESSION_ID`
+  guidance and the `glassbox session list --json --cwd .` discovery command.
 - Session list output can contain historical prompt and assistant summaries, so
   this summary records only sanitized IDs and aggregate behavior.
 
@@ -108,8 +109,6 @@ Reviewer-safe outcomes and friction findings are summarized here.
 The dogfooding pass found no v15 release blocker. It found these bounded
 follow-ups:
 
-- improve `repo memory-candidates` no-session error copy so it points to
-  `--session SESSION_ID` or `glassbox session list --json --cwd .`
 - document that release evidence should wait for `repo refresh` completion when
   a refresh and read commands are started together
 - keep session-list evidence local because historical prompt summaries can be

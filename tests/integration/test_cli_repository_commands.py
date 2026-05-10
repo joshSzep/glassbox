@@ -267,6 +267,27 @@ def test_repo_refresh_queues_background_job(tmp_path: Path, capsys) -> None:
     )
 
 
+def test_repo_memory_candidates_requires_session_guidance(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    exit_code = main(
+        [
+            "repo",
+            "memory-candidates",
+            "--cwd",
+            str(tmp_path),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 1
+    assert captured.out == ""
+    assert "repo memory-candidates requires --session SESSION_ID" in captured.err
+    assert "glassbox session list --json --cwd ." in captured.err
+
+
 def test_repo_intelligence_workflow_commands(tmp_path: Path, capsys) -> None:
     _seed_repository(tmp_path)
     assert main(["repo", "refresh", "--cwd", str(tmp_path)]) == 0
