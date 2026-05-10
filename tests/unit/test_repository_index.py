@@ -54,6 +54,12 @@ from glassbox.runtime.repository_intelligence_layout_common import _provenance
 from glassbox.runtime.repository_intelligence_layout_common import _read_json
 from glassbox.runtime.repository_intelligence_layout_common import _read_toml
 from glassbox.runtime.repository_intelligence_layout_common import _slug
+from glassbox.runtime.repository_intelligence_layout_packages import (
+    discover_repository_intelligence_packages,
+)
+from glassbox.runtime.repository_intelligence_layout_paths import (
+    discover_repository_intelligence_paths,
+)
 from glassbox.runtime.repository_intelligence_queries import (
     inspect_repository_intelligence_path,
 )
@@ -153,6 +159,43 @@ def test_repository_path_classifier_identifies_generated_and_sensitive_paths() -
     assert build.build_output
     assert build.excluded
     assert policy.policy_sensitive
+
+
+def test_repository_package_path_discovery_preserves_generated_policy_hints(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    (tmp_path / "docs" / "tasks-v15.md").write_text("# Tasks\n", encoding="utf-8")
+
+    packages = discover_repository_intelligence_packages(tmp_path)
+    paths = discover_repository_intelligence_paths(
+        tmp_path, packages.package_boundaries
+    )
+
+    assert {manifest.manifest_id for manifest in packages.source_manifests} >= {
+        "manifest:pyproject.toml",
+        "manifest:frontend:package.json",
+    }
+    assert {package.package_id for package in packages.package_boundaries} >= {
+        "package:fixture",
+        "app:frontend",
+        "docs:docs",
+        "evals:evals",
+    }
+    assert {hint.path for hint in paths.source_roots} >= {
+        Path("src"),
+        Path("frontend"),
+    }
+    assert any(
+        hint.path == Path("frontend/generated")
+        and hint.kind == RepositoryIntelligencePathKind.GENERATED_PATH
+        for hint in paths.generated_paths
+    )
+    assert any(
+        hint.path == Path("docs/tasks-v15.md")
+        and hint.kind == RepositoryIntelligencePathKind.POLICY_SENSITIVE_PATH
+        for hint in paths.policy_sensitive_paths
+    )
 
 
 def test_repository_intelligence_layout_common_helpers_are_stable(
