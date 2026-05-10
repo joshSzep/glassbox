@@ -9,6 +9,10 @@ import type { MemoryInspectorState, RepositoryInspectorState } from "@/stores/da
 type MemoryEntry = components["schemas"]["WorkspaceMemoryEntryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type RepositoryStatus = components["schemas"]["RepositoryIndexStatusResponse"];
+type RepositoryOverview = NonNullable<RepositoryInspectorState["overview"]>;
+type RepositoryPathInspection = NonNullable<RepositoryInspectorState["pathInspection"]>;
+type RepositoryVerification = NonNullable<RepositoryInspectorState["verification"]>;
+type RepositoryMemoryCandidate = RepositoryInspectorState["memoryCandidates"][number];
 
 describe("knowledge autonomy console", () => {
   it("renders memory filters, provenance, actions, and prune previews", () => {
@@ -80,6 +84,44 @@ describe("knowledge autonomy console", () => {
     expect(markup).toContain("src/sample.py");
     expect(markup).toContain("static_analysis");
     expect(markup).toContain("session session-...");
+  });
+
+  it("renders repository map, path verification, recipes, and memory candidates", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(KnowledgeAutonomyConsole, {
+        anchorSessionId: "session-123456789",
+        memory: idleMemory,
+        repository: {
+          ...idleRepository,
+          commandRecipes: makeCommandRecipes(),
+          memoryCandidates: [makeRepositoryMemoryCandidate("candidate-1")],
+          overview: makeRepositoryOverview(),
+          pathInspection: makeRepositoryPathInspection(),
+          pathQuery: "src/sample.py",
+          status: makeRepositoryStatus({
+            command_recipe_count: 1,
+            package_boundary_count: 1,
+            release_surface_count: 1,
+            source_root_count: 1,
+            status: "fresh",
+            subsystem_count: 1,
+          }),
+          statusState: "loaded",
+          verification: makeRepositoryVerification(),
+        },
+        surface: "repository",
+      }),
+    );
+
+    expect(markup).toContain("Repository Map");
+    expect(markup).toContain("1 packages, 1 subsystems, 1 release-sensitive surfaces.");
+    expect(markup).toContain("src/sample.py");
+    expect(markup).toContain("package:fixture");
+    expect(markup).toContain("Runtime");
+    expect(markup).toContain("@runtime-team");
+    expect(markup).toContain("Release Gate");
+    expect(markup).toContain("uv run pytest tests");
+    expect(markup).toContain("Review candidate · repository intelligence");
   });
 });
 
@@ -208,6 +250,169 @@ function makeRepositoryEntry(
     symbol: "UsefulThing",
     tags: ["source"],
     updated_at: "2026-04-23T00:00:00Z",
+    ...overrides,
+  };
+}
+
+function makeRepositoryOverview(overrides: Partial<RepositoryOverview> = {}): RepositoryOverview {
+  return {
+    doc_roots: [],
+    generated_paths: [],
+    index: makeRepositoryStatus({ status: "fresh" }),
+    limitations: [],
+    memory_references: [
+      {
+        confirmed_at: "2026-04-23T00:00:00Z",
+        confirmed_by: "operator",
+        confidence: "high",
+        kind: "command",
+        limitations: [],
+        memory_id: "memory-1",
+        provenance: {},
+        redacted: false,
+        reference_id: "memory-reference-1",
+        source_label: "operator note",
+        summary: "Backend tests use uv",
+        tags: ["repository-intelligence"],
+      },
+    ],
+    package_boundaries: [
+      {
+        confidence: "high",
+        doc_roots: [],
+        generated_paths: [],
+        kind: "python",
+        limitations: [],
+        manifest_paths: ["pyproject.toml"],
+        name: "fixture",
+        package_id: "package:fixture",
+        provenance: [],
+        root: ".",
+        source_roots: ["src"],
+        test_roots: ["tests"],
+      },
+    ],
+    policy_sensitive_paths: [],
+    release_surfaces: [
+      {
+        command_recipe_ids: ["recipe:pytest"],
+        confidence: "high",
+        kind: "release_candidate",
+        limitations: [],
+        name: "Release Gate",
+        provenance: [],
+        scope_paths: ["scripts", "docs"],
+        surface_id: "release:v15",
+      },
+    ],
+    source_manifests: [],
+    source_roots: [
+      {
+        confidence: "high",
+        hint_id: "source-root:src",
+        kind: "source_root",
+        language: "python",
+        limitations: [],
+        package_id: "package:fixture",
+        path: "src",
+        provenance: [],
+      },
+    ],
+    subsystems: [
+      {
+        confidence: "high",
+        limitations: [],
+        name: "Runtime",
+        owner_hint_ids: ["owner:runtime"],
+        package_ids: ["package:fixture"],
+        provenance: [],
+        release_surface_ids: ["release:v15"],
+        scope_paths: ["src"],
+        subsystem_id: "subsystem:runtime",
+        tags: ["runtime"],
+      },
+    ],
+    test_roots: [],
+    topology: null,
+    ...overrides,
+  };
+}
+
+function makeCommandRecipes() {
+  return [
+    {
+      command: "uv run pytest tests",
+      confidence: "high",
+      limitations: [],
+      name: "Backend tests",
+      provenance: [],
+      purpose: "test",
+      recipe_id: "recipe:pytest",
+      review_relevance: "direct",
+      risk: "read_only",
+      scope_paths: ["src", "tests"],
+      timeout_seconds: null,
+      toolchain: "uv",
+    },
+  ] satisfies RepositoryPathInspection["command_recipes"];
+}
+
+function makeRepositoryPathInspection(
+  overrides: Partial<RepositoryPathInspection> = {},
+): RepositoryPathInspection {
+  const overview = makeRepositoryOverview();
+  return {
+    command_recipes: makeCommandRecipes(),
+    next_actions: ["glassbox repo recommend src/sample.py"],
+    ownership_hints: [
+      {
+        confidence: "high",
+        hint_id: "owner:runtime",
+        limitations: [],
+        owner_label: "@runtime-team",
+        provenance: [],
+        scope_paths: ["src"],
+        subsystem: "Runtime",
+      },
+    ],
+    packages: overview.package_boundaries,
+    path: "src/sample.py",
+    path_hints: overview.source_roots,
+    release_surfaces: overview.release_surfaces,
+    snapshot_status: "fresh",
+    subsystems: overview.subsystems,
+    ...overrides,
+  };
+}
+
+function makeRepositoryVerification(
+  overrides: Partial<RepositoryVerification> = {},
+): RepositoryVerification {
+  return {
+    detail: null,
+    next_actions: ["uv run pytest tests"],
+    paths: ["src/sample.py"],
+    report: null,
+    status: "ok",
+    ...overrides,
+  };
+}
+
+function makeRepositoryMemoryCandidate(
+  candidateId: string,
+  overrides: Partial<RepositoryMemoryCandidate> = {},
+): RepositoryMemoryCandidate {
+  return {
+    candidate_id: candidateId,
+    content: "Use uv run pytest tests for backend checks.",
+    created_at: "2026-04-23T00:00:00Z",
+    kind: "command",
+    provenance: makeMemoryEntry("memory-1").provenance,
+    redacted: false,
+    session_id: "session-1",
+    source_label: "repository intelligence",
+    summary: "Backend test command",
+    tags: ["repository-intelligence"],
     ...overrides,
   };
 }

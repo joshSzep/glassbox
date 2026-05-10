@@ -193,7 +193,7 @@ def test_repository_intelligence_routes_return_typed_dashboard_data(
                 overview_response = await client.get("/repo/intelligence")
                 freshness_response = await client.get("/repo/intelligence/freshness")
                 path_response = await client.get(
-                    "/repo/intelligence/paths/src/sample.py"
+                    "/repo/intelligence/paths/frontend/package.json"
                 )
                 recipes_response = await client.get(
                     "/repo/intelligence/command-recipes",
@@ -204,7 +204,7 @@ def test_repository_intelligence_routes_return_typed_dashboard_data(
                 )
                 verification_response = await client.get(
                     "/repo/intelligence/verification",
-                    params={"paths": "src/sample.py"},
+                    params={"paths": "frontend/package.json"},
                 )
                 candidates_response = await client.get(
                     "/repo/intelligence/memory-candidates",
@@ -226,10 +226,15 @@ def test_repository_intelligence_routes_return_typed_dashboard_data(
             assert freshness_response.status_code == 200
             assert freshness_response.json()["cues"][0]["source"] == "repository-index"
             assert path_response.status_code == 200
-            assert path_response.json()["path"] == "src/sample.py"
-            assert (
-                path_response.json()["packages"][0]["package_id"] == "package:fixture"
-            )
+            assert path_response.json()["path"] == "frontend/package.json"
+            assert "app:fixture-dashboard" in [
+                package["package_id"] for package in path_response.json()["packages"]
+            ]
+            assert path_response.json()["next_actions"] == [
+                "glassbox repo recommend frontend/package.json",
+                "glassbox eval recommend frontend/package.json",
+            ]
+            assert path_response.json()["command_recipes"]
             assert subsystem_response.status_code == 200
             assert (
                 subsystem_response.json()["subsystem"]["subsystem_id"]
@@ -237,7 +242,7 @@ def test_repository_intelligence_routes_return_typed_dashboard_data(
             )
             assert verification_response.status_code == 200
             assert verification_response.json()["status"] in {"ok", "unavailable"}
-            assert verification_response.json()["paths"] == ["src/sample.py"]
+            assert verification_response.json()["paths"] == ["frontend/package.json"]
             assert candidates_response.status_code == 200
             assert candidates_response.json()["session_id"] == str(session_id)
             assert search_response.status_code == 200

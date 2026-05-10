@@ -46,6 +46,12 @@ from glassbox.runtime.repository_index_persistence import RepositoryIndexLoadErr
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
+from glassbox.runtime.repository_intelligence_queries import (
+    inspect_repository_intelligence_path,
+)
+from glassbox.runtime.repository_intelligence_queries import (
+    workspace_relative_repository_path,
+)
 
 _BUILT_AT = datetime(2026, 4, 29, 12, tzinfo=UTC)
 
@@ -139,6 +145,47 @@ def test_repository_path_classifier_identifies_generated_and_sensitive_paths() -
     assert build.build_output
     assert build.excluded
     assert policy.policy_sensitive
+
+
+def test_repository_path_inspection_matches_runtime_query_families(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+    (tmp_path / "docs" / "tasks-v15.md").write_text("# Tasks\n", encoding="utf-8")
+    snapshot = build_and_write_repository_index(tmp_path)
+
+    docs_path = workspace_relative_repository_path(
+        tmp_path,
+        str(tmp_path / "docs" / "tasks-v15.md"),
+    )
+    inspection = inspect_repository_intelligence_path(snapshot, docs_path)
+
+    assert inspection.path == Path("docs/tasks-v15.md")
+    assert inspection.snapshot_status == "fresh"
+    assert "docs:docs" in [package.package_id for package in inspection.packages]
+    assert {hint.kind for hint in inspection.path_hints} >= {
+        RepositoryIntelligencePathKind.DOC_ROOT,
+        RepositoryIntelligencePathKind.POLICY_SENSITIVE_PATH,
+    }
+    assert "subsystem:docs" in [
+        subsystem.subsystem_id for subsystem in inspection.subsystems
+    ]
+    assert "@docs-team" in [owner.owner_label for owner in inspection.ownership_hints]
+    assert any(
+        recipe.command == "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+        for recipe in inspection.command_recipes
+    )
+    assert any(
+        surface.kind == RepositoryIntelligenceReleaseSurfaceKind.RELEASE_CANDIDATE
+        for surface in inspection.release_surfaces
+    )
+    assert inspection.next_actions == [
+        "glassbox repo recommend docs/tasks-v15.md",
+        "glassbox eval recommend docs/tasks-v15.md",
+    ]
+
+    with pytest.raises(ValueError, match="inside the workspace"):
+        workspace_relative_repository_path(tmp_path, "../outside.py")
 
 
 def test_repository_index_layout_respects_builder_limit_and_generated_paths(

@@ -2108,6 +2108,61 @@ def test_derive_runtime_context_records_repository_intelligence_memory_use(
     assert all(event.turn_id == turn_id for event in used_events)
 
 
+def test_derive_runtime_context_dedupes_prompt_use_events(
+    tmp_path: Path,
+) -> None:
+    session_id = new_session_id()
+    turn_id = new_turn_id()
+    memory = _workspace_memory_entry(
+        session_id,
+        summary="Backend test command",
+        content="Use uv run pytest for backend tests.",
+        source_sequence=3,
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "sample.py").write_text("def main(): pass\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "fixture"\n',
+        encoding="utf-8",
+    )
+    build_and_write_repository_index(tmp_path, workspace_memory_entries=[memory])
+    repository = FakeSessionRepository(
+        SessionRecord(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            created_at=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
+            updated_at=datetime(2026, 4, 24, 12, 1, tzinfo=UTC),
+            cwd=tmp_path,
+            model_name="openai:gpt-5.4",
+            approval_mode="confirm",
+            last_sequence=4,
+        ),
+        SessionState(
+            session_id=session_id,
+            status=SessionStatus.RUNNING,
+            current_turn_id=turn_id,
+            last_sequence=4,
+        ),
+        [],
+        workspace_memory=[memory],
+    )
+
+    derive_runtime_context_snapshot(repository, session_id, tmp_path)
+    derive_runtime_context_snapshot(repository, session_id, tmp_path)
+    used_events = [
+        event.payload
+        for event in repository.read_session_events(session_id)
+        if isinstance(event.payload, WorkspaceMemoryUsedInContext)
+    ]
+
+    assert [
+        (event.memory_id, event.turn_id, event.prompt_section) for event in used_events
+    ] == [
+        (memory.memory_id, turn_id, "workspace_memory"),
+        (memory.memory_id, turn_id, "repository_intelligence"),
+    ]
+
+
 def _workspace_memory_entry(
     session_id,
     *,

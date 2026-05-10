@@ -338,7 +338,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R701: Characterize Current Repository Intelligence Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R700
 - Target files:
   - `tests/unit/test_repository_index.py`
@@ -346,9 +346,9 @@ Each phase below corresponds to one concrete refactor milestone.
   - `tests/unit/test_context_builder.py`
   - `tests/unit/test_workspace_memory_capture.py`
   - `tests/integration/test_cli_repository_commands.py`
-  - `tests/integration/test_web_repository_intelligence_routes.py`
+  - `tests/integration/test_web_repository_index_routes.py`
   - `frontend/tests/knowledge-autonomy-console.test.tsx`
-  - `frontend/tests/workspace-overview.test.tsx`
+  - `frontend/tests/workspace-overview.test.ts`
 - Work:
   - identify highest-risk current behavior before movement begins
   - add characterization coverage where moved behavior is not already asserted
@@ -363,6 +363,15 @@ Each phase below corresponds to one concrete refactor milestone.
     extraction tasks
   - accepted-gap list for behavior that is intentionally left unchanged during
     refactor-only work
+- Accepted gaps:
+  - `repo memory-candidates` without `--session` still uses the current
+    unfriendly no-session failure until GBX-R712 owns the deliberate copy and
+    exit-code polish.
+  - The web repository intelligence route tests live in
+    `test_web_repository_index_routes.py` today because repository index and
+    repository intelligence routes still share the integration fixture.
+  - Frontend characterization uses `workspace-overview.test.ts`; no `.tsx`
+    route-specific companion exists for that surface today.
 - Validation:
   - `uv run pytest tests/unit/test_repository_index.py`
   - `uv run pytest tests/unit/test_eval_recommendations.py -k repository`
