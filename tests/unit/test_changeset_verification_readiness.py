@@ -194,6 +194,69 @@ def test_readiness_surfaces_stale_repository_intelligence_recommendations() -> N
     )
 
 
+def test_readiness_bounds_repository_intelligence_requirement_ids() -> None:
+    command = (
+        "uv run pytest "
+        "tests/unit/test_changeset_derivation.py "
+        "tests/unit/test_change_inventory.py "
+        "tests/unit/test_changeset_verification_readiness.py "
+        "tests/unit/test_review_briefs.py "
+        "tests/unit/test_commit_readiness.py "
+        "tests/integration/test_cli_changeset_commands.py "
+        "tests/integration/test_web_changeset_routes.py -q"
+    )
+    inventory = _inventory("src/glassbox/runtime/changeset_verification_readiness.py")
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=["src/glassbox/runtime/changeset_verification_readiness.py"],
+        recipes=[
+            EvalVerificationRecipeRecommendation(
+                recipe_id="repo-intelligence-recipe-eval-recipe-changeset-runtime-0",
+                title="Changeset runtime checks",
+                source="repository-intelligence",
+                matched_paths=[
+                    "src/glassbox/runtime/changeset_verification_readiness.py"
+                ],
+                commands=[command],
+            )
+        ],
+    )
+
+    readiness = derive_changeset_verification_readiness(
+        inventory=inventory,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        eval_recommendation=recommendation,
+    )
+
+    requirement = readiness.requirements[0]
+    assert len(requirement.requirement_id) <= 200
+    assert requirement.requirement_id.startswith("recipe:repo-intelligence")
+    assert ":sha256:" in requirement.requirement_id
+    assert requirement.command == command.split()
+
+
+def test_readiness_bounds_aggregate_safe_next_actions() -> None:
+    inventory = _inventory("src/glassbox/runtime/changeset_verification_readiness.py")
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=["src/glassbox/runtime/changeset_verification_readiness.py"],
+        suggested_commands=[
+            f"uv run glassbox eval run synthetic.case.{index} --cwd ."
+            for index in range(30)
+        ],
+    )
+
+    readiness = derive_changeset_verification_readiness(
+        inventory=inventory,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        eval_recommendation=recommendation,
+    )
+
+    assert len(readiness.requirements) == 30
+    assert len(readiness.safe_next_actions) == 20
+    assert readiness.safe_next_actions[0].startswith("glassbox eval recommend ")
+
+
 def test_readiness_failed_ledger_blocks_review_posture() -> None:
     inventory = _inventory("src/glassbox/runtime/changesets.py")
     ledger = [

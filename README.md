@@ -156,6 +156,7 @@ Start here based on what you need:
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/v15-repository-intelligence-contract.md](docs/v15-repository-intelligence-contract.md)
 - [docs/v15-repository-intelligence-audit.md](docs/v15-repository-intelligence-audit.md)
+- [docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

@@ -312,7 +312,7 @@ def _record_v15_advisory_evidence(
             "remains advisory beside deterministic gate evidence",
             "dogfooding",
             "docs/v15-dogfooding-summary.md",
-            "pending",
+            "recorded",
         ),
     ]
     for label, reason, directory_name, docs_path, latest_status in advisory_entries:
@@ -368,7 +368,7 @@ def _print_dry_run(
         print("- v15 advisory provider evidence: skipped by default")
     print("- v15 advisory dashboard browser evidence: recorded from retained summary")
     print("- v15 advisory accessibility evidence: recorded from retained summary")
-    print("- v15 dogfooding evidence: pending GBX-1582 advisory summary")
+    print("- v15 dogfooding evidence: recorded GBX-1582 advisory summary")
     print("- installed wheel smoke: latest dist/glassbox-*.whl")
 
 

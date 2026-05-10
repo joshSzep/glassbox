@@ -1450,6 +1450,37 @@ def test_v14_dogfooding_summary_records_maturity_passes() -> None:
     assert "v14-dogfooding-summary.md" in docs_readme
 
 
+def test_v15_dogfooding_summary_records_repository_intelligence_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v15-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Disposition",
+        ".glassbox/releases/gbx-1582-v15-dogfooding/",
+        "Repository snapshot rebuild",
+        "Concurrent stale read",
+        "Verification recommendation",
+        "Memory candidates without session",
+        "unknown session_id: None",
+        "Memory candidates with session",
+        "repository-intelligence.context-drift",
+        "Dashboard console tests",
+        "Changeset review",
+        "V15 release gate dry run",
+        "GBX-1554",
+        "--session SESSION_ID",
+    ):
+        assert required_text in content
+
+    assert "docs/v15-dogfooding-summary.md" in root_readme
+    assert "v15-dogfooding-summary.md" in docs_readme
+
+
 def test_v14_release_candidate_guide_covers_maturity_model() -> None:
     content = (REPO_ROOT / "docs" / "v14-release-candidate.md").read_text(
         encoding="utf-8"

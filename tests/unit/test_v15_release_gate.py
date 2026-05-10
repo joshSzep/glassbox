@@ -71,7 +71,7 @@ def test_v15_release_gate_dry_run_records_repository_intelligence_evidence(
     assert summary["advisory"][-4]["status"] == "planned"
     assert summary["advisory"][-3]["status"] == "recorded"
     assert summary["advisory"][-2]["required_for_release"] is False
-    assert summary["advisory"][-1]["status"] == "pending"
+    assert summary["advisory"][-1]["status"] == "recorded"
     assert summary["artifacts"]["v15_task_graph"] == "docs/tasks-v15.md"
     assert summary["artifacts"]["v15_release_gate"] == "docs/v15-release-gate.md"
     assert summary["artifacts"]["v15_repository_intelligence_evidence"] == (

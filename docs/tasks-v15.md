@@ -1311,7 +1311,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1582: Run V15 Repository Intelligence Dogfooding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1581`
 - Goal: use repository intelligence v2 on realistic local work and record
   friction before release signoff

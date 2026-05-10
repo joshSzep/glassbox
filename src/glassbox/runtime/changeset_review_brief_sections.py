@@ -173,7 +173,7 @@ def _review_brief_safe_commands(
         changeset_brief_command(changeset.changeset_id, json=True),
     ]
     commands.extend(verification_plan.safe_next_actions)
-    return list(dict.fromkeys(commands))
+    return list(dict.fromkeys(commands))[:20]
 
 
 def _review_brief_local_only(

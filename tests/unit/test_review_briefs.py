@@ -44,6 +44,7 @@ from glassbox.runtime.changeset_review_brief_core_sections import (
 from glassbox.runtime.changeset_review_brief_limitations import (
     summarize_review_brief_limitations,
 )
+from glassbox.runtime.changeset_review_brief_sections import _review_brief_safe_commands
 from glassbox.runtime.changeset_verification_readiness import (
     ChangesetVerificationReadiness,
 )
@@ -147,6 +148,39 @@ def test_review_brief_verification_section_names_path_guidance() -> None:
     assert "Path-to-verification guidance names 1 recommended target" in section.body
     assert "1 release surface" in section.body
     assert "Stale evidence guidance names 1 stale or missing item" in section.body
+
+
+def test_review_brief_safe_commands_are_bounded() -> None:
+    changeset = ChangesetRecord(
+        session_id=new_session_id(),
+        changeset_id=new_changeset_id(),
+        objective="Review bounded commands",
+        summary=None,
+        status="active",
+        created_by="operator",
+        risk_level=ChangesetRiskLevel.UNKNOWN,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+        last_sequence=1,
+    )
+    plan = ChangesetVerificationPlanPreview(
+        changeset_id=changeset.changeset_id,
+        session_id=changeset.session_id,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        safe_next_actions=[
+            f"uv run pytest tests/unit/test_{index}.py -q" for index in range(30)
+        ],
+        readiness=ChangesetVerificationReadiness(
+            state=ChangesetVerificationState.MISSING,
+            summary="verification is missing",
+        ),
+    )
+
+    commands = _review_brief_safe_commands(changeset, plan)
+
+    assert len(commands) == 20
+    assert commands[0].startswith("glassbox changeset show ")
+    assert commands[-1] == "uv run pytest tests/unit/test_16.py -q"
 
 
 def test_review_lifecycle_brief_contract_sections_and_evidence_refs() -> None:

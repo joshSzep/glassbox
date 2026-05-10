@@ -1,5 +1,6 @@
 """Deterministic verification readiness model for reviewable changesets."""
 
+import hashlib
 from collections.abc import Iterable
 from collections.abc import Sequence
 from pathlib import Path
@@ -20,6 +21,9 @@ from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.changeset_safe_commands import changeset_refresh_command
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.workspace_profile import WorkspaceProfile
+
+_MAX_REQUIREMENT_ID_LENGTH = 200
+_REQUIREMENT_ID_DIGEST_LENGTH = 16
 
 
 class ChangesetVerificationRequirement(BaseModel):
@@ -176,7 +180,7 @@ def derive_changeset_verification_readiness(
             for requirement in requirements
             if requirement.state == ChangesetVerificationState.ACCEPTED_WITH_RISK
         ),
-        safe_next_actions=list(dict.fromkeys(safe_next_actions)),
+        safe_next_actions=list(dict.fromkeys(safe_next_actions))[:20],
         non_claims=[
             "verification readiness is advisory review posture, not proof",
             "old passing checks are not fresh when inventory is stale",
@@ -294,7 +298,9 @@ def _stale_recipe_requirements(
             continue
         requirements.append(
             ChangesetVerificationRequirement(
-                requirement_id=f"recipe-stale:{recipe.recipe_id}",
+                requirement_id=_bounded_requirement_id(
+                    f"recipe-stale:{recipe.recipe_id}"
+                ),
                 state=ChangesetVerificationState.STALE,
                 check_name=f"Stale recipe {recipe.title}",
                 reason=(
@@ -386,6 +392,7 @@ def _requirement_for_command(
     changed_paths: Sequence[str] = (),
     inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
+    requirement_id = _bounded_requirement_id(requirement_id)
     matching = _latest_command_ledger_entry(task_ledger, command)
     if matching is not None:
         return _requirement_from_ledger(
@@ -423,18 +430,19 @@ def _requirement_for_eval_profile(
     task_ledger: Sequence[TaskVerificationLedgerRecord],
     inventory_sequence: int | None,
 ) -> ChangesetVerificationRequirement:
+    requirement_id = _bounded_requirement_id(f"eval-profile:{profile_id}")
     matching = _latest_profile_ledger_entry(task_ledger, profile_id)
     if matching is not None:
         return _requirement_from_ledger(
             matching,
-            requirement_id=f"eval-profile:{profile_id}",
+            requirement_id=requirement_id,
             reason=reason,
             inventory_sequence=inventory_sequence,
             current_changed_paths=[],
         )
     command = ["uv", "run", "glassbox", "eval", "run", profile_id, "--cwd", "."]
     return ChangesetVerificationRequirement(
-        requirement_id=f"eval-profile:{profile_id}",
+        requirement_id=requirement_id,
         state=ChangesetVerificationState.MISSING,
         check_name=check_name,
         reason=reason,
@@ -453,6 +461,7 @@ def _requirement_from_ledger(
     inventory_sequence: int | None,
     current_changed_paths: Sequence[str],
 ) -> ChangesetVerificationRequirement:
+    requirement_id = _bounded_requirement_id(requirement_id)
     state = _state_for_ledger_status(entry.status)
     stale_reason = _stale_reason(
         entry,
@@ -479,6 +488,20 @@ def _requirement_from_ledger(
         if state == ChangesetVerificationState.PASSED
         else ["inspect retained verification output before retrying"],
     )
+
+
+def _bounded_requirement_id(requirement_id: str) -> str:
+    """Keep derived requirement IDs within the public model bound."""
+
+    if len(requirement_id) <= _MAX_REQUIREMENT_ID_LENGTH:
+        return requirement_id
+    digest = hashlib.sha256(requirement_id.encode("utf-8")).hexdigest()[
+        :_REQUIREMENT_ID_DIGEST_LENGTH
+    ]
+    suffix = f":sha256:{digest}"
+    prefix_length = _MAX_REQUIREMENT_ID_LENGTH - len(suffix)
+    prefix = requirement_id[:prefix_length].rstrip(":- ")
+    return f"{prefix}{suffix}"
 
 
 def _stale_reason(

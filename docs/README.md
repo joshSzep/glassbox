@@ -105,6 +105,10 @@ boundaries and deterministic release authority.
 - [v15-release-gate.md](./v15-release-gate.md): automated v15 release gate for
   deterministic repository-intelligence eval, runtime, CLI/API, frontend,
   package, installed-smoke, docs, and advisory evidence separation
+- [v15-dogfooding-summary.md](./v15-dogfooding-summary.md): sanitized
+  repository-intelligence dogfooding evidence for snapshot rebuild, path
+  inspection, verification recommendations, memory candidates, changeset
+  review, dashboard console checks, stale recovery, and turn-context inspection
 - [tasks-v15.md](./tasks-v15.md): v15 repository intelligence v2 task graph for
   snapshot schema, discovery, command recipes, owner/subsystem hints,
   path-to-verification guidance, memory integration, freshness, CLI/API,

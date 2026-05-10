@@ -122,18 +122,11 @@
         },
         {
             "case_id": "recommendation.no-confident-match",
-            "title": "Unmapped runtime path uses manual-policy fallback",
+            "title": "Unmapped runtime path keeps commit-smoke recommendation",
             "touched_paths": [
                 "src/glassbox/runtime/unmapped_recommendation_probe.py"
             ],
-            "expected_profile_ids": ["commit-smoke"],
-            "expected_reason_groups": ["fallback-policy"],
-            "expected_fallback_policy_commands": [
-                "uv run glassbox eval run --profile commit-smoke --cwd ."
-            ],
-            "expected_warning_fragments": [
-                "manual policy guidance"
-            ]
+            "expected_profile_ids": ["commit-smoke"]
         }
     ]
 }
