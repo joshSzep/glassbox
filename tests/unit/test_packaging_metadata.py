@@ -189,6 +189,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: docs/v15-repository-intelligence-evidence.md"
         in problems
     )
+    assert "sdist missing required file: docs/v15-release-gate.md" in problems
     assert "sdist missing required file: docs/tasks-v15.md" in problems
     assert "sdist missing required file: docs/tasks-v13.md" in problems
     assert "sdist missing required file: docs/review-feedback.md" in problems
@@ -284,6 +285,9 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: scripts/validate_v10_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_v15_release_gate.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_v11_release_gate.py" in problems
@@ -484,6 +488,7 @@ def _write_sdist(
                 "docs/v15-repository-intelligence-contract.md",
                 "docs/v15-repository-intelligence-audit.md",
                 "docs/v15-repository-intelligence-evidence.md",
+                "docs/v15-release-gate.md",
                 "docs/tasks-v15.md",
                 "docs/review-feedback.md",
                 "docs/review-responses.md",
@@ -640,6 +645,7 @@ def _write_sdist(
                 "scripts/validate_v13_release_gate.py",
                 "scripts/v13_release_gate_helpers.py",
                 "scripts/validate_v14_release_gate.py",
+                "scripts/validate_v15_release_gate.py",
                 "scripts/v14_release_gate_helpers.py",
                 "scripts/v14_release_gate_stages.py",
                 "scripts/v14_release_gate_advisory.py",

@@ -102,6 +102,9 @@ boundaries and deterministic release authority.
   source-linked audit of current repository index, topology, eval
   recommendation, memory, changeset, context, store, web, CLI, and dashboard
   surfaces before v15 implementation
+- [v15-release-gate.md](./v15-release-gate.md): automated v15 release gate for
+  deterministic repository-intelligence eval, runtime, CLI/API, frontend,
+  package, installed-smoke, docs, and advisory evidence separation
 - [tasks-v15.md](./tasks-v15.md): v15 repository intelligence v2 task graph for
   snapshot schema, discovery, command recipes, owner/subsystem hints,
   path-to-verification guidance, memory integration, freshness, CLI/API,

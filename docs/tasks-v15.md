@@ -1282,7 +1282,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1581: Add V15 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1580`
 - Goal: collect v15 repository intelligence evidence in one automated release
   gate while keeping advisory evidence boundaries clear
