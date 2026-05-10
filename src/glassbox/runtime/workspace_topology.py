@@ -21,9 +21,8 @@ from pydantic import model_validator
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.runtime.repository_index import build_repository_index
 from glassbox.runtime.repository_index_discovery import BUILDER_VERSION
-from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
 from glassbox.runtime.repository_index_discovery import classify_repository_path
-from glassbox.runtime.repository_index_discovery import iter_indexable_files
+from glassbox.runtime.repository_index_discovery import scan_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
 
@@ -295,7 +294,8 @@ def build_workspace_topology(
     """Build a deterministic topology snapshot from local manifests and index data."""
 
     root = workspace_root.resolve()
-    files = list(iter_indexable_files(root))[:MAX_INDEXED_FILES]
+    scan = scan_indexable_files(root)
+    files = scan.files
     built_at = datetime.now(UTC)
     index = (
         repository_index
@@ -309,6 +309,7 @@ def build_workspace_topology(
         limitations.append("no supported topology manifests were discovered")
     if index.status.value != "fresh":
         limitations.append("repository index was not fresh while deriving topology")
+    limitations.extend(scan.limitations)
 
     return WorkspaceTopologySnapshot(
         workspace_root=root,
@@ -353,7 +354,7 @@ def load_workspace_topology(workspace_root: Path) -> WorkspaceTopologySnapshot:
     if not path.exists():
         raise WorkspaceTopologyNotFoundError("workspace topology has not been built")
     snapshot = WorkspaceTopologySnapshot.model_validate_json(path.read_text())
-    files = list(iter_indexable_files(root))[:MAX_INDEXED_FILES]
+    files = scan_indexable_files(root).files
     current_digest = source_digest(root, files)
     if snapshot.source_digest is not None and snapshot.source_digest != current_digest:
         return snapshot.model_copy(update={"freshness": "stale"})

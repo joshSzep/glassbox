@@ -39,6 +39,7 @@ from glassbox.runtime.repository_index import load_repository_index
 from glassbox.runtime.repository_index import repository_index_path
 from glassbox.runtime.repository_index import search_repository_index
 from glassbox.runtime.repository_index import write_repository_index
+from glassbox.runtime.repository_index_discovery import INDEX_SCAN_LIMITATION
 from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
 from glassbox.runtime.repository_index_discovery import classify_repository_path
 from glassbox.runtime.repository_index_status import (
@@ -151,6 +152,7 @@ def test_repository_index_layout_respects_builder_limit_and_generated_paths(
     snapshot = build_and_write_repository_index(tmp_path)
 
     assert len(snapshot.source_inputs) == MAX_INDEXED_FILES
+    assert snapshot.limitations == [INDEX_SCAN_LIMITATION]
     assert all("node_modules" not in source for source in snapshot.source_inputs)
     assert any(
         hint.path == Path("frontend/out")

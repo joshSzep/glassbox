@@ -4,9 +4,8 @@ from pathlib import Path
 
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.types import RepositoryIndexFreshness
-from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
-from glassbox.runtime.repository_index_discovery import iter_indexable_files
 from glassbox.runtime.repository_index_discovery import repository_index_path
+from glassbox.runtime.repository_index_discovery import scan_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 
 
@@ -35,7 +34,7 @@ def load_repository_index(workspace_root: Path) -> RepositoryIndexSnapshot:
     snapshot = RepositoryIndexSnapshot.model_validate_json(path.read_text())
     current_digest = source_digest(
         workspace_root.resolve(),
-        list(iter_indexable_files(workspace_root.resolve()))[:MAX_INDEXED_FILES],
+        scan_indexable_files(workspace_root.resolve()).files,
     )
     if snapshot.source_digest is not None and snapshot.source_digest != current_digest:
         return snapshot.model_copy(update={"status": RepositoryIndexFreshness.STALE})

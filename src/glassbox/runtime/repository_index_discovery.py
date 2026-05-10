@@ -8,6 +8,12 @@ from pathlib import Path
 INDEX_FILE = "repository-index.json"
 BUILDER_VERSION = "v2-schema"
 MAX_INDEXED_FILES = 2000
+INDEX_SCAN_LIMITATION = (
+    "Repository intelligence file crawling reached the configured "
+    f"{MAX_INDEXED_FILES} file budget; snapshot entries and source digest are "
+    "partial. Rebuild in a narrower checkout or inspect generated/excluded paths "
+    "before relying on exhaustive path coverage."
+)
 EXCLUDED_NAMES = {
     ".git",
     ".glassbox",
@@ -79,6 +85,19 @@ class RepositoryPathClassification:
     policy_sensitive: bool
 
 
+@dataclass(frozen=True)
+class RepositoryIndexFileScan:
+    """Bounded deterministic file scan used by repository intelligence."""
+
+    files: list[Path]
+    max_files: int
+    truncated: bool
+
+    @property
+    def limitations(self) -> list[str]:
+        return [INDEX_SCAN_LIMITATION] if self.truncated else []
+
+
 def repository_index_path(workspace_root: Path) -> Path:
     """Return the local index artifact path for a workspace."""
 
@@ -86,13 +105,46 @@ def repository_index_path(workspace_root: Path) -> Path:
 
 
 def iter_indexable_files(root: Path) -> Iterable[Path]:
-    for path in sorted(root.rglob("*")):
-        if not path.is_file():
+    resolved_root = root.resolve()
+    stack = [resolved_root]
+    while stack:
+        directory = stack.pop()
+        try:
+            children = sorted(directory.iterdir(), key=lambda path: path.name)
+        except OSError:
             continue
-        relative = path.relative_to(root)
-        if is_excluded(relative):
-            continue
-        yield path
+        child_directories: list[Path] = []
+        for path in children:
+            relative = path.relative_to(resolved_root)
+            if is_excluded(relative):
+                continue
+            if path.is_dir():
+                child_directories.append(path)
+                continue
+            if path.is_file():
+                yield path
+        stack.extend(reversed(child_directories))
+
+
+def scan_indexable_files(
+    root: Path,
+    *,
+    max_files: int = MAX_INDEXED_FILES,
+) -> RepositoryIndexFileScan:
+    """Return a bounded deterministic scan and whether results were truncated."""
+
+    files: list[Path] = []
+    truncated = False
+    for path in iter_indexable_files(root):
+        if len(files) >= max_files:
+            truncated = True
+            break
+        files.append(path)
+    return RepositoryIndexFileScan(
+        files=files,
+        max_files=max_files,
+        truncated=truncated,
+    )
 
 
 def is_excluded(relative: Path) -> bool:
@@ -165,15 +217,18 @@ __all__ = [
     "EXCLUDED_NAMES",
     "GENERATED_PATH_MARKERS",
     "GENERATED_PATH_PREFIXES",
+    "INDEX_SCAN_LIMITATION",
     "MAX_INDEXED_FILES",
     "POLICY_SENSITIVE_PATH_NAMES",
     "POLICY_SENSITIVE_PATH_PREFIXES",
+    "RepositoryIndexFileScan",
     "RepositoryPathClassification",
     "classify_repository_path",
     "iter_indexable_files",
     "is_generated_repository_path",
     "is_policy_sensitive_repository_path",
     "repository_index_path",
+    "scan_indexable_files",
     "source_digest",
     "source_digest_inputs",
 ]

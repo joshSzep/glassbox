@@ -8,9 +8,8 @@ from pydantic import Field
 
 from glassbox.core.models import RepositoryIndexSnapshot
 from glassbox.core.types import RepositoryIndexFreshness
-from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
-from glassbox.runtime.repository_index_discovery import iter_indexable_files
 from glassbox.runtime.repository_index_discovery import repository_index_path
+from glassbox.runtime.repository_index_discovery import scan_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
 from glassbox.runtime.repository_index_persistence import RepositoryIndexNotFoundError
@@ -83,7 +82,8 @@ def build_repository_index_status_summary(
 
     root = workspace_root.resolve()
     path = repository_index_path(root)
-    files = list(iter_indexable_files(root))[:MAX_INDEXED_FILES]
+    scan = scan_indexable_files(root)
+    files = scan.files
     current_inputs = source_digest_inputs(root, files)
     current_digest = source_digest(root, files)
 
@@ -101,6 +101,7 @@ def build_repository_index_status_summary(
                 "want local repository intelligence for search and context."
             ),
             freshness_cues=repository_index_freshness_cues(root, None),
+            limitations=scan.limitations,
             next_actions=[f"glassbox repo index build --cwd {root}"],
         )
 
@@ -143,7 +144,7 @@ def build_repository_index_status_summary(
         stale_reason=stale_reason,
         source_diff=source_diff,
         freshness_cues=repository_index_freshness_cues(root, snapshot),
-        limitations=snapshot.limitations,
+        limitations=list(dict.fromkeys([*snapshot.limitations, *scan.limitations])),
         next_actions=_next_actions(root, snapshot.status),
     )
 

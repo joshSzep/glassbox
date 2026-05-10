@@ -112,6 +112,36 @@ PERFORMANCE_BUDGETS: tuple[PerformanceBudget, ...] = (
             "hashing or printing every file in operator paths."
         ),
     ),
+    PerformanceBudget(
+        surface="repository intelligence index build",
+        scenario="build a bounded v2 repository intelligence snapshot",
+        fixture_size="2,050 source files plus manifests",
+        budget_ms=5_000,
+        guidance=(
+            "If this regresses, keep discovery bounded, avoid full-tree sorting, "
+            "and prefer manifest summaries over reading generated or excluded paths."
+        ),
+    ),
+    PerformanceBudget(
+        surface="repository intelligence path inspection",
+        scenario="match one changed path to retained repository intelligence records",
+        fixture_size="snapshot built from a 2,050-file synthetic repository",
+        budget_ms=500,
+        guidance=(
+            "If this regresses, keep path inspection on retained summary records "
+            "and move broad entry search behind explicit paginated routes."
+        ),
+    ),
+    PerformanceBudget(
+        surface="repository intelligence search",
+        scenario="search retained repository index entries",
+        fixture_size="snapshot built from a 2,050-file synthetic repository",
+        budget_ms=750,
+        guidance=(
+            "If this regresses, bound result construction or add indexed lookup "
+            "metadata without widening dashboard overview payloads."
+        ),
+    ),
 )
 
 
@@ -214,6 +244,20 @@ PAYLOAD_SIZE_BUDGETS: tuple[PayloadSizeBudget, ...] = (
         guidance=(
             "If this regresses, separate artifact summaries from file inspection "
             "metadata and keep artifact detail panes on demand."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="repository intelligence overview payload",
+        scenario=(
+            "serialize dashboard repository map data without raw entries or "
+            "source inputs"
+        ),
+        fixture_size="2,050 source files plus manifests",
+        budget_bytes=250_000,
+        guidance=(
+            "If this regresses, keep full entry search paginated and avoid "
+            "attaching source_inputs, raw file contents, or full artifacts to the "
+            "dashboard overview route."
         ),
     ),
 )

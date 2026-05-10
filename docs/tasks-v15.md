@@ -1176,7 +1176,7 @@ uv run python scripts/validate_v15_release_gate.py
 
 ### GBX-1570: Add Repository Intelligence Performance Budgets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1514`, `GBX-1542`
 - Goal: prevent repository intelligence from making large local repositories
   slow or memory-heavy

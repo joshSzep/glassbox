@@ -11,8 +11,7 @@ from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.types import RepositoryIndexFreshness
 from glassbox.runtime.repository_index_discovery import BUILDER_VERSION
 from glassbox.runtime.repository_index_discovery import EXCLUDED_NAMES
-from glassbox.runtime.repository_index_discovery import MAX_INDEXED_FILES
-from glassbox.runtime.repository_index_discovery import iter_indexable_files
+from glassbox.runtime.repository_index_discovery import scan_indexable_files
 from glassbox.runtime.repository_index_discovery import source_digest
 from glassbox.runtime.repository_index_discovery import source_digest_inputs
 from glassbox.runtime.repository_index_extraction import command_entries
@@ -34,7 +33,8 @@ def build_repository_index(
     """Build a deterministic local repository intelligence snapshot."""
 
     root = workspace_root.resolve()
-    files = list(iter_indexable_files(root))[:MAX_INDEXED_FILES]
+    scan = scan_indexable_files(root)
+    files = scan.files
     source_inputs = source_digest_inputs(root, files)
     digest = source_digest(root, files)
     built_at = datetime.now(UTC)
@@ -58,6 +58,10 @@ def build_repository_index(
     layout_fields["memory_references"] = memory_reference_entries(
         workspace_memory_entries
     )
+    layout_fields["limitations"] = [
+        *layout_fields["limitations"],
+        *scan.limitations,
+    ]
 
     return RepositoryIndexSnapshot(
         schema_version=2,

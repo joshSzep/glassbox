@@ -225,6 +225,29 @@ path-to-verification logic in HTTP handlers, and
 candidates for a supplied session. The older `/repo/index` and `/repo/topology`
 routes remain compatible for existing clients.
 
+## Large-Repository Budgets
+
+Repository intelligence discovery uses a deterministic bounded crawl. The v15
+budget indexes at most 2,000 non-excluded files for snapshot entries, source
+inputs, source digests, and topology freshness checks. When a workspace has more
+indexable files than that budget, the snapshot stays usable but records a
+limitation explaining that entries and freshness are partial. Generated paths,
+dependency folders, build outputs, caches, and `.glassbox` artifacts remain
+excluded or summarized from manifests rather than fully scanned.
+
+The repository-owned performance budget surface includes:
+
+- repository intelligence index build: 5,000 ms for a 2,050-file synthetic repo
+- repository intelligence path inspection: 500 ms on that retained snapshot
+- repository intelligence search: 750 ms on retained entries
+- repository intelligence overview payload: 250,000 bytes without raw entries,
+  raw `source_inputs`, raw file contents, or managed artifact contents
+
+Operators can inspect the current budget table with `glassbox performance
+budgets`. If the limit is reached, prefer rebuilding in a narrower checkout,
+reviewing generated/excluded path posture, or using paginated search and detail
+routes instead of widening dashboard overview payloads.
+
 The top-level `glassbox repo` workflow wraps the common operator path:
 `glassbox repo status --cwd .` shows index and topology health together,
 `glassbox repo stale --cwd .` isolates stale or missing cues,
