@@ -130,7 +130,9 @@ the source-linked
 the dogfooding summary in
 [docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md), and the
 release-candidate guide in
-[docs/v15-release-candidate.md](docs/v15-release-candidate.md).
+[docs/v15-release-candidate.md](docs/v15-release-candidate.md). The post-v15
+behavior-preserving refactor roadmap lives in
+[docs/refactor-v15.md](docs/refactor-v15.md).
 
 ## Documentation
 
@@ -162,6 +164,7 @@ Start here based on what you need:
 - [docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md)
 - [docs/v15-release-candidate.md](docs/v15-release-candidate.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
+- [docs/refactor-v15.md](docs/refactor-v15.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
@@ -190,6 +193,7 @@ Start here based on what you need:
 - [docs/database.md](docs/database.md)
 - [docs/refactor-boundaries.md](docs/refactor-boundaries.md)
 - [docs/refactor-v14.md](docs/refactor-v14.md)
+- [docs/refactor-v15.md](docs/refactor-v15.md)
 - [docs/refactor-v13.md](docs/refactor-v13.md)
 
 Release evidence and milestone history remain available when you need them:

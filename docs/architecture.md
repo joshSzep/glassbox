@@ -193,6 +193,62 @@ not reviewer acceptance, handoff and commit readiness are read-only guidance,
 dashboard action states are operator workflow state rather than approval, and
 release-gate authority remains deterministic rather than advisory UX evidence.
 
+## Current Post-v15 Repository-Intelligence Refactor Shape
+
+The v15 repository-intelligence implementation adds local schema-versioned
+repository snapshots, topology, command recipes, ownership and subsystem hints,
+path-to-verification guidance, memory-derived repository cues, freshness
+posture, dashboard repository surfaces, bounded prompt context, replay drift
+semantics, and deterministic v15 release-gate coverage. These additions
+preserve the local-first authority model: canonical events, managed artifacts,
+typed API responses, local source files, and rebuildable projections remain
+the source of truth, while repository intelligence is advisory by default.
+
+The post-v15 refactor preserves current behavior and public entrypoints while
+splitting the repository-intelligence surfaces that grew during the milestone:
+
+- `cli/repository_commands.py` remains the repository command dispatcher while
+    status/staleness, refresh, inspection/recommendation, memory-candidate
+    behavior, and terminal formatting move into `repository_command_*` helpers
+- `runtime/repository_intelligence_layout.py` remains the layout discovery
+    coordinator while layout models/common helpers, package/path discovery,
+    command recipes, docs/eval recipe sources, ownership hints, subsystem
+    hints, and release surfaces move into `repository_intelligence_layout_*`
+    helpers
+- `runtime/repository_intelligence_refresh.py` becomes the shared refresh
+    orchestration service for CLI and background jobs; background-job modules
+    keep progress/completion event recording
+- `runtime/runtime_context_derivation.py` remains the runtime context
+    derivation entrypoint while `runtime_context_memory_use.py` owns
+    `WorkspaceMemoryUsedInContext` event construction and dedupe
+- `runtime/eval_recommendation_repository_intelligence.py` remains the
+    enrichment entrypoint while matching, metadata, and recipe recommendation
+    construction move into repository-specific eval recommendation helpers
+- `web/repository_intelligence_api.py` and
+    `web/routes/repository_intelligence.py` remain transport compatibility
+    surfaces while response models/builders and route-local query/service
+    helpers split by web-owned surface
+- `frontend/components/console/knowledge-autonomy/repository-panels.tsx`
+    remains the dashboard repository panel entrypoint while overview, path,
+    recipe, memory, freshness, and pure formatting sections split underneath
+- `frontend/stores/knowledge-store.ts` remains the dashboard knowledge-store
+    facade while repository loading, memory loading, and action-state helpers
+    keep transport and user-facing messages in the store layer
+- `tests/unit/test_architecture_guardrails.py` remains the guardrail
+    compatibility import point until post-v15 guardrails split by boundary
+    family
+
+These splits must preserve the v15 non-claims described in
+[v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md),
+[repository-intelligence-index.md](./repository-intelligence-index.md),
+[runtime-context.md](./runtime-context.md), and
+[workspace-memory.md](./workspace-memory.md): repository intelligence is local,
+rebuildable, freshness-aware, provenance-backed, and advisory; command recipes
+are recommendations rather than approval; memory-derived repository cues come
+from confirmed active memory; prompt use remains inspectable and replay-aware;
+and release-gate authority remains deterministic rather than dashboard,
+provider, memory, or advisory repository signals.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per

@@ -3892,6 +3892,50 @@ def test_post_v14_review_loop_maturity_boundary_strategy_is_documented() -> None
         assert required_text in architecture_doc
 
 
+def test_post_v15_repository_intelligence_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "The post-v15 repository-intelligence boundary map starts",
+        "#### Post-V15 Repository-Intelligence Runtime Sub-Boundaries",
+        "`repository_intelligence_layout_models.py`",
+        "`repository_intelligence_refresh.py`",
+        "`runtime_context_memory_use.py`",
+        "`eval_recommendation_repository_matching.py`",
+        "#### Post-V15 Repository CLI Sub-Boundaries",
+        "`repository_command_status.py`",
+        "#### Post-V15 Repository Web Sub-Boundaries",
+        "`repository_intelligence_api_models.py`",
+        "#### Post-V15 Frontend Repository Sub-Boundaries",
+        "`repository-overview.tsx`",
+        "`knowledge-store-repository.ts`",
+        "#### Post-V15 Guardrail And Core-Domain Strategy",
+        "post-v15 guardrails start with pre-extraction pressure-point caps",
+        "### Post-V15 Accepted Compatibility Shims",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "## Current Post-v15 Repository-Intelligence Refactor Shape",
+        "`cli/repository_commands.py` remains the repository command dispatcher",
+        "`runtime/repository_intelligence_layout.py` remains the layout discovery",
+        "`runtime/repository_intelligence_refresh.py` becomes the shared refresh",
+        "`runtime/runtime_context_derivation.py` remains the runtime context",
+        "`web/repository_intelligence_api.py` and",
+        "`frontend/stores/knowledge-store.ts` remains the dashboard knowledge-store",
+        "[v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md)",
+        "[repository-intelligence-index.md](./repository-intelligence-index.md)",
+        "[runtime-context.md](./runtime-context.md)",
+        "[workspace-memory.md](./workspace-memory.md)",
+    ):
+        assert required_text in architecture_doc
+
+
 def test_v10_core_domain_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"

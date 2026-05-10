@@ -2266,6 +2266,47 @@ def test_v14_refactor_docs_define_next_boundary_map() -> None:
     assert "refactor-v14.md" in docs_readme
 
 
+def test_v15_refactor_docs_define_next_boundary_map() -> None:
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    boundaries = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    roadmap = (REPO_ROOT / "docs" / "refactor-v15.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Current Post-v15 Repository-Intelligence Refactor Shape",
+        "`cli/repository_commands.py` remains the repository command dispatcher",
+        "`runtime/repository_intelligence_layout.py` remains the layout discovery",
+        "`runtime/repository_intelligence_refresh.py` becomes the shared refresh",
+        "`frontend/stores/knowledge-store.ts` remains the dashboard knowledge-store",
+    ):
+        assert required_text in architecture
+
+    for required_text in (
+        "The post-v15 repository-intelligence boundary map starts",
+        "#### Post-V15 Repository-Intelligence Runtime Sub-Boundaries",
+        "#### Post-V15 Repository CLI Sub-Boundaries",
+        "#### Post-V15 Repository Web Sub-Boundaries",
+        "#### Post-V15 Frontend Repository Sub-Boundaries",
+        "### Post-V15 Accepted Compatibility Shims",
+        "`frontend/stores/knowledge-store.ts`: dashboard knowledge store facade",
+    ):
+        assert required_text in boundaries
+
+    for required_text in (
+        "GBX-R700: Define Post-V15 Refactor Boundary Map",
+        "- Status: `DONE`",
+        "GBX-R701: Characterize Current Repository Intelligence Behavior",
+        "GBX-R702: Add Post-V15 Facade Guardrails After First Extraction",
+    ):
+        assert required_text in roadmap
+
+    assert "docs/refactor-v15.md" in root_readme
+    assert "refactor-v15.md" in docs_readme
+
+
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:
     content = (REPO_ROOT / "docs" / "providers.md").read_text(encoding="utf-8")
     docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")

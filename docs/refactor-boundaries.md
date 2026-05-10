@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), and the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md), and the post-v15 repository-intelligence roadmap in [refactor-v15.md](./refactor-v15.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), and [refactor-v14.md](./refactor-v14.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), [refactor-v14.md](./refactor-v14.md), and [refactor-v15.md](./refactor-v15.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -62,6 +62,15 @@ changeset web transport, frontend changeset actions, and v14 release-gate
 summary shaping independently reviewable without changing the shipped v14
 contracts.
 
+The post-v15 repository-intelligence boundary map starts from the completed v15
+release-candidate milestone and the new roadmap in
+[refactor-v15.md](./refactor-v15.md). The next split should keep repository
+command handling, repository-intelligence layout discovery, refresh
+orchestration, runtime prompt-use recording, recommendation enrichment, web
+response building, frontend repository panels, knowledge-store repository
+loading, and architecture guardrails independently reviewable without changing
+the shipped v15 advisory contracts.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -99,6 +108,11 @@ The non-goals are:
   actions, dashboard action states, local-versus-daemon review command parity,
   or publication-boundary non-claims while performing post-v14 maturity
   refactor-only movement
+- change v15 repository intelligence semantics, snapshot authority, freshness
+  posture, path-to-verification guidance, command-recipe advisory status,
+  memory-derived repository facts, prompt-context recording, replay
+  fingerprinting, or deterministic release-gate authority while performing
+  post-v15 repository-intelligence refactor-only movement
 
 ## Behavior-Preservation Contract
 
@@ -363,6 +377,61 @@ after the v13 split:
 The post-v14 split should continue to treat model-heavy public surfaces,
 generated API types, generated OpenAPI JSON, and fixture-heavy tests as stable
 contract surfaces unless a concrete ownership problem appears.
+
+The post-v15 pressure points are repository-intelligence surfaces that grew
+while repository awareness became richer across CLI, runtime, web, dashboard,
+context, replay, eval, package, and release-gate paths:
+
+- `src/glassbox/cli/repository_commands.py` mixes command dispatch, runtime
+  context wiring, status/staleness reporting, immediate and background refresh,
+  path inspection, command recipe inspection, recommendation output, memory
+  candidates, JSON payload shaping, and terminal formatting. It should become a
+  stable dispatcher over status, refresh, inspection, memory, and formatter
+  helpers.
+- `src/glassbox/runtime/repository_intelligence_layout.py` mixes layout models,
+  manifest parsing, package/root/generated-path derivation, command recipe
+  extraction, owner hints, subsystem hints, release surfaces, stable IDs,
+  digests, provenance, and path helpers. It should become a coordinator over
+  layout model/common helpers plus package/path, recipe/docs/eval, ownership,
+  subsystem, and release owners.
+- `src/glassbox/runtime/repository_index_builder.py` and
+  `src/glassbox/runtime/background_job_handlers.py` both know how to combine
+  repository index snapshots, topology, active memory, managed artifacts, and
+  summary output. Refresh orchestration should move into a shared runtime
+  service while background-job modules keep job event/progress recording.
+- `src/glassbox/runtime/runtime_context_derivation.py` derives prompt context
+  and records `WorkspaceMemoryUsedInContext` events. Prompt-use evidence
+  recording should move into a side-effect owner so snapshot derivation remains
+  visibly separate from mutation.
+- `src/glassbox/runtime/eval_recommendation_repository_intelligence.py` mixes
+  snapshot loading, freshness warning assembly, subsystem/owner/surface/recipe
+  matching, source metadata, reason mutation, and safe command shaping.
+  Matching, metadata, and recipe output helpers should own those families.
+- `src/glassbox/web/repository_intelligence_api.py` and
+  `src/glassbox/web/routes/repository_intelligence.py` mix transport models,
+  response builders, route-local query orchestration, pagination, service
+  construction, and HTTP error mapping. Web model/builders should stay separate
+  from FastAPI route declarations and from transport-agnostic runtime queries.
+- `frontend/components/console/knowledge-autonomy/repository-panels.tsx` and
+  `frontend/stores/knowledge-store.ts` mix repository overview, path
+  inspection, recipes, freshness cues, memory candidates, loading state,
+  action messages, and presentation formatting. Store helpers should own
+  transport/action state while components and pure format helpers own
+  presentation.
+- `tests/unit/test_architecture_guardrails.py` has become a broad architecture
+  suite. It should split by backend import direction, Python facades, frontend
+  boundaries, generated-file exclusions, and refactor-document coverage once
+  the post-v15 helper owners exist.
+- `src/glassbox/core/events.py` and `src/glassbox/core/models.py` remain broad
+  public, model-heavy surfaces. A later repository-intelligence model-domain
+  strategy should split them only when a real event/model ownership problem
+  appears, not because of line count alone.
+
+The post-v15 split should continue to treat canonical events, managed
+artifacts, generated OpenAPI/frontend API types, deterministic eval fixtures,
+and public model-heavy core surfaces as stable contract surfaces. Repository
+intelligence remains local, rebuildable, freshness-aware, provenance-backed,
+and advisory by default.
 
 ## Target Boundary Map
 
@@ -641,6 +710,121 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - Commit and handoff readiness may share signal aggregation helpers, but the
   public `CommitReadinessSignal` and `HandoffReadinessSignal` surfaces keep
   their distinct product vocabularies, non-claims, and safe-action copy.
+
+#### Post-V15 Repository-Intelligence Runtime Sub-Boundaries
+
+- `repository_intelligence_layout.py` should remain the layout discovery
+  coordinator while `repository_intelligence_layout_models.py`,
+  `repository_intelligence_layout_common.py`,
+  `repository_intelligence_layout_packages.py`,
+  `repository_intelligence_layout_paths.py`,
+  `repository_intelligence_layout_recipes.py`,
+  `repository_intelligence_layout_docs.py`,
+  `repository_intelligence_layout_evals.py`,
+  `repository_intelligence_layout_ownership.py`,
+  `repository_intelligence_layout_subsystems.py`, and
+  `repository_intelligence_layout_release.py` own models/common helpers,
+  package/path discovery, command recipes, docs/eval recipe sources, owner
+  hints, subsystem hints, and release surfaces.
+- `repository_intelligence_refresh.py` should own shared refresh orchestration
+  for building index snapshots with active memory, building topology from the
+  resulting index, writing managed artifacts, and returning summary metadata.
+  CLI and background-job paths should consume that runtime service while
+  background-job modules retain job progress and completion event recording.
+- `runtime_context_memory_use.py` should own
+  `WorkspaceMemoryUsedInContext` event construction and dedupe. Runtime context
+  derivation should read as snapshot derivation plus explicit optional
+  side-effect recording.
+- `eval_recommendation_repository_intelligence.py` should remain the public
+  enrichment entrypoint while repository matching, source metadata, and recipe
+  recommendation construction live in
+  `eval_recommendation_repository_matching.py`,
+  `eval_recommendation_repository_metadata.py`, and
+  `eval_recommendation_repository_recipes.py`.
+- `repository_intelligence_freshness.py` should be the shared runtime owner
+  for source labels and safe next-action wording across index, topology,
+  memory, eval metadata, command recipe, and release-surface freshness cues.
+
+#### Post-V15 Repository CLI Sub-Boundaries
+
+- `repository_commands.py` should remain the compatibility dispatcher for the
+  `repo` command family, while `repository_command_status.py`,
+  `repository_command_refresh.py`, `repository_command_inspection.py`,
+  `repository_command_memory.py`, and `repository_command_formatters.py` own
+  status/staleness, immediate/background refresh, inspection/recommendation,
+  memory-candidate behavior, and human output formatting.
+- CLI helpers may adapt runtime query results into stable command JSON payloads
+  and terminal copy, but should not duplicate transport-agnostic path
+  inspection matching or freshness derivation that belongs in runtime query
+  helpers.
+
+#### Post-V15 Repository Web Sub-Boundaries
+
+- `web/repository_intelligence_api.py` should remain the compatibility facade
+  over web response models and builders. Response models belong in
+  `repository_intelligence_api_models.py`, while overview/freshness,
+  path/subsystem/recipe, recommendation, and memory-candidate builders belong
+  in focused web-owned helper modules.
+- `web/routes/repository_intelligence.py` should stay a FastAPI declaration
+  surface while `web/routes/repository_intelligence_queries.py` and
+  `web/routes/repository_intelligence_services.py` own snapshot loading,
+  query parameter coercion, pagination, service construction, and HTTP error
+  translation.
+- Web builders must not import FastAPI dependencies, and runtime query helpers
+  must not import web response models.
+
+#### Post-V15 Frontend Repository Sub-Boundaries
+
+- `frontend/components/console/knowledge-autonomy/repository-panels.tsx`
+  should remain the dashboard repository entrypoint while
+  `repository-overview.tsx`, `repository-path.tsx`,
+  `repository-recipes.tsx`, `repository-memory.tsx`,
+  `repository-freshness.tsx`, and `repository-format.ts` own overview, path,
+  recipe, memory, freshness, and pure formatting concerns.
+- `frontend/stores/knowledge-store.ts` should remain the public store facade
+  while `knowledge-store-repository.ts`, `knowledge-store-memory.ts`, and
+  `knowledge-store-actions.ts` own repository loading, memory candidate
+  loading, and action state/messages. Transport stays in stores; components do
+  not take over API calls.
+
+#### Post-V15 Guardrail And Core-Domain Strategy
+
+- post-v15 guardrails start with pre-extraction pressure-point caps and
+  documented expectations, then add facade line-count and import-prefix
+  expectations after `repository_command_*`,
+  `repository_intelligence_layout_*`, `repository_intelligence_refresh.py`,
+  web builder, frontend repository panel, and knowledge-store helper owners
+  are introduced.
+- `tests/unit/test_architecture_guardrails.py` should split into focused
+  guardrail test modules after the helper owners exist; the current file stays
+  as the compatibility import point until that split lands.
+- `glassbox.core.events` and `glassbox.core.models` should not be split during
+  the first post-v15 pass. Future repository-intelligence core model movement
+  should preserve public imports and event registration semantics explicitly.
+
+### Post-V15 Accepted Compatibility Shims
+
+- `src/glassbox/cli/repository_commands.py`: repository command dispatcher.
+- `src/glassbox/runtime/repository_intelligence_layout.py`: layout discovery
+  coordinator over model/common, package/path, recipe, owner, subsystem, and
+  release helper families.
+- `src/glassbox/runtime/repository_intelligence_queries.py`: shared path
+  inspection and repository-intelligence query facade.
+- `src/glassbox/runtime/repository_intelligence_refresh.py`: shared refresh
+  service once introduced.
+- `src/glassbox/runtime/runtime_context_derivation.py`: runtime context
+  derivation entrypoint over prompt-use recording helpers.
+- `src/glassbox/runtime/eval_recommendation_repository_intelligence.py`:
+  repository-intelligence enrichment entrypoint.
+- `src/glassbox/web/repository_intelligence_api.py`: repository-intelligence
+  web response model and builder facade.
+- `src/glassbox/web/routes/repository_intelligence.py`: FastAPI declaration
+  surface over route-local query and service helpers.
+- `frontend/components/console/knowledge-autonomy/repository-panels.tsx`:
+  dashboard repository panel entrypoint.
+- `frontend/stores/knowledge-store.ts`: dashboard knowledge store facade.
+- `tests/unit/test_architecture_guardrails.py`: compatibility import point
+  until the guardrail suite is split by boundary family.
 
 ### Store
 

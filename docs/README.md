@@ -118,6 +118,11 @@ authority.
   path-to-verification guidance, memory integration, freshness, CLI/API,
   dashboard console, context, replay, evals, performance, packaging, dogfooding,
   and release signoff
+- [refactor-v15.md](./refactor-v15.md): post-v15 repository-intelligence
+  refactor roadmap for repository CLI handlers, layout discovery, refresh
+  orchestration, prompt-use recording, recommendation enrichment, web
+  builders, frontend repository panels, knowledge-store helpers, guardrails,
+  and core-domain strategy
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -680,6 +685,9 @@ but they are not the first-run operator path.
   inventory, skipped advisory evidence, readiness signals, terminal clients,
   changeset transport, frontend API/store actions, post-extraction guardrails,
   and v14 release-gate helper ownership
+- [refactor-v15.md](./refactor-v15.md): post-v15 repository-intelligence
+  refactor roadmap for repository CLI, runtime, web, frontend, guardrail, and
+  core-domain boundaries
 - [refactor-v11.md](./refactor-v11.md): post-v11 confidence-surface
   refactor roadmap for recommendation, knowledge, branch-search, handoff, CLI,
   frontend, recovery, and projection boundaries
