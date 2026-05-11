@@ -788,7 +788,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R753: Split Knowledge Store Repository Loading And Action State
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R750
 - Target files:
   - `frontend/stores/knowledge-store.ts`
