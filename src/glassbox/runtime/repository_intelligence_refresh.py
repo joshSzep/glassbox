@@ -97,9 +97,33 @@ def refresh_repository_intelligence(
     )
 
 
+def repository_intelligence_refresh_summary_text(
+    refresh_result: RepositoryIntelligenceRefreshResult,
+) -> str:
+    """Return retained summary text for a repository intelligence refresh."""
+
+    return "\n".join(
+        [
+            "Repository intelligence refresh",
+            f"index_entries: {refresh_result.index_entry_count}",
+            f"command_recipes: {refresh_result.command_recipe_count}",
+            f"memory_references: {refresh_result.memory_reference_count}",
+            f"topology_components: {refresh_result.topology_component_count}",
+            f"topology_dependencies: {refresh_result.topology_dependency_count}",
+            f"index_path: {refresh_result.index_path}",
+            f"topology_path: {refresh_result.topology_path}",
+            "source_mutation: none",
+            "policy_mutation: none",
+            "command_recipes_authority: advisory",
+            "release_authority: deterministic",
+        ]
+    )
+
+
 __all__ = [
     "RepositoryIndexRefreshResult",
     "RepositoryIntelligenceRefreshResult",
+    "repository_intelligence_refresh_summary_text",
     "refresh_repository_index",
     "refresh_repository_intelligence",
 ]

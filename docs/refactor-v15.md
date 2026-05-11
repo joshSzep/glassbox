@@ -635,7 +635,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R732: Centralize Repository Intelligence Refresh Summary Text
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R730
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_refresh.py`

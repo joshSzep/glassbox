@@ -174,6 +174,8 @@ def test_worker_refreshes_repository_intelligence_snapshots(
     artifact_text = (tmp_path / artifact_path).read_text(encoding="utf-8")
     assert "source_mutation: none" in artifact_text
     assert "policy_mutation: none" in artifact_text
+    assert "command_recipes_authority: advisory" in artifact_text
+    assert "release_authority: deterministic" in artifact_text
 
 
 def test_worker_scans_workspace_memory_candidates(tmp_path: Path) -> None:

@@ -13,6 +13,9 @@ from glassbox.runtime.repository_intelligence_refresh import refresh_repository_
 from glassbox.runtime.repository_intelligence_refresh import (
     refresh_repository_intelligence,
 )
+from glassbox.runtime.repository_intelligence_refresh import (
+    repository_intelligence_refresh_summary_text,
+)
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
@@ -172,15 +175,7 @@ def _run_repository_intelligence_refresh(
     )
     summary_artifact = runtime_context.repositories.artifacts.write_text_artifact(
         job.session_id,
-        _repository_intelligence_refresh_summary(
-            index_entries=refresh_result.index_entry_count,
-            command_recipes=refresh_result.command_recipe_count,
-            memory_references=refresh_result.memory_reference_count,
-            topology_components=refresh_result.topology_component_count,
-            topology_dependencies=refresh_result.topology_dependency_count,
-            index_path=refresh_result.index_path,
-            topology_path=refresh_result.topology_path,
-        ),
+        repository_intelligence_refresh_summary_text(refresh_result),
         suffix="repository-intelligence-refresh.txt",
     )
     repository.complete_background_job(
@@ -191,32 +186,6 @@ def _run_repository_intelligence_refresh(
             f"{refresh_result.topology_component_count} topology component(s). "
             f"Summary artifact: {summary_artifact.relative_path.as_posix()}."
         ),
-    )
-
-
-def _repository_intelligence_refresh_summary(
-    *,
-    index_entries: int,
-    command_recipes: int,
-    memory_references: int,
-    topology_components: int,
-    topology_dependencies: int,
-    index_path: Path,
-    topology_path: Path,
-) -> str:
-    return "\n".join(
-        [
-            "Repository intelligence refresh",
-            f"index_entries: {index_entries}",
-            f"command_recipes: {command_recipes}",
-            f"memory_references: {memory_references}",
-            f"topology_components: {topology_components}",
-            f"topology_dependencies: {topology_dependencies}",
-            f"index_path: {index_path}",
-            f"topology_path: {topology_path}",
-            "source_mutation: none",
-            "policy_mutation: none",
-        ]
     )
 
 
