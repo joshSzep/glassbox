@@ -14,7 +14,10 @@ v13 review-loop contract is the current implemented review lifecycle, and the
 v14 release candidate is the latest review-loop maturity guide. The v15 release
 candidate adds repository intelligence v2 for making local repository
 awareness richer while preserving advisory boundaries and deterministic release
-authority.
+authority. The v16 planning track now covers operator flow compression:
+unified next actions, evidence graph claim support, verification
+orchestration, one operator queue, and maintenance-aware guidance while keeping
+operator authority explicit.
 
 ## Start Here
 
@@ -123,6 +126,18 @@ authority.
   discovery, refresh orchestration, prompt-use recording, recommendation
   enrichment, web builders, frontend repository panels, knowledge-store
   helpers, split guardrails, compatibility shims, and core-domain strategy
+- [v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md):
+  v16 contract for advisory next actions, evidence graph claim support,
+  verification orchestration, operator queues, maintenance cues, release
+  authority, safety rules, and non-goals
+- [v16-operator-flow-audit.md](./v16-operator-flow-audit.md):
+  source-linked audit of current next-action, readiness, verification,
+  recovery, evidence, queue, dashboard, TUI, and command-guide surfaces before
+  v16 implementation
+- [tasks-v16.md](./tasks-v16.md): v16 operator flow compression task graph for
+  shared next-action models, evidence graph foundation, unified operator
+  queue, verification orchestration, compressed changeset workup, dashboard and
+  TUI cockpit surfaces, maintenance flow, evals, and release signoff
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -371,6 +386,34 @@ authority.
   context, replay, eval, and release-evidence boundaries before those v15
   surfaces land
 
+## Operator Flow Compression Map
+
+- [v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md):
+  start here for the v16 boundary around next actions, evidence graph support,
+  verification planning, operator queues, maintenance cues, release authority,
+  and safety invariants
+- [v16-operator-flow-audit.md](./v16-operator-flow-audit.md): use the
+  source-linked baseline before changing current session, task, changeset,
+  review, handoff, repository intelligence, observability, dashboard, TUI, or
+  command-guide guidance surfaces
+- [tasks-v16.md](./tasks-v16.md): follow the dependency-ordered implementation
+  graph for turning the v16 contract and audit into shared models, APIs, CLI
+  output, dashboard panels, TUI entry points, evals, and release evidence
+- [path-to-verification-recommendations.md](./path-to-verification-recommendations.md):
+  current changed-path verification guidance that v16 verification plans build
+  on without executing commands implicitly
+- [changeset-verification-readiness.md](./changeset-verification-readiness.md):
+  current changeset verification readiness posture that v16 planning and
+  evidence graph work must preserve while making claim support more explicit
+- [tool-policy.md](./tool-policy.md): approval, autonomy, and hard command
+  boundaries that v16 next actions and verification orchestration must not
+  bypass
+- [dashboard.md](./dashboard.md): current operator console entry point that
+  later v16 queue, evidence graph, and verification workflow panels will extend
+- [interactive-workflows.md](./interactive-workflows.md): current terminal
+  workflow vocabulary that later v16 TUI and plain interactive entry points
+  should keep coherent
+
 ## Reference
 
 - [architecture.md](./architecture.md): runtime, bootstrap, store, CLI, web,
@@ -472,6 +515,13 @@ authority.
   memory, prompt context, replay, evals, and release authority
 - [v15-repository-intelligence-audit.md](./v15-repository-intelligence-audit.md):
   source-linked v15 audit of current repository intelligence surfaces and gaps
+- [v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md):
+  v16 operator flow compression contract for next-action authority, evidence
+  graph semantics, verification planning, operator queueing, maintenance cues,
+  and release boundaries
+- [v16-operator-flow-audit.md](./v16-operator-flow-audit.md): source-linked
+  v16 audit of current guidance, evidence, readiness, recovery, dashboard, TUI,
+  and command-guide surfaces before implementation
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

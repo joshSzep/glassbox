@@ -97,7 +97,10 @@ publication boundaries, and integrated changeset UX.
 The v14 release candidate is the latest review-loop maturity guide. The v15
 release candidate adds repository intelligence v2: local, rebuildable,
 freshness-aware, provenance-backed repository awareness that remains advisory
-and subordinate to deterministic release evidence.
+and subordinate to deterministic release evidence. V16 planning is now focused
+on operator flow compression: unified next-action language, evidence graph
+claim support, verification orchestration, operator queueing, and
+maintenance-aware guidance without hidden automation.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -132,7 +135,12 @@ the dogfooding summary in
 release-candidate guide in
 [docs/v15-release-candidate.md](docs/v15-release-candidate.md). The post-v15
 behavior-preserving refactor roadmap and helper-owner closeout notes live in
-[docs/refactor-v15.md](docs/refactor-v15.md).
+[docs/refactor-v15.md](docs/refactor-v15.md). V16 operator flow planning
+starts with
+[docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md),
+the source-linked
+[docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md), and the
+task graph in [docs/tasks-v16.md](docs/tasks-v16.md).
 
 ## Documentation
 
@@ -165,6 +173,9 @@ Start here based on what you need:
 - [docs/v15-release-candidate.md](docs/v15-release-candidate.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
 - [docs/refactor-v15.md](docs/refactor-v15.md)
+- [docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md)
+- [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md)
+- [docs/tasks-v16.md](docs/tasks-v16.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
@@ -207,6 +218,7 @@ Release evidence and milestone history remain available when you need them:
 - [docs/v6-release-candidate.md](docs/v6-release-candidate.md)
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/tasks-v13.md](docs/tasks-v13.md)
+- [docs/tasks-v16.md](docs/tasks-v16.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/tasks-v12.md](docs/tasks-v12.md)

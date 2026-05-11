@@ -396,7 +396,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1602: Update Documentation Discovery For v16
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1600`, `GBX-1601`
 - Goal: make the v16 plan, contract, audit, and later evidence docs
   discoverable from the documentation hub
