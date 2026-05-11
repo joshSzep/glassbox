@@ -47,6 +47,66 @@ _EVAL_METADATA_FILES = (
 )
 
 
+def repository_index_build_action(workspace_root: Path) -> str:
+    return f"glassbox repo index build --cwd {workspace_root.resolve()}"
+
+
+def repository_index_inspect_action(workspace_root: Path) -> str:
+    return f"glassbox repo index inspect --cwd {workspace_root.resolve()}"
+
+
+def repository_index_search_action(workspace_root: Path) -> str:
+    return f"glassbox repo index search QUERY --cwd {workspace_root.resolve()}"
+
+
+def repository_index_status_action(workspace_root: Path, *, json: bool = False) -> str:
+    command = f"glassbox repo index status --cwd {workspace_root.resolve()}"
+    if json:
+        return f"{command} --json"
+    return command
+
+
+def repository_intelligence_refresh_action(workspace_root: Path) -> str:
+    return f"glassbox repo refresh --cwd {workspace_root.resolve()}"
+
+
+def workspace_topology_build_action(workspace_root: Path) -> str:
+    return f"glassbox repo topology build --cwd {workspace_root.resolve()}"
+
+
+def workspace_topology_show_action(workspace_root: Path) -> str:
+    return f"glassbox repo topology show --cwd {workspace_root.resolve()}"
+
+
+def workspace_memory_candidates_action(workspace_root: Path | None = None) -> str:
+    if workspace_root is None:
+        return "glassbox repo memory-candidates --session SESSION_ID --cwd ."
+    return (
+        "glassbox repo memory-candidates --session SESSION_ID "
+        f"--cwd {workspace_root.resolve()}"
+    )
+
+
+def eval_metadata_audit_action(workspace_root: Path | None = None) -> str:
+    if workspace_root is None:
+        return "glassbox eval audit --cwd ."
+    return f"glassbox eval audit --cwd {workspace_root.resolve()}"
+
+
+def repository_index_status_next_actions(
+    workspace_root: Path,
+    status: RepositoryIndexFreshness,
+) -> list[str]:
+    if status == RepositoryIndexFreshness.FRESH:
+        return [repository_index_search_action(workspace_root)]
+    if status == RepositoryIndexFreshness.BUILDING:
+        return [repository_index_status_action(workspace_root)]
+    return [
+        repository_index_status_action(workspace_root, json=True),
+        repository_index_build_action(workspace_root),
+    ]
+
+
 class RepositoryIntelligenceFreshnessCue(BaseModel):
     """Operator-facing state, reason, and remediation for one intelligence input."""
 
@@ -78,7 +138,7 @@ def repository_index_freshness_cues(
                 detail=(
                     "No repository intelligence snapshot exists for this workspace."
                 ),
-                actions=[f"glassbox repo index build --cwd {root}"],
+                actions=[repository_index_build_action(root)],
             )
         ]
     cues = [_snapshot_status_cue(root, snapshot)]
@@ -96,7 +156,7 @@ def repository_index_freshness_cues(
                     "No command recipes are present; recommendations will fall "
                     "back to broader checks."
                 ),
-                action=f"glassbox repo index build --cwd {root}",
+                action=repository_index_build_action(root),
             ),
             _presence_cue(
                 source="dependency-manifests",
@@ -109,10 +169,10 @@ def repository_index_freshness_cues(
                 detail_missing=(
                     "No manifest sources are recorded in repository intelligence."
                 ),
-                action=f"glassbox repo index inspect --cwd {root}",
+                action=repository_index_inspect_action(root),
             ),
             _presence_cue(
-                source="memory-derived-entries",
+                source="memory-references",
                 count=len(snapshot.memory_references),
                 reason="memory_references_missing",
                 detail_present=(
@@ -122,7 +182,7 @@ def repository_index_freshness_cues(
                 detail_missing=(
                     "No confirmed active workspace memory is attached to the snapshot."
                 ),
-                action="glassbox memory candidates SESSION_ID --cwd .",
+                action=workspace_memory_candidates_action(root),
             ),
             _eval_metadata_cue(root),
             _presence_cue(
@@ -137,7 +197,7 @@ def repository_index_freshness_cues(
                     "No release-sensitive surfaces are recorded; release guidance "
                     "will stay broad."
                 ),
-                action=f"glassbox repo index inspect --cwd {root}",
+                action=repository_index_inspect_action(root),
             ),
         ]
     )
@@ -158,7 +218,7 @@ def workspace_topology_freshness_cues(
                 state="missing",
                 reason="topology_missing",
                 detail="Workspace topology has not been built.",
-                actions=[f"glassbox repo topology build --cwd {root}"],
+                actions=[workspace_topology_build_action(root)],
             )
         ]
     state: RepositoryIntelligenceFreshnessState
@@ -186,9 +246,9 @@ def workspace_topology_freshness_cues(
         reason = "topology_missing"
         detail = "Workspace topology has no supported components yet."
     actions = (
-        [f"glassbox repo topology build --cwd {root}"]
+        [workspace_topology_build_action(root)]
         if snapshot.freshness != "fresh"
-        else [f"glassbox repo topology show --cwd {root}"]
+        else [workspace_topology_show_action(root)]
     )
     return [
         _cue(
@@ -213,7 +273,7 @@ def _snapshot_status_cue(
             state="fresh",
             reason="current",
             detail="Repository intelligence is fresh for the current source digest.",
-            actions=[f"glassbox repo index inspect --cwd {root}"],
+            actions=[repository_index_inspect_action(root)],
             limitations=snapshot.limitations,
         )
     if snapshot.status == RepositoryIndexFreshness.STALE:
@@ -226,7 +286,7 @@ def _snapshot_status_cue(
                 "Repository intelligence source inputs changed; rebuild before "
                 "treating recommendations as current."
             ),
-            actions=[f"glassbox repo index build --cwd {root}"],
+            actions=[repository_index_build_action(root)],
             limitations=snapshot.limitations,
         )
     if snapshot.status == RepositoryIndexFreshness.BUILDING:
@@ -235,7 +295,7 @@ def _snapshot_status_cue(
             state="partial",
             reason="refresh_in_progress",
             detail="Repository intelligence refresh is in progress.",
-            actions=[f"glassbox repo index status --cwd {root}"],
+            actions=[repository_index_status_action(root)],
             limitations=snapshot.limitations,
         )
     return _cue(
@@ -244,10 +304,7 @@ def _snapshot_status_cue(
         reason="build_failed",
         severity="warning",
         detail=snapshot.failure_reason or "Repository intelligence refresh failed.",
-        actions=[
-            f"glassbox repo index status --cwd {root} --json",
-            f"glassbox repo index build --cwd {root}",
-        ],
+        actions=repository_index_status_next_actions(root, snapshot.status),
         limitations=snapshot.limitations,
     )
 
@@ -294,7 +351,7 @@ def _eval_metadata_cue(root: Path) -> RepositoryIntelligenceFreshnessCue:
         state="partial",
         reason="eval_metadata_missing",
         detail=f"Eval metadata is incomplete; missing: {', '.join(missing)}.",
-        actions=["glassbox eval audit --cwd ."],
+        actions=[eval_metadata_audit_action(root)],
         limitations=["Eval recommendations may fall back to broader profiles."],
     )
 
@@ -325,6 +382,16 @@ __all__ = [
     "RepositoryIntelligenceFreshnessCue",
     "RepositoryIntelligenceFreshnessSeverity",
     "RepositoryIntelligenceFreshnessState",
+    "eval_metadata_audit_action",
+    "repository_index_build_action",
     "repository_index_freshness_cues",
+    "repository_index_inspect_action",
+    "repository_index_search_action",
+    "repository_index_status_action",
+    "repository_index_status_next_actions",
+    "repository_intelligence_refresh_action",
+    "workspace_memory_candidates_action",
+    "workspace_topology_build_action",
     "workspace_topology_freshness_cues",
+    "workspace_topology_show_action",
 ]

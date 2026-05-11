@@ -22,7 +22,13 @@ from glassbox.runtime.repository_intelligence_freshness import (
     RepositoryIntelligenceFreshnessCue,
 )
 from glassbox.runtime.repository_intelligence_freshness import (
+    repository_index_build_action,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
     repository_index_freshness_cues,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    repository_index_status_next_actions,
 )
 
 
@@ -106,7 +112,7 @@ def build_repository_index_status_summary(
             ),
             freshness_cues=repository_index_freshness_cues(root, None),
             limitations=scan.limitations,
-            next_actions=[f"glassbox repo index build --cwd {root}"],
+            next_actions=[repository_index_build_action(root)],
         )
     except RepositoryIndexLoadError as exc:
         snapshot = failed_repository_index_snapshot_from_error(root, exc)
@@ -151,7 +157,7 @@ def build_repository_index_status_summary(
         source_diff=source_diff,
         freshness_cues=repository_index_freshness_cues(root, snapshot),
         limitations=list(dict.fromkeys([*snapshot.limitations, *scan.limitations])),
-        next_actions=_next_actions(root, snapshot.status),
+        next_actions=repository_index_status_next_actions(root, snapshot.status),
     )
 
 
@@ -174,17 +180,6 @@ def _status_detail(snapshot: RepositoryIndexSnapshot) -> str:
             "rebuilding."
         )
     return "Repository index state is available for inspection."
-
-
-def _next_actions(root: Path, status: RepositoryIndexFreshness) -> list[str]:
-    if status == RepositoryIndexFreshness.FRESH:
-        return [f"glassbox repo index search QUERY --cwd {root}"]
-    if status == RepositoryIndexFreshness.BUILDING:
-        return [f"glassbox repo index status --cwd {root}"]
-    return [
-        f"glassbox repo index status --cwd {root} --json",
-        f"glassbox repo index build --cwd {root}",
-    ]
 
 
 def _source_diff(

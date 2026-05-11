@@ -14,6 +14,12 @@ from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
 from glassbox.runtime.repository_intelligence_freshness import (
+    repository_intelligence_refresh_action,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
+    workspace_topology_build_action,
+)
+from glassbox.runtime.repository_intelligence_freshness import (
     workspace_topology_freshness_cues,
 )
 from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
@@ -108,7 +114,7 @@ def _repo_topology_status_command(args: argparse.Namespace) -> int:
         else:
             print("Workspace topology: missing")
             print(f"Path: {path}")
-            print(f"Next action: glassbox repo topology build --cwd {cwd.resolve()}")
+            print(f"Next action: {workspace_topology_build_action(cwd)}")
         return 0
     payload = _topology_status_payload(snapshot, path)
     if args.json:
@@ -139,7 +145,7 @@ def _missing_topology_status_payload(cwd: Path, path: Path) -> dict[str, object]
             cue.model_dump(mode="json")
             for cue in workspace_topology_freshness_cues(cwd, None)
         ],
-        "next_actions": [f"glassbox repo topology build --cwd {cwd.resolve()}"],
+        "next_actions": [workspace_topology_build_action(cwd)],
     }
 
 
@@ -151,7 +157,7 @@ def _repo_status_next_actions(
     actions = [*index_actions]
     if isinstance(topology_actions, list):
         actions.extend(str(action) for action in topology_actions)
-    actions.append(f"glassbox repo refresh --cwd {cwd.resolve()}")
+    actions.append(repository_intelligence_refresh_action(cwd))
     return list(dict.fromkeys(actions))
 
 
@@ -178,7 +184,7 @@ def _topology_status_payload(
             )
         ],
         "next_actions": (
-            [f"glassbox repo topology build --cwd {path.parent.parent.resolve()}"]
+            [workspace_topology_build_action(path.parent.parent)]
             if snapshot.freshness != "fresh"
             else []
         ),

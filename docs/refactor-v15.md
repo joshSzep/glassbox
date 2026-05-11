@@ -686,7 +686,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R741: Normalize Freshness Cue Sources And Safe Next Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R740
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_freshness.py`

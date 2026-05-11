@@ -770,6 +770,14 @@ def test_repository_index_status_explains_stale_source_inputs(
     assert summary.freshness_cues[0].reason == "source_digest_changed"
     assert any(cue.source == "command-recipes" for cue in summary.freshness_cues)
     assert any(cue.source == "eval-metadata" for cue in summary.freshness_cues)
+    cues_by_source = {cue.source: cue for cue in summary.freshness_cues}
+    assert cues_by_source["memory-references"].safe_next_actions == [
+        "glassbox repo memory-candidates --session SESSION_ID "
+        f"--cwd {tmp_path.resolve()}"
+    ]
+    assert cues_by_source["eval-metadata"].safe_next_actions == [
+        f"glassbox eval audit --cwd {tmp_path.resolve()}"
+    ]
     assert summary.source_diff is not None
     assert summary.source_diff.added_count == 1
     assert summary.source_diff.removed_count == 1
