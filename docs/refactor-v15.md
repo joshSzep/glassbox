@@ -861,7 +861,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R762: Refresh Refactor Documentation And Docs Hub References
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R710, GBX-R720, GBX-R730, GBX-R750, GBX-R760
 - Target files:
   - [architecture.md](./architecture.md)

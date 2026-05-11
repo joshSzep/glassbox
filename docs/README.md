@@ -119,10 +119,10 @@ authority.
   dashboard console, context, replay, evals, performance, packaging, dogfooding,
   and release signoff
 - [refactor-v15.md](./refactor-v15.md): post-v15 repository-intelligence
-  refactor roadmap for repository CLI handlers, layout discovery, refresh
-  orchestration, prompt-use recording, recommendation enrichment, web
-  builders, frontend repository panels, knowledge-store helpers, guardrails,
-  and core-domain strategy
+  refactor roadmap and closeout notes for repository CLI handlers, layout
+  discovery, refresh orchestration, prompt-use recording, recommendation
+  enrichment, web builders, frontend repository panels, knowledge-store
+  helpers, split guardrails, compatibility shims, and core-domain strategy
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction

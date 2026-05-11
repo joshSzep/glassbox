@@ -2279,7 +2279,7 @@ def test_v15_refactor_docs_define_next_boundary_map() -> None:
         "## Current Post-v15 Repository-Intelligence Refactor Shape",
         "`cli/repository_commands.py` remains the repository command dispatcher",
         "`runtime/repository_intelligence_layout.py` remains the layout discovery",
-        "`runtime/repository_intelligence_refresh.py` becomes the shared refresh",
+        "`runtime/repository_intelligence_refresh.py` is the shared refresh",
         "`frontend/stores/knowledge-store.ts` remains the dashboard knowledge-store",
     ):
         assert required_text in architecture
@@ -2303,8 +2303,10 @@ def test_v15_refactor_docs_define_next_boundary_map() -> None:
     ):
         assert required_text in roadmap
 
-    assert "docs/refactor-v15.md" in root_readme
-    assert "refactor-v15.md" in docs_readme
+    assert "helper-owner closeout notes" in root_readme
+    assert (
+        "split guardrails, compatibility shims, and core-domain strategy" in docs_readme
+    )
 
 
 def test_provider_docs_define_v9_evidence_freshness_contract() -> None:

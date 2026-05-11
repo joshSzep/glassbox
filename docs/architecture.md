@@ -205,17 +205,18 @@ typed API responses, local source files, and rebuildable projections remain
 the source of truth, while repository intelligence is advisory by default.
 
 The post-v15 refactor preserves current behavior and public entrypoints while
-splitting the repository-intelligence surfaces that grew during the milestone:
+keeping the repository-intelligence surfaces that grew during the milestone in
+focused helper-owner families:
 
 - `cli/repository_commands.py` remains the repository command dispatcher while
     status/staleness, refresh, inspection/recommendation, memory-candidate
-    behavior, and terminal formatting move into `repository_command_*` helpers
+    behavior, and terminal formatting live in `repository_command_*` helpers
 - `runtime/repository_intelligence_layout.py` remains the layout discovery
     coordinator while layout models/common helpers, package/path discovery,
     command recipes, docs/eval recipe sources, ownership hints, subsystem
-    hints, and release surfaces move into `repository_intelligence_layout_*`
+    hints, and release surfaces live in `repository_intelligence_layout_*`
     helpers
-- `runtime/repository_intelligence_refresh.py` becomes the shared refresh
+- `runtime/repository_intelligence_refresh.py` is the shared refresh
     orchestration service for CLI and background jobs; background-job modules
     keep progress/completion event recording
 - `runtime/runtime_context_derivation.py` remains the runtime context
@@ -223,20 +224,21 @@ splitting the repository-intelligence surfaces that grew during the milestone:
     `WorkspaceMemoryUsedInContext` event construction and dedupe
 - `runtime/eval_recommendation_repository_intelligence.py` remains the
     enrichment entrypoint while matching, metadata, and recipe recommendation
-    construction move into repository-specific eval recommendation helpers
+    construction live in repository-specific eval recommendation helpers
 - `web/repository_intelligence_api.py` and
     `web/routes/repository_intelligence.py` remain transport compatibility
     surfaces while response models/builders and route-local query/service
-    helpers split by web-owned surface
+    helpers are split by web-owned surface
 - `frontend/components/console/knowledge-autonomy/repository-panels.tsx`
     remains the dashboard repository panel entrypoint while overview, path,
-    recipe, memory, freshness, and pure formatting sections split underneath
+    recipe, memory, freshness, and pure formatting sections live underneath
 - `frontend/stores/knowledge-store.ts` remains the dashboard knowledge-store
     facade while repository loading, memory loading, and action-state helpers
     keep transport and user-facing messages in the store layer
-- `tests/unit/test_architecture_guardrails.py` remains the guardrail
-    compatibility import point until post-v15 guardrails split by boundary
-    family
+- `tests/unit/test_architecture_guardrails.py` remains the legacy guardrail
+    validation entrypoint while `tests/unit/architecture_guardrails/` owns the
+    split backend import-direction, Python facade, frontend boundary,
+    generated-file exclusion, pressure-point, and refactor-document checks
 
 These splits must preserve the v15 non-claims described in
 [v15-repository-intelligence-contract.md](./v15-repository-intelligence-contract.md),

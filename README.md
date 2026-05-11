@@ -131,7 +131,7 @@ the dogfooding summary in
 [docs/v15-dogfooding-summary.md](docs/v15-dogfooding-summary.md), and the
 release-candidate guide in
 [docs/v15-release-candidate.md](docs/v15-release-candidate.md). The post-v15
-behavior-preserving refactor roadmap lives in
+behavior-preserving refactor roadmap and helper-owner closeout notes live in
 [docs/refactor-v15.md](docs/refactor-v15.md).
 
 ## Documentation

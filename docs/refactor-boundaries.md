@@ -795,9 +795,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   `repository_intelligence_layout_*`, `repository_intelligence_refresh.py`,
   web builder, frontend repository panel, and knowledge-store helper owners
   are introduced.
-- `tests/unit/test_architecture_guardrails.py` should split into focused
-  guardrail test modules after the helper owners exist; the current file stays
-  as the compatibility import point until that split lands.
+- `tests/unit/test_architecture_guardrails.py` now stays as the legacy
+  validation entrypoint, while `tests/unit/architecture_guardrails/` owns the
+  split backend import-direction, Python facade, frontend boundary,
+  generated-file exclusion, pressure-point, and refactor-document checks.
 - `glassbox.core.events` and `glassbox.core.models` should not be split during
   the first post-v15 pass. Future repository-intelligence core model movement
   should preserve public imports and event registration semantics explicitly.
@@ -843,7 +844,9 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `src/glassbox/runtime/repository_intelligence_queries.py`: shared path
   inspection and repository-intelligence query facade.
 - `src/glassbox/runtime/repository_intelligence_refresh.py`: shared refresh
-  service once introduced.
+  orchestration service.
+- `tests/unit/test_architecture_guardrails.py`: legacy validation entrypoint
+  over the split `tests/unit/architecture_guardrails/` guardrail suite.
 - `src/glassbox/runtime/runtime_context_derivation.py`: runtime context
   derivation entrypoint over prompt-use recording helpers.
 - `src/glassbox/runtime/eval_recommendation_repository_intelligence.py`:
@@ -855,8 +858,6 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `frontend/components/console/knowledge-autonomy/repository-panels.tsx`:
   dashboard repository panel entrypoint.
 - `frontend/stores/knowledge-store.ts`: dashboard knowledge store facade.
-- `tests/unit/test_architecture_guardrails.py`: compatibility import point
-  until the guardrail suite is split by boundary family.
 
 ### Store
 
