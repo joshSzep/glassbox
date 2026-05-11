@@ -100,3 +100,23 @@ changesets. Selection records `TaskVerificationPlanned`; skips add
 `TaskVerificationResidualRiskAccepted`; superseding records retry/supersede
 evidence and plans the replacement. They do not execute commands, treat skipped
 checks as passed, publish evidence, or grant release approval.
+
+## Selected Command Execution
+
+After inspecting and selecting a command-backed plan entry, operators can run
+exactly that entry with explicit confirmation:
+
+```bash
+glassbox changeset verification-run CHANGESET_ID --verification VERIFICATION_ID --confirm --cwd .
+```
+
+`verification-run` only accepts task-backed changesets with a selected command
+entry. It applies the existing hard command-risk blocklist before execution, so
+publish, deploy, destructive, and remote git mutation commands are recorded as
+policy-blocked verification failures instead of being run. Allowed commands run
+through the local command tool, stream `TaskVerificationStreamed` events, retain
+the captured output artifact, and append tool-attempt heartbeat evidence with
+command purpose, environment summary, and retry guidance. Passing commands record
+`TaskVerificationCompleted`; failed or timed-out commands record
+`TaskVerificationFailed`. This remains local verification evidence, not reviewer
+approval, publication, deployment, or release authorization.

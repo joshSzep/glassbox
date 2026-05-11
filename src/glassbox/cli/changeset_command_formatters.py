@@ -14,6 +14,7 @@ from glassbox.core import ReviewFeedbackRecord
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPreview
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetVerificationPlanDispositionResult
+from glassbox.runtime.changesets import ChangesetVerificationPlanExecutionResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import PathVerificationPlanPreview
@@ -328,6 +329,34 @@ def _print_verification_disposition(
     if result.replacement_verification_id is not None:
         print(f"Replacement: {result.replacement_verification_id}")
     print(f"Entry: {result.entry.check_name}")
+    print(f"Events: {len(result.events)}")
+    print("Safe next actions:")
+    for action in result.safe_next_actions:
+        print(f"  - {action}")
+    print("Non-claims:")
+    for non_claim in result.non_claims:
+        print(f"  - {non_claim}")
+    return 0
+
+
+def _print_verification_execution(
+    result: ChangesetVerificationPlanExecutionResult,
+    *,
+    as_json: bool,
+) -> int:
+    if as_json:
+        print_json_output(result.model_dump(mode="json"))
+        return 0
+    print(f"Verification command {result.status}: {result.verification_id}")
+    print(f"Changeset: {result.changeset_id}")
+    print(f"Entry: {result.check_name}")
+    print(f"Command: {' '.join(result.command)}")
+    if result.exit_code is not None:
+        print(f"Exit code: {result.exit_code}")
+    if result.timed_out:
+        print("Timed out: true")
+    if result.output_artifact_id is not None:
+        print(f"Output artifact: {result.output_artifact_id}")
     print(f"Events: {len(result.events)}")
     print("Safe next actions:")
     for action in result.safe_next_actions:

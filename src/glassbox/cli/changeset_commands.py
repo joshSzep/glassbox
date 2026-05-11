@@ -23,6 +23,7 @@ from glassbox.cli.changeset_command_handlers import (
     _changeset_record_verification_command,
 )
 from glassbox.cli.changeset_command_handlers import _changeset_refresh_command
+from glassbox.cli.changeset_command_handlers import _changeset_run_verification_command
 from glassbox.cli.changeset_command_handlers import (
     _changeset_select_verification_command,
 )
@@ -56,6 +57,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_record_verification_command(args)
     if command == "verification-select":
         return _changeset_select_verification_command(args)
+    if command == "verification-run":
+        return _changeset_run_verification_command(args)
     if command == "verification-skip":
         return _changeset_skip_verification_command(args)
     if command == "verification-accept-risk":

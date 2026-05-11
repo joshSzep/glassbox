@@ -725,7 +725,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1633: Execute Explicitly Selected Safe Verification Commands
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1632`
 - Goal: let operators run selected verification commands through existing tool
   policy, command evidence, and tool-attempt recording paths

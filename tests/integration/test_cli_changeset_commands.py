@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 from glassbox.cli import main
@@ -1006,6 +1007,107 @@ def test_changeset_verification_plan_records_operator_dispositions(
     assert "not release approval" in " ".join(accepted["non_claims"])
 
 
+def test_changeset_verification_run_records_command_and_tool_attempt_evidence(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    verification_id = new_task_verification_id()
+    blocked_verification_id = new_task_verification_id()
+    _init_git_repo(tmp_path)
+    _seed_task(db_path, tmp_path, session_id, task_id)
+
+    create_exit = main(
+        [
+            "changeset",
+            "create",
+            "--from",
+            "task",
+            "--task",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    changeset_id = json.loads(capsys.readouterr().out)["changeset_id"]
+    _seed_selected_verification(
+        db_path,
+        session_id,
+        task_id,
+        verification_id,
+        command=[sys.executable, "-c", "print('selected-ok')"],
+    )
+    _seed_selected_verification(
+        db_path,
+        session_id,
+        task_id,
+        blocked_verification_id,
+        command=["git", "push", "origin", "main"],
+    )
+
+    run_exit = main(
+        [
+            "changeset",
+            "verification-run",
+            changeset_id,
+            "--verification",
+            str(verification_id),
+            "--confirm",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    run_output = capsys.readouterr()
+    assert run_exit == 0, run_output.err
+    result = json.loads(run_output.out)
+    event_types = [event["payload"]["event_type"] for event in result["events"]]
+
+    blocked_exit = main(
+        [
+            "changeset",
+            "verification-run",
+            changeset_id,
+            "--verification",
+            str(blocked_verification_id),
+            "--confirm",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    blocked_output = capsys.readouterr()
+    assert blocked_exit == 0, blocked_output.err
+    blocked = json.loads(blocked_output.out)
+    blocked_event_types = [
+        event["payload"]["event_type"] for event in blocked["events"]
+    ]
+
+    assert create_exit == 0
+    assert result["status"] == "passed"
+    assert result["exit_code"] == 0
+    assert result["output_artifact_id"] is not None
+    assert event_types.count("ToolAttemptHeartbeat") == 3
+    assert "TaskVerificationStarted" in event_types
+    assert "TaskVerificationStreamed" in event_types
+    assert "TaskVerificationCompleted" in event_types
+    assert result["events"][-1]["payload"]["safe_to_retry"] is False
+    assert blocked["status"] == "policy_blocked"
+    assert blocked_event_types == ["ToolAttemptHeartbeat", "TaskVerificationFailed"]
+    assert blocked["events"][0]["payload"]["retry_policy_reason"] == (
+        "remote_or_history_mutation"
+    )
+
+
 def test_changeset_evidence_records_skipped_live_evidence_without_placeholders(
     tmp_path: Path,
     capsys,
@@ -1241,6 +1343,41 @@ def _seed_verification(
                         status=TaskVerificationStatus.PASSED,
                         summary="selected verification passed",
                         artifact_id=artifact_id,
+                    ),
+                ),
+            ]
+        )
+    finally:
+        connection.close()
+
+
+def _seed_selected_verification(
+    db_path: Path,
+    session_id,
+    task_id,
+    verification_id,
+    *,
+    command: list[str],
+) -> None:
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=VerificationPlanEntry(
+                            verification_id=verification_id,
+                            check_name="selected verification command",
+                            kind=VerificationCheckKind.COMMAND,
+                            command=command,
+                            source=VerificationPlanSource.OPERATOR,
+                            rationale="operator selected command to run",
+                            changed_paths=[Path("app.py")],
+                        ),
                     ),
                 ),
             ]

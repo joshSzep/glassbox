@@ -40,6 +40,9 @@ from glassbox.cli.changeset_command_lifecycle import (
     _changeset_refresh_command as _changeset_refresh_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
+    _changeset_run_verification_command as _changeset_run_verification_command,
+)
+from glassbox.cli.changeset_command_lifecycle import (
     _changeset_select_verification_command as _changeset_select_verification_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
@@ -85,6 +88,7 @@ __all__ = [
     "_changeset_record_precommit_command",
     "_changeset_record_verification_command",
     "_changeset_refresh_command",
+    "_changeset_run_verification_command",
     "_changeset_show_command",
     "_changeset_skip_verification_command",
     "_changeset_supersede_verification_command",

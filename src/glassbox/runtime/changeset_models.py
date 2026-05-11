@@ -305,6 +305,26 @@ class ChangesetVerificationPlanDispositionResult(BaseModel):
     non_claims: list[str] = Field(default_factory=list)
 
 
+class ChangesetVerificationPlanExecutionResult(BaseModel):
+    """Result of explicitly running one selected verification plan command."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    task_id: TaskId
+    verification_id: TaskVerificationId
+    check_name: str
+    status: str
+    command: list[str]
+    exit_code: int | None = None
+    timed_out: bool = False
+    output_artifact_id: ArtifactId | None = None
+    events: list[EventEnvelope] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
 class ChangesetReviewBriefGenerationResult(BaseModel):
     """Result of generating one deterministic review brief artifact."""
 
@@ -368,6 +388,7 @@ __all__ = [
     "ChangesetInventoryStatus",
     "ChangesetReviewBriefGenerationResult",
     "ChangesetVerificationEvidenceRecordResult",
+    "ChangesetVerificationPlanExecutionResult",
     "ChangesetVerificationPlanDispositionResult",
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",

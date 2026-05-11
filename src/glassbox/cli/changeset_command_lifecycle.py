@@ -11,6 +11,7 @@ from glassbox.cli.changeset_command_formatters import _print_changeset_list
 from glassbox.cli.changeset_command_formatters import _print_limitations
 from glassbox.cli.changeset_command_formatters import _print_path_verification_plan
 from glassbox.cli.changeset_command_formatters import _print_verification_disposition
+from glassbox.cli.changeset_command_formatters import _print_verification_execution
 from glassbox.cli.changeset_command_formatters import _print_verification_plan
 from glassbox.cli.changeset_command_formatters import (
     changeset_next_action_record_payloads,
@@ -347,6 +348,22 @@ def _changeset_select_verification_command(args: argparse.Namespace) -> int:
             verification_id=args.verification_id,
         )
     return _print_verification_disposition(result, as_json=args.json)
+
+
+def _changeset_run_verification_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.run_selected_plan_entry(
+            args.changeset_id,
+            cwd,
+            verification_id=args.verification_id,
+            confirmed=args.confirm,
+        )
+    return _print_verification_execution(result, as_json=args.json)
 
 
 def _changeset_skip_verification_command(args: argparse.Namespace) -> int:

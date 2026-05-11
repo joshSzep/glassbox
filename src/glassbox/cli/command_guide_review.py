@@ -58,6 +58,16 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
         ),
         CommandGuideEntry(
             (
+                "glassbox changeset verification-run CHANGESET_ID "
+                "--verification VERIFICATION_ID --confirm --cwd ."
+            ),
+            (
+                "Run one explicitly selected command through local command "
+                "policy and retained tool-attempt evidence."
+            ),
+        ),
+        CommandGuideEntry(
+            (
                 "glassbox changeset verification-skip CHANGESET_ID "
                 "--verification VERIFICATION_ID --reason REASON --cwd ."
             ),

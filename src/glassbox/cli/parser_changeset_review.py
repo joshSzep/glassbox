@@ -46,6 +46,26 @@ def _add_changeset_review_parsers(
     select_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(select_parser)
 
+    run_parser = changeset_subparsers.add_parser(
+        "verification-run",
+        help="run one explicitly selected verification plan command",
+        description=(
+            "Run a selected verification plan command through command policy, "
+            "streaming verification events, and retained command evidence."
+        ),
+    )
+    run_parser.add_argument("changeset_id", type=_parse_uuid)
+    run_parser.add_argument(
+        "--verification", dest="verification_id", type=_parse_uuid, required=True
+    )
+    run_parser.add_argument(
+        "--confirm",
+        action="store_true",
+        help="confirm execution after inspecting the selected command",
+    )
+    run_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(run_parser)
+
     skip_parser = changeset_subparsers.add_parser(
         "verification-skip",
         help="record an explicit skip for a verification plan entry",
