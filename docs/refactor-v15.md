@@ -818,7 +818,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R760: Split Architecture Guardrail Tests By Boundary Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R702
 - Target files:
   - `tests/unit/test_architecture_guardrails.py`
@@ -961,9 +961,8 @@ thin and delegate to owned helpers after the relevant phase completes:
 - `frontend/components/console/knowledge-autonomy/repository-panels.tsx`:
   dashboard entrypoint over overview, path, recipe, memory, and freshness
   sections.
-- `tests/unit/test_architecture_guardrails.py`: compatibility import point for
-  existing architecture guardrail checks until the split test modules are in
-  place.
+- `tests/unit/test_architecture_guardrails.py`: legacy validation entrypoint
+  that imports the split architecture guardrail modules by boundary family.
 
 Do not add new behavior to these facades once their helper owners exist. New
 behavior should land in the focused owner module and be re-exported only when a
