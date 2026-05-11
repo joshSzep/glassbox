@@ -713,7 +713,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R750: Split Repository Intelligence API Models And Builders By Surface
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R711, GBX-R741
 - Target files:
   - `src/glassbox/web/repository_intelligence_api.py`

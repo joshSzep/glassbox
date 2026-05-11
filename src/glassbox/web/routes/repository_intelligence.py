@@ -40,7 +40,6 @@ from glassbox.runtime.workspace_topology import WorkspaceTopologyNotFoundError
 from glassbox.runtime.workspace_topology import load_workspace_topology
 from glassbox.runtime.workspace_topology import workspace_topology_path
 from glassbox.web.app import RuntimeContextDep
-from glassbox.web.memory_api import build_workspace_memory_candidate_responses
 from glassbox.web.repository_index_api import RepositoryIndexStatusResponse
 from glassbox.web.repository_index_api import WorkspaceTopologyStatusResponse
 from glassbox.web.repository_index_api import build_repository_index_status_response
@@ -77,6 +76,9 @@ from glassbox.web.repository_intelligence_api import (
 )
 from glassbox.web.repository_intelligence_api import build_command_recipe_responses
 from glassbox.web.repository_intelligence_api import build_entry_search_page_response
+from glassbox.web.repository_intelligence_api import (
+    build_memory_candidate_list_page_response,
+)
 from glassbox.web.repository_intelligence_api import build_ownership_hint_responses
 from glassbox.web.repository_intelligence_api import build_path_inspection_response
 from glassbox.web.repository_intelligence_api import build_release_surface_responses
@@ -84,6 +86,9 @@ from glassbox.web.repository_intelligence_api import (
     build_repository_intelligence_overview_response,
 )
 from glassbox.web.repository_intelligence_api import build_subsystem_responses
+from glassbox.web.repository_intelligence_api import (
+    build_verification_recommendation_response,
+)
 from glassbox.web.session_api import PageInfoResponse
 
 router = APIRouter(prefix="/repo/intelligence", tags=["repo"])
@@ -377,7 +382,7 @@ def recommend_repository_intelligence_verification(
             touched_paths=paths,
         )
     except ValueError as exc:
-        return RepositoryIntelligenceVerificationRecommendationResponse(
+        return build_verification_recommendation_response(
             status="unavailable",
             paths=paths,
             detail=str(exc),
@@ -386,7 +391,7 @@ def recommend_repository_intelligence_verification(
                 "run `glassbox eval audit --cwd .` after eval metadata exists",
             ],
         )
-    return RepositoryIntelligenceVerificationRecommendationResponse(
+    return build_verification_recommendation_response(
         status="ok",
         paths=paths,
         report=report,
@@ -415,19 +420,11 @@ async def list_repository_intelligence_memory_candidates(
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    page_rows = rows[cursor : cursor + limit + 1]
-    items = page_rows[:limit]
-    next_cursor = cursor + len(items) if len(page_rows) > limit else None
-    return RepositoryIntelligenceMemoryCandidateListPageResponse(
+    return build_memory_candidate_list_page_response(
         session_id=str(session_id),
-        page=PageInfoResponse(
-            cursor=cursor,
-            limit=limit,
-            next_cursor=next_cursor,
-            has_more=next_cursor is not None,
-            returned_count=len(items),
-        ),
-        items=build_workspace_memory_candidate_responses(items),
+        cursor=cursor,
+        limit=limit,
+        candidates=rows,
     )
 
 
