@@ -137,6 +137,9 @@ operator authority explicit.
 - [evidence-graph.md](./evidence-graph.md): v16 evidence graph contract for
   nodes, edges, claim support states, provenance, freshness, confidence,
   limitations, redaction posture, and reviewer-safe visibility
+- [operator-queue.md](./operator-queue.md): v16 unified operator queue
+  contract for queue item families, priorities, stale state, evidence
+  summaries, dedupe keys, and dismissal semantics
 - [tasks-v16.md](./tasks-v16.md): v16 operator flow compression task graph for
   shared next-action models, evidence graph foundation, unified operator
   queue, verification orchestration, compressed changeset workup, dashboard and
@@ -403,6 +406,9 @@ operator authority explicit.
   vocabulary for claim support, evidence nodes, graph edges, stale evidence,
   missing evidence, manual-only support, accepted risk, and reviewer-safe
   graph slices
+- [operator-queue.md](./operator-queue.md): use the shared queue vocabulary
+  when mapping sessions, tasks, changesets, verification, maintenance, and
+  advisory cues into one ranked attention list
 - [tasks-v16.md](./tasks-v16.md): follow the dependency-ordered implementation
   graph for turning the v16 contract and audit into shared models, APIs, CLI
   output, dashboard panels, TUI entry points, evals, and release evidence

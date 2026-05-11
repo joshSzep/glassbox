@@ -73,6 +73,10 @@ from glassbox.core.types import NextActionSafetyClass
 from glassbox.core.types import NextActionSeverity
 from glassbox.core.types import NextActionSurface
 from glassbox.core.types import NextActionTargetKind
+from glassbox.core.types import OperatorQueueDedupeScope
+from glassbox.core.types import OperatorQueueDismissalPolicy
+from glassbox.core.types import OperatorQueueFamily
+from glassbox.core.types import OperatorQueueState
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
@@ -314,6 +318,102 @@ class NextAction(BaseModel):
                 "next actions with commands must use command_recipe or "
                 "operator_decision safety"
             )
+        return self
+
+
+class OperatorQueueEvidenceSummary(BaseModel):
+    """Bounded evidence summary attached to a unified operator queue item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str = Field(min_length=1, max_length=2000)
+    support_state: ClaimSupportState | None = None
+    evidence_graph_id: str | None = Field(default=None, min_length=1, max_length=300)
+    claim_id: str | None = Field(default=None, min_length=1, max_length=300)
+    supporting_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    missing_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    stale_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    limitation_count: int = Field(default=0, ge=0)
+
+
+class OperatorQueueDedupeKey(BaseModel):
+    """Stable merge key for queue items about the same underlying problem."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    scope: OperatorQueueDedupeScope
+    key: str = Field(min_length=1, max_length=500)
+    target: NextActionTarget
+
+
+class OperatorQueueItem(BaseModel):
+    """Shared contract for one derived operator attention item."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    item_id: str = Field(min_length=1, max_length=300)
+    family: OperatorQueueFamily
+    state: OperatorQueueState
+    priority: NextActionPriority
+    severity: NextActionSeverity = NextActionSeverity.INFO
+    target: NextActionTarget
+    owner_surface: NextActionSurface
+    owner_label: str = Field(min_length=1, max_length=300)
+    safe_next_action: NextAction
+    evidence_summary: OperatorQueueEvidenceSummary
+    dedupe_key: OperatorQueueDedupeKey
+    dismissal_policy: OperatorQueueDismissalPolicy = (
+        OperatorQueueDismissalPolicy.NOT_DISMISSIBLE
+    )
+    action_needed: bool = False
+    blocking: bool = False
+    stale: bool = False
+    updated_at: datetime | None = None
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def validate_operator_queue_item(self) -> OperatorQueueItem:
+        action_target = self.safe_next_action.target
+        if action_target.kind != self.target.kind:
+            raise ValueError("queue item action target kind must match item target")
+        if (
+            self.target.target_id is not None
+            and action_target.target_id is not None
+            and action_target.target_id != self.target.target_id
+        ):
+            raise ValueError("queue item action target id must match item target")
+        if self.dedupe_key.target.kind != self.target.kind:
+            raise ValueError("queue item dedupe target kind must match item target")
+        if (
+            self.family
+            in {
+                OperatorQueueFamily.WORK_BLOCKING,
+                OperatorQueueFamily.REVIEW_BLOCKING,
+                OperatorQueueFamily.VERIFICATION_BLOCKING,
+            }
+            and not self.blocking
+        ):
+            raise ValueError("blocking queue families must set blocking=true")
+        if self.action_needed and self.priority in {
+            NextActionPriority.OPTIONAL,
+            NextActionPriority.HISTORICAL,
+        }:
+            raise ValueError("action-needed queue items must not be optional")
+        if self.stale and self.state not in {
+            OperatorQueueState.STALE,
+            OperatorQueueState.DEGRADED,
+            OperatorQueueState.BLOCKED,
+        }:
+            raise ValueError("stale queue items must use stale/degraded/blocked state")
         return self
 
 

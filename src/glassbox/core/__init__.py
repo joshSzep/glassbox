@@ -211,6 +211,9 @@ from glassbox.core.models import NextAction
 from glassbox.core.models import NextActionCommandRecipe
 from glassbox.core.models import NextActionEvidenceRef
 from glassbox.core.models import NextActionTarget
+from glassbox.core.models import OperatorQueueDedupeKey
+from glassbox.core.models import OperatorQueueEvidenceSummary
+from glassbox.core.models import OperatorQueueItem
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
@@ -298,6 +301,10 @@ from glassbox.core.types import NextActionSafetyClass
 from glassbox.core.types import NextActionSeverity
 from glassbox.core.types import NextActionSurface
 from glassbox.core.types import NextActionTargetKind
+from glassbox.core.types import OperatorQueueDedupeScope
+from glassbox.core.types import OperatorQueueDismissalPolicy
+from glassbox.core.types import OperatorQueueFamily
+from glassbox.core.types import OperatorQueueState
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
@@ -486,6 +493,13 @@ __all__ = [
     "NextActionSurface",
     "NextActionTarget",
     "NextActionTargetKind",
+    "OperatorQueueDedupeKey",
+    "OperatorQueueDedupeScope",
+    "OperatorQueueDismissalPolicy",
+    "OperatorQueueEvidenceSummary",
+    "OperatorQueueFamily",
+    "OperatorQueueItem",
+    "OperatorQueueState",
     "PauseWindowCancelled",
     "PauseWindowId",
     "PauseWindowPolicy",

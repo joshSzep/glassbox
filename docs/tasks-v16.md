@@ -537,7 +537,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1620: Define Operator Queue Aggregation Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1610`
 - Goal: define one ranked operator queue across sessions, tasks, changesets,
   review feedback, verification, repository intelligence, memory, daemon jobs,

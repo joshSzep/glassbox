@@ -212,6 +212,48 @@ class NextActionSurface(StrEnum):
     RELEASE_EVIDENCE = "release_evidence"
 
 
+class OperatorQueueFamily(StrEnum):
+    """Operator attention families for one unified queue."""
+
+    WORK_BLOCKING = "work_blocking"
+    REVIEW_BLOCKING = "review_blocking"
+    VERIFICATION_BLOCKING = "verification_blocking"
+    MAINTENANCE = "maintenance"
+    ADVISORY = "advisory"
+    INFORMATIONAL = "informational"
+
+
+class OperatorQueueState(StrEnum):
+    """Current posture of a derived operator queue item."""
+
+    ACTION_NEEDED = "action_needed"
+    BLOCKED = "blocked"
+    ACTIVE = "active"
+    STALE = "stale"
+    DEGRADED = "degraded"
+    READY = "ready"
+    WATCHING = "watching"
+    HISTORICAL = "historical"
+
+
+class OperatorQueueDismissalPolicy(StrEnum):
+    """How a derived queue item may leave the visible queue."""
+
+    NOT_DISMISSIBLE = "not_dismissible"
+    DISMISSIBLE_UNTIL_CHANGED = "dismissible_until_changed"
+    DISMISSIBLE_FOR_SESSION = "dismissible_for_session"
+    CANONICAL_DECISION_REQUIRED = "canonical_decision_required"
+
+
+class OperatorQueueDedupeScope(StrEnum):
+    """Scope used to merge queue items that point at the same problem."""
+
+    TARGET = "target"
+    FAMILY_TARGET = "family_target"
+    EVIDENCE_FINGERPRINT = "evidence_fingerprint"
+    WORKSPACE_SINGLETON = "workspace_singleton"
+
+
 class EvidenceGraphNodeKind(StrEnum):
     """Local evidence node families used in derived evidence graphs."""
 
