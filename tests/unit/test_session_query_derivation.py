@@ -6,6 +6,7 @@ from datetime import datetime
 import pytest
 
 from glassbox.core import ClaimSupportState
+from glassbox.core import LongRunStatusRecord
 from glassbox.core import NextAction
 from glassbox.core import NextActionEvidenceKind
 from glassbox.core import NextActionEvidenceRef
@@ -22,6 +23,15 @@ from glassbox.core import OperatorQueueEvidenceSummary
 from glassbox.core import OperatorQueueFamily
 from glassbox.core import OperatorQueueItem
 from glassbox.core import OperatorQueueState
+from glassbox.core import ProjectionHealth
+from glassbox.core import new_session_id
+from glassbox.runtime.operator_queue import build_operator_queue
+from glassbox.runtime.operator_queue import dedupe_operator_queue_items
+from glassbox.runtime.operator_queue import operator_queue_counts
+from glassbox.runtime.operator_queue import sort_operator_queue_items
+from glassbox.runtime.operator_session_queries import build_operator_session_summary
+from glassbox.runtime.session_query_models import SessionSummaryView
+from glassbox.runtime.session_query_models import WorkspaceRuntimeSummaryView
 
 
 def test_operator_queue_item_contract_preserves_domain_specific_meaning() -> None:
@@ -77,6 +87,54 @@ def test_operator_queue_item_rejects_optional_action_needed_item() -> None:
 def test_operator_queue_item_rejects_stale_flag_without_stale_state() -> None:
     with pytest.raises(ValueError, match="stale queue items"):
         _queue_item(state=OperatorQueueState.READY, stale=True)
+
+
+def test_runtime_operator_queue_prioritizes_and_counts_session_attention() -> None:
+    approval = build_operator_session_summary(
+        _session_summary(pending_approval_id="approval-1")
+    )
+    failed = build_operator_session_summary(
+        _session_summary(status="failed", failure="provider failed")
+    )
+    active = build_operator_session_summary(_session_summary(active=True))
+    runtime = WorkspaceRuntimeSummaryView(
+        workspace_root="/tmp/glassbox",
+        state="running",
+        background_job_failed_count=1,
+    )
+
+    queue = build_operator_queue([active, failed, approval], runtime=runtime)
+    counts = operator_queue_counts(queue)
+
+    assert [item.owner_label for item in queue[:3]] == [
+        "Pending approval",
+        "Failed session",
+        "Background jobs",
+    ]
+    assert counts.work_blocking == 2
+    assert counts.maintenance == 1
+    assert counts.informational == 1
+    assert queue[0].dismissal_policy == (
+        OperatorQueueDismissalPolicy.CANONICAL_DECISION_REQUIRED
+    )
+
+
+def test_runtime_operator_queue_dedupes_by_key_and_keeps_stronger_item() -> None:
+    weak = _queue_item(
+        priority=NextActionPriority.RECOMMENDED,
+        action_needed=False,
+    )
+    strong = _queue_item(
+        priority=NextActionPriority.BLOCKED,
+        blocking=True,
+        action_needed=True,
+        family=OperatorQueueFamily.WORK_BLOCKING,
+    )
+
+    deduped = dedupe_operator_queue_items([weak, strong])
+
+    assert deduped == [strong]
+    assert sort_operator_queue_items([weak, strong])[0] == strong
 
 
 def _queue_item(
@@ -139,4 +197,59 @@ def _queue_item(
         blocking=blocking,
         stale=stale,
         updated_at=datetime(2026, 5, 11, tzinfo=UTC),
+    )
+
+
+def _session_summary(
+    *,
+    status: str = "running",
+    pending_approval_id: str | None = None,
+    pending_question_id: str | None = None,
+    failure: str | None = None,
+    active: bool = False,
+) -> SessionSummaryView:
+    session_id = new_session_id()
+    now = datetime(2026, 5, 11, tzinfo=UTC)
+    return SessionSummaryView(
+        session_id=session_id,
+        status=(
+            "awaiting_approval"
+            if pending_approval_id is not None
+            else "awaiting_user_input"
+            if pending_question_id is not None
+            else status
+        ),
+        model_name="openai:gpt-5.4",
+        cwd="/tmp/glassbox",
+        approval_mode="confirm",
+        can_fork=False,
+        created_at=now,
+        updated_at=now,
+        last_sequence=3,
+        pending_approval_id=pending_approval_id,
+        pending_question_id=pending_question_id,
+        session_failure_message=failure,
+        session_failure_retryable=None if failure is None else False,
+        long_run_status=LongRunStatusRecord(
+            state="healthy",
+            elapsed_seconds=5,
+            progress_summary="healthy",
+        ),
+        latest_message_summary=None,
+        projection_health=ProjectionHealth(
+            state="ok",
+            canonical_last_sequence=3,
+            projected_last_sequence=3,
+        ),
+        next_action_summary=(
+            "Wait for the current turn to finish"
+            if active
+            else "Resolve pending approval"
+            if pending_approval_id is not None
+            else "Answer pending question"
+            if pending_question_id is not None
+            else "Inspect failed session"
+            if status == "failed"
+            else "Send the next prompt"
+        ),
     )

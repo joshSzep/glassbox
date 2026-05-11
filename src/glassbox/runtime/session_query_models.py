@@ -12,6 +12,7 @@ from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import CheckpointAbsenceRecord
 from glassbox.core.models import LongRunStatusRecord
+from glassbox.core.models import OperatorQueueItem
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import ProviderRecoveryRecord
@@ -131,6 +132,20 @@ class SessionQueueCountsView(BaseModel):
     historical: int
 
 
+class OperatorQueueCountsView(BaseModel):
+    """Aggregate v16 queue counts by operator attention family."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total: int = 0
+    work_blocking: int = 0
+    review_blocking: int = 0
+    verification_blocking: int = 0
+    maintenance: int = 0
+    advisory: int = 0
+    informational: int = 0
+
+
 class ProjectionHealthCountsView(BaseModel):
     """Aggregate projection-health totals for the operator console."""
 
@@ -168,9 +183,13 @@ class SessionAggregateView(BaseModel):
     sort: str
     limit: int | None = None
     queue_counts: SessionQueueCountsView
+    operator_queue_counts: OperatorQueueCountsView = Field(
+        default_factory=OperatorQueueCountsView
+    )
     projection_health_counts: ProjectionHealthCountsView
     runtime: WorkspaceRuntimeSummaryView
     sessions: list[OperatorSessionSummaryView] = Field(default_factory=list)
+    operator_queue: list[OperatorQueueItem] = Field(default_factory=list)
 
 
 class SessionSnapshotView(BaseModel):

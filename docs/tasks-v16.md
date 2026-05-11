@@ -562,7 +562,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1621: Implement Runtime Queue Aggregator
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1620`
 - Goal: build a runtime query service that produces prioritized queue items
   from existing local evidence

@@ -89,3 +89,28 @@ operator decision. Dismissal policy controls only presentation:
 Optional repository intelligence absence must not block normal chat. It should
 use maintenance or advisory families unless a later release contract explicitly
 requires it for the requested workflow.
+
+## Runtime Aggregation
+
+`glassbox.runtime.operator_queue.build_operator_queue` derives the first runtime
+queue from existing aggregate session evidence and workspace runtime health.
+The initial producer covers pending approvals, pending questions, failed
+sessions, degraded session projections, stale or stuck long-running sessions,
+active turns, and failed or retryable background jobs. Later v16 slices extend
+the same contract to changesets, review feedback, verification ledgers,
+repository intelligence, memory posture, artifact pressure, provider posture,
+release gates, and dashboard/TUI presentation without changing item semantics.
+
+Runtime sorting is deterministic:
+
+1. priority
+2. severity
+3. action-needed posture
+4. stale posture
+5. newest update time
+6. target kind and target ID
+7. item ID
+
+Aggregators dedupe by `dedupe_key.key` and keep the strongest item according to
+that same ordering. This lets several projections point at the same problem
+without multiplying rows or erasing the domain-specific owner label.

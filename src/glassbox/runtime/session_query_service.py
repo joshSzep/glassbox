@@ -9,6 +9,8 @@ from glassbox.core.types import ToolExecutionStatus
 from glassbox.runtime.context_builder import RuntimeContextSnapshot
 from glassbox.runtime.context_builder import build_repository_context_snapshot
 from glassbox.runtime.long_running import build_long_run_status
+from glassbox.runtime.operator_queue import build_operator_queue
+from glassbox.runtime.operator_queue import operator_queue_counts
 from glassbox.runtime.operator_session_queries import build_operator_session_summary
 from glassbox.runtime.operator_session_queries import matches_operator_queue
 from glassbox.runtime.operator_session_queries import matches_operator_status
@@ -348,6 +350,7 @@ class SessionQueryService:
         sorted_rows = sort_operator_rows(filtered_rows, sort=sort)
         if limit is not None:
             sorted_rows = sorted_rows[:limit]
+        operator_queue = build_operator_queue(rows, runtime=runtime)
 
         return SessionAggregateView(
             queue=queue,
@@ -355,9 +358,11 @@ class SessionQueryService:
             sort=sort,
             limit=limit,
             queue_counts=session_queue_counts(rows),
+            operator_queue_counts=operator_queue_counts(operator_queue),
             projection_health_counts=projection_health_counts(rows),
             runtime=runtime,
             sessions=sorted_rows,
+            operator_queue=operator_queue,
         )
 
     def _build_session_summary(

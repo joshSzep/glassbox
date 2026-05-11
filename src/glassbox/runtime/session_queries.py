@@ -12,6 +12,7 @@ from glassbox.runtime.session_query_models import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_query_models import OPERATOR_SORT_UPDATED_AT
 from glassbox.runtime.session_query_models import BranchableTurnView
 from glassbox.runtime.session_query_models import ChildSessionSummaryView
+from glassbox.runtime.session_query_models import OperatorQueueCountsView
 from glassbox.runtime.session_query_models import OperatorQueueName
 from glassbox.runtime.session_query_models import OperatorSessionSummaryView
 from glassbox.runtime.session_query_models import OperatorSortName
@@ -37,6 +38,7 @@ __all__ = [
     "OPERATOR_SORT_UPDATED_AT",
     "BranchableTurnView",
     "ChildSessionSummaryView",
+    "OperatorQueueCountsView",
     "OperatorQueueName",
     "OperatorSessionSummaryView",
     "OperatorSortName",
