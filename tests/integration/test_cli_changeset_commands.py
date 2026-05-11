@@ -851,6 +851,161 @@ def test_changeset_verification_plan_accepts_path_preview(
     assert "not persisted changeset evidence" in " ".join(payload["non_claims"])
 
 
+def test_changeset_verification_plan_records_operator_dispositions(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    _init_git_repo(tmp_path)
+    _seed_task(db_path, tmp_path, session_id, task_id)
+
+    create_exit = main(
+        [
+            "changeset",
+            "create",
+            "--from",
+            "task",
+            "--task",
+            str(task_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    changeset_id = json.loads(capsys.readouterr().out)["changeset_id"]
+    (tmp_path / "app.py").write_text("print('changed')\n", encoding="utf-8")
+    refresh_exit = main(
+        [
+            "changeset",
+            "refresh",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    capsys.readouterr()
+    plan_exit = main(
+        [
+            "changeset",
+            "verification-plan",
+            changeset_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    plan = json.loads(capsys.readouterr().out)
+    command_entry = next(entry for entry in plan["plan_entries"] if entry["command"])
+    manual_entry = next(
+        entry
+        for entry in plan["plan_entries"]
+        if entry["manual_evidence_required"] is True
+    )
+
+    select_exit = main(
+        [
+            "changeset",
+            "verification-select",
+            changeset_id,
+            "--verification",
+            command_entry["verification_id"],
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    select_output = capsys.readouterr()
+    assert select_exit == 0, select_output.err
+    selected = json.loads(select_output.out)
+    skip_exit = main(
+        [
+            "changeset",
+            "verification-skip",
+            changeset_id,
+            "--verification",
+            command_entry["verification_id"],
+            "--reason",
+            "covered by external retained evidence",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    skipped = json.loads(capsys.readouterr().out)
+    risk_exit = main(
+        [
+            "changeset",
+            "verification-accept-risk",
+            changeset_id,
+            "--verification",
+            command_entry["verification_id"],
+            "--reason",
+            "small docs-only residual risk",
+            "--risk",
+            "no fresh command run",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    accepted = json.loads(capsys.readouterr().out)
+    supersede_exit = main(
+        [
+            "changeset",
+            "verification-supersede",
+            changeset_id,
+            "--verification",
+            command_entry["verification_id"],
+            "--replacement",
+            manual_entry["verification_id"],
+            "--reason",
+            "manual evidence replaces stale command plan",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    supersede_output = capsys.readouterr()
+    assert supersede_exit == 0, supersede_output.err
+    superseded = json.loads(supersede_output.out)
+
+    assert create_exit == 0
+    assert refresh_exit == 0
+    assert plan_exit == 0
+    assert select_exit == 0
+    assert selected["action"] == "selected"
+    assert selected["events"][0]["payload"]["event_type"] == "TaskVerificationPlanned"
+    assert skip_exit == 0
+    assert skipped["action"] == "skipped"
+    assert len(skipped["events"]) == 2
+    assert risk_exit == 0
+    assert accepted["action"] == "accepted-risk"
+    assert accepted["events"][1]["payload"]["residual_risks"] == [
+        "no fresh command run"
+    ]
+    assert supersede_exit == 0
+    assert superseded["action"] == "superseded"
+    assert superseded["replacement_verification_id"] == manual_entry["verification_id"]
+    assert "not release approval" in " ".join(accepted["non_claims"])
+
+
 def test_changeset_evidence_records_skipped_live_evidence_without_placeholders(
     tmp_path: Path,
     capsys,

@@ -12,6 +12,7 @@ from glassbox.runtime.changeset_models import ChangesetInventoryRefreshResult
 from glassbox.runtime.changeset_models import ChangesetInventoryStatus
 from glassbox.runtime.changeset_models import ChangesetReviewBriefGenerationResult
 from glassbox.runtime.changeset_models import ChangesetVerificationEvidenceRecordResult
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanDispositionResult
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_models import ChangesetVerificationRecipePreview
 from glassbox.runtime.changeset_models import ManualEvidenceRecordResult
@@ -42,6 +43,7 @@ __all__ = [
     "ChangesetReviewBriefGenerationResult",
     "ChangesetReviewBriefService",
     "ChangesetVerificationEvidenceRecordResult",
+    "ChangesetVerificationPlanDispositionResult",
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",
     "ChangesetVerificationService",

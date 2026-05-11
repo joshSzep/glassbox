@@ -81,3 +81,22 @@ not create a changeset, record events, run commands, select checks, mark checks
 passed, or approve any command. Persisted changeset previews remain the
 reviewable route when retained inventory, review feedback, manual evidence, and
 handoff posture matter.
+
+## Local Dispositions
+
+Once a changeset preview names a `verification_id`, operators can persist local
+decisions about that entry:
+
+```bash
+glassbox changeset verification-select CHANGESET_ID --verification VERIFICATION_ID --cwd .
+glassbox changeset verification-skip CHANGESET_ID --verification VERIFICATION_ID --reason "why skipped" --cwd .
+glassbox changeset verification-accept-risk CHANGESET_ID --verification VERIFICATION_ID --reason "why accepted" --risk "remaining risk" --cwd .
+glassbox changeset verification-supersede CHANGESET_ID --verification OLD_ID --replacement NEW_ID --reason "why replaced" --cwd .
+```
+
+These commands append canonical task verification events for task-backed
+changesets. Selection records `TaskVerificationPlanned`; skips add
+`TaskVerificationSkipped`; accepted risk adds
+`TaskVerificationResidualRiskAccepted`; superseding records retry/supersede
+evidence and plans the replacement. They do not execute commands, treat skipped
+checks as passed, publish evidence, or grant release approval.

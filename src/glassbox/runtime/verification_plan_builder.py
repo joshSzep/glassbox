@@ -214,6 +214,7 @@ def build_verification_plan_entries(
                         else VerificationPlanLifecycleState.PROPOSED
                     ),
                     evidence_references=_requirement_evidence_refs(requirement),
+                    verification_id=requirement.verification_id,
                 )
             )
 
@@ -244,6 +245,7 @@ def _entry(
         VerificationPlanLifecycleState.PROPOSED
     ),
     evidence_references: list[NextActionEvidenceRef] | None = None,
+    verification_id: TaskVerificationId | None = None,
 ) -> VerificationPlanEntry:
     command_parts = command or []
     command_recipe = (
@@ -257,7 +259,7 @@ def _entry(
         else None
     )
     return VerificationPlanEntry(
-        verification_id=_stable_verification_id(seed),
+        verification_id=verification_id or _stable_verification_id(seed),
         check_name=check_name,
         kind=kind,
         lifecycle_state=lifecycle_state,

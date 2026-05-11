@@ -13,6 +13,7 @@ from glassbox.core import NextActionTargetKind
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPreview
 from glassbox.runtime.changesets import ChangesetDetailView
+from glassbox.runtime.changesets import ChangesetVerificationPlanDispositionResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import PathVerificationPlanPreview
@@ -311,6 +312,30 @@ def _print_path_verification_plan(preview: PathVerificationPlanPreview) -> None:
     print("Safe next actions:")
     for action in preview.safe_next_actions:
         print(f"  - {action}")
+
+
+def _print_verification_disposition(
+    result: ChangesetVerificationPlanDispositionResult,
+    *,
+    as_json: bool,
+) -> int:
+    if as_json:
+        print_json_output(result.model_dump(mode="json"))
+        return 0
+    print(f"Recorded verification plan decision: {result.action}")
+    print(f"Changeset: {result.changeset_id}")
+    print(f"Verification: {result.verification_id}")
+    if result.replacement_verification_id is not None:
+        print(f"Replacement: {result.replacement_verification_id}")
+    print(f"Entry: {result.entry.check_name}")
+    print(f"Events: {len(result.events)}")
+    print("Safe next actions:")
+    for action in result.safe_next_actions:
+        print(f"  - {action}")
+    print("Non-claims:")
+    for non_claim in result.non_claims:
+        print(f"  - {non_claim}")
+    return 0
 
 
 def _print_plan_entries(entries) -> None:

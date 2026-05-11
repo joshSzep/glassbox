@@ -7,6 +7,9 @@ from glassbox.cli.changeset_command_feedback import (
     _changeset_feedback_command as _changeset_feedback_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
+    _changeset_accept_verification_risk_command,
+)
+from glassbox.cli.changeset_command_lifecycle import (
     _changeset_adopt_candidate_command as _changeset_adopt_candidate_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
@@ -37,7 +40,16 @@ from glassbox.cli.changeset_command_lifecycle import (
     _changeset_refresh_command as _changeset_refresh_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
+    _changeset_select_verification_command as _changeset_select_verification_command,
+)
+from glassbox.cli.changeset_command_lifecycle import (
     _changeset_show_command as _changeset_show_command,
+)
+from glassbox.cli.changeset_command_lifecycle import (
+    _changeset_skip_verification_command as _changeset_skip_verification_command,
+)
+from glassbox.cli.changeset_command_lifecycle import (
+    _changeset_supersede_verification_command,
 )
 from glassbox.cli.changeset_command_lifecycle import (
     _changeset_verification_plan_command as _changeset_verification_plan_command,
@@ -58,6 +70,7 @@ from glassbox.cli.changeset_command_readiness import (
 __all__ = [
     "_changeset_adopt_candidate_command",
     "_changeset_adoption_preview_command",
+    "_changeset_accept_verification_risk_command",
     "_changeset_archive_command",
     "_changeset_brief_command",
     "_changeset_commit_message_command",
@@ -73,5 +86,8 @@ __all__ = [
     "_changeset_record_verification_command",
     "_changeset_refresh_command",
     "_changeset_show_command",
+    "_changeset_skip_verification_command",
+    "_changeset_supersede_verification_command",
+    "_changeset_select_verification_command",
     "_changeset_verification_plan_command",
 ]

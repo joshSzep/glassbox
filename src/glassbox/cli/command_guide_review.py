@@ -47,6 +47,33 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             "Preview review-loop-aware verification without running commands.",
         ),
         CommandGuideEntry(
+            (
+                "glassbox changeset verification-select CHANGESET_ID "
+                "--verification VERIFICATION_ID --cwd ."
+            ),
+            (
+                "Record that the operator selected a previewed check; this "
+                "does not run the command or mark it passed."
+            ),
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset verification-skip CHANGESET_ID "
+                "--verification VERIFICATION_ID --reason REASON --cwd ."
+            ),
+            "Record an explicit skip as local evidence, not a pass.",
+        ),
+        CommandGuideEntry(
+            (
+                "glassbox changeset verification-accept-risk CHANGESET_ID "
+                "--verification VERIFICATION_ID --reason REASON --risk RISK --cwd ."
+            ),
+            (
+                "Record accepted residual risk for one planned check without "
+                "turning it into release approval."
+            ),
+        ),
+        CommandGuideEntry(
             "glassbox changeset evidence-graph CHANGESET_ID --summary --cwd .",
             (
                 "Inspect claim support, stale evidence, missing evidence, "

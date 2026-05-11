@@ -700,7 +700,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1632: Record Verification Plan Selection, Skips, And Accepted Risk
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1631`
 - Goal: persist operator decisions about which planned checks were selected,
   skipped, superseded, or accepted with residual risk

@@ -20,6 +20,7 @@ from glassbox.core import ReviewFeedbackId
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import SessionId
+from glassbox.core import TaskId
 from glassbox.core import TaskVerificationId
 from glassbox.core import VerificationPlanEntry
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
@@ -287,6 +288,23 @@ class ChangesetVerificationEvidenceRecordResult(BaseModel):
     event: EventEnvelope
 
 
+class ChangesetVerificationPlanDispositionResult(BaseModel):
+    """Events recorded for a verification plan entry disposition."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changeset_id: ChangesetId
+    session_id: SessionId
+    task_id: TaskId
+    action: str
+    verification_id: TaskVerificationId
+    replacement_verification_id: TaskVerificationId | None = None
+    events: list[EventEnvelope] = Field(default_factory=list)
+    entry: VerificationPlanEntry
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
 class ChangesetReviewBriefGenerationResult(BaseModel):
     """Result of generating one deterministic review brief artifact."""
 
@@ -350,6 +368,7 @@ __all__ = [
     "ChangesetInventoryStatus",
     "ChangesetReviewBriefGenerationResult",
     "ChangesetVerificationEvidenceRecordResult",
+    "ChangesetVerificationPlanDispositionResult",
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",
     "ChangesetVerificationReviewLoopSummary",

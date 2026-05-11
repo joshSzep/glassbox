@@ -10,6 +10,7 @@ from glassbox.cli.changeset_command_formatters import _print_changeset_detail
 from glassbox.cli.changeset_command_formatters import _print_changeset_list
 from glassbox.cli.changeset_command_formatters import _print_limitations
 from glassbox.cli.changeset_command_formatters import _print_path_verification_plan
+from glassbox.cli.changeset_command_formatters import _print_verification_disposition
 from glassbox.cli.changeset_command_formatters import _print_verification_plan
 from glassbox.cli.changeset_command_formatters import (
     changeset_next_action_record_payloads,
@@ -331,6 +332,72 @@ def _changeset_record_verification_command(args: argparse.Namespace) -> int:
             for artifact_id in result.retained_artifact_ids:
                 print(f"  - {artifact_id}")
     return 0
+
+
+def _changeset_select_verification_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.select_plan_entry(
+            args.changeset_id,
+            cwd,
+            verification_id=args.verification_id,
+        )
+    return _print_verification_disposition(result, as_json=args.json)
+
+
+def _changeset_skip_verification_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.skip_plan_entry(
+            args.changeset_id,
+            cwd,
+            verification_id=args.verification_id,
+            reason=args.reason,
+        )
+    return _print_verification_disposition(result, as_json=args.json)
+
+
+def _changeset_accept_verification_risk_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.accept_plan_entry_risk(
+            args.changeset_id,
+            cwd,
+            verification_id=args.verification_id,
+            reason=args.reason,
+            residual_risks=args.residual_risks,
+            accepted_by=args.accepted_by,
+        )
+    return _print_verification_disposition(result, as_json=args.json)
+
+
+def _changeset_supersede_verification_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        service = ChangesetVerificationService(
+            cast(ChangesetRepository, runtime_context.repositories.sessions),
+            runtime_context.repositories.artifacts,
+        )
+        result = service.supersede_plan_entry(
+            args.changeset_id,
+            cwd,
+            verification_id=args.verification_id,
+            replacement_verification_id=args.replacement_verification_id,
+            reason=args.reason,
+        )
+    return _print_verification_disposition(result, as_json=args.json)
 
 
 def _changeset_brief_command(args: argparse.Namespace) -> int:

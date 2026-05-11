@@ -14,11 +14,18 @@ from glassbox.core import SessionId
 from glassbox.core import TaskId
 from glassbox.core import TaskVerificationId
 from glassbox.core import TaskVerificationLedgerRecord
+from glassbox.core import TaskVerificationPlanned
+from glassbox.core import TaskVerificationResidualRiskAccepted
+from glassbox.core import TaskVerificationRetried
+from glassbox.core import TaskVerificationSkipped
+from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanLifecycleState
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.changeset_detail import manual_evidence_for_preview
 from glassbox.runtime.changeset_detail import review_response_summary_for_preview
 from glassbox.runtime.changeset_inventory_status import inventory_status
 from glassbox.runtime.changeset_models import ChangesetVerificationEvidenceRecordResult
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanDispositionResult
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_models import PathVerificationPlanPreview
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
@@ -304,6 +311,206 @@ class ChangesetVerificationService:
             event=stored[0],
         )
 
+    def select_plan_entry(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        verification_id: TaskVerificationId,
+    ) -> ChangesetVerificationPlanDispositionResult:
+        changeset, task_id, entry = self._plan_disposition_context(
+            changeset_id,
+            workspace_root,
+            verification_id=verification_id,
+        )
+        selected = entry.model_copy(
+            update={"lifecycle_state": VerificationPlanLifecycleState.SELECTED}
+        )
+        events = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=selected,
+                    ),
+                )
+            ]
+        )
+        return self._disposition_result(
+            changeset,
+            task_id=task_id,
+            action="selected",
+            entry=selected,
+            events=events,
+        )
+
+    def skip_plan_entry(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        verification_id: TaskVerificationId,
+        reason: str,
+    ) -> ChangesetVerificationPlanDispositionResult:
+        changeset, task_id, entry = self._plan_disposition_context(
+            changeset_id,
+            workspace_root,
+            verification_id=verification_id,
+        )
+        skipped = entry.model_copy(
+            update={"lifecycle_state": VerificationPlanLifecycleState.SKIPPED}
+        )
+        events = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=skipped,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationSkipped(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        reason=reason,
+                    ),
+                ),
+            ]
+        )
+        return self._disposition_result(
+            changeset,
+            task_id=task_id,
+            action="skipped",
+            entry=skipped,
+            events=events,
+        )
+
+    def accept_plan_entry_risk(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        verification_id: TaskVerificationId,
+        reason: str,
+        residual_risks: list[str],
+        accepted_by: str = "operator",
+    ) -> ChangesetVerificationPlanDispositionResult:
+        changeset, task_id, entry = self._plan_disposition_context(
+            changeset_id,
+            workspace_root,
+            verification_id=verification_id,
+        )
+        accepted = entry.model_copy(
+            update={"lifecycle_state": VerificationPlanLifecycleState.ACCEPTED_RISK}
+        )
+        events = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=accepted,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationResidualRiskAccepted(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        accepted_by=accepted_by,
+                        reason=reason,
+                        residual_risks=residual_risks,
+                    ),
+                ),
+            ]
+        )
+        return self._disposition_result(
+            changeset,
+            task_id=task_id,
+            action="accepted-risk",
+            entry=accepted,
+            events=events,
+        )
+
+    def supersede_plan_entry(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        verification_id: TaskVerificationId,
+        replacement_verification_id: TaskVerificationId,
+        reason: str,
+    ) -> ChangesetVerificationPlanDispositionResult:
+        changeset, task_id, entry = self._plan_disposition_context(
+            changeset_id,
+            workspace_root,
+            verification_id=verification_id,
+        )
+        replacement_entry = self._plan_entry(
+            self.preview_plan(changeset_id, workspace_root),
+            replacement_verification_id,
+        )
+        replacement = (
+            replacement_entry.model_copy(
+                update={"lifecycle_state": VerificationPlanLifecycleState.SELECTED}
+            )
+            if replacement_entry.command or replacement_entry.command_recipe is not None
+            else replacement_entry
+        )
+        superseded = entry.model_copy(
+            update={
+                "lifecycle_state": VerificationPlanLifecycleState.SUPERSEDED,
+                "superseded_by_verification_id": replacement_verification_id,
+            }
+        )
+        events = self._repository.append_events(
+            [
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=superseded,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationRetried(
+                        task_id=task_id,
+                        verification_id=verification_id,
+                        next_verification_id=replacement_verification_id,
+                        attempt=1,
+                        reason=reason,
+                    ),
+                ),
+                EventEnvelope(
+                    session_id=changeset.session_id,
+                    sequence=0,
+                    payload=TaskVerificationPlanned(
+                        task_id=task_id,
+                        verification=replacement,
+                    ),
+                ),
+            ]
+        )
+        return self._disposition_result(
+            changeset,
+            task_id=task_id,
+            action="superseded",
+            entry=superseded,
+            events=events,
+            replacement_verification_id=replacement_verification_id,
+        )
+
     def _task_ledger_for_changeset(
         self,
         changeset: ChangesetRecord,
@@ -313,6 +520,68 @@ class ChangesetVerificationService:
         return self._repository.list_task_verification_ledger(
             changeset.session_id,
             changeset.task_id,
+        )
+
+    def _plan_disposition_context(
+        self,
+        changeset_id: ChangesetId,
+        workspace_root: Path,
+        *,
+        verification_id: TaskVerificationId,
+    ) -> tuple[ChangesetRecord, TaskId, VerificationPlanEntry]:
+        changeset = self._require_changeset(changeset_id)
+        if changeset.task_id is None:
+            raise ValueError(
+                "verification plan decisions require a task-backed changeset"
+            )
+        preview = self.preview_plan(changeset_id, workspace_root)
+        return (
+            changeset,
+            changeset.task_id,
+            self._plan_entry(preview, verification_id),
+        )
+
+    def _plan_entry(
+        self,
+        preview: ChangesetVerificationPlanPreview,
+        verification_id: TaskVerificationId,
+    ) -> VerificationPlanEntry:
+        for entry in preview.plan_entries:
+            if entry.verification_id == verification_id:
+                return entry
+        raise ValueError("verification_id is not present in the current plan preview")
+
+    def _disposition_result(
+        self,
+        changeset: ChangesetRecord,
+        *,
+        task_id: TaskId,
+        action: str,
+        entry: VerificationPlanEntry,
+        events: list[EventEnvelope],
+        replacement_verification_id: TaskVerificationId | None = None,
+    ) -> ChangesetVerificationPlanDispositionResult:
+        return ChangesetVerificationPlanDispositionResult(
+            changeset_id=changeset.changeset_id,
+            session_id=changeset.session_id,
+            task_id=task_id,
+            action=action,
+            verification_id=entry.verification_id,
+            replacement_verification_id=replacement_verification_id,
+            events=events,
+            entry=entry,
+            safe_next_actions=[
+                (
+                    "glassbox changeset verification-plan "
+                    f"{changeset.changeset_id} --cwd ."
+                ),
+                f"glassbox changeset show {changeset.changeset_id} --cwd .",
+            ],
+            non_claims=[
+                "verification plan decisions do not run commands",
+                "selected checks are not passed until retained evidence says so",
+                "accepted risk is local evidence, not release approval",
+            ],
         )
 
     def _load_inventory_artifact(

@@ -2,6 +2,9 @@
 
 import argparse
 
+from glassbox.cli.changeset_command_handlers import (
+    _changeset_accept_verification_risk_command,
+)
 from glassbox.cli.changeset_command_handlers import _changeset_adopt_candidate_command
 from glassbox.cli.changeset_command_handlers import _changeset_adoption_preview_command
 from glassbox.cli.changeset_command_handlers import _changeset_archive_command
@@ -20,7 +23,14 @@ from glassbox.cli.changeset_command_handlers import (
     _changeset_record_verification_command,
 )
 from glassbox.cli.changeset_command_handlers import _changeset_refresh_command
+from glassbox.cli.changeset_command_handlers import (
+    _changeset_select_verification_command,
+)
 from glassbox.cli.changeset_command_handlers import _changeset_show_command
+from glassbox.cli.changeset_command_handlers import _changeset_skip_verification_command
+from glassbox.cli.changeset_command_handlers import (
+    _changeset_supersede_verification_command,
+)
 from glassbox.cli.changeset_command_handlers import _changeset_verification_plan_command
 
 
@@ -44,6 +54,14 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_verification_plan_command(args)
     if command == "record-verification":
         return _changeset_record_verification_command(args)
+    if command == "verification-select":
+        return _changeset_select_verification_command(args)
+    if command == "verification-skip":
+        return _changeset_skip_verification_command(args)
+    if command == "verification-accept-risk":
+        return _changeset_accept_verification_risk_command(args)
+    if command == "verification-supersede":
+        return _changeset_supersede_verification_command(args)
     if command == "brief":
         return _changeset_brief_command(args)
     if command == "export":

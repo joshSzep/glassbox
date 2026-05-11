@@ -31,6 +31,86 @@ def _add_changeset_review_parsers(
     verification_plan_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(verification_plan_parser)
 
+    select_parser = changeset_subparsers.add_parser(
+        "verification-select",
+        help="record operator selection for a verification plan entry",
+        description=(
+            "Persist that a previewed verification plan entry was selected. "
+            "This records local evidence but does not run the command."
+        ),
+    )
+    select_parser.add_argument("changeset_id", type=_parse_uuid)
+    select_parser.add_argument(
+        "--verification", dest="verification_id", type=_parse_uuid, required=True
+    )
+    select_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(select_parser)
+
+    skip_parser = changeset_subparsers.add_parser(
+        "verification-skip",
+        help="record an explicit skip for a verification plan entry",
+        description=(
+            "Persist an operator skip for a previewed verification plan entry. "
+            "A skipped check is not represented as passed."
+        ),
+    )
+    skip_parser.add_argument("changeset_id", type=_parse_uuid)
+    skip_parser.add_argument(
+        "--verification", dest="verification_id", type=_parse_uuid, required=True
+    )
+    skip_parser.add_argument("--reason", required=True)
+    skip_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(skip_parser)
+
+    accept_risk_parser = changeset_subparsers.add_parser(
+        "verification-accept-risk",
+        help="record accepted residual risk for a verification plan entry",
+        description=(
+            "Persist local accepted-risk evidence for a previewed verification "
+            "plan entry without treating the check as passed."
+        ),
+    )
+    accept_risk_parser.add_argument("changeset_id", type=_parse_uuid)
+    accept_risk_parser.add_argument(
+        "--verification",
+        dest="verification_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    accept_risk_parser.add_argument("--reason", required=True)
+    accept_risk_parser.add_argument(
+        "--risk",
+        dest="residual_risks",
+        action="append",
+        default=[],
+        help="residual risk statement; may be repeated",
+    )
+    accept_risk_parser.add_argument("--accepted-by", default="operator")
+    accept_risk_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(accept_risk_parser)
+
+    supersede_parser = changeset_subparsers.add_parser(
+        "verification-supersede",
+        help="record that one verification plan entry supersedes another",
+        description=(
+            "Persist local supersede evidence for previewed verification plan "
+            "entries without running either command."
+        ),
+    )
+    supersede_parser.add_argument("changeset_id", type=_parse_uuid)
+    supersede_parser.add_argument(
+        "--verification", dest="verification_id", type=_parse_uuid, required=True
+    )
+    supersede_parser.add_argument(
+        "--replacement",
+        dest="replacement_verification_id",
+        type=_parse_uuid,
+        required=True,
+    )
+    supersede_parser.add_argument("--reason", required=True)
+    supersede_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(supersede_parser)
+
     record_verification_parser = changeset_subparsers.add_parser(
         "record-verification",
         help="record retained verification evidence for a changeset",
