@@ -3,6 +3,9 @@
 from collections.abc import Sequence
 from pathlib import Path
 
+from glassbox.cli.next_action_output import next_action_records_for_cli
+from glassbox.cli.next_action_output import print_next_action_records
+from glassbox.core import NextActionTargetKind
 from glassbox.runtime.eval_baselines import format_eval_baseline_update_report
 from glassbox.runtime.eval_coverage import build_eval_coverage_summary_lines
 from glassbox.runtime.eval_recommendations import EvalLongRunSurfaceRecommendation
@@ -409,6 +412,28 @@ def _print_eval_recommendations(result: EvalRecommendationReport) -> None:
         print("Fallback policy commands:")
         for command in result.fallback_policy_commands:
             print(f"  - {command}")
+    commands = []
+    if result.cheapest_next_command:
+        commands.append(result.cheapest_next_command)
+    commands.extend(result.suggested_commands)
+    commands.extend(result.fallback_policy_commands)
+    print_next_action_records(
+        next_action_records_for_cli(
+            list(dict.fromkeys(commands)),
+            target_kind=NextActionTargetKind.VERIFICATION,
+            target_id="eval-recommend",
+            purpose=(
+                "Review recommended eval and verification commands before execution."
+            ),
+            evidence_summary=(
+                "Eval recommendation is derived from changed paths and local "
+                "eval metadata."
+            ),
+            limitations=[
+                "Recommended commands are not executed unless --execute is provided."
+            ],
+        )
+    )
 
 
 def _format_budget_limit(limit: int | None) -> str:

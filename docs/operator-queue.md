@@ -129,3 +129,14 @@ keys. The command is read-only; it never runs a suggested action.
 `operator_queue_schema_version`, `operator_queue_counts`, and `operator_queue`.
 Dashboard clients can adopt the richer queue data without replacing the
 existing session summary behavior.
+
+## Contextual Next-Action Records
+
+High-traffic CLI status surfaces keep their existing string fields and now add
+typed `next_action_records` where JSON output is available. Session status,
+task detail, changeset detail, handoff readiness, repository status,
+observability status, readiness checks, and eval recommendations use the shared
+`NextAction` vocabulary with command recipes, evidence summaries, and
+limitations. Human output prints a compact "Next action records" block beside
+the legacy safe-next-action text. These records are advisory: rendering them
+does not run commands, approve mutations, or claim that verification has passed.

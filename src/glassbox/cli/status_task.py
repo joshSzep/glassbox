@@ -1,5 +1,7 @@
 """Task status formatting helpers for the CLI."""
 
+from glassbox.cli.next_action_output import print_next_action_records
+from glassbox.cli.status_task_next_actions import task_next_action_records
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskEventView
 from glassbox.runtime.task_queries import TaskSummaryView
@@ -99,6 +101,7 @@ def print_task_detail(detail: TaskDetailView) -> None:
         print(f"  Changed paths: {', '.join(drift.changed_paths[:5])}")
     if drift.stale_changed_paths:
         print(f"  Stale paths: {', '.join(drift.stale_changed_paths[:5])}")
+    print_next_action_records(task_next_action_records(detail))
     for line in format_task_safe_workflow_lines(detail):
         print(line)
 
@@ -149,4 +152,5 @@ __all__ = [
     "print_task_detail",
     "print_task_events",
     "print_task_summaries",
+    "task_next_action_records",
 ]

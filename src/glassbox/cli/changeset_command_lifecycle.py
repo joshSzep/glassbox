@@ -10,6 +10,9 @@ from glassbox.cli.changeset_command_formatters import _print_changeset_detail
 from glassbox.cli.changeset_command_formatters import _print_changeset_list
 from glassbox.cli.changeset_command_formatters import _print_limitations
 from glassbox.cli.changeset_command_formatters import _print_verification_plan
+from glassbox.cli.changeset_command_formatters import (
+    changeset_next_action_record_payloads,
+)
 from glassbox.cli.changeset_command_payloads import _adoption_result_payload
 from glassbox.cli.changeset_command_payloads import _review_brief_payload
 from glassbox.cli.json_output import print_json_output
@@ -153,6 +156,7 @@ def _changeset_show_command(args: argparse.Namespace) -> int:
         payload = detail.model_dump(mode="json")
         payload["verification_plan"] = verification_plan.model_dump(mode="json")
         payload["handoff_readiness"] = handoff_readiness.model_dump(mode="json")
+        payload["next_action_records"] = changeset_next_action_record_payloads(detail)
         print_json_output(payload)
     else:
         _print_changeset_detail(

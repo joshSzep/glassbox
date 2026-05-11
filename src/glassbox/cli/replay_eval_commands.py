@@ -6,6 +6,8 @@ from pathlib import Path
 
 from glassbox.cli.json_output import format_json_output
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.next_action_output import next_action_record_payloads
+from glassbox.cli.next_action_output import next_action_records_for_cli
 from glassbox.cli.path_helpers import resolve_eval_report_output_dir
 from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_runtime_location
@@ -16,6 +18,7 @@ from glassbox.cli.replay_eval_formatters import _print_eval_profile
 from glassbox.cli.replay_eval_formatters import _print_eval_profiles
 from glassbox.cli.replay_eval_formatters import _print_eval_recommendations
 from glassbox.cli.replay_eval_formatters import _print_eval_suite_report
+from glassbox.core import NextActionTargetKind
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.eval_baselines import promote_eval_case
 from glassbox.runtime.eval_baselines import refresh_eval_case
@@ -159,6 +162,9 @@ async def _eval_command_async(args: argparse.Namespace) -> int:
                 executed.model_dump(mode="json")
                 for executed in verification_plan.executed_checks
             ]
+            payload["next_action_records"] = next_action_record_payloads(
+                _eval_recommend_next_action_records(recommendation)
+            )
             print_json_output(payload)
         else:
             _print_eval_recommendations(recommendation)
@@ -393,6 +399,26 @@ def _eval_case_promote_command(args: argparse.Namespace) -> int:
     else:
         _print_eval_baseline_update(report)
     return 0
+
+
+def _eval_recommend_next_action_records(recommendation):
+    commands = []
+    if recommendation.cheapest_next_command:
+        commands.append(recommendation.cheapest_next_command)
+    commands.extend(recommendation.suggested_commands)
+    commands.extend(recommendation.fallback_policy_commands)
+    return next_action_records_for_cli(
+        list(dict.fromkeys(commands)),
+        target_kind=NextActionTargetKind.VERIFICATION,
+        target_id="eval-recommend",
+        purpose=("Review recommended eval and verification commands before execution."),
+        evidence_summary=(
+            "Eval recommendation is derived from changed paths and local eval metadata."
+        ),
+        limitations=[
+            "Recommended commands are not executed unless --execute is provided."
+        ],
+    )
 
 
 def _eval_case_refresh_command(args: argparse.Namespace) -> int:

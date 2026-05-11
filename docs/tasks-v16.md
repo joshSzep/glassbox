@@ -617,7 +617,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1623: Add Contextual Next Actions To Existing Status Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1622`
 - Goal: replace scattered prose-only next-action fragments with typed
   contextual next actions on high-traffic status surfaces

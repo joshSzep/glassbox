@@ -3,8 +3,12 @@
 import argparse
 
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.next_action_output import next_action_record_payloads
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_observability import print_observability_report
+from glassbox.cli.status_observability_next_actions import (
+    observability_next_action_records,
+)
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
@@ -36,6 +40,9 @@ def _observability_status_command(args: argparse.Namespace) -> int:
     if args.json:
         payload = report.model_dump(mode="json")
         payload["knowledge_posture"] = knowledge_posture.model_dump(mode="json")
+        payload["next_action_records"] = next_action_record_payloads(
+            observability_next_action_records(report)
+        )
         print_json_output(payload)
     else:
         print_observability_report(report, knowledge_posture)

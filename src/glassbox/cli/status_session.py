@@ -3,8 +3,10 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from glassbox.cli.next_action_output import print_next_action_records
 from glassbox.cli.policy_formatters import format_policy_suffix
 from glassbox.cli.policy_formatters import format_policy_summary
+from glassbox.cli.status_session_next_actions import session_next_action_records
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import SessionFailed
 from glassbox.core.events import SessionStarted
@@ -78,6 +80,7 @@ def _print_session_status(status_view: SessionStatusView) -> None:
             snapshot.turn_recovery_posture,
         )
     )
+    print_next_action_records(session_next_action_records(status_view))
     for line in _format_recovery_guidance_lines(status_view):
         print(line)
     for line in _format_session_safe_workflow_lines(status_view):

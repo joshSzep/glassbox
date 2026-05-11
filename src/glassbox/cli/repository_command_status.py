@@ -5,11 +5,15 @@ from pathlib import Path
 from typing import cast
 
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.next_action_output import next_action_record_payloads
+from glassbox.cli.next_action_output import next_action_records_for_cli
+from glassbox.cli.next_action_output import print_next_action_records
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.repository_command_formatters import _print_next_actions
 from glassbox.cli.repository_command_formatters import _print_status_summary
 from glassbox.cli.repository_command_formatters import _print_topology_status
 from glassbox.cli.repository_command_formatters import _print_topology_status_payload
+from glassbox.core import NextActionTargetKind
 from glassbox.runtime.repository_index_status import (
     build_repository_index_status_summary,
 )
@@ -41,6 +45,8 @@ def _repo_status_command(args: argparse.Namespace) -> int:
             cwd,
         ),
     }
+    records = _repo_next_action_records(payload["next_actions"], cwd)
+    payload["next_action_records"] = next_action_record_payloads(records)
     if args.json:
         print_json_output(payload)
     else:
@@ -49,6 +55,7 @@ def _repo_status_command(args: argparse.Namespace) -> int:
         print("")
         _print_topology_status_payload(topology_payload)
         _print_next_actions(payload["next_actions"])
+        print_next_action_records(records)
     return 0
 
 
@@ -77,6 +84,8 @@ def _repo_stale_command(args: argparse.Namespace) -> int:
             cwd,
         ),
     }
+    records = _repo_next_action_records(payload["next_actions"], cwd)
+    payload["next_action_records"] = next_action_record_payloads(records)
     if args.json:
         print_json_output(payload)
     else:
@@ -90,7 +99,24 @@ def _repo_stale_command(args: argparse.Namespace) -> int:
                     f"({cue['reason']}) - {cue['detail']}"
                 )
         _print_next_actions(payload["next_actions"])
+        print_next_action_records(records)
     return 0
+
+
+def _repo_next_action_records(actions: list[str], cwd: Path):
+    return next_action_records_for_cli(
+        actions,
+        target_kind=NextActionTargetKind.REPOSITORY_INTELLIGENCE,
+        target_id=str(cwd),
+        purpose=(
+            "Inspect or refresh local repository intelligence before relying on "
+            "recommendations."
+        ),
+        evidence_summary=(
+            "Repository status combines local index and topology freshness."
+        ),
+        limitations=["Refresh commands update local intelligence only."],
+    )
 
 
 def _repo_index_status_command(args: argparse.Namespace) -> int:

@@ -341,6 +341,13 @@ def test_repo_intelligence_workflow_commands(tmp_path: Path, capsys) -> None:
     assert status_payload["index"]["status"] == "fresh"
     assert status_payload["topology"]["freshness"] == "fresh"
     assert "glassbox repo refresh" in status_payload["next_actions"][-1]
+    assert status_payload["next_action_records"][0]["target"]["kind"] == (
+        "repository_intelligence"
+    )
+    assert any(
+        record["command"]["display"].startswith("glassbox repo refresh")
+        for record in status_payload["next_action_records"]
+    )
     assert recipes_exit == 0
     assert recipe_show_exit == 0
     assert recipe_show_payload["recipe_id"] == recipe_id
@@ -357,6 +364,9 @@ def test_repo_intelligence_workflow_commands(tmp_path: Path, capsys) -> None:
     assert any(cue["state"] == "missing" for cue in stale_payload["cues"])
     assert any(
         "glassbox repo refresh" in action for action in stale_payload["next_actions"]
+    )
+    assert stale_payload["next_action_records"][0]["target"]["kind"] == (
+        "repository_intelligence"
     )
 
 

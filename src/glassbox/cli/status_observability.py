@@ -1,6 +1,10 @@
 """Workspace observability status formatting helpers for the CLI."""
 
+from glassbox.cli.next_action_output import print_next_action_records
 from glassbox.cli.status_knowledge import format_knowledge_provenance
+from glassbox.cli.status_observability_next_actions import (
+    observability_next_action_records,
+)
 from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
 from glassbox.runtime.observability import WorkspaceObservabilityReport
 
@@ -125,6 +129,7 @@ def print_observability_report(
     print("Next:")
     for action in report.next_actions:
         print(f"  - {action}")
+    print_next_action_records(observability_next_action_records(report))
 
 
 def format_observability_safe_workflow_lines(

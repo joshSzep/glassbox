@@ -10,6 +10,7 @@ from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_task import print_task_detail
 from glassbox.cli.status_task import print_task_events
 from glassbox.cli.status_task import print_task_summaries
+from glassbox.cli.status_task_next_actions import task_next_action_record_payloads
 from glassbox.core.events import EventEnvelope
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import PauseWindowPolicy
@@ -84,6 +85,7 @@ def _task_show_command(args: argparse.Namespace) -> int:
         payload["related_changesets"] = [
             changeset.model_dump(mode="json") for changeset in related_changesets
         ]
+        payload["next_action_records"] = task_next_action_record_payloads(detail)
         print_json_output(payload)
     else:
         print_task_detail(detail)

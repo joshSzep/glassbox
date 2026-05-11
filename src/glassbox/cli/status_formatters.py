@@ -27,6 +27,7 @@ from glassbox.cli.status_session import _pending_question_text_from_events
 from glassbox.cli.status_session import _print_runtime_context_summary
 from glassbox.cli.status_session import _print_session_status
 from glassbox.cli.status_session import _session_failure_from_status_view
+from glassbox.cli.status_session_next_actions import session_next_action_records
 
 __all__ = [
     "_dashboard_url_from_events",
@@ -47,6 +48,7 @@ __all__ = [
     "_format_recovery_guidance_lines",
     "_format_session_failure",
     "_format_session_safe_workflow_lines",
+    "session_next_action_records",
     "_format_tool_attempt_summary",
     "_format_tool_call_summary",
     "_format_turn_metrics",

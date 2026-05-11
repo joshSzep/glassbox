@@ -675,6 +675,10 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert detail["review_response_summary"]["accepted_risk_count"] == 1
     assert detail["sources"][0]["source_kind"] == "task"
     assert "glassbox changeset refresh" in detail["safe_next_actions"][1]
+    assert detail["next_action_records"][0]["target"]["kind"] == "changeset"
+    assert detail["next_action_records"][0]["command"]["display"].startswith(
+        "glassbox changeset show"
+    )
     assert refresh_exit == 0
     assert "Refreshed change inventory" in refresh_output
     assert plan_exit == 0
@@ -756,6 +760,10 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert handoff["evidence"]["manual_evidence_count"] == 3
     assert "not publication" in " ".join(handoff["non_claims"])
     assert any("changeset show" in action for action in handoff["safe_next_actions"])
+    assert handoff["next_action_records"][0]["target"]["kind"] == "changeset"
+    assert handoff["next_action_records"][0]["command"]["display"].startswith(
+        "glassbox changeset show"
+    )
     assert graph_summary_exit == 0
     assert graph_summary["target_kind"] == "changeset"
     assert graph_summary["target_id"] == changeset_id

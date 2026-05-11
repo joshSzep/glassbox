@@ -3,8 +3,13 @@
 from glassbox.cli.changeset_command_payloads import _feedback_result_payload
 from glassbox.cli.changeset_command_payloads import _fixup_inventory_payload
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.next_action_output import next_action_record_payloads
+from glassbox.cli.next_action_output import next_action_records_for_cli
+from glassbox.cli.next_action_output import print_next_action_records
 from glassbox.core import ChangesetRecord
 from glassbox.core import ManualEvidenceRecord
+from glassbox.core import NextActionPriority
+from glassbox.core import NextActionTargetKind
 from glassbox.core import ReviewFeedbackRecord
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPreview
 from glassbox.runtime.changesets import ChangesetDetailView
@@ -199,6 +204,35 @@ def _print_changeset_detail(
     print("Safe next actions:")
     for action in detail.safe_next_actions:
         print(f"  - {action}")
+    print_next_action_records(changeset_next_action_records(detail))
+
+
+def changeset_next_action_records(detail: ChangesetDetailView):
+    return next_action_records_for_cli(
+        detail.safe_next_actions,
+        target_kind=NextActionTargetKind.CHANGESET,
+        target_id=str(detail.changeset.changeset_id),
+        purpose=(
+            "Inspect changeset readiness, evidence, and verification before handoff."
+        ),
+        evidence_summary=(
+            "Changeset detail combines local inventory, verification, review, "
+            "and handoff evidence."
+        ),
+        priority=(
+            NextActionPriority.ACTION_NEEDED
+            if detail.changeset.unresolved_risk_count
+            or detail.review_response_summary.blockers
+            else NextActionPriority.RECOMMENDED
+        ),
+        limitations=[
+            "Safe next actions are advisory and do not publish or mutate review state."
+        ],
+    )
+
+
+def changeset_next_action_record_payloads(detail: ChangesetDetailView) -> list[dict]:
+    return next_action_record_payloads(changeset_next_action_records(detail))
 
 
 def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
@@ -335,9 +369,39 @@ def _print_handoff_readiness(readiness: HandoffReadinessAssessment) -> None:
         print("Safe next commands:")
         for action in readiness.safe_next_actions:
             print(f"  - {action}")
+        print_next_action_records(handoff_next_action_records(readiness))
     print("Non-claims:")
     for non_claim in readiness.non_claims:
         print(f"  - {non_claim}")
+
+
+def handoff_next_action_records(readiness: HandoffReadinessAssessment):
+    return next_action_records_for_cli(
+        readiness.safe_next_actions,
+        target_kind=NextActionTargetKind.CHANGESET,
+        target_id=str(readiness.changeset_id),
+        purpose=(
+            "Inspect handoff blockers and evidence before exporting review materials."
+        ),
+        evidence_summary=(
+            "Handoff readiness is derived from local review, evidence, and risk "
+            "posture."
+        ),
+        priority=(
+            NextActionPriority.ACTION_NEEDED
+            if readiness.blockers
+            else NextActionPriority.RECOMMENDED
+        ),
+        limitations=[
+            "Readiness preview does not stage, commit, push, open a PR, or merge."
+        ],
+    )
+
+
+def handoff_next_action_record_payloads(
+    readiness: HandoffReadinessAssessment,
+) -> list[dict]:
+    return next_action_record_payloads(handoff_next_action_records(readiness))
 
 
 def _print_limitations(limitations: list[str]) -> None:

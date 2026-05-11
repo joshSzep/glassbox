@@ -98,6 +98,10 @@ def test_task_list_show_and_events_commands(tmp_path: Path, capsys) -> None:
     assert show_payload["steps"][0]["step_id"] == str(step_id)
     assert show_payload["verification_summary"]["current_posture"] == "missing"
     assert show_payload["verification_ledger"] == []
+    assert show_payload["next_action_records"][0]["target"]["kind"] == "task"
+    assert show_payload["next_action_records"][0]["command"]["display"].startswith(
+        "glassbox task show"
+    )
     assert events_exit == 0
     assert [event["event_type"] for event in events_payload] == [
         "TaskCreated",

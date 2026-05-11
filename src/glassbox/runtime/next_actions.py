@@ -2,8 +2,10 @@
 
 from collections.abc import Iterable
 from hashlib import sha256
+from shlex import split as shlex_split
 
 from glassbox.core import NextAction
+from glassbox.core import NextActionCommandRecipe
 from glassbox.core import NextActionEvidenceRef
 from glassbox.core import NextActionKind
 from glassbox.core import NextActionPriority
@@ -85,6 +87,46 @@ def next_actions_from_summaries(
     return actions
 
 
+def next_action_from_command(
+    display: str,
+    *,
+    target_kind: NextActionTargetKind = NextActionTargetKind.UNKNOWN,
+    target_id: str | None = None,
+    title: str | None = None,
+    purpose: str = "Inspect the recommended status surface.",
+    kind: NextActionKind = NextActionKind.INSPECT,
+    priority: NextActionPriority = NextActionPriority.RECOMMENDED,
+    severity: NextActionSeverity = NextActionSeverity.INFO,
+    requires_approval: bool = False,
+    supporting_evidence: Iterable[NextActionEvidenceRef] = (),
+    limitations: Iterable[str] = (),
+    recommended_surfaces: Iterable[NextActionSurface] = (),
+) -> NextAction:
+    """Build a typed next-action record for an existing CLI command string."""
+
+    normalized_display = display.strip()
+    command = _command_words(normalized_display)
+    return NextAction(
+        action_id=_action_id(normalized_display, target_kind, target_id),
+        title=title or _title_from_summary(normalized_display),
+        summary=purpose,
+        kind=kind,
+        priority=priority,
+        severity=severity,
+        safety_class=NextActionSafetyClass.COMMAND_RECIPE,
+        target=NextActionTarget(kind=target_kind, target_id=target_id),
+        command=NextActionCommandRecipe(
+            command=command,
+            display=normalized_display,
+            purpose=purpose,
+            requires_approval=requires_approval,
+        ),
+        supporting_evidence=list(supporting_evidence),
+        limitations=list(dict.fromkeys(limitations)),
+        recommended_surfaces=list(dict.fromkeys(recommended_surfaces)),
+    )
+
+
 def _action_id(
     summary: str,
     target_kind: NextActionTargetKind,
@@ -103,7 +145,16 @@ def _title_from_summary(summary: str) -> str:
     return f"{title[:77].rstrip()}..."
 
 
+def _command_words(display: str) -> list[str]:
+    try:
+        words = shlex_split(display)
+    except ValueError:
+        words = display.split()
+    return words or [display]
+
+
 __all__ = [
+    "next_action_from_command",
     "next_action_from_summary",
     "next_actions_from_summaries",
 ]

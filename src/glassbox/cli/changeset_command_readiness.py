@@ -8,6 +8,9 @@ from typing import cast
 from glassbox.cli.changeset_command_formatters import _print_commit_message_suggestion
 from glassbox.cli.changeset_command_formatters import _print_commit_prep
 from glassbox.cli.changeset_command_formatters import _print_handoff_readiness
+from glassbox.cli.changeset_command_formatters import (
+    handoff_next_action_record_payloads,
+)
 from glassbox.cli.changeset_command_payloads import _precommit_evidence_payload
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
@@ -125,7 +128,9 @@ def _changeset_handoff_readiness_command(args: argparse.Namespace) -> int:
         )
 
     if args.json:
-        print_json_output(readiness.model_dump(mode="json"))
+        payload = readiness.model_dump(mode="json")
+        payload["next_action_records"] = handoff_next_action_record_payloads(readiness)
+        print_json_output(payload)
     else:
         _print_handoff_readiness(readiness)
     return 0

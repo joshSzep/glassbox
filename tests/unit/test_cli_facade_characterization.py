@@ -320,6 +320,13 @@ def test_print_session_status_preserves_status_output_contract(
     assert "Pending question: 00000000-0000-0000-0000-000000000333" in captured.out
     assert "Which branch should I inspect?" in captured.out
     assert "answer question 00000000-0000-0000-0000-000000000333" in captured.out
+    assert "Next action records:" in captured.out
+    assert "glassbox queue list --view action-needed --cwd ." in captured.out
+    assert (
+        "glassbox session answer "
+        "00000000-0000-0000-0000-000000000111 "
+        "00000000-0000-0000-0000-000000000333 ANSWER --cwd ." in captured.out
+    )
     assert (
         "Session policy summary: 1 decision(s); allow 1, approve 0, deny 0, "
         "blocked 0;" in captured.out
