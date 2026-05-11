@@ -808,7 +808,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1641: Add Guided Changeset Workup Flow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1640`, `GBX-1632`
 - Goal: compress the happy path from local diff to changeset, verification
   plan, review brief, and handoff posture while keeping each mutation explicit

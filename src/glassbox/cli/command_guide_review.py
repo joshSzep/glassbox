@@ -19,6 +19,15 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             ),
         ),
         CommandGuideEntry(
+            "glassbox changeset workup --session SESSION_ID --cwd .",
+            (
+                "Guide the local review path from preview through explicit "
+                "create, refresh, verification disposition, brief, and handoff "
+                "steps. Durable steps require confirmation flags such as "
+                "--confirm-create, --confirm-refresh, or --confirm-brief."
+            ),
+        ),
+        CommandGuideEntry(
             "glassbox changeset workup-preview --cwd .",
             (
                 "Preview changed paths, candidate changeset grouping, "

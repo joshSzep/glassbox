@@ -25,6 +25,7 @@ class TerminalCommandId(StrEnum):
     INTERRUPT = "interrupt"
     CLEAR_TRANSCRIPT = "clear_transcript"
     REVIEW_CREATE_CHANGESET = "review_create_changeset"
+    REVIEW_WORKUP_GUIDE = "review_workup_guide"
     REVIEW_REFRESH_INVENTORY = "review_refresh_inventory"
     REVIEW_OPEN_DASHBOARD = "review_open_dashboard"
     REVIEW_GENERATE_BRIEF = "review_generate_brief"
@@ -149,6 +150,12 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         "Clear Visual Transcript",
         "Clear the visible transcript without changing session history",
         slash_aliases=("/clear",),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.REVIEW_WORKUP_GUIDE,
+        "Review: Guided Workup",
+        "Guide local changes through changeset, verification, brief, and handoff",
+        slash_aliases=("/review workup", "/review guide", "/changeset workup"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_CREATE_CHANGESET,

@@ -74,6 +74,23 @@ Ignored paths remain absent unless git diff or status reports them; generated,
 untracked, docs, test, and policy-sensitive paths are counted in the inventory
 so the operator can decide whether to create or split changeset evidence.
 
+When the operator is ready to move from inspection into a guided local review
+flow, use:
+
+```bash
+glassbox changeset workup --session SESSION_ID --cwd .
+```
+
+The guided flow lists the next durable step and the confirmation flag required
+to perform it. For example, `--confirm-create` records changeset evidence,
+`--confirm-refresh` records a fresh inventory artifact, and `--confirm-brief`
+generates reviewer-safe lifecycle brief evidence. Verification selections,
+skips, and accepted risk remain explicit through `--select-verification`,
+`--skip-verification --skip-reason`, and `--accept-risk-verification
+--risk-reason --risk`. The guide previews verification and handoff posture but
+does not run verification commands, stage files, commit, push, publish, or open
+a pull request.
+
 Operators can preview the intended verification plan without running anything:
 
 ```bash

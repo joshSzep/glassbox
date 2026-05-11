@@ -916,6 +916,70 @@ def test_changeset_workup_preview_reports_read_only_action_map(
     assert "no changeset was created" in text_output
 
 
+def test_changeset_workup_guides_confirmed_steps(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    _init_git_repo(tmp_path)
+    _seed_task(db_path, tmp_path, session_id, task_id)
+    (tmp_path / "app.py").write_text("print('guided')\n", encoding="utf-8")
+
+    preview_exit = main(
+        [
+            "changeset",
+            "workup",
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    preview_payload = json.loads(capsys.readouterr().out)
+
+    assert preview_exit == 0
+    assert preview_payload["changeset_id"] is None
+    assert preview_payload["steps"][1]["step"] == "create_changeset"
+    assert preview_payload["steps"][1]["status"] == "awaiting_confirmation"
+
+    guided_exit = main(
+        [
+            "changeset",
+            "workup",
+            "--session",
+            str(session_id),
+            "--confirm-create",
+            "--confirm-refresh",
+            "--confirm-brief",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    guided = json.loads(capsys.readouterr().out)
+    step_by_name = {step["step"]: step for step in guided["steps"]}
+
+    assert guided_exit == 0
+    assert guided["changeset_id"] is not None
+    assert step_by_name["create_changeset"]["status"] == "completed"
+    assert step_by_name["refresh_inventory"]["durable_event_count"] >= 1
+    assert step_by_name["verification_plan"]["durable_event_count"] == 0
+    assert step_by_name["review_brief"]["status"] == "completed"
+    assert guided["verification_plan"]["plan_entries"]
+    assert guided["handoff_readiness"]["changeset_id"] == guided["changeset_id"]
+    assert (
+        "durable events are recorded only for explicitly confirmed steps"
+        in guided["non_claims"]
+    )
+
+
 def test_changeset_verification_plan_records_operator_dispositions(
     tmp_path: Path,
     capsys,

@@ -33,6 +33,8 @@ def _parse_review_command(text: str) -> _ParsedReviewCommand:
     argument = parts[2].strip() if len(parts) > 2 and parts[2].strip() else None
     if subcommand in {"create", "new"}:
         return _ParsedReviewCommand("create", argument)
+    if subcommand in {"workup", "guide", "guided"}:
+        return _ParsedReviewCommand(ReviewLoopAction.WORKUP_GUIDE, argument)
     if subcommand in {"status", "feedback", "responses"}:
         return _ParsedReviewCommand(ReviewLoopAction.SHOW_FEEDBACK_STATUS, argument)
     if subcommand in {"fixup", "record-fixup"}:

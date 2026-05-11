@@ -33,6 +33,7 @@ class InteractiveClientError(ValueError):
 
 class ReviewLoopAction(StrEnum):
     STATUS = "status"
+    WORKUP_GUIDE = "workup_guide"
     REFRESH_INVENTORY = "refresh_inventory"
     GENERATE_BRIEF = "generate_brief"
     PREVIEW_VERIFICATION = "preview_verification"

@@ -144,6 +144,35 @@ def _print_workup_preview(preview: ChangesetWorkupPreview) -> None:
         print(f"  - {non_claim}")
 
 
+def _print_guided_workup(payload: dict) -> None:
+    print("Guided changeset workup")
+    if payload.get("changeset_id") is not None:
+        print(f"Changeset: {payload['changeset_id']}")
+    if payload.get("session_id") is not None:
+        print(f"Session: {payload['session_id']}")
+    print("Steps:")
+    for step in payload.get("steps", []):
+        print(
+            f"  - {step['status']}: {step['step']} - "
+            f"{step['summary']} ({step['durable_event_count']} event(s))"
+        )
+        for limitation in step.get("limitations", [])[:3]:
+            print(f"    limitation: {limitation}")
+    verification_plan = payload.get("verification_plan")
+    if verification_plan is not None:
+        print(
+            "Verification plan: "
+            f"{len(verification_plan.get('plan_entries', []))} entry(s), "
+            f"{len(verification_plan.get('recommended_commands', []))} command(s)"
+        )
+    handoff = payload.get("handoff_readiness")
+    if handoff is not None:
+        print(f"Handoff: {handoff.get('state')} - {handoff.get('reason')}")
+    print("Non-claims:")
+    for non_claim in payload.get("non_claims", []):
+        print(f"  - {non_claim}")
+
+
 def _print_changeset_detail(
     detail: ChangesetDetailView,
     *,

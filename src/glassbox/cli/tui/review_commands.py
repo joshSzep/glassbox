@@ -22,6 +22,8 @@ def review_slash_command(rest: str) -> TerminalSlashCommand:
     parts = rest.strip().split(maxsplit=1)
     subcommand = parts[0].lower() if parts else "status"
     argument = parts[1] if len(parts) > 1 else None
+    if subcommand in {"workup", "guide", "guided"}:
+        return TerminalSlashCommand(TerminalCommandId.REVIEW_WORKUP_GUIDE, argument)
     if subcommand in {"create", "new"}:
         return TerminalSlashCommand(TerminalCommandId.REVIEW_CREATE_CHANGESET, argument)
     if subcommand == "refresh":
@@ -58,6 +60,7 @@ def review_disabled_reason(
 ) -> str | None:
     if command_id in {
         TerminalCommandId.REVIEW_CREATE_CHANGESET,
+        TerminalCommandId.REVIEW_WORKUP_GUIDE,
         TerminalCommandId.REVIEW_REFRESH_INVENTORY,
         TerminalCommandId.REVIEW_GENERATE_BRIEF,
     }:
@@ -211,6 +214,8 @@ def review_action_for_command(
 ) -> ReviewLoopAction | None:
     if command_id == TerminalCommandId.REVIEW_REFRESH_INVENTORY:
         return ReviewLoopAction.REFRESH_INVENTORY
+    if command_id == TerminalCommandId.REVIEW_WORKUP_GUIDE:
+        return ReviewLoopAction.WORKUP_GUIDE
     if command_id == TerminalCommandId.REVIEW_GENERATE_BRIEF:
         return ReviewLoopAction.GENERATE_BRIEF
     if command_id == TerminalCommandId.REVIEW_PREVIEW_VERIFICATION:

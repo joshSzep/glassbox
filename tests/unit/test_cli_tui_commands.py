@@ -43,6 +43,7 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.INTERRUPT in command_ids
     assert TerminalCommandId.CLEAR_TRANSCRIPT in command_ids
     assert TerminalCommandId.REVIEW_CREATE_CHANGESET in command_ids
+    assert TerminalCommandId.REVIEW_WORKUP_GUIDE in command_ids
     assert TerminalCommandId.REVIEW_REFRESH_INVENTORY in command_ids
     assert TerminalCommandId.REVIEW_OPEN_DASHBOARD in command_ids
     assert TerminalCommandId.REVIEW_GENERATE_BRIEF in command_ids
@@ -106,6 +107,7 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
         item.spec.command_id for item in filter_command_items(items, "/review")
     ]
     assert TerminalCommandId.REVIEW_CREATE_CHANGESET in review_command_ids
+    assert TerminalCommandId.REVIEW_WORKUP_GUIDE in review_command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in review_command_ids
     assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in review_command_ids
     missing_fixup_command_ids = [
@@ -193,6 +195,7 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
         command_from_slash("/review create")
         == TerminalCommandId.REVIEW_CREATE_CHANGESET
     )
+    assert command_from_slash("/review workup") == TerminalCommandId.REVIEW_WORKUP_GUIDE
     assert (
         command_from_slash("/changeset brief")
         == TerminalCommandId.REVIEW_GENERATE_BRIEF
@@ -207,6 +210,9 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
 
 def test_slash_command_from_text_preserves_review_arguments() -> None:
     create = slash_command_from_text("/review create Tighten handoff docs")
+    workup = slash_command_from_text(
+        "/review workup 11111111-1111-1111-1111-111111111111"
+    )
     brief = slash_command_from_text(
         "/changeset brief 11111111-1111-1111-1111-111111111111"
     )
@@ -217,6 +223,9 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     assert create is not None
     assert create.command_id == TerminalCommandId.REVIEW_CREATE_CHANGESET
     assert create.argument == "Tighten handoff docs"
+    assert workup is not None
+    assert workup.command_id == TerminalCommandId.REVIEW_WORKUP_GUIDE
+    assert workup.argument == "11111111-1111-1111-1111-111111111111"
     assert brief is not None
     assert brief.command_id == TerminalCommandId.REVIEW_GENERATE_BRIEF
     assert brief.argument == "11111111-1111-1111-1111-111111111111"

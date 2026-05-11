@@ -163,6 +163,7 @@ def test_cli_chat_plain_supports_review_shortcuts(
     interactive_inputs = iter(
         [
             "/review create Plain review parity",
+            "/review workup",
             "/review status",
             "/review verify",
             "/review dashboard",
@@ -210,6 +211,7 @@ def test_cli_chat_plain_supports_review_shortcuts(
     assert changesets[0].objective == "Plain review parity"
     assert sources[0].source_kind == ChangesetSourceKind.WORKSPACE_DIFF
     assert "Created review changeset" in captured.out
+    assert "Guided workup for changeset" in captured.out
     assert "Feedback status for" in captured.out
     assert "Previewed verification for" in captured.out
     assert "Evidence guidance: Missing lifecycle brief" in captured.out

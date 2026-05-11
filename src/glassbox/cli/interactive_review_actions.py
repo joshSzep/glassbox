@@ -35,6 +35,57 @@ def create_changeset_result(
     )
 
 
+def workup_guide_result(
+    *,
+    changeset_id: str | None,
+    changed_path_count: int,
+    plan_entry_count: int | None = None,
+    handoff_state: str | None = None,
+) -> ReviewLoopActionResult:
+    safe_next_actions = [
+        "glassbox changeset workup --session SESSION_ID --cwd .",
+    ]
+    if changeset_id is not None:
+        safe_next_actions = [
+            f"glassbox changeset workup --changeset {changeset_id} --cwd .",
+            (
+                "glassbox changeset workup "
+                f"--changeset {changeset_id} --confirm-refresh --cwd ."
+            ),
+            f"glassbox changeset verification-plan {changeset_id} --cwd .",
+            (
+                "glassbox changeset workup "
+                f"--changeset {changeset_id} --confirm-brief --cwd ."
+            ),
+            f"glassbox changeset handoff-readiness {changeset_id} --cwd .",
+        ]
+    details = [
+        f"Workspace preview: {changed_path_count} changed path(s).",
+        "Durable steps require explicit CLI confirmation flags.",
+    ]
+    if plan_entry_count is not None:
+        details.append(f"Verification plan: {plan_entry_count} entry(s).")
+    if handoff_state is not None:
+        details.append(f"Handoff posture: {handoff_state}.")
+    return ReviewLoopActionResult(
+        action=ReviewLoopAction.WORKUP_GUIDE,
+        headline=(
+            f"Guided workup for changeset {changeset_id}"
+            if changeset_id is not None
+            else "Guided workup preview"
+        ),
+        changeset_id=changeset_id,
+        details=tuple(details),
+        limitations=(
+            "The guide does not run commands, stage, commit, push, or publish.",
+        ),
+        safe_next_actions=tuple(safe_next_actions),
+        dashboard_path=(
+            f"/app/changesets/{changeset_id}" if changeset_id is not None else None
+        ),
+    )
+
+
 def fixup_inventory_result(
     feedback_id: UUID,
     result: Any,

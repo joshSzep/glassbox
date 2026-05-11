@@ -8,6 +8,7 @@ from typing import cast
 from glassbox.cli.changeset_command_formatters import _print_adoption_preview
 from glassbox.cli.changeset_command_formatters import _print_changeset_detail
 from glassbox.cli.changeset_command_formatters import _print_changeset_list
+from glassbox.cli.changeset_command_formatters import _print_guided_workup
 from glassbox.cli.changeset_command_formatters import _print_limitations
 from glassbox.cli.changeset_command_formatters import _print_path_verification_plan
 from glassbox.cli.changeset_command_formatters import _print_verification_disposition
@@ -136,6 +137,246 @@ def _changeset_workup_preview_command(args: argparse.Namespace) -> int:
     else:
         _print_workup_preview(preview)
     return 0
+
+
+def _changeset_workup_command(args: argparse.Namespace) -> int:
+    if args.confirm_create and args.session_id is None and args.changeset_id is None:
+        raise ValueError("--confirm-create requires --session")
+    if args.skip_verification_ids and not args.skip_reason:
+        raise ValueError("--skip-verification requires --skip-reason")
+    if args.accept_risk_verification_ids and (
+        not args.risk_reason or not args.residual_risks
+    ):
+        raise ValueError(
+            "--accept-risk-verification requires --risk-reason and at least one --risk"
+        )
+    cwd, db_path = resolve_runtime_location(args)
+    preview = ChangesetWorkupPreviewService().preview_sync(
+        cwd,
+        session_id=str(args.session_id) if args.session_id is not None else None,
+    )
+    steps: list[dict[str, object]] = [
+        _guided_step(
+            "preview",
+            "completed",
+            "Inspected workspace diff and verification plan without mutation.",
+            durable_event_count=0,
+        )
+    ]
+    changeset_id = args.changeset_id
+    verification_plan = None
+    handoff_readiness = None
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        artifacts = runtime_context.repositories.artifacts
+        if changeset_id is None:
+            if args.confirm_create:
+                result = ChangesetDerivationService(
+                    repository
+                ).create_from_workspace_diff(
+                    args.session_id,
+                    cwd,
+                    objective=args.objective,
+                )
+                changeset_id = result.changeset_id
+                steps.append(
+                    _guided_step(
+                        "create_changeset",
+                        "completed",
+                        f"Created changeset {changeset_id}.",
+                        durable_event_count=len(result.stored_events),
+                        limitations=result.limitations,
+                    )
+                )
+            else:
+                steps.append(
+                    _guided_step(
+                        "create_changeset",
+                        "awaiting_confirmation",
+                        (
+                            "Run with --confirm-create and --session SESSION_ID "
+                            "to create local changeset evidence."
+                        ),
+                    )
+                )
+        if changeset_id is not None:
+            action_service = ChangesetActionService(repository, artifacts)
+            verification_service = ChangesetVerificationService(repository, artifacts)
+            if args.confirm_refresh:
+                result = asyncio.run(
+                    action_service.refresh_inventory(
+                        changeset_id,
+                        cwd,
+                        refreshed_by="operator",
+                    )
+                )
+                steps.append(
+                    _guided_step(
+                        "refresh_inventory",
+                        "completed",
+                        f"Refreshed inventory artifact {result.artifact.artifact_id}.",
+                        durable_event_count=1
+                        + (1 if result.superseded_event is not None else 0),
+                    )
+                )
+            else:
+                steps.append(
+                    _guided_step(
+                        "refresh_inventory",
+                        "awaiting_confirmation",
+                        (
+                            "Run with --confirm-refresh to record fresh inventory "
+                            "evidence."
+                        ),
+                    )
+                )
+            verification_plan = verification_service.preview_plan(changeset_id, cwd)
+            steps.append(
+                _guided_step(
+                    "verification_plan",
+                    "completed",
+                    (
+                        f"Previewed {len(verification_plan.plan_entries)} plan "
+                        "entry(s); no commands were run."
+                    ),
+                    durable_event_count=0,
+                    limitations=verification_plan.limitations,
+                )
+            )
+            for verification_id in args.select_verification_ids or []:
+                result = verification_service.select_plan_entry(
+                    changeset_id,
+                    cwd,
+                    verification_id=verification_id,
+                )
+                steps.append(
+                    _guided_step(
+                        "select_verification",
+                        "completed",
+                        f"Selected verification {verification_id}.",
+                        durable_event_count=len(result.events),
+                    )
+                )
+            for verification_id in args.skip_verification_ids or []:
+                result = verification_service.skip_plan_entry(
+                    changeset_id,
+                    cwd,
+                    verification_id=verification_id,
+                    reason=args.skip_reason,
+                )
+                steps.append(
+                    _guided_step(
+                        "skip_verification",
+                        "completed",
+                        f"Skipped verification {verification_id}.",
+                        durable_event_count=len(result.events),
+                        limitations=result.non_claims,
+                    )
+                )
+            for verification_id in args.accept_risk_verification_ids or []:
+                result = verification_service.accept_plan_entry_risk(
+                    changeset_id,
+                    cwd,
+                    verification_id=verification_id,
+                    reason=args.risk_reason,
+                    residual_risks=args.residual_risks,
+                )
+                steps.append(
+                    _guided_step(
+                        "accept_verification_risk",
+                        "completed",
+                        f"Accepted residual risk for verification {verification_id}.",
+                        durable_event_count=len(result.events),
+                        limitations=result.non_claims,
+                    )
+                )
+            if args.confirm_brief:
+                result = ChangesetReviewBriefService(repository, artifacts).generate(
+                    changeset_id,
+                    cwd,
+                    created_by="operator",
+                )
+                steps.append(
+                    _guided_step(
+                        "review_brief",
+                        "completed",
+                        (
+                            "Generated review brief artifact "
+                            f"{result.artifact.artifact_id}."
+                        ),
+                        durable_event_count=2,
+                        limitations=result.limitations,
+                    )
+                )
+            else:
+                steps.append(
+                    _guided_step(
+                        "review_brief",
+                        "awaiting_confirmation",
+                        (
+                            "Run with --confirm-brief to generate reviewer-safe "
+                            "brief evidence."
+                        ),
+                    )
+                )
+            handoff_readiness = preview_handoff_readiness(
+                ChangesetHandoffReadinessService(repository, artifacts),
+                changeset_id,
+                cwd,
+            )
+            steps.append(
+                _guided_step(
+                    "handoff_readiness",
+                    "completed",
+                    f"Handoff posture: {handoff_readiness.state}.",
+                    durable_event_count=0,
+                    limitations=handoff_readiness.limitations,
+                )
+            )
+    payload = {
+        "workflow": "changeset_workup",
+        "changeset_id": str(changeset_id) if changeset_id is not None else None,
+        "session_id": str(args.session_id) if args.session_id is not None else None,
+        "steps": steps,
+        "preview": preview.model_dump(mode="json"),
+        "verification_plan": (
+            verification_plan.model_dump(mode="json")
+            if verification_plan is not None
+            else None
+        ),
+        "handoff_readiness": (
+            handoff_readiness.model_dump(mode="json")
+            if handoff_readiness is not None
+            else None
+        ),
+        "non_claims": [
+            "guided workup does not stage, commit, push, publish, or open a PR",
+            "verification planning does not run commands",
+            "durable events are recorded only for explicitly confirmed steps",
+        ],
+    }
+    if args.json:
+        print_json_output(payload)
+    else:
+        _print_guided_workup(payload)
+    return 0
+
+
+def _guided_step(
+    step: str,
+    status: str,
+    summary: str,
+    *,
+    durable_event_count: int = 0,
+    limitations: list[str] | tuple[str, ...] = (),
+) -> dict[str, object]:
+    return {
+        "step": step,
+        "status": status,
+        "summary": summary,
+        "durable_event_count": durable_event_count,
+        "limitations": list(limitations),
+    }
 
 
 def _changeset_list_command(args: argparse.Namespace) -> int:

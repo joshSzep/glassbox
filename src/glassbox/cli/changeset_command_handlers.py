@@ -35,6 +35,7 @@ from glassbox.cli.changeset_command_lifecycle import (
 from glassbox.cli.changeset_command_lifecycle import (
     _changeset_verification_plan_command,
 )
+from glassbox.cli.changeset_command_lifecycle import _changeset_workup_command
 from glassbox.cli.changeset_command_lifecycle import _changeset_workup_preview_command
 from glassbox.cli.changeset_command_readiness import (
     _changeset_commit_message_command as _changeset_commit_message_command,
@@ -73,5 +74,6 @@ __all__ = [
     "_changeset_supersede_verification_command",
     "_changeset_select_verification_command",
     "_changeset_verification_plan_command",
+    "_changeset_workup_command",
     "_changeset_workup_preview_command",
 ]

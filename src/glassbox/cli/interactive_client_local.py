@@ -19,6 +19,7 @@ from glassbox.cli.interactive_review_actions import handoff_readiness_result
 from glassbox.cli.interactive_review_actions import preview_verification_result
 from glassbox.cli.interactive_review_actions import refresh_inventory_result
 from glassbox.cli.interactive_review_actions import review_status_result_from_detail
+from glassbox.cli.interactive_review_actions import workup_guide_result
 from glassbox.cli.status_formatters import _pending_question_text_from_events
 from glassbox.core.events import EventEnvelope
 from glassbox.core.ids import ApprovalId
@@ -159,6 +160,17 @@ class LocalInteractiveSessionClient:
         if resolved_changeset_id is None:
             resolved_changeset_id = self._latest_changeset_id()
         if resolved_changeset_id is None:
+            if action == ReviewLoopAction.WORKUP_GUIDE:
+                from glassbox.runtime.changesets import ChangesetWorkupPreviewService
+
+                workup_preview = await ChangesetWorkupPreviewService().preview(
+                    self._workspace_root(),
+                    session_id=str(self.session_id),
+                )
+                return workup_guide_result(
+                    changeset_id=None,
+                    changed_path_count=len(workup_preview.changed_paths),
+                )
             raise InteractiveClientError(
                 InteractiveClientErrorKind.VALIDATION_ERROR,
                 "No changeset exists for this session. Start with /review create.",
@@ -174,6 +186,31 @@ class LocalInteractiveSessionClient:
                 workspace_root=workspace_root,
             )
             return review_status_result_from_detail(resolved_changeset_id, detail)
+        if action == ReviewLoopAction.WORKUP_GUIDE:
+            from glassbox.runtime.changesets import ChangesetVerificationService
+            from glassbox.runtime.changesets import ChangesetWorkupPreviewService
+            from glassbox.runtime.handoff_readiness import (
+                ChangesetHandoffReadinessService,
+            )
+
+            workup_preview = await ChangesetWorkupPreviewService().preview(
+                workspace_root,
+                session_id=str(self.session_id),
+            )
+            verification_plan = ChangesetVerificationService(
+                repository,
+                artifact_repository,
+            ).preview_plan(resolved_changeset_id, workspace_root)
+            handoff = await ChangesetHandoffReadinessService(
+                repository,
+                artifact_repository,
+            ).preview(resolved_changeset_id, workspace_root)
+            return workup_guide_result(
+                changeset_id=str(resolved_changeset_id),
+                changed_path_count=len(workup_preview.changed_paths),
+                plan_entry_count=len(verification_plan.plan_entries),
+                handoff_state=handoff.state,
+            )
         if action == ReviewLoopAction.REFRESH_INVENTORY:
             from glassbox.runtime.changesets import ChangesetActionService
 
