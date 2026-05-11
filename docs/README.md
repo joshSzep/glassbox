@@ -140,6 +140,9 @@ operator authority explicit.
 - [operator-queue.md](./operator-queue.md): v16 unified operator queue
   contract for queue item families, priorities, stale state, evidence
   summaries, dedupe keys, and dismissal semantics
+- [verification-orchestrator.md](./verification-orchestrator.md): v16
+  verification planning lifecycle contract for proposed, selected, executed,
+  skipped, stale, superseded, manual-only, and accepted-risk checks
 - [tasks-v16.md](./tasks-v16.md): v16 operator flow compression task graph for
   shared next-action models, evidence graph foundation, unified operator
   queue, verification orchestration, compressed changeset workup, dashboard and

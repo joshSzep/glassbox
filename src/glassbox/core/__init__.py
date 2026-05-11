@@ -336,6 +336,7 @@ from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import TurnStatus
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
+from glassbox.core.types import VerificationPlanLifecycleState
 from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
@@ -640,6 +641,7 @@ __all__ = [
     "VerificationFailureDigest",
     "VerificationPlan",
     "VerificationPlanEntry",
+    "VerificationPlanLifecycleState",
     "VerificationPlanSource",
     "WorktreeCleanupRecorded",
     "WorktreeCreated",

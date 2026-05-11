@@ -5,11 +5,17 @@ from pydantic import TypeAdapter
 from pydantic import ValidationError
 
 from glassbox.core import EventPayloadType
+from glassbox.core import NextActionCommandRecipe
+from glassbox.core import NextActionEvidenceKind
+from glassbox.core import NextActionEvidenceRef
+from glassbox.core import NextActionTarget
+from glassbox.core import NextActionTargetKind
 from glassbox.core import TaskVerificationFailed
 from glassbox.core import TaskVerificationPlanned
 from glassbox.core import VerificationCheckKind
 from glassbox.core import VerificationPlan
 from glassbox.core import VerificationPlanEntry
+from glassbox.core import VerificationPlanLifecycleState
 from glassbox.core import VerificationPlanSource
 from glassbox.core import new_task_id
 from glassbox.core import new_task_verification_id
@@ -59,6 +65,79 @@ def test_verification_plan_rejects_duplicate_verification_ids() -> None:
 
     with pytest.raises(ValidationError):
         VerificationPlan(task_id=new_task_id(), entries=[entry, entry])
+
+
+def test_verification_plan_entry_carries_v16_lifecycle_metadata() -> None:
+    entry = VerificationPlanEntry(
+        verification_id=new_task_verification_id(),
+        check_name="Commit smoke profile",
+        kind=VerificationCheckKind.EVAL,
+        lifecycle_state=VerificationPlanLifecycleState.PROPOSED,
+        target=NextActionTarget(
+            kind=NextActionTargetKind.VERIFICATION,
+            target_id="commit-smoke",
+            label="Commit smoke profile",
+        ),
+        command_recipe=NextActionCommandRecipe(
+            command=["uv", "run", "glassbox", "eval", "run", "--profile", "commit"],
+            display="uv run glassbox eval run --profile commit --cwd .",
+            purpose="Run deterministic commit-time smoke checks.",
+            requires_approval=False,
+        ),
+        source=VerificationPlanSource.EVAL_RECOMMENDATION,
+        rationale="Changed runtime paths matched commit-time eval metadata.",
+        selection_rationale=(
+            "Cheapest deterministic profile with changed-path coverage."
+        ),
+        eval_profile_id="commit",
+        release_surfaces=["commit-time"],
+        evidence_references=[
+            NextActionEvidenceRef(
+                kind=NextActionEvidenceKind.REPOSITORY_INTELLIGENCE,
+                ref_id="repo-index",
+                summary="Repository intelligence mapped the changed path.",
+            )
+        ],
+        stale_reasons=["previous eval summary predates changed paths"],
+    )
+
+    payload = entry.model_dump(mode="json")
+
+    assert payload["lifecycle_state"] == "proposed"
+    assert payload["command_recipe"]["requires_approval"] is False
+    assert payload["target"]["kind"] == "verification"
+    assert payload["release_surfaces"] == ["commit-time"]
+    assert payload["selection_rationale"].startswith("Cheapest deterministic")
+    assert payload["evidence_references"][0]["kind"] == "repository_intelligence"
+    assert payload["stale_reasons"] == ["previous eval summary predates changed paths"]
+
+
+def test_verification_plan_allows_manual_only_checks_without_commands() -> None:
+    entry = VerificationPlanEntry(
+        verification_id=new_task_verification_id(),
+        check_name="Browser smoke evidence",
+        kind=VerificationCheckKind.CUSTOM,
+        lifecycle_state=VerificationPlanLifecycleState.MANUAL_ONLY,
+        source=VerificationPlanSource.MANUAL_EVIDENCE,
+        rationale="Dashboard behavior requires retained manual browser evidence.",
+        manual_evidence_required=True,
+        blocking=False,
+    )
+
+    assert entry.command == []
+    assert entry.lifecycle_state == VerificationPlanLifecycleState.MANUAL_ONLY
+
+
+def test_verification_plan_rejects_executable_entry_without_command() -> None:
+    with pytest.raises(ValidationError, match="command or command_recipe"):
+        VerificationPlanEntry(
+            verification_id=new_task_verification_id(),
+            check_name="Missing command",
+            kind=VerificationCheckKind.TEST,
+            lifecycle_state=VerificationPlanLifecycleState.SELECTED,
+            source=VerificationPlanSource.CHANGED_PATHS,
+            rationale="Selected tests must name the command to review.",
+        )
 
 
 def test_verification_events_round_trip_through_union() -> None:

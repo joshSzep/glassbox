@@ -1,0 +1,59 @@
+# Verification Orchestrator Contract
+
+The v16 verification orchestrator treats verification as a local, reviewable
+workflow. Planning may recommend checks, explain why they matter, and name
+evidence gaps. Planning must not claim a command has run, passed, or been
+approved.
+
+## Lifecycle States
+
+Verification plan entries use `VerificationPlanLifecycleState`:
+
+- `proposed`: a planner found a useful check, but the operator has not selected
+  it.
+- `selected`: the operator or profile selected the check for this plan.
+- `running`: command execution has started and should be backed by canonical
+  task verification events.
+- `passed`: retained evidence says the selected check passed.
+- `failed`: retained evidence says the selected check failed.
+- `skipped`: the check was intentionally skipped and must not be represented as
+  passing.
+- `stale`: prior evidence exists, but changed inputs or freshness policy make it
+  insufficient.
+- `superseded`: a newer verification entry replaces this one.
+- `accepted-risk`: the operator accepted residual risk instead of requiring a
+  fresh pass.
+- `manual-only`: the required evidence is manual, browser, accessibility, live
+  provider, or another non-command check.
+- `blocked`: the check cannot proceed until a prerequisite is resolved.
+
+## Entry Fields
+
+`VerificationPlanEntry` remains compatible with existing task verification
+events and adds:
+
+- `lifecycle_state`
+- `target`
+- `command_recipe`
+- `selection_rationale`
+- `release_surfaces`
+- `evidence_references`
+- `stale_reasons`
+- `manual_evidence_required`
+- `execution_requires_approval`
+- `superseded_by_verification_id`
+
+Existing `command`, `source`, `rationale`, eval IDs, changed paths, timeout, and
+expected-exit-code fields remain valid.
+
+## Planning Versus Execution
+
+Planning may read local inventory, repository intelligence, eval metadata,
+command recipes, readiness state, and stale evidence. It may produce proposed or
+selected plan entries and explain limitations. It may not run commands, mutate
+workspace files, mark a check passed, or accept risk.
+
+Execution requires the normal command policy path and, when applicable,
+operator approval. A skipped check remains skipped. Accepted risk must name its
+rationale and scope through canonical evidence. Manual-only checks require
+manual evidence and must stay separate from deterministic command results.

@@ -103,6 +103,7 @@ from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
+from glassbox.core.types import VerificationPlanLifecycleState
 from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
@@ -2031,22 +2032,37 @@ class ManualEvidenceRecord(BaseModel):
 
 
 class VerificationPlanEntry(BaseModel):
-    """One explicit local verification check selected for a task."""
+    """One explicit local verification check selected or proposed for a task."""
 
     model_config = ConfigDict(extra="forbid")
 
     verification_id: TaskVerificationId
     check_name: str = Field(min_length=1, max_length=200)
     kind: VerificationCheckKind
-    command: list[str] = Field(min_length=1, max_length=64)
+    lifecycle_state: VerificationPlanLifecycleState = (
+        VerificationPlanLifecycleState.SELECTED
+    )
+    target: NextActionTarget | None = None
+    command: list[str] = Field(default_factory=list, max_length=64)
+    command_recipe: NextActionCommandRecipe | None = None
     source: VerificationPlanSource
     rationale: str = Field(min_length=1, max_length=2000)
+    selection_rationale: str | None = Field(default=None, min_length=1, max_length=2000)
     blocking: bool = True
     timeout_seconds: int = Field(default=300, ge=1, le=7200)
     expected_exit_codes: list[int] = Field(default_factory=lambda: [0], min_length=1)
     changed_paths: list[Path] = Field(default_factory=list, max_length=100)
     eval_case_id: str | None = Field(default=None, min_length=1, max_length=200)
     eval_profile_id: str | None = Field(default=None, min_length=1, max_length=200)
+    release_surfaces: list[str] = Field(default_factory=list, max_length=20)
+    evidence_references: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    stale_reasons: list[str] = Field(default_factory=list, max_length=20)
+    manual_evidence_required: bool = False
+    execution_requires_approval: bool = True
+    superseded_by_verification_id: TaskVerificationId | None = None
 
     @field_validator("expected_exit_codes")
     @classmethod
@@ -2060,13 +2076,39 @@ class VerificationPlanEntry(BaseModel):
         return normalized
 
     @model_validator(mode="after")
-    def validate_eval_links(self) -> VerificationPlanEntry:
+    def validate_verification_contract(self) -> VerificationPlanEntry:
         if self.kind == VerificationCheckKind.EVAL and (
             self.eval_case_id is None and self.eval_profile_id is None
         ):
             raise ValueError(
                 "eval verification requires eval_case_id or eval_profile_id"
             )
+        executable_states = {
+            VerificationPlanLifecycleState.PROPOSED,
+            VerificationPlanLifecycleState.SELECTED,
+            VerificationPlanLifecycleState.RUNNING,
+            VerificationPlanLifecycleState.PASSED,
+            VerificationPlanLifecycleState.FAILED,
+            VerificationPlanLifecycleState.STALE,
+        }
+        if (
+            self.lifecycle_state in executable_states
+            and not self.command
+            and self.command_recipe is None
+        ):
+            raise ValueError(
+                "executable verification entries require command or command_recipe"
+            )
+        if (
+            self.lifecycle_state == VerificationPlanLifecycleState.MANUAL_ONLY
+            and not self.manual_evidence_required
+        ):
+            raise ValueError("manual-only verification requires manual evidence")
+        if (
+            self.lifecycle_state == VerificationPlanLifecycleState.SUPERSEDED
+            and self.superseded_by_verification_id is None
+        ):
+            raise ValueError("superseded verification requires replacement id")
         return self
 
 

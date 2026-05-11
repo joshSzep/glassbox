@@ -648,7 +648,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1630: Define Verification Plan Lifecycle Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1610`, `GBX-1611`
 - Goal: define verification planning as a first-class local workflow without
   implying checks have run or been approved
