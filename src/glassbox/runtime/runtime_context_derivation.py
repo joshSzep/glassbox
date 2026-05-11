@@ -1,13 +1,8 @@
 """Shared derivation of structured runtime-context snapshots."""
 
-from collections.abc import Sequence
 from pathlib import Path
 
-from glassbox.core.events import EventEnvelope
-from glassbox.core.events import WorkspaceMemoryUsedInContext
 from glassbox.core.ids import SessionId
-from glassbox.core.ids import TurnId
-from glassbox.core.ids import WorkspaceMemoryId
 from glassbox.runtime.checkpoints import build_checkpoint_resume_snapshot
 from glassbox.runtime.context_compaction_service import (
     assessed_context_compaction_record,
@@ -27,6 +22,9 @@ from glassbox.runtime.context_snapshots import (
     repository_intelligence_context_memory_ids,
 )
 from glassbox.runtime.context_working_set import build_working_set_snapshot
+from glassbox.runtime.runtime_context_memory_use import (
+    record_workspace_memory_context_use,
+)
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
@@ -58,7 +56,7 @@ def derive_runtime_context_snapshot(
     )
     session_state = session_repository.get_session_state(session_id)
     if session_state is not None and session_state.current_turn_id is not None:
-        _record_workspace_memory_context_use(
+        record_workspace_memory_context_use(
             session_repository,
             session_id,
             turn_id=session_state.current_turn_id,
@@ -83,7 +81,7 @@ def derive_runtime_context_snapshot(
             repository_intelligence
         )
         if repository_intelligence_memory_ids:
-            _record_workspace_memory_context_use(
+            record_workspace_memory_context_use(
                 session_repository,
                 session_id,
                 turn_id=session_state.current_turn_id,
@@ -115,41 +113,6 @@ def derive_runtime_context_snapshot(
             session_id,
         ),
     )
-
-
-def _record_workspace_memory_context_use(
-    session_repository: SessionRepository,
-    session_id: SessionId,
-    *,
-    turn_id: TurnId,
-    memory_ids: Sequence[WorkspaceMemoryId],
-    prompt_section: str,
-    reason: str,
-) -> None:
-    existing = {
-        (payload.memory_id, payload.turn_id, payload.prompt_section)
-        for payload in (
-            event.payload
-            for event in session_repository.read_session_events(session_id)
-        )
-        if isinstance(payload, WorkspaceMemoryUsedInContext)
-    }
-    events = [
-        EventEnvelope(
-            session_id=session_id,
-            sequence=0,
-            payload=WorkspaceMemoryUsedInContext(
-                memory_id=memory_id,
-                turn_id=turn_id,
-                prompt_section=prompt_section,
-                reason=reason,
-            ),
-        )
-        for memory_id in memory_ids
-        if (memory_id, turn_id, prompt_section) not in existing
-    ]
-    if events:
-        session_repository.append_events(events)
 
 
 def build_context_compaction_context_snapshot(

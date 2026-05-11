@@ -610,7 +610,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R731: Separate Runtime Context Snapshot Derivation From Prompt-Use Event Recording
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R701
 - Target files:
   - `src/glassbox/runtime/runtime_context_derivation.py`
