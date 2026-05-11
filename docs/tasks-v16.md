@@ -480,7 +480,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1612: Build Evidence Graph Derivation For Existing Session And Changeset Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1611`
 - Goal: derive an initial evidence graph from existing canonical events,
   projections, and managed artifacts for sessions and changesets

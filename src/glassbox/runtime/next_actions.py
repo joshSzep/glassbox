@@ -59,6 +59,7 @@ def next_actions_from_summaries(
     priority: NextActionPriority = NextActionPriority.RECOMMENDED,
     severity: NextActionSeverity = NextActionSeverity.INFO,
     safety_class: NextActionSafetyClass = NextActionSafetyClass.READ_ONLY,
+    recommended_surfaces: Iterable[NextActionSurface] = (),
 ) -> list[NextAction]:
     """Convert existing string lists into stable typed next-action records."""
 
@@ -78,6 +79,7 @@ def next_actions_from_summaries(
                 priority=priority,
                 severity=severity,
                 safety_class=safety_class,
+                recommended_surfaces=recommended_surfaces,
             )
         )
     return actions

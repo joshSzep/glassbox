@@ -227,6 +227,7 @@ class EvidenceGraphNodeKind(StrEnum):
     EVAL_CASE = "eval_case"
     BACKGROUND_JOB = "background_job"
     RELEASE_GATE_ROW = "release_gate_row"
+    PROJECTION = "projection"
     NEXT_ACTION = "next_action"
     CLAIM = "claim"
 
