@@ -883,7 +883,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R763: Run Post-V15 Refactor Confidence Sweep
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R762
 - Target files:
   - tests, docs, scripts, frontend as needed
@@ -906,6 +906,21 @@ Each phase below corresponds to one concrete refactor milestone.
   - `pnpm --dir frontend test`
   - `pnpm --dir frontend build`
   - `uv run python scripts/validate_v15_release_gate.py --dry-run`
+
+Validation summary, May 11, 2026:
+
+- `uv run ruff format --check .`: passed
+- `uv run ruff check .`: passed
+- `uv run ty check`: passed
+- `uv run pytest -n auto --dist loadfile`: passed, 1503 tests
+- `pnpm --dir frontend lint`: passed
+- `pnpm --dir frontend typecheck`: passed
+- `pnpm --dir frontend test`: passed, 18 files and 131 tests
+- `pnpm --dir frontend build`: passed, no packaged static asset diff remained
+- `uv run python scripts/validate_v15_release_gate.py --dry-run`: passed with
+  dry-run status, 81 planned stages, one skipped advisory provider-evidence
+  stage, and three recorded advisory evidence summaries
+- Accepted validation gaps: none
 
 ## Accepted Product Follow-Up Candidates
 
