@@ -37,6 +37,7 @@ from glassbox.core import new_session_id
 from glassbox.core import new_task_verification_id
 from glassbox.runtime.changeset_export import build_changeset_export_payload
 from glassbox.runtime.changeset_models import ChangesetPathVerificationTargetPreview
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanLifecycleSummary
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_review_brief_core_sections import (
     review_brief_verification_section,
@@ -141,6 +142,14 @@ def test_review_brief_verification_section_names_path_guidance() -> None:
             ],
             stale_count=1,
         ),
+        plan_summary=ChangesetVerificationPlanLifecycleSummary(
+            total_count=2,
+            selected_count=1,
+            stale_count=1,
+            safe_next_actions=[
+                "glassbox changeset verification-plan CHANGESET --cwd ."
+            ],
+        ),
     )
 
     section = review_brief_verification_section(None, plan)
@@ -148,6 +157,8 @@ def test_review_brief_verification_section_names_path_guidance() -> None:
     assert "Path-to-verification guidance names 1 recommended target" in section.body
     assert "1 release surface" in section.body
     assert "Stale evidence guidance names 1 stale or missing item" in section.body
+    assert "Plan lifecycle tracks 2 check" in section.body
+    assert "1 selected" in section.body
 
 
 def test_review_brief_safe_commands_are_bounded() -> None:

@@ -2347,6 +2347,9 @@
             "title": "Sources",
             "type": "array"
           },
+          "verification_plan_summary": {
+            "$ref": "#/components/schemas/ChangesetVerificationPlanLifecycleSummaryResponse"
+          },
           "verification_posture": {
             "anyOf": [
               {
@@ -2368,6 +2371,7 @@
           "review_response_summary",
           "readiness",
           "command_evidence",
+          "verification_plan_summary",
           "limitations",
           "safe_next_actions"
         ],
@@ -3477,6 +3481,262 @@
         "title": "ChangesetTopologyImpactResponse",
         "type": "object"
       },
+      "ChangesetVerificationPlanEntrySummaryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "accepted_risks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Accepted Risks",
+            "type": "array"
+          },
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "failed_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Artifact Id"
+          },
+          "failure_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Summary"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "last_sequence": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sequence"
+          },
+          "lifecycle_state": {
+            "title": "Lifecycle State",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "stale_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stale Reasons",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verification_id",
+          "check_name",
+          "status",
+          "lifecycle_state",
+          "command",
+          "changed_paths",
+          "blocking",
+          "accepted_risk_count",
+          "accepted_risks",
+          "stale_reasons"
+        ],
+        "title": "ChangesetVerificationPlanEntrySummaryResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationPlanLifecycleSummaryResponse": {
+        "properties": {
+          "accepted_risk_count": {
+            "title": "Accepted Risk Count",
+            "type": "integer"
+          },
+          "command_count": {
+            "title": "Command Count",
+            "type": "integer"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetVerificationPlanEntrySummaryResponse"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "failed_count": {
+            "title": "Failed Count",
+            "type": "integer"
+          },
+          "latest_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Status"
+          },
+          "latest_verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Verification Id"
+          },
+          "manual_only_count": {
+            "title": "Manual Only Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "passed_count": {
+            "title": "Passed Count",
+            "type": "integer"
+          },
+          "proposed_count": {
+            "title": "Proposed Count",
+            "type": "integer"
+          },
+          "running_count": {
+            "title": "Running Count",
+            "type": "integer"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "selected_count": {
+            "title": "Selected Count",
+            "type": "integer"
+          },
+          "skipped_count": {
+            "title": "Skipped Count",
+            "type": "integer"
+          },
+          "stale_count": {
+            "title": "Stale Count",
+            "type": "integer"
+          },
+          "total_count": {
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_count",
+          "proposed_count",
+          "selected_count",
+          "running_count",
+          "passed_count",
+          "failed_count",
+          "skipped_count",
+          "stale_count",
+          "accepted_risk_count",
+          "manual_only_count",
+          "command_count",
+          "entries",
+          "safe_next_actions",
+          "non_claims"
+        ],
+        "title": "ChangesetVerificationPlanLifecycleSummaryResponse",
+        "type": "object"
+      },
       "ChangesetVerificationPlanPreviewResponse": {
         "properties": {
           "changed_paths": {
@@ -3539,6 +3799,9 @@
             },
             "title": "Plan Entries",
             "type": "array"
+          },
+          "plan_summary": {
+            "$ref": "#/components/schemas/ChangesetVerificationPlanLifecycleSummaryResponse"
           },
           "readiness": {
             "$ref": "#/components/schemas/ChangesetVerificationReadinessResponse"
@@ -3616,6 +3879,7 @@
           "expected_scope",
           "retained_artifact_ids",
           "readiness",
+          "plan_summary",
           "limitations",
           "safe_next_actions",
           "non_claims"
@@ -7055,6 +7319,9 @@
               }
             ],
             "title": "Verification Id"
+          },
+          "verification_plan_summary": {
+            "$ref": "#/components/schemas/ChangesetVerificationPlanLifecycleSummaryResponse"
           }
         },
         "required": [
@@ -7066,6 +7333,7 @@
           "blockers",
           "limitations",
           "safe_next_actions",
+          "verification_plan_summary",
           "commit_readiness_state",
           "evidence",
           "git",

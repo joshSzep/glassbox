@@ -120,3 +120,15 @@ command purpose, environment summary, and retry guidance. Passing commands recor
 `TaskVerificationCompleted`; failed or timed-out commands record
 `TaskVerificationFailed`. This remains local verification evidence, not reviewer
 approval, publication, deployment, or release authorization.
+
+## Plan Lifecycle Story
+
+Changeset detail, verification-plan previews, review briefs, handoff readiness,
+and dashboard API responses now include the same bounded verification plan
+lifecycle summary. The summary reports selected, running, passed, failed,
+skipped, stale, manual-only, and accepted-risk counts plus compact per-check
+rows with command identity, artifact references, stale reasons, and risk
+dispositions. It deliberately omits raw command logs; those remain in retained
+artifacts and command-evidence views. A passed plan summary is local evidence
+only and does not imply reviewer acceptance, publication readiness, deployment,
+or release approval.

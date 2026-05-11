@@ -100,7 +100,9 @@ export function VerificationPanel({
   }
   const readiness = verificationPlan.readiness;
   const reviewLoop = verificationPlan.review_loop_summary;
+  const planSummary = verificationPlan.plan_summary;
   const visibleRequirements = readiness.requirements.slice(0, 6);
+  const visiblePlanEntries = planSummary.entries.slice(0, 4);
   return (
     <Section title="Verification">
       <div className="grid gap-3">
@@ -132,8 +134,33 @@ export function VerificationPanel({
           <Badge variant={reviewLoop.skipped_live_evidence_count > 0 ? "warning" : "muted"}>
             {reviewLoop.skipped_live_evidence_count} skipped live
           </Badge>
+          <Badge variant={planSummary.selected_count > 0 ? "info" : "muted"}>
+            {planSummary.selected_count} selected
+          </Badge>
+          <Badge variant={planSummary.skipped_count > 0 ? "warning" : "muted"}>
+            {planSummary.skipped_count} skipped checks
+          </Badge>
+          <Badge variant={planSummary.passed_count > 0 ? "success" : "muted"}>
+            {planSummary.passed_count} plan passed
+          </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{readiness.summary}</p>
+        {visiblePlanEntries.length > 0 ? (
+          <DataList density="compact">
+            {visiblePlanEntries.map((entry) => (
+              <DataListItem key={entry.verification_id}>
+                <DataListLabel>{entry.check_name}</DataListLabel>
+                <DataListMeta>
+                  {formatVerificationState(entry.status)} - {entry.lifecycle_state}
+                  {entry.reason ? ` - ${entry.reason}` : ""}
+                </DataListMeta>
+                {entry.command.length > 0 ? (
+                  <DataListMeta>{entry.command.join(" ")}</DataListMeta>
+                ) : null}
+              </DataListItem>
+            ))}
+          </DataList>
+        ) : null}
         <DataList density="compact">
           <DataListItem>
             <DataListLabel>Review-loop context</DataListLabel>

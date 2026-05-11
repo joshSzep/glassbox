@@ -191,6 +191,17 @@ def review_brief_verification_section(
             f"{body} Stale evidence guidance names "
             f"{len(verification_plan.stale_evidence)} stale or missing item(s)."
         )
+    plan_summary = verification_plan.plan_summary
+    if plan_summary.total_count:
+        body = (
+            f"{body} Plan lifecycle tracks {plan_summary.total_count} check(s): "
+            f"{plan_summary.selected_count} selected, "
+            f"{plan_summary.passed_count} passed, "
+            f"{plan_summary.failed_count} failed, "
+            f"{plan_summary.skipped_count} skipped, "
+            f"{plan_summary.stale_count} stale, and "
+            f"{plan_summary.accepted_risk_count} accepted risk."
+        )
     refs = []
     if verification_posture is not None:
         refs.append(

@@ -2826,6 +2826,7 @@ export interface components {
       safe_next_actions: string[];
       /** Sources */
       sources: components["schemas"]["ChangesetSourceResponse"][];
+      verification_plan_summary: components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
       verification_posture?: components["schemas"]["ChangesetVerificationPostureResponse"] | null;
     };
     /** ChangesetInventoryResponse */
@@ -3172,6 +3173,78 @@ export interface components {
       /** Topology Freshness */
       topology_freshness: string;
     };
+    /** ChangesetVerificationPlanEntrySummaryResponse */
+    ChangesetVerificationPlanEntrySummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Accepted Risks */
+      accepted_risks: string[];
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Blocking */
+      blocking: boolean;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Command */
+      command: string[];
+      /** Failed Artifact Id */
+      failed_artifact_id?: string | null;
+      /** Failure Summary */
+      failure_summary?: string | null;
+      /** Kind */
+      kind?: string | null;
+      /** Last Sequence */
+      last_sequence?: number | null;
+      /** Lifecycle State */
+      lifecycle_state: string;
+      /** Reason */
+      reason?: string | null;
+      /** Source */
+      source?: string | null;
+      /** Stale Reasons */
+      stale_reasons: string[];
+      /** Status */
+      status: string;
+      /** Verification Id */
+      verification_id: string;
+    };
+    /** ChangesetVerificationPlanLifecycleSummaryResponse */
+    ChangesetVerificationPlanLifecycleSummaryResponse: {
+      /** Accepted Risk Count */
+      accepted_risk_count: number;
+      /** Command Count */
+      command_count: number;
+      /** Entries */
+      entries: components["schemas"]["ChangesetVerificationPlanEntrySummaryResponse"][];
+      /** Failed Count */
+      failed_count: number;
+      /** Latest Status */
+      latest_status?: string | null;
+      /** Latest Verification Id */
+      latest_verification_id?: string | null;
+      /** Manual Only Count */
+      manual_only_count: number;
+      /** Non Claims */
+      non_claims: string[];
+      /** Passed Count */
+      passed_count: number;
+      /** Proposed Count */
+      proposed_count: number;
+      /** Running Count */
+      running_count: number;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Selected Count */
+      selected_count: number;
+      /** Skipped Count */
+      skipped_count: number;
+      /** Stale Count */
+      stale_count: number;
+      /** Total Count */
+      total_count: number;
+    };
     /** ChangesetVerificationPlanPreviewResponse */
     ChangesetVerificationPlanPreviewResponse: {
       /** Changed Paths */
@@ -3192,6 +3265,7 @@ export interface components {
       non_claims: string[];
       /** Plan Entries */
       plan_entries: components["schemas"]["VerificationPlanEntryResponse"][];
+      plan_summary: components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
       readiness: components["schemas"]["ChangesetVerificationReadinessResponse"];
       /** Reason Groups */
       reason_groups: components["schemas"]["ChangesetVerificationReasonGroupResponse"][];
@@ -4497,6 +4571,7 @@ export interface components {
       state: string;
       /** Verification Id */
       verification_id?: string | null;
+      verification_plan_summary: components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
     };
     /** HandoffReadinessSignalResponse */
     HandoffReadinessSignalResponse: {

@@ -27,6 +27,8 @@ type BranchSearchSummary = components["schemas"]["BranchSearchSummaryResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type ChangesetVerificationPlanSummary =
+  components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
@@ -1307,6 +1309,7 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         verification_id: "verification-1",
       },
     ],
+    verification_plan_summary: makeVerificationPlanSummary(changeset.changeset_id),
     verification_posture: {
       accepted_risk_count: 1,
       artifact_id: "artifact-1",
@@ -1339,6 +1342,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_summary: makeVerificationPlanSummary(changesetId),
     plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 0,
@@ -1502,6 +1506,7 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     readiness_kind: "handoff",
     reason: "handoff evidence is coherent with accepted risks that must remain visible",
     review_brief_artifact_id: "brief-artifact-1",
+    verification_plan_summary: makeVerificationPlanSummary(changesetId),
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     session_id: defaultSessionId,
     signals: [
@@ -1515,6 +1520,47 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "accepted_with_risk",
     verification_id: "verification-1",
+  };
+}
+
+function makeVerificationPlanSummary(changesetId: string): ChangesetVerificationPlanSummary {
+  return {
+    accepted_risk_count: 1,
+    command_count: 1,
+    entries: [
+      {
+        accepted_risk_count: 0,
+        accepted_risks: [],
+        artifact_id: "artifact-1",
+        blocking: true,
+        changed_paths: ["frontend/components/console/changeset-console.tsx"],
+        check_name: "dashboard verification",
+        command: ["pnpm", "--dir", "frontend", "test"],
+        failed_artifact_id: null,
+        failure_summary: null,
+        kind: "test",
+        last_sequence: 7,
+        lifecycle_state: "passed",
+        reason: "targeted dashboard checks passed",
+        source: "changed_paths",
+        stale_reasons: [],
+        status: "passed",
+        verification_id: "verification-1",
+      },
+    ],
+    failed_count: 0,
+    latest_status: "passed",
+    latest_verification_id: "verification-1",
+    manual_only_count: 0,
+    non_claims: ["verification plan summary is local evidence, not reviewer approval"],
+    passed_count: 1,
+    proposed_count: 0,
+    running_count: 0,
+    safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
+    selected_count: 0,
+    skipped_count: 0,
+    stale_count: 0,
+    total_count: 1,
   };
 }
 

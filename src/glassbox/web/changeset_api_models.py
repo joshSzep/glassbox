@@ -175,6 +175,45 @@ class ChangesetListPageResponse(BaseModel):
     items: list[ChangesetSummaryResponse]
 
 
+class ChangesetVerificationPlanEntrySummaryResponse(BaseModel):
+    verification_id: str
+    check_name: str
+    status: str
+    lifecycle_state: str
+    kind: str | None = None
+    source: str | None = None
+    command: list[str]
+    changed_paths: list[str]
+    blocking: bool
+    reason: str | None = None
+    artifact_id: str | None = None
+    failed_artifact_id: str | None = None
+    failure_summary: str | None = None
+    accepted_risk_count: int
+    accepted_risks: list[str]
+    stale_reasons: list[str]
+    last_sequence: int | None = None
+
+
+class ChangesetVerificationPlanLifecycleSummaryResponse(BaseModel):
+    total_count: int
+    proposed_count: int
+    selected_count: int
+    running_count: int
+    passed_count: int
+    failed_count: int
+    skipped_count: int
+    stale_count: int
+    accepted_risk_count: int
+    manual_only_count: int
+    command_count: int
+    latest_verification_id: str | None = None
+    latest_status: str | None = None
+    entries: list[ChangesetVerificationPlanEntrySummaryResponse]
+    safe_next_actions: list[str]
+    non_claims: list[str]
+
+
 class ChangesetDetailResponse(BaseModel):
     changeset: ChangesetSummaryResponse
     sources: list[ChangesetSourceResponse]
@@ -187,6 +226,7 @@ class ChangesetDetailResponse(BaseModel):
     review_response_summary: ChangesetReviewResponseSummaryResponse
     readiness: list[ChangesetReadinessResponse]
     command_evidence: ChangesetCommandEvidenceSummaryResponse
+    verification_plan_summary: ChangesetVerificationPlanLifecycleSummaryResponse
     limitations: list[str]
     safe_next_actions: list[str]
 
@@ -392,6 +432,7 @@ class ChangesetVerificationPlanPreviewResponse(BaseModel):
     expected_scope: list[str]
     retained_artifact_ids: list[str]
     readiness: ChangesetVerificationReadinessResponse
+    plan_summary: ChangesetVerificationPlanLifecycleSummaryResponse
     limitations: list[str]
     safe_next_actions: list[str]
     non_claims: list[str]
@@ -543,6 +584,7 @@ class HandoffReadinessResponse(BaseModel):
     inventory_artifact_id: str | None = None
     review_brief_artifact_id: str | None = None
     verification_id: str | None = None
+    verification_plan_summary: ChangesetVerificationPlanLifecycleSummaryResponse
     commit_readiness_state: str
     evidence: HandoffReadinessEvidenceSummaryResponse
     git: CommitReadinessGitSummaryResponse
@@ -560,6 +602,8 @@ __all__ = (
     "ChangesetVerificationPostureResponse",
     "ChangesetReviewBriefResponse",
     "ChangesetReadinessResponse",
+    "ChangesetVerificationPlanEntrySummaryResponse",
+    "ChangesetVerificationPlanLifecycleSummaryResponse",
     "ChangesetListPageResponse",
     "ChangesetDetailResponse",
     "ChangesetCreateRequest",

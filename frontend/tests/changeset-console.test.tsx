@@ -15,6 +15,8 @@ type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type ChangesetVerificationPlanSummary =
+  components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
@@ -53,6 +55,8 @@ describe("changeset console", () => {
     expect(markup).toContain("1 accepted risk");
     expect(markup).toContain("3 feedback");
     expect(markup).toContain("3 manual evidence");
+    expect(markup).toContain("0 plan passed");
+    expect(markup).toContain("retained verification failed");
     expect(markup).toContain("Review-loop context");
     expect(markup).toContain("1 missing response checks");
     expect(markup).toContain("pytest unit");
@@ -716,6 +720,7 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
         verification_id: "verification-1",
       },
     ],
+    verification_plan_summary: makeVerificationPlanSummary(changeset.changeset_id),
     verification_posture: {
       accepted_risk_count: 1,
       changeset_id: changeset.changeset_id,
@@ -850,6 +855,7 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_summary: makeVerificationPlanSummary(changesetId),
     plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 1,
@@ -1155,6 +1161,7 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     readiness_kind: "handoff",
     reason: "needs verification: verification readiness is missing",
     review_brief_artifact_id: "brief-artifact-1",
+    verification_plan_summary: makeVerificationPlanSummary(changesetId),
     safe_next_actions: [
       `glassbox changeset show ${changesetId} --cwd .`,
       `glassbox changeset verification-plan ${changesetId} --cwd .`,
@@ -1178,6 +1185,47 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "needs_verification",
     verification_id: "verification-1",
+  };
+}
+
+function makeVerificationPlanSummary(changesetId: string): ChangesetVerificationPlanSummary {
+  return {
+    accepted_risk_count: 1,
+    command_count: 1,
+    entries: [
+      {
+        accepted_risk_count: 0,
+        accepted_risks: [],
+        artifact_id: "artifact-1",
+        blocking: true,
+        changed_paths: ["src/glassbox/runtime/changesets.py"],
+        check_name: "pytest unit",
+        command: ["uv", "run", "pytest", "tests/unit"],
+        failed_artifact_id: "artifact-1",
+        failure_summary: "unit test failed",
+        kind: "test",
+        last_sequence: 8,
+        lifecycle_state: "failed",
+        reason: "retained verification failed",
+        source: "changed_paths",
+        stale_reasons: [],
+        status: "failed",
+        verification_id: "verification-1",
+      },
+    ],
+    failed_count: 1,
+    latest_status: "failed",
+    latest_verification_id: "verification-1",
+    manual_only_count: 0,
+    non_claims: ["verification plan summary is local evidence, not reviewer approval"],
+    passed_count: 0,
+    proposed_count: 0,
+    running_count: 0,
+    safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
+    selected_count: 0,
+    skipped_count: 0,
+    stale_count: 1,
+    total_count: 1,
   };
 }
 

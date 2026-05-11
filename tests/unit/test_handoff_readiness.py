@@ -28,6 +28,7 @@ from glassbox.runtime.changeset_verification_readiness import (
     ChangesetVerificationReadiness,
 )
 from glassbox.runtime.changesets import ChangesetInventoryStatus
+from glassbox.runtime.changesets import ChangesetVerificationPlanLifecycleSummary
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
@@ -58,6 +59,7 @@ def test_handoff_readiness_commit_prep_ready_without_claiming_publication() -> N
 
     assert assessment.state == "commit_prep_ready"
     assert assessment.blockers == []
+    assert assessment.verification_plan_summary.passed_count == 1
     assert "not publication" in assessment.non_claims[0]
     assert any("commit-prep" in action for action in assessment.safe_next_actions)
     assert any(
@@ -275,6 +277,13 @@ def _verification_plan(
         readiness=ChangesetVerificationReadiness(
             state=state,
             summary=f"verification is {state.value}",
+        ),
+        plan_summary=ChangesetVerificationPlanLifecycleSummary(
+            total_count=1,
+            passed_count=1 if state == ChangesetVerificationState.PASSED else 0,
+            failed_count=1 if state == ChangesetVerificationState.FAILED else 0,
+            stale_count=1 if state == ChangesetVerificationState.STALE else 0,
+            safe_next_actions=["uv run pytest tests/unit/test_app.py"],
         ),
         retained_artifact_ids=[],
         safe_next_actions=["uv run pytest tests/unit/test_app.py"],

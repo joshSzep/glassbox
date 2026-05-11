@@ -125,6 +125,17 @@ def _print_changeset_detail(
     else:
         posture = detail.verification_posture
         print(f"Verification posture: {posture.state.value} - {posture.summary}")
+    plan_summary = detail.verification_plan_summary
+    if plan_summary.total_count:
+        print(
+            "Verification plan lifecycle: "
+            f"{plan_summary.selected_count} selected, "
+            f"{plan_summary.passed_count} passed, "
+            f"{plan_summary.failed_count} failed, "
+            f"{plan_summary.skipped_count} skipped, "
+            f"{plan_summary.stale_count} stale, "
+            f"{plan_summary.accepted_risk_count} accepted risk"
+        )
     if verification_plan is not None:
         readiness = verification_plan.readiness
         print(f"Verification readiness: {readiness.state.value} - {readiness.summary}")
@@ -242,6 +253,16 @@ def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
     print(f"Verification plan for changeset {preview.changeset_id}")
     print(f"Inventory: {preview.inventory_freshness.value}")
     print(f"Readiness: {preview.readiness.state.value} - {preview.readiness.summary}")
+    summary = preview.plan_summary
+    if summary.total_count:
+        print(
+            "Plan lifecycle: "
+            f"{summary.selected_count} selected, "
+            f"{summary.passed_count} passed, "
+            f"{summary.failed_count} failed, "
+            f"{summary.skipped_count} skipped, "
+            f"{summary.stale_count} stale"
+        )
     if preview.changed_paths:
         print("Expected scope:")
         for path in preview.changed_paths[:20]:

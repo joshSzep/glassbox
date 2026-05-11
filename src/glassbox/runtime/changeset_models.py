@@ -99,6 +99,53 @@ class ChangesetCommandEvidenceSummary(BaseModel):
     safe_next_actions: list[str] = Field(default_factory=list)
 
 
+class ChangesetVerificationPlanEntrySummary(BaseModel):
+    """Bounded lifecycle summary for one verification plan entry."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verification_id: TaskVerificationId
+    check_name: str
+    status: str
+    lifecycle_state: str
+    kind: str | None = None
+    source: str | None = None
+    command: list[str] = Field(default_factory=list)
+    changed_paths: list[str] = Field(default_factory=list)
+    blocking: bool = True
+    reason: str | None = None
+    artifact_id: ArtifactId | None = None
+    failed_artifact_id: ArtifactId | None = None
+    failure_summary: str | None = None
+    accepted_risk_count: int = Field(default=0, ge=0)
+    accepted_risks: list[str] = Field(default_factory=list)
+    stale_reasons: list[str] = Field(default_factory=list)
+    last_sequence: int | None = Field(default=None, ge=0)
+
+
+class ChangesetVerificationPlanLifecycleSummary(BaseModel):
+    """Shared lifecycle summary for changeset verification plan surfaces."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    total_count: int = Field(default=0, ge=0)
+    proposed_count: int = Field(default=0, ge=0)
+    selected_count: int = Field(default=0, ge=0)
+    running_count: int = Field(default=0, ge=0)
+    passed_count: int = Field(default=0, ge=0)
+    failed_count: int = Field(default=0, ge=0)
+    skipped_count: int = Field(default=0, ge=0)
+    stale_count: int = Field(default=0, ge=0)
+    accepted_risk_count: int = Field(default=0, ge=0)
+    manual_only_count: int = Field(default=0, ge=0)
+    command_count: int = Field(default=0, ge=0)
+    latest_verification_id: TaskVerificationId | None = None
+    latest_status: str | None = None
+    entries: list[ChangesetVerificationPlanEntrySummary] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
 class ChangesetDetailView(BaseModel):
     """Read model for one changeset and its currently retained evidence refs."""
 
@@ -115,6 +162,9 @@ class ChangesetDetailView(BaseModel):
     review_response_summary: ChangesetReviewResponseSummary
     readiness: list[ChangesetReadinessRecord] = Field(default_factory=list)
     command_evidence: ChangesetCommandEvidenceSummary
+    verification_plan_summary: ChangesetVerificationPlanLifecycleSummary = Field(
+        default_factory=lambda: ChangesetVerificationPlanLifecycleSummary()
+    )
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
 
@@ -244,6 +294,9 @@ class ChangesetVerificationPlanPreview(BaseModel):
     expected_scope: list[str] = Field(default_factory=list)
     retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
     readiness: ChangesetVerificationReadiness
+    plan_summary: ChangesetVerificationPlanLifecycleSummary = Field(
+        default_factory=lambda: ChangesetVerificationPlanLifecycleSummary()
+    )
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
@@ -388,7 +441,9 @@ __all__ = [
     "ChangesetInventoryStatus",
     "ChangesetReviewBriefGenerationResult",
     "ChangesetVerificationEvidenceRecordResult",
+    "ChangesetVerificationPlanEntrySummary",
     "ChangesetVerificationPlanExecutionResult",
+    "ChangesetVerificationPlanLifecycleSummary",
     "ChangesetVerificationPlanDispositionResult",
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",

@@ -751,7 +751,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1634: Integrate Verification Plans Into Changesets, Briefs, And Handoff
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1633`
 - Goal: make verification plans the shared source for changeset verification
   posture, review briefs, handoff readiness, and evidence bundles

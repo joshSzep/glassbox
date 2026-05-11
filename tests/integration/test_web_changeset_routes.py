@@ -448,6 +448,8 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             )
             assert plan_response.status_code == 200
             assert plan_response.json()["expected_scope"] == ["app.py"]
+            assert plan_response.json()["plan_summary"]["total_count"] >= 1
+            assert plan_response.json()["plan_summary"]["proposed_count"] >= 1
             assert plan_response.json()["review_loop_summary"]["feedback_count"] == 1
             assert (
                 plan_response.json()["review_loop_summary"]["manual_evidence_count"]
@@ -475,6 +477,12 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert brief_response.json()["markdown"].startswith("# Review Brief:")
             assert (
                 brief_response.json()["detail"]["command_evidence"]["failed_count"] == 1
+            )
+            assert (
+                brief_response.json()["detail"]["verification_plan_summary"][
+                    "passed_count"
+                ]
+                == 1
             )
             assert brief_response.json()["detail"]["command_evidence"]["items"][0][
                 "tool_attempt_id"
@@ -515,6 +523,12 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert (
                 handoff_readiness_response.json()["evidence"]["manual_evidence_count"]
                 == 3
+            )
+            assert (
+                handoff_readiness_response.json()["verification_plan_summary"][
+                    "passed_count"
+                ]
+                == 1
             )
             assert "not publication" in " ".join(
                 handoff_readiness_response.json()["non_claims"]

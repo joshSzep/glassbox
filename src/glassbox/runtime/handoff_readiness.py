@@ -20,6 +20,7 @@ from glassbox.core import ManualEvidenceRecord
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
 from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanLifecycleSummary
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_queries import ChangesetQueryService
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
@@ -56,6 +57,9 @@ class HandoffReadinessAssessment(BaseModel):
     inventory_artifact_id: ArtifactId | None = None
     review_brief_artifact_id: ArtifactId | None = None
     verification_id: TaskVerificationId | None = None
+    verification_plan_summary: ChangesetVerificationPlanLifecycleSummary = Field(
+        default_factory=lambda: ChangesetVerificationPlanLifecycleSummary()
+    )
     commit_readiness_state: ChangesetReadinessState
     evidence: HandoffReadinessEvidenceSummary
     git: CommitReadinessGitSummary
@@ -164,6 +168,7 @@ def derive_handoff_readiness(
             latest_brief.artifact_id if latest_brief is not None else None
         ),
         verification_id=_verification_id(changeset, verification_plan),
+        verification_plan_summary=verification_plan.plan_summary,
         commit_readiness_state=commit_readiness.state,
         evidence=build_handoff_evidence_summary(
             review_response_summary=review_response_summary,

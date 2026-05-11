@@ -20,6 +20,9 @@ from glassbox.runtime.changeset_models import ChangesetDetailView
 from glassbox.runtime.changeset_models import ChangesetInventoryStatus
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_safe_commands import show_changeset_command
+from glassbox.runtime.changeset_verification_plan_summary import (
+    build_changeset_verification_plan_summary,
+)
 from glassbox.runtime.review_response_summary import changeset_review_response_summary
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
@@ -84,6 +87,14 @@ def build_changeset_detail_view(
     )
     inventory_for_detail = inventory_with_status_freshness(inventory, status)
     command_evidence = changeset_command_evidence_summary(repository, changeset)
+    task_ledger = (
+        repository.list_task_verification_ledger(
+            changeset.session_id,
+            changeset.task_id,
+        )
+        if changeset.task_id is not None
+        else []
+    )
     return ChangesetDetailView(
         changeset=changeset,
         sources=sources,
@@ -96,6 +107,10 @@ def build_changeset_detail_view(
         review_response_summary=response_summary,
         readiness=readiness,
         command_evidence=command_evidence,
+        verification_plan_summary=build_changeset_verification_plan_summary(
+            task_ledger=task_ledger,
+            safe_next_actions=detail_safe_next_actions(changeset, status),
+        ),
         limitations=detail_limitations(
             changeset,
             sources,

@@ -10,6 +10,7 @@ from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetReviewBriefGenerationResult
+from glassbox.runtime.changesets import ChangesetVerificationPlanLifecycleSummary
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.web.changeset_api_builders_review import build_manual_evidence_response
 from glassbox.web.changeset_api_builders_review import build_review_feedback_response
@@ -27,6 +28,12 @@ from glassbox.web.changeset_api_models import ChangesetReviewBriefResponse
 from glassbox.web.changeset_api_models import ChangesetSourceResponse
 from glassbox.web.changeset_api_models import ChangesetSummaryResponse
 from glassbox.web.changeset_api_models import ChangesetTopologyImpactResponse
+from glassbox.web.changeset_api_models import (
+    ChangesetVerificationPlanEntrySummaryResponse,
+)
+from glassbox.web.changeset_api_models import (
+    ChangesetVerificationPlanLifecycleSummaryResponse,
+)
 from glassbox.web.changeset_api_models import ChangesetVerificationPlanPreviewResponse
 from glassbox.web.changeset_api_models import ChangesetVerificationPostureResponse
 from glassbox.web.changeset_api_models import ChangesetVerificationReadinessResponse
@@ -154,6 +161,9 @@ def build_changeset_detail_response(
             limitations=detail.command_evidence.limitations,
             safe_next_actions=detail.command_evidence.safe_next_actions,
         ),
+        verification_plan_summary=build_changeset_verification_plan_summary_response(
+            detail.verification_plan_summary
+        ),
         limitations=detail.limitations,
         safe_next_actions=detail.safe_next_actions,
     )
@@ -238,9 +248,56 @@ def build_changeset_verification_plan_response(
             str(artifact_id) for artifact_id in preview.retained_artifact_ids
         ],
         readiness=build_changeset_verification_readiness_response(preview.readiness),
+        plan_summary=build_changeset_verification_plan_summary_response(
+            preview.plan_summary
+        ),
         limitations=preview.limitations,
         safe_next_actions=preview.safe_next_actions,
         non_claims=preview.non_claims,
+    )
+
+
+def build_changeset_verification_plan_summary_response(
+    summary: ChangesetVerificationPlanLifecycleSummary,
+) -> ChangesetVerificationPlanLifecycleSummaryResponse:
+    return ChangesetVerificationPlanLifecycleSummaryResponse(
+        total_count=summary.total_count,
+        proposed_count=summary.proposed_count,
+        selected_count=summary.selected_count,
+        running_count=summary.running_count,
+        passed_count=summary.passed_count,
+        failed_count=summary.failed_count,
+        skipped_count=summary.skipped_count,
+        stale_count=summary.stale_count,
+        accepted_risk_count=summary.accepted_risk_count,
+        manual_only_count=summary.manual_only_count,
+        command_count=summary.command_count,
+        latest_verification_id=_optional_str(summary.latest_verification_id),
+        latest_status=summary.latest_status,
+        entries=[
+            ChangesetVerificationPlanEntrySummaryResponse(
+                verification_id=str(entry.verification_id),
+                check_name=entry.check_name,
+                status=entry.status,
+                lifecycle_state=entry.lifecycle_state,
+                kind=entry.kind,
+                source=entry.source,
+                command=entry.command,
+                changed_paths=entry.changed_paths,
+                blocking=entry.blocking,
+                reason=entry.reason,
+                artifact_id=_optional_str(entry.artifact_id),
+                failed_artifact_id=_optional_str(entry.failed_artifact_id),
+                failure_summary=entry.failure_summary,
+                accepted_risk_count=entry.accepted_risk_count,
+                accepted_risks=entry.accepted_risks,
+                stale_reasons=entry.stale_reasons,
+                last_sequence=entry.last_sequence,
+            )
+            for entry in summary.entries
+        ],
+        safe_next_actions=summary.safe_next_actions,
+        non_claims=summary.non_claims,
     )
 
 

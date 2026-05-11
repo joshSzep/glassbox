@@ -21,6 +21,9 @@ from glassbox.web.changeset_api_builders_detail import (
     build_changeset_verification_plan_response,
 )
 from glassbox.web.changeset_api_builders_detail import (
+    build_changeset_verification_plan_summary_response,
+)
+from glassbox.web.changeset_api_builders_detail import (
     build_changeset_verification_posture_response,
 )
 from glassbox.web.changeset_api_builders_detail import (
@@ -68,6 +71,7 @@ __all__ = (
     "build_changeset_summary_responses",
     "build_changeset_detail_response",
     "build_changeset_verification_plan_response",
+    "build_changeset_verification_plan_summary_response",
     "build_verification_review_loop_summary_response",
     "build_changeset_verification_readiness_response",
     "build_changeset_review_brief_generate_response",

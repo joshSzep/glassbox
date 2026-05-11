@@ -53,6 +53,9 @@ from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_models import PathVerificationPlanPreview
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_topology import derive_changeset_topology_impacts
+from glassbox.runtime.changeset_verification_plan_summary import (
+    build_changeset_verification_plan_summary,
+)
 from glassbox.runtime.changeset_verification_preview import artifact_ids_from_readiness
 from glassbox.runtime.changeset_verification_preview import eval_profile_ids_for_preview
 from glassbox.runtime.changeset_verification_preview import inventory_paths_for_preview
@@ -160,6 +163,14 @@ class ChangesetVerificationService:
             readiness=readiness,
             recommendation=recommendation,
         )
+        safe_next_actions = list(
+            dict.fromkeys(
+                [
+                    *readiness.safe_next_actions,
+                    *review_loop_summary.safe_next_actions,
+                ]
+            )
+        )
         return ChangesetVerificationPlanPreview(
             changeset_id=changeset.changeset_id,
             session_id=changeset.session_id,
@@ -187,15 +198,14 @@ class ChangesetVerificationService:
             expected_scope=changed_paths,
             retained_artifact_ids=retained_artifact_ids,
             readiness=readiness,
-            limitations=limitations,
-            safe_next_actions=list(
-                dict.fromkeys(
-                    [
-                        *readiness.safe_next_actions,
-                        *review_loop_summary.safe_next_actions,
-                    ]
-                )
+            plan_summary=build_changeset_verification_plan_summary(
+                plan_entries=plan_entries,
+                task_ledger=ledger,
+                readiness=readiness,
+                safe_next_actions=safe_next_actions,
             ),
+            limitations=limitations,
+            safe_next_actions=safe_next_actions,
             non_claims=[
                 *readiness.non_claims,
                 *review_loop_summary.non_claims,

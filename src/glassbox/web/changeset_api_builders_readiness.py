@@ -3,6 +3,9 @@
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
 from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.handoff_readiness import HandoffReadinessAssessment
+from glassbox.web.changeset_api_builders_detail import (
+    build_changeset_verification_plan_summary_response,
+)
 from glassbox.web.changeset_api_models import CommitMessageEvidenceLineResponse
 from glassbox.web.changeset_api_models import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api_models import CommitReadinessGitSummaryResponse
@@ -104,6 +107,9 @@ def build_handoff_readiness_response(
         inventory_artifact_id=_optional_str(readiness.inventory_artifact_id),
         review_brief_artifact_id=_optional_str(readiness.review_brief_artifact_id),
         verification_id=_optional_str(readiness.verification_id),
+        verification_plan_summary=build_changeset_verification_plan_summary_response(
+            readiness.verification_plan_summary
+        ),
         commit_readiness_state=readiness.commit_readiness_state.value,
         evidence=HandoffReadinessEvidenceSummaryResponse(
             feedback_count=readiness.evidence.feedback_count,

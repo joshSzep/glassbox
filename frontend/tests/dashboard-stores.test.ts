@@ -1669,6 +1669,8 @@ type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionRes
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type ChangesetVerificationPlanSummary =
+  components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type RepositoryCommandRecipes =
@@ -1889,6 +1891,7 @@ function makeChangesetDetail(
         verification_id: null,
       },
     ],
+    verification_plan_summary: makeVerificationPlanSummary(changesetId),
     verification_posture: null,
   };
 }
@@ -1991,6 +1994,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_summary: makeVerificationPlanSummary(changesetId),
     plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 0,
@@ -2140,6 +2144,7 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     readiness_kind: "handoff",
     reason: "needs verification: verification readiness is missing",
     review_brief_artifact_id: null,
+    verification_plan_summary: makeVerificationPlanSummary(changesetId),
     safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
     session_id: "session-1",
     signals: [
@@ -2153,6 +2158,47 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "needs_verification",
     verification_id: null,
+  };
+}
+
+function makeVerificationPlanSummary(changesetId: string): ChangesetVerificationPlanSummary {
+  return {
+    accepted_risk_count: 0,
+    command_count: 1,
+    entries: [
+      {
+        accepted_risk_count: 0,
+        accepted_risks: [],
+        artifact_id: null,
+        blocking: true,
+        changed_paths: ["src/glassbox/runtime/changesets.py"],
+        check_name: "commit smoke",
+        command: ["uv", "run", "pytest", "tests/unit"],
+        failed_artifact_id: null,
+        failure_summary: null,
+        kind: "test",
+        last_sequence: null,
+        lifecycle_state: "proposed",
+        reason: "planned verification",
+        source: "changed_paths",
+        stale_reasons: [],
+        status: "proposed",
+        verification_id: "verification-1",
+      },
+    ],
+    failed_count: 0,
+    latest_status: "proposed",
+    latest_verification_id: "verification-1",
+    manual_only_count: 0,
+    non_claims: ["verification plan summary is local evidence, not reviewer approval"],
+    passed_count: 0,
+    proposed_count: 1,
+    running_count: 0,
+    safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
+    selected_count: 0,
+    skipped_count: 0,
+    stale_count: 0,
+    total_count: 1,
   };
 }
 
