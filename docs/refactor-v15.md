@@ -739,7 +739,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R751: Split Repository Intelligence Route Query Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R750
 - Target files:
   - `src/glassbox/web/routes/repository_intelligence.py`
