@@ -11,12 +11,13 @@ from glassbox.cli.repository_command_formatters import _print_topology_status
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.bootstrap import open_runtime_context
-from glassbox.runtime.repository_index import build_and_write_repository_index
 from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.repository_intelligence_refresh import refresh_repository_index
+from glassbox.runtime.repository_intelligence_refresh import (
+    refresh_repository_intelligence,
+)
 from glassbox.runtime.workspace_topology import build_and_write_workspace_topology
-from glassbox.runtime.workspace_topology import build_workspace_topology
 from glassbox.runtime.workspace_topology import workspace_topology_path
-from glassbox.runtime.workspace_topology import write_workspace_topology
 
 
 def _repo_refresh_command(args: argparse.Namespace) -> int:
@@ -45,26 +46,24 @@ def _repo_refresh_command(args: argparse.Namespace) -> int:
         memory_entries = runtime_context.repositories.sessions.list_workspace_memory(
             state=WorkspaceMemoryState.ACTIVE,
         )
-    index_snapshot = build_and_write_repository_index(
+    refresh_result = refresh_repository_intelligence(
         cwd,
         workspace_memory_entries=memory_entries,
     )
-    topology_snapshot = build_workspace_topology(
-        cwd,
-        repository_index=index_snapshot,
-    )
-    write_workspace_topology(cwd, topology_snapshot)
     payload = {
-        "index": index_snapshot.model_dump(mode="json"),
-        "topology": topology_snapshot.model_dump(mode="json"),
+        "index": refresh_result.index_snapshot.model_dump(mode="json"),
+        "topology": refresh_result.topology_snapshot.model_dump(mode="json"),
     }
     if args.json:
         print_json_output(payload)
     else:
         print("Repository intelligence refreshed.")
-        _print_index_snapshot(index_snapshot, repository_index_path(cwd))
+        _print_index_snapshot(refresh_result.index_snapshot, refresh_result.index_path)
         print("")
-        _print_topology_status(topology_snapshot, workspace_topology_path(cwd))
+        _print_topology_status(
+            refresh_result.topology_snapshot,
+            refresh_result.topology_path,
+        )
     return 0
 
 
@@ -91,14 +90,14 @@ def _repo_index_build_command(args: argparse.Namespace) -> int:
         memory_entries = runtime_context.repositories.sessions.list_workspace_memory(
             state=WorkspaceMemoryState.ACTIVE,
         )
-    snapshot = build_and_write_repository_index(
+    refresh_result = refresh_repository_index(
         cwd,
         workspace_memory_entries=memory_entries,
     )
     if args.json:
-        print_json_output(snapshot.model_dump(mode="json"))
+        print_json_output(refresh_result.snapshot.model_dump(mode="json"))
     else:
-        _print_index_snapshot(snapshot, repository_index_path(cwd))
+        _print_index_snapshot(refresh_result.snapshot, refresh_result.index_path)
     return 0
 
 

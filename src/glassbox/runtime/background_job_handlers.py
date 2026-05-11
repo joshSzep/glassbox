@@ -9,14 +9,13 @@ from glassbox.core.types import WorkspaceMemoryState
 from glassbox.runtime.background_job_records import record_background_job_progress
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
-from glassbox.runtime.repository_index import build_and_write_repository_index
-from glassbox.runtime.repository_index import repository_index_path
+from glassbox.runtime.repository_intelligence_refresh import refresh_repository_index
+from glassbox.runtime.repository_intelligence_refresh import (
+    refresh_repository_intelligence,
+)
 from glassbox.runtime.workspace_memory_capture import MemoryExtractionPolicy
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureRepository
 from glassbox.runtime.workspace_memory_capture import WorkspaceMemoryCaptureService
-from glassbox.runtime.workspace_topology import build_workspace_topology
-from glassbox.runtime.workspace_topology import workspace_topology_path
-from glassbox.runtime.workspace_topology import write_workspace_topology
 from glassbox.store.artifact_retention import inspect_artifact_state
 
 
@@ -124,21 +123,20 @@ def _run_repository_index_refresh(
     memory_entries = runtime_context.repositories.sessions.list_workspace_memory(
         state=WorkspaceMemoryState.ACTIVE,
     )
-    snapshot = build_and_write_repository_index(
+    refresh_result = refresh_repository_index(
         workspace_root,
         workspace_memory_entries=memory_entries,
     )
-    index_path = repository_index_path(workspace_root)
     record_background_job_progress(
         runtime_context,
         job,
-        f"repository index refreshed {len(snapshot.entries)} entries",
+        f"repository index refreshed {refresh_result.entry_count} entries",
     )
     runtime_context.repositories.sessions.complete_background_job(
         job.job_id,
         summary=(
-            f"Repository index refresh wrote {len(snapshot.entries)} entries "
-            f"to {index_path}."
+            f"Repository index refresh wrote {refresh_result.entry_count} entries "
+            f"to {refresh_result.index_path}."
         ),
     )
 
@@ -152,7 +150,7 @@ def _run_repository_intelligence_refresh(
     memory_entries = repository.list_workspace_memory(
         state=WorkspaceMemoryState.ACTIVE,
     )
-    index_snapshot = build_and_write_repository_index(
+    refresh_result = refresh_repository_intelligence(
         workspace_root,
         workspace_memory_entries=memory_entries,
     )
@@ -161,32 +159,27 @@ def _run_repository_intelligence_refresh(
         job,
         (
             "repository intelligence index refreshed "
-            f"{len(index_snapshot.entries)} entries"
+            f"{refresh_result.index_entry_count} entries"
         ),
     )
-    topology_snapshot = build_workspace_topology(
-        workspace_root,
-        repository_index=index_snapshot,
-    )
-    write_workspace_topology(workspace_root, topology_snapshot)
     record_background_job_progress(
         runtime_context,
         job,
         (
             "workspace topology refreshed "
-            f"{len(topology_snapshot.components)} component(s)"
+            f"{refresh_result.topology_component_count} component(s)"
         ),
     )
     summary_artifact = runtime_context.repositories.artifacts.write_text_artifact(
         job.session_id,
         _repository_intelligence_refresh_summary(
-            index_entries=len(index_snapshot.entries),
-            command_recipes=len(index_snapshot.command_recipes),
-            memory_references=len(index_snapshot.memory_references),
-            topology_components=len(topology_snapshot.components),
-            topology_dependencies=len(topology_snapshot.dependencies),
-            index_path=repository_index_path(workspace_root),
-            topology_path=workspace_topology_path(workspace_root),
+            index_entries=refresh_result.index_entry_count,
+            command_recipes=refresh_result.command_recipe_count,
+            memory_references=refresh_result.memory_reference_count,
+            topology_components=refresh_result.topology_component_count,
+            topology_dependencies=refresh_result.topology_dependency_count,
+            index_path=refresh_result.index_path,
+            topology_path=refresh_result.topology_path,
         ),
         suffix="repository-intelligence-refresh.txt",
     )
@@ -194,8 +187,8 @@ def _run_repository_intelligence_refresh(
         job.job_id,
         summary=(
             "Repository intelligence refresh wrote "
-            f"{len(index_snapshot.entries)} index entries and "
-            f"{len(topology_snapshot.components)} topology component(s). "
+            f"{refresh_result.index_entry_count} index entries and "
+            f"{refresh_result.topology_component_count} topology component(s). "
             f"Summary artifact: {summary_artifact.relative_path.as_posix()}."
         ),
     )

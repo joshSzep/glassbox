@@ -583,7 +583,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R730: Introduce Shared Repository Intelligence Refresh Service
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R710, GBX-R720
 - Target files:
   - `src/glassbox/runtime/repository_intelligence_refresh.py`

@@ -93,6 +93,11 @@ from glassbox.runtime.repository_intelligence_queries import (
 from glassbox.runtime.repository_intelligence_queries import (
     workspace_relative_repository_path,
 )
+from glassbox.runtime.repository_intelligence_refresh import (
+    refresh_repository_intelligence,
+)
+from glassbox.runtime.workspace_topology import load_workspace_topology
+from glassbox.runtime.workspace_topology import workspace_topology_path
 
 _BUILT_AT = datetime(2026, 4, 29, 12, tzinfo=UTC)
 
@@ -863,6 +868,27 @@ def test_repository_index_status_classifies_unsupported_schema(
     assert summary.status == "failed"
     assert summary.failure_reason is not None
     assert "unsupported schema version 99" in summary.failure_reason
+
+
+def test_repository_intelligence_refresh_writes_index_and_topology(
+    tmp_path: Path,
+) -> None:
+    _seed_repository(tmp_path)
+
+    result = refresh_repository_intelligence(tmp_path)
+    loaded_index = load_repository_index(tmp_path)
+    loaded_topology = load_workspace_topology(tmp_path)
+
+    assert result.index_path == repository_index_path(tmp_path)
+    assert result.topology_path == workspace_topology_path(tmp_path)
+    assert result.index_entry_count == len(loaded_index.entries)
+    assert result.topology_component_count == len(loaded_topology.components)
+    assert result.command_recipe_count == len(loaded_index.command_recipes)
+    assert result.memory_reference_count == 0
+    assert {component.component_id for component in loaded_topology.components} >= {
+        "package:fixture",
+        "app:frontend",
+    }
 
 
 def _seed_repository(root: Path) -> None:
