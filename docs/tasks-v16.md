@@ -425,7 +425,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1610: Define Typed Next-Action Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1601`
 - Goal: create a shared typed model for safe next actions that can be reused
   by CLI, API, dashboard, TUI, review briefs, handoff summaries, and release

@@ -201,6 +201,10 @@ from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import LongRunStatusRecord
 from glassbox.core.models import ManualEvidenceRecord
 from glassbox.core.models import MessagePart
+from glassbox.core.models import NextAction
+from glassbox.core.models import NextActionCommandRecipe
+from glassbox.core.models import NextActionEvidenceRef
+from glassbox.core.models import NextActionTarget
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
@@ -274,6 +278,13 @@ from glassbox.core.types import ManualEvidenceKind
 from glassbox.core.types import ManualEvidenceRedactionStatus
 from glassbox.core.types import ManualEvidenceState
 from glassbox.core.types import ManualEvidenceTargetKind
+from glassbox.core.types import NextActionEvidenceKind
+from glassbox.core.types import NextActionKind
+from glassbox.core.types import NextActionPriority
+from glassbox.core.types import NextActionSafetyClass
+from glassbox.core.types import NextActionSeverity
+from glassbox.core.types import NextActionSurface
+from glassbox.core.types import NextActionTargetKind
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
@@ -438,6 +449,17 @@ __all__ = [
     "ModelCallCompleted",
     "ModelCallStarted",
     "ModelToolCallRequested",
+    "NextAction",
+    "NextActionCommandRecipe",
+    "NextActionEvidenceKind",
+    "NextActionEvidenceRef",
+    "NextActionKind",
+    "NextActionPriority",
+    "NextActionSafetyClass",
+    "NextActionSeverity",
+    "NextActionSurface",
+    "NextActionTarget",
+    "NextActionTargetKind",
     "PauseWindowCancelled",
     "PauseWindowId",
     "PauseWindowPolicy",

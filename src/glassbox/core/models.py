@@ -59,6 +59,13 @@ from glassbox.core.types import ManualEvidenceKind
 from glassbox.core.types import ManualEvidenceRedactionStatus
 from glassbox.core.types import ManualEvidenceState
 from glassbox.core.types import ManualEvidenceTargetKind
+from glassbox.core.types import NextActionEvidenceKind
+from glassbox.core.types import NextActionKind
+from glassbox.core.types import NextActionPriority
+from glassbox.core.types import NextActionSafetyClass
+from glassbox.core.types import NextActionSeverity
+from glassbox.core.types import NextActionSurface
+from glassbox.core.types import NextActionTargetKind
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
@@ -192,6 +199,115 @@ class AutonomySelection(BaseModel):
             AutonomyEscalationReason.AMBIGUOUS_PLAN,
         ]
     )
+
+
+class NextActionTarget(BaseModel):
+    """Local object or surface a next action is about."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: NextActionTargetKind
+    target_id: str | None = Field(default=None, min_length=1, max_length=300)
+    label: str | None = Field(default=None, min_length=1, max_length=300)
+
+
+class NextActionEvidenceRef(BaseModel):
+    """Compact local evidence reference for next-action support."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: NextActionEvidenceKind
+    ref_id: str = Field(min_length=1, max_length=300)
+    summary: str = Field(min_length=1, max_length=1000)
+    source_path: str | None = Field(default=None, min_length=1, max_length=500)
+    freshness: str | None = Field(default=None, min_length=1, max_length=80)
+    redaction: str | None = Field(default=None, min_length=1, max_length=120)
+    reviewer_safe: bool = True
+
+
+class NextActionCommandRecipe(BaseModel):
+    """Advisory command shape attached to a next action."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    command: list[str] = Field(min_length=1, max_length=64)
+    display: str = Field(min_length=1, max_length=1000)
+    purpose: str = Field(min_length=1, max_length=1000)
+    safety_class: NextActionSafetyClass = NextActionSafetyClass.COMMAND_RECIPE
+    requires_approval: bool = True
+    expected_exit_codes: list[int] = Field(default_factory=lambda: [0], min_length=1)
+    timeout_seconds: int | None = Field(default=None, ge=1, le=7200)
+    cwd_hint: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @field_validator("expected_exit_codes")
+    @classmethod
+    def normalize_expected_exit_codes(cls, value: list[int]) -> list[int]:
+        normalized = list(dict.fromkeys(value))
+        if not normalized:
+            raise ValueError("expected_exit_codes must not be empty")
+        for exit_code in normalized:
+            if exit_code < 0 or exit_code > 255:
+                raise ValueError("expected_exit_codes must be between 0 and 255")
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_command_recipe_safety(self) -> NextActionCommandRecipe:
+        if self.safety_class == NextActionSafetyClass.PUBLICATION_BLOCKED:
+            raise ValueError(
+                "publication-blocked actions must not carry command recipes"
+            )
+        return self
+
+
+class NextAction(BaseModel):
+    """Shared advisory next-action contract for operator-facing surfaces."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action_id: str = Field(min_length=1, max_length=300)
+    title: str = Field(min_length=1, max_length=300)
+    summary: str = Field(min_length=1, max_length=2000)
+    kind: NextActionKind
+    priority: NextActionPriority
+    severity: NextActionSeverity = NextActionSeverity.INFO
+    safety_class: NextActionSafetyClass = NextActionSafetyClass.READ_ONLY
+    target: NextActionTarget
+    command: NextActionCommandRecipe | None = None
+    supporting_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    missing_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    stale_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+    recommended_surfaces: list[NextActionSurface] = Field(
+        default_factory=list,
+        max_length=10,
+    )
+    confidence: RepositoryIntelligenceConfidence = (
+        RepositoryIntelligenceConfidence.UNKNOWN
+    )
+    reviewer_safe: bool = True
+
+    @model_validator(mode="after")
+    def validate_command_boundary(self) -> NextAction:
+        if self.command is None:
+            return self
+        if self.safety_class not in {
+            NextActionSafetyClass.COMMAND_RECIPE,
+            NextActionSafetyClass.OPERATOR_DECISION,
+        }:
+            raise ValueError(
+                "next actions with commands must use command_recipe or "
+                "operator_decision safety"
+            )
+        return self
 
 
 class AutonomyBudgetUsage(BaseModel):

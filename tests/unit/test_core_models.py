@@ -11,6 +11,17 @@ from glassbox.core import AutonomyBudget
 from glassbox.core import ForkedSession
 from glassbox.core import InheritedTranscriptMessage
 from glassbox.core import MessagePart
+from glassbox.core import NextAction
+from glassbox.core import NextActionCommandRecipe
+from glassbox.core import NextActionEvidenceKind
+from glassbox.core import NextActionEvidenceRef
+from glassbox.core import NextActionKind
+from glassbox.core import NextActionPriority
+from glassbox.core import NextActionSafetyClass
+from glassbox.core import NextActionSeverity
+from glassbox.core import NextActionSurface
+from glassbox.core import NextActionTarget
+from glassbox.core import NextActionTargetKind
 from glassbox.core import PolicyDecision
 from glassbox.core import RepositoryIndexEntityKind
 from glassbox.core import RepositoryIndexEntry
@@ -52,6 +63,7 @@ from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
+from glassbox.runtime.next_actions import next_actions_from_summaries
 
 
 def test_session_config_round_trip() -> None:
@@ -189,6 +201,88 @@ def test_workspace_memory_provenance_requires_source_links() -> None:
     )
 
     assert provenance.source_type == WorkspaceMemorySourceType.ARTIFACT
+
+
+def test_next_action_round_trip_preserves_v16_priority_and_evidence() -> None:
+    action = NextAction(
+        action_id="changeset-refresh:cs_123",
+        title="Refresh changeset inventory",
+        summary="Refresh stale inventory before trusting verification posture.",
+        kind=NextActionKind.REFRESH,
+        priority=NextActionPriority.ACTION_NEEDED,
+        severity=NextActionSeverity.HIGH,
+        safety_class=NextActionSafetyClass.COMMAND_RECIPE,
+        target=NextActionTarget(
+            kind=NextActionTargetKind.CHANGESET,
+            target_id="cs_123",
+            label="Changeset cs_123",
+        ),
+        command=NextActionCommandRecipe(
+            command=["glassbox", "changeset", "refresh", "cs_123", "--cwd", "."],
+            display="glassbox changeset refresh cs_123 --cwd .",
+            purpose="Refresh structured inventory evidence for this changeset.",
+            requires_approval=False,
+        ),
+        supporting_evidence=[
+            NextActionEvidenceRef(
+                kind=NextActionEvidenceKind.ARTIFACT,
+                ref_id="artifact:inventory",
+                summary="latest inventory is stale",
+                freshness="stale",
+            )
+        ],
+        stale_evidence=[
+            NextActionEvidenceRef(
+                kind=NextActionEvidenceKind.VERIFICATION,
+                ref_id="verification:pytest",
+                summary="pytest evidence predates inventory",
+                freshness="stale",
+            )
+        ],
+        limitations=["recommended commands are not approval to execute"],
+        recommended_surfaces=[NextActionSurface.CLI, NextActionSurface.DASHBOARD],
+    )
+
+    restored = NextAction.model_validate(action.model_dump(mode="python"))
+
+    assert restored == action
+    assert restored.priority == NextActionPriority.ACTION_NEEDED
+    assert restored.command is not None
+    assert restored.command.expected_exit_codes == [0]
+
+
+def test_next_action_rejects_command_without_command_safety_class() -> None:
+    with pytest.raises(ValidationError):
+        NextAction(
+            action_id="bad-action",
+            title="Run hidden command",
+            summary="This shape should be rejected.",
+            kind=NextActionKind.VERIFY,
+            priority=NextActionPriority.RECOMMENDED,
+            safety_class=NextActionSafetyClass.READ_ONLY,
+            target=NextActionTarget(kind=NextActionTargetKind.TASK),
+            command=NextActionCommandRecipe(
+                command=["uv", "run", "pytest"],
+                display="uv run pytest",
+                purpose="Run tests.",
+            ),
+        )
+
+
+def test_next_action_compatibility_helpers_wrap_legacy_strings() -> None:
+    actions = next_actions_from_summaries(
+        ["Inspect session", "Inspect session", "Resolve pending approval"],
+        target_kind=NextActionTargetKind.SESSION,
+        target_id="session_123",
+        priority=NextActionPriority.ACTION_NEEDED,
+    )
+
+    assert [action.summary for action in actions] == [
+        "Inspect session",
+        "Resolve pending approval",
+    ]
+    assert actions[0].target.kind == NextActionTargetKind.SESSION
+    assert actions[0].action_id.startswith("next-action:session:")
 
 
 def test_invalidated_workspace_memory_requires_reason() -> None:
