@@ -661,7 +661,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R740: Split Repository-Intelligence Recommendation Matching From Output Assembly
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R701, GBX-R720
 - Target files:
   - `src/glassbox/runtime/eval_recommendation_repository_intelligence.py`
