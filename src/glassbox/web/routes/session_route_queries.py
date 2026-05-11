@@ -5,11 +5,15 @@ from uuid import UUID
 
 from fastapi import HTTPException
 
+from glassbox.core import EvidenceGraph
 from glassbox.core.events import ReplayArtifactRecorded
 from glassbox.core.events import ToolArtifactRecorded
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.evidence_graph import EvidenceGraphSummary
+from glassbox.runtime.evidence_graph import build_session_evidence_graph
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.observability import build_background_job_observability
 from glassbox.runtime.observability import build_repository_intelligence_observability
@@ -330,6 +334,27 @@ def get_session_snapshot_response(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return build_session_snapshot_response(snapshot)
+
+
+def get_session_evidence_graph_response(
+    session_id: UUID,
+    context: RuntimeContext,
+) -> EvidenceGraph:
+    query_service = session_query_service(context)
+    try:
+        snapshot = query_service.get_session_snapshot(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return build_session_evidence_graph(snapshot)
+
+
+def get_session_evidence_graph_summary_response(
+    session_id: UUID,
+    context: RuntimeContext,
+) -> EvidenceGraphSummary:
+    return summarize_evidence_graph(
+        get_session_evidence_graph_response(session_id, context)
+    )
 
 
 def artifact_detail_from_event(event) -> ArtifactDetailResponse:

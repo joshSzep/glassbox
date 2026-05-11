@@ -69,11 +69,15 @@ from glassbox.web.changeset_api_models import ChangesetVerificationRequirementRe
 from glassbox.web.changeset_api_models import (
     ChangesetVerificationReviewLoopSummaryResponse,
 )
+from glassbox.web.changeset_api_models import ClaimSupport
 from glassbox.web.changeset_api_models import CommitMessageEvidenceLineResponse
 from glassbox.web.changeset_api_models import CommitMessageSuggestionResponse
 from glassbox.web.changeset_api_models import CommitReadinessGitSummaryResponse
 from glassbox.web.changeset_api_models import CommitReadinessResponse
 from glassbox.web.changeset_api_models import CommitReadinessSignalResponse
+from glassbox.web.changeset_api_models import EvidenceGraph
+from glassbox.web.changeset_api_models import EvidenceGraphNode
+from glassbox.web.changeset_api_models import EvidenceGraphSummary
 from glassbox.web.changeset_api_models import HandoffReadinessEvidenceSummaryResponse
 from glassbox.web.changeset_api_models import HandoffReadinessResponse
 from glassbox.web.changeset_api_models import HandoffReadinessSignalResponse
@@ -142,6 +146,10 @@ __all__ = (
     "ChangesetArchiveRequest",
     "ChangesetRefreshRequest",
     "ChangesetActionResponse",
+    "ClaimSupport",
+    "EvidenceGraph",
+    "EvidenceGraphNode",
+    "EvidenceGraphSummary",
     "ChangesetVerificationRecipePreviewResponse",
     "ChangesetTopologyImpactResponse",
     "ChangesetVerificationReasonGroupResponse",

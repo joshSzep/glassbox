@@ -507,7 +507,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1613: Add Evidence Graph API And CLI Inspection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1612`
 - Goal: expose evidence graph summaries through scriptable CLI and typed API
   surfaces before building dashboard UX

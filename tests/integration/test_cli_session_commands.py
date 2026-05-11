@@ -125,6 +125,7 @@ def test_cli_session_help_lists_session_subcommands(
     assert "approve" in captured.out
     assert "attach" in captured.out
     assert "deny" in captured.out
+    assert "evidence-graph" in captured.out
     assert "export" in captured.out
     assert "fork" in captured.out
     assert "import" in captured.out
@@ -320,6 +321,73 @@ def test_cli_session_list_supports_json_and_limit(
     assert payload[0]["latest_message_summary"] == (
         "assistant: I received your request: Second prompt"
     )
+
+
+def test_cli_session_evidence_graph_reports_claim_support(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(tmp_path, prompt="Inspect evidence")
+    _ = capsys.readouterr()
+
+    summary_exit_code = main(
+        [
+            "session",
+            "evidence-graph",
+            str(session_id),
+            "--summary",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    summary = json.loads(capsys.readouterr().out)
+    claim_id = f"claim:session:{session_id}:operator-posture"
+    claim_exit_code = main(
+        [
+            "session",
+            "evidence-graph",
+            str(session_id),
+            "--claim-id",
+            claim_id,
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    claim = json.loads(capsys.readouterr().out)
+    neighborhood_exit_code = main(
+        [
+            "session",
+            "evidence-graph",
+            str(session_id),
+            "--node-id",
+            claim_id,
+            "--depth",
+            "1",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    neighborhood = json.loads(capsys.readouterr().out)
+
+    assert summary_exit_code == 0
+    assert summary["target_kind"] == "session"
+    assert summary["target_id"] == str(session_id)
+    assert summary["claim_count"] == 1
+    assert summary["node_count"] >= 2
+    assert claim_exit_code == 0
+    assert claim["claim_id"] == claim_id
+    assert claim["state"] == "supported"
+    assert neighborhood_exit_code == 0
+    assert {node["node_id"] for node in neighborhood["nodes"]} >= {claim_id}
 
 
 def test_cli_answer_resumes_pending_ask_user_turn(

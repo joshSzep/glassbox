@@ -2,7 +2,16 @@
 
 from uuid import UUID
 
+from glassbox.core import ClaimSupport
+from glassbox.core import EvidenceGraph
+from glassbox.core import EvidenceGraphNode
 from glassbox.runtime.context import RuntimeContext
+from glassbox.runtime.evidence_graph import EvidenceGraphSummary
+from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+from glassbox.runtime.evidence_graph import claim_support
+from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.web.changeset_api import AccessibilityEvidenceAttachRequest
 from glassbox.web.changeset_api import BrowserEvidenceAttachRequest
 from glassbox.web.changeset_api import ChangesetActionResponse
@@ -104,6 +113,100 @@ def get_changeset_detail_response(
         return _changeset_detail_response(context=context, changeset_id=changeset_id)
     except ValueError as exc:
         raise_not_found_from_value_error(exc)
+
+
+def get_changeset_evidence_graph(
+    *,
+    changeset_id: UUID,
+    context: RuntimeContext,
+    reviewer_safe: bool = False,
+) -> EvidenceGraph:
+    repository = changeset_repository(context)
+    try:
+        workspace_root = workspace_root_for_changeset(repository, changeset_id)
+        detail = changeset_query_service(repository).get_detail(
+            changeset_id,
+            workspace_root=workspace_root,
+        )
+        verification_plan = changeset_verification_service(
+            context,
+            repository,
+        ).preview_plan(changeset_id, workspace_root)
+    except ValueError as exc:
+        raise_not_found_from_value_error(exc)
+    graph = build_changeset_evidence_graph(detail, verification_plan=verification_plan)
+    return reviewer_safe_graph_slice(graph) if reviewer_safe else graph
+
+
+def get_changeset_evidence_graph_summary(
+    *,
+    changeset_id: UUID,
+    context: RuntimeContext,
+    reviewer_safe: bool = False,
+) -> EvidenceGraphSummary:
+    return summarize_evidence_graph(
+        get_changeset_evidence_graph(
+            changeset_id=changeset_id,
+            context=context,
+            reviewer_safe=reviewer_safe,
+        )
+    )
+
+
+def get_changeset_evidence_graph_claim(
+    *,
+    changeset_id: UUID,
+    claim_id: str,
+    context: RuntimeContext,
+    reviewer_safe: bool = False,
+) -> ClaimSupport:
+    graph = get_changeset_evidence_graph(
+        changeset_id=changeset_id,
+        context=context,
+        reviewer_safe=reviewer_safe,
+    )
+    support = claim_support(graph, claim_id)
+    if support is None:
+        raise_not_found_from_value_error(
+            ValueError(f"unknown evidence graph claim: {claim_id}")
+        )
+    return support
+
+
+def get_changeset_evidence_graph_node(
+    *,
+    changeset_id: UUID,
+    node_id: str,
+    context: RuntimeContext,
+    reviewer_safe: bool = False,
+) -> EvidenceGraphNode:
+    graph = get_changeset_evidence_graph(
+        changeset_id=changeset_id,
+        context=context,
+        reviewer_safe=reviewer_safe,
+    )
+    for node in graph.nodes:
+        if node.node_id == node_id:
+            return node
+    raise_not_found_from_value_error(
+        ValueError(f"unknown evidence graph node: {node_id}")
+    )
+
+
+def get_changeset_evidence_graph_neighborhood(
+    *,
+    changeset_id: UUID,
+    node_id: str,
+    depth: int,
+    context: RuntimeContext,
+    reviewer_safe: bool = False,
+) -> EvidenceGraph:
+    graph = get_changeset_evidence_graph(
+        changeset_id=changeset_id,
+        context=context,
+        reviewer_safe=reviewer_safe,
+    )
+    return evidence_neighborhood(graph, node_id, depth=depth)
 
 
 def attach_manual_evidence_response(

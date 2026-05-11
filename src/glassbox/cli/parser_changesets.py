@@ -127,6 +127,42 @@ def _add_changeset_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    evidence_graph_parser = changeset_subparsers.add_parser(
+        "evidence-graph",
+        help="inspect evidence graph support for a changeset",
+        description=(
+            "Inspect derived evidence graph support for a changeset without "
+            "reading raw artifacts or command logs."
+        ),
+    )
+    evidence_graph_parser.add_argument("changeset_id", type=_parse_uuid)
+    evidence_graph_parser.add_argument("--json", action="store_true")
+    evidence_graph_parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="print only graph counts and claim posture",
+    )
+    evidence_graph_parser.add_argument(
+        "--claim-id",
+        help="return one claim support record by ID",
+    )
+    evidence_graph_parser.add_argument(
+        "--node-id",
+        help="return a bounded neighborhood around one node ID",
+    )
+    evidence_graph_parser.add_argument(
+        "--depth",
+        type=int,
+        default=1,
+        help="neighborhood depth for --node-id",
+    )
+    evidence_graph_parser.add_argument(
+        "--reviewer-safe",
+        action="store_true",
+        help="omit operator-only and local-only graph nodes",
+    )
+    _add_runtime_location_arguments(evidence_graph_parser)
+
     refresh_parser = changeset_subparsers.add_parser(
         "refresh",
         help="refresh structured change inventory for a changeset",

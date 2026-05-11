@@ -8,6 +8,7 @@ from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _add_session_start_default_arguments
 from glassbox.cli.parser_common import _parse_port
 from glassbox.cli.parser_common import _parse_uuid
+from glassbox.cli.parser_session_evidence import _add_session_evidence_graph_parser
 from glassbox.cli.parser_session_launch import add_interactive_launch_arguments
 
 
@@ -405,6 +406,8 @@ def _add_session_workflow_parsers(
     )
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
+
+    _add_session_evidence_graph_parser(session_subparsers)
 
     session_export_parser = session_subparsers.add_parser(
         "export",

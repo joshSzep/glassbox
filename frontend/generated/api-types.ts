@@ -428,6 +428,106 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/changesets/{changeset_id}/evidence-graph": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Evidence Graph Route
+     * @description Return a bounded derived evidence graph for one changeset.
+     */
+    get: operations["get_changeset_evidence_graph_route_changesets__changeset_id__evidence_graph_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/evidence-graph/claims/{claim_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Evidence Graph Claim Route
+     * @description Return one claim support record from a changeset evidence graph.
+     */
+    get: operations["get_changeset_evidence_graph_claim_route_changesets__changeset_id__evidence_graph_claims__claim_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/evidence-graph/neighborhood": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Evidence Graph Neighborhood Route
+     * @description Return a bounded evidence graph neighborhood around one node.
+     */
+    get: operations["get_changeset_evidence_graph_neighborhood_route_changesets__changeset_id__evidence_graph_neighborhood_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/evidence-graph/nodes/{node_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Evidence Graph Node Route
+     * @description Return one node summary from a changeset evidence graph.
+     */
+    get: operations["get_changeset_evidence_graph_node_route_changesets__changeset_id__evidence_graph_nodes__node_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/changesets/{changeset_id}/evidence-graph/summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Changeset Evidence Graph Summary Route
+     * @description Return evidence graph counts and claim posture for one changeset.
+     */
+    get: operations["get_changeset_evidence_graph_summary_route_changesets__changeset_id__evidence_graph_summary_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/changesets/{changeset_id}/feedback": {
     parameters: {
       query?: never;
@@ -1376,6 +1476,46 @@ export interface paths {
      *             to reconnect without replaying the full history.
      */
     get: operations["stream_session_events_sessions__session_id__events_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/evidence-graph": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Evidence Graph
+     * @description Return a bounded derived evidence graph for one session.
+     */
+    get: operations["get_session_evidence_graph_sessions__session_id__evidence_graph_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/sessions/{session_id}/evidence-graph/summary": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Session Evidence Graph Summary
+     * @description Return evidence graph counts and claim posture for one session.
+     */
+    get: operations["get_session_evidence_graph_summary_sessions__session_id__evidence_graph_summary_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -3321,6 +3461,48 @@ export interface components {
        */
       updated_at: string;
     };
+    /**
+     * ClaimSupport
+     * @description Evidence support posture for one local claim or recommendation.
+     */
+    ClaimSupport: {
+      /** Accepted Risk Node Ids */
+      accepted_risk_node_ids?: string[];
+      /** Claim Id */
+      claim_id: string;
+      /** @default unknown */
+      confidence: components["schemas"]["EvidenceGraphConfidence"];
+      /** Contradicting Edge Ids */
+      contradicting_edge_ids?: string[];
+      /** Limitations */
+      limitations?: string[];
+      /** Missing Evidence */
+      missing_evidence?: components["schemas"]["EvidenceGraphMissingEvidence"][];
+      /** Stale Node Ids */
+      stale_node_ids?: string[];
+      state: components["schemas"]["ClaimSupportState"];
+      /** Summary */
+      summary: string;
+      /** Supporting Edge Ids */
+      supporting_edge_ids?: string[];
+      /** Title */
+      title: string;
+      /** @default operator_only */
+      visibility: components["schemas"]["EvidenceGraphVisibility"];
+    };
+    /**
+     * ClaimSupportState
+     * @description How well local evidence supports a graph claim.
+     * @enum {string}
+     */
+    ClaimSupportState:
+      | "supported"
+      | "missing"
+      | "stale"
+      | "contradicted"
+      | "manual-only"
+      | "accepted_with_risk"
+      | "unsupported";
     /** CommandEnvironmentSummaryResponse */
     CommandEnvironmentSummaryResponse: {
       /** Capture Scope */
@@ -4009,6 +4191,201 @@ export interface components {
       /** Subscriber Count */
       subscriber_count: number;
     };
+    /**
+     * EvidenceGraph
+     * @description Bounded derived graph for explaining claim support.
+     */
+    EvidenceGraph: {
+      /** Claims */
+      claims?: components["schemas"]["ClaimSupport"][];
+      /** Edges */
+      edges?: components["schemas"]["EvidenceGraphEdge"][];
+      /**
+       * Generated At
+       * Format: date-time
+       */
+      generated_at: string;
+      /** Graph Id */
+      graph_id: string;
+      /** Limitations */
+      limitations?: string[];
+      /** Nodes */
+      nodes?: components["schemas"]["EvidenceGraphNode"][];
+      target: components["schemas"]["NextActionTarget"];
+    };
+    /**
+     * EvidenceGraphConfidence
+     * @description Confidence posture for evidence graph nodes, edges, and claims.
+     * @enum {string}
+     */
+    EvidenceGraphConfidence: "high" | "medium" | "low" | "unknown";
+    /**
+     * EvidenceGraphEdge
+     * @description One typed relationship between local evidence graph nodes.
+     */
+    EvidenceGraphEdge: {
+      /** @default unknown */
+      confidence: components["schemas"]["EvidenceGraphConfidence"];
+      /** Edge Id */
+      edge_id: string;
+      /** From Node Id */
+      from_node_id: string;
+      kind: components["schemas"]["EvidenceGraphEdgeKind"];
+      /** Limitations */
+      limitations?: string[];
+      /** Summary */
+      summary: string;
+      /** To Node Id */
+      to_node_id: string;
+    };
+    /**
+     * EvidenceGraphEdgeKind
+     * @description Relationship kinds between evidence graph nodes.
+     * @enum {string}
+     */
+    EvidenceGraphEdgeKind:
+      | "supports"
+      | "contradicts"
+      | "supersedes"
+      | "makes-stale"
+      | "verifies"
+      | "skipped-by"
+      | "accepted-risk-for"
+      | "derived-from"
+      | "safe-next-action-for";
+    /**
+     * EvidenceGraphFreshness
+     * @description Freshness posture for evidence referenced by a graph.
+     * @enum {string}
+     */
+    EvidenceGraphFreshness:
+      | "fresh"
+      | "stale"
+      | "missing"
+      | "superseded"
+      | "manual-only"
+      | "unknown";
+    /**
+     * EvidenceGraphMissingEvidence
+     * @description A missing support item that has no local evidence node yet.
+     */
+    EvidenceGraphMissingEvidence: {
+      kind: components["schemas"]["EvidenceGraphNodeKind"];
+      /** Missing Id */
+      missing_id: string;
+      /** Safe Next Actions */
+      safe_next_actions?: components["schemas"]["NextAction"][];
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * EvidenceGraphNode
+     * @description One local evidence node in a derived graph.
+     */
+    EvidenceGraphNode: {
+      /** @default unknown */
+      confidence: components["schemas"]["EvidenceGraphConfidence"];
+      /** @default unknown */
+      freshness: components["schemas"]["EvidenceGraphFreshness"];
+      kind: components["schemas"]["EvidenceGraphNodeKind"];
+      /** Limitations */
+      limitations?: string[];
+      /** Node Id */
+      node_id: string;
+      /** Provenance */
+      provenance?: components["schemas"]["EvidenceGraphProvenance"][];
+      /** @default unknown */
+      redaction_status: components["schemas"]["EvidenceGraphRedactionStatus"];
+      /** Summary */
+      summary: string;
+      /** Title */
+      title: string;
+      /** @default operator_only */
+      visibility: components["schemas"]["EvidenceGraphVisibility"];
+    };
+    /**
+     * EvidenceGraphNodeKind
+     * @description Local evidence node families used in derived evidence graphs.
+     * @enum {string}
+     */
+    EvidenceGraphNodeKind:
+      | "event"
+      | "artifact"
+      | "command"
+      | "tool_attempt"
+      | "verification_check"
+      | "review_feedback"
+      | "manual_evidence"
+      | "memory_entry"
+      | "repository_intelligence_source"
+      | "eval_case"
+      | "background_job"
+      | "release_gate_row"
+      | "projection"
+      | "next_action"
+      | "claim";
+    /**
+     * EvidenceGraphProvenance
+     * @description Summary provenance for one evidence graph item.
+     */
+    EvidenceGraphProvenance: {
+      /** Source Id */
+      source_id?: string | null;
+      /** Source Kind */
+      source_kind: string;
+      /** Source Path */
+      source_path?: string | null;
+      /** Source Sequence */
+      source_sequence?: number | null;
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * EvidenceGraphRedactionStatus
+     * @description Whether graph evidence can be shown in reviewer-safe contexts.
+     * @enum {string}
+     */
+    EvidenceGraphRedactionStatus:
+      | "safe_summary"
+      | "local_only"
+      | "redacted"
+      | "blocked"
+      | "unknown";
+    /**
+     * EvidenceGraphSummary
+     * @description Compact count summary for a derived evidence graph.
+     */
+    EvidenceGraphSummary: {
+      /** Accepted Risk Claim Count */
+      accepted_risk_claim_count: number;
+      /** Claim Count */
+      claim_count: number;
+      /** Contradicted Claim Count */
+      contradicted_claim_count: number;
+      /** Edge Count */
+      edge_count: number;
+      /** Graph Id */
+      graph_id: string;
+      /** Limitation Count */
+      limitation_count: number;
+      /** Manual Only Claim Count */
+      manual_only_claim_count: number;
+      /** Missing Claim Count */
+      missing_claim_count: number;
+      /** Node Count */
+      node_count: number;
+      /** Stale Claim Count */
+      stale_claim_count: number;
+      /** Target Id */
+      target_id?: string | null;
+      target_kind: components["schemas"]["NextActionTargetKind"];
+    };
+    /**
+     * EvidenceGraphVisibility
+     * @description Visibility class for evidence graph material.
+     * @enum {string}
+     */
+    EvidenceGraphVisibility: "operator_only" | "reviewer_safe" | "release_safe";
     /** ForkSessionRequest */
     ForkSessionRequest: {
       /** Branch Label */
@@ -4398,6 +4775,203 @@ export interface components {
       /** Text */
       text: string;
     };
+    /**
+     * NextAction
+     * @description Shared advisory next-action contract for operator-facing surfaces.
+     */
+    NextAction: {
+      /** Action Id */
+      action_id: string;
+      command?: components["schemas"]["NextActionCommandRecipe"] | null;
+      /** @default unknown */
+      confidence: components["schemas"]["RepositoryIntelligenceConfidence"];
+      kind: components["schemas"]["NextActionKind"];
+      /** Limitations */
+      limitations?: string[];
+      /** Missing Evidence */
+      missing_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      priority: components["schemas"]["NextActionPriority"];
+      /** Recommended Surfaces */
+      recommended_surfaces?: components["schemas"]["NextActionSurface"][];
+      /**
+       * Reviewer Safe
+       * @default true
+       */
+      reviewer_safe: boolean;
+      /** @default read_only */
+      safety_class: components["schemas"]["NextActionSafetyClass"];
+      /** @default info */
+      severity: components["schemas"]["NextActionSeverity"];
+      /** Stale Evidence */
+      stale_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      /** Summary */
+      summary: string;
+      /** Supporting Evidence */
+      supporting_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      target: components["schemas"]["NextActionTarget"];
+      /** Title */
+      title: string;
+    };
+    /**
+     * NextActionCommandRecipe
+     * @description Advisory command shape attached to a next action.
+     */
+    NextActionCommandRecipe: {
+      /** Command */
+      command: string[];
+      /** Cwd Hint */
+      cwd_hint?: string | null;
+      /** Display */
+      display: string;
+      /** Expected Exit Codes */
+      expected_exit_codes?: number[];
+      /** Purpose */
+      purpose: string;
+      /**
+       * Requires Approval
+       * @default true
+       */
+      requires_approval: boolean;
+      /** @default command_recipe */
+      safety_class: components["schemas"]["NextActionSafetyClass"];
+      /** Timeout Seconds */
+      timeout_seconds?: number | null;
+    };
+    /**
+     * NextActionEvidenceKind
+     * @description Compact evidence reference classes for next-action support.
+     * @enum {string}
+     */
+    NextActionEvidenceKind:
+      | "event"
+      | "artifact"
+      | "command"
+      | "tool_attempt"
+      | "verification"
+      | "review_feedback"
+      | "manual_evidence"
+      | "memory"
+      | "repository_intelligence"
+      | "eval"
+      | "background_job"
+      | "release_gate"
+      | "projection"
+      | "api_response"
+      | "cli_output";
+    /**
+     * NextActionEvidenceRef
+     * @description Compact local evidence reference for next-action support.
+     */
+    NextActionEvidenceRef: {
+      /** Freshness */
+      freshness?: string | null;
+      kind: components["schemas"]["NextActionEvidenceKind"];
+      /** Redaction */
+      redaction?: string | null;
+      /** Ref Id */
+      ref_id: string;
+      /**
+       * Reviewer Safe
+       * @default true
+       */
+      reviewer_safe: boolean;
+      /** Source Path */
+      source_path?: string | null;
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * NextActionKind
+     * @description Operator workflow family for a next action.
+     * @enum {string}
+     */
+    NextActionKind:
+      | "inspect"
+      | "answer"
+      | "approve"
+      | "recover"
+      | "refresh"
+      | "verify"
+      | "review"
+      | "handoff"
+      | "maintain"
+      | "document";
+    /**
+     * NextActionPriority
+     * @description Shared operator priority vocabulary for advisory next actions.
+     * @enum {string}
+     */
+    NextActionPriority:
+      | "blocked"
+      | "action-needed"
+      | "degraded"
+      | "recommended"
+      | "optional"
+      | "historical"
+      | "maintenance-only";
+    /**
+     * NextActionSafetyClass
+     * @description Safety boundary for carrying out a next action.
+     * @enum {string}
+     */
+    NextActionSafetyClass:
+      | "read_only"
+      | "plan_only"
+      | "operator_decision"
+      | "command_recipe"
+      | "workspace_write"
+      | "publication_blocked";
+    /**
+     * NextActionSeverity
+     * @description Impact level for a next action within its priority bucket.
+     * @enum {string}
+     */
+    NextActionSeverity: "critical" | "high" | "medium" | "low" | "info";
+    /**
+     * NextActionSurface
+     * @description Consumer surface where a next action is useful.
+     * @enum {string}
+     */
+    NextActionSurface:
+      | "cli"
+      | "tui"
+      | "dashboard"
+      | "api"
+      | "review_brief"
+      | "handoff"
+      | "release_evidence";
+    /**
+     * NextActionTarget
+     * @description Local object or surface a next action is about.
+     */
+    NextActionTarget: {
+      kind: components["schemas"]["NextActionTargetKind"];
+      /** Label */
+      label?: string | null;
+      /** Target Id */
+      target_id?: string | null;
+    };
+    /**
+     * NextActionTargetKind
+     * @description Supported local targets for next-action routing.
+     * @enum {string}
+     */
+    NextActionTargetKind:
+      | "workspace"
+      | "session"
+      | "turn"
+      | "task"
+      | "changeset"
+      | "review_feedback"
+      | "verification"
+      | "repository_intelligence"
+      | "memory"
+      | "background_job"
+      | "artifact"
+      | "provider"
+      | "projection"
+      | "release"
+      | "unknown";
     /** OperatorSessionSummaryResponse */
     OperatorSessionSummaryResponse: {
       /** Action Needed */
@@ -5054,6 +5628,12 @@ export interface components {
       /** Toolchain */
       toolchain?: string | null;
     };
+    /**
+     * RepositoryIntelligenceConfidence
+     * @description Confidence classes for advisory repository intelligence records.
+     * @enum {string}
+     */
+    RepositoryIntelligenceConfidence: "high" | "medium" | "low" | "unknown";
     /**
      * RepositoryIntelligenceContextItemSnapshot
      * @description One bounded repository-intelligence item selected for turn context.
@@ -8265,6 +8845,220 @@ export interface operations {
       };
     };
   };
+  get_changeset_evidence_graph_route_changesets__changeset_id__evidence_graph_get: {
+    parameters: {
+      query?: {
+        reviewer_safe?: boolean;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraph"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_changeset_evidence_graph_claim_route_changesets__changeset_id__evidence_graph_claims__claim_id__get: {
+    parameters: {
+      query?: {
+        reviewer_safe?: boolean;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+        claim_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClaimSupport"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_changeset_evidence_graph_neighborhood_route_changesets__changeset_id__evidence_graph_neighborhood_get: {
+    parameters: {
+      query: {
+        node_id: string;
+        depth?: number;
+        reviewer_safe?: boolean;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraph"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_changeset_evidence_graph_node_route_changesets__changeset_id__evidence_graph_nodes__node_id__get: {
+    parameters: {
+      query?: {
+        reviewer_safe?: boolean;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+        node_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraphNode"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_changeset_evidence_graph_summary_route_changesets__changeset_id__evidence_graph_summary_get: {
+    parameters: {
+      query?: {
+        reviewer_safe?: boolean;
+      };
+      header?: never;
+      path: {
+        changeset_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraphSummary"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   add_review_feedback_changesets__changeset_id__feedback_post: {
     parameters: {
       query?: never;
@@ -10018,6 +10812,86 @@ export interface operations {
         };
         content: {
           "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_evidence_graph_sessions__session_id__evidence_graph_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraph"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_session_evidence_graph_summary_sessions__session_id__evidence_graph_summary_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EvidenceGraphSummary"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
         };
       };
       /** @description Validation Error */

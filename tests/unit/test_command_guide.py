@@ -16,6 +16,7 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert "glassbox repo status --cwd ." in rendered
     assert "glassbox repo refresh --cwd ." in rendered
     assert "glassbox repo path PATH --cwd ." in rendered
+    assert "glassbox session evidence-graph SESSION_ID --summary --cwd ." in rendered
     assert "Review Loop Maturity" in rendered
     assert "glassbox changeset create --from workspace-diff" in rendered
     assert "does not stage, commit, push, or open a PR" in rendered
@@ -26,6 +27,9 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert "before recording fixup evidence" in rendered
     assert "glassbox changeset feedback fixup FEEDBACK_ID --cwd ." in rendered
     assert "glassbox changeset feedback accept-risk FEEDBACK_ID" in rendered
+    assert (
+        "glassbox changeset evidence-graph CHANGESET_ID --summary --cwd ." in rendered
+    )
     assert "--capture-state not_run --skip-reason REASON" in rendered
     assert "without inventing a viewport or calling it a pass" in rendered
     assert "Use `glassbox command tree`" in rendered

@@ -5,6 +5,10 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+from glassbox.core import ClaimSupport as ClaimSupport
+from glassbox.core import EvidenceGraph as EvidenceGraph
+from glassbox.core import EvidenceGraphNode as EvidenceGraphNode
+from glassbox.runtime.evidence_graph import EvidenceGraphSummary as EvidenceGraphSummary
 from glassbox.web.review_loop_api import ChangesetReviewResponseSummaryResponse
 from glassbox.web.review_loop_api import ManualEvidenceResponse
 from glassbox.web.review_loop_api import ReviewFeedbackResponse

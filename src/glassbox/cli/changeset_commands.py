@@ -10,6 +10,7 @@ from glassbox.cli.changeset_command_handlers import _changeset_commit_message_co
 from glassbox.cli.changeset_command_handlers import _changeset_commit_prep_command
 from glassbox.cli.changeset_command_handlers import _changeset_create_command
 from glassbox.cli.changeset_command_handlers import _changeset_evidence_command
+from glassbox.cli.changeset_command_handlers import _changeset_evidence_graph_command
 from glassbox.cli.changeset_command_handlers import _changeset_export_command
 from glassbox.cli.changeset_command_handlers import _changeset_feedback_command
 from glassbox.cli.changeset_command_handlers import _changeset_handoff_readiness_command
@@ -35,6 +36,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_list_command(args)
     if command == "show":
         return _changeset_show_command(args)
+    if command == "evidence-graph":
+        return _changeset_evidence_graph_command(args)
     if command == "refresh":
         return _changeset_refresh_command(args)
     if command == "verification-plan":

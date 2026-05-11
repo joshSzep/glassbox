@@ -493,6 +493,54 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     handoff = json.loads(capsys.readouterr().out)
+    graph_summary_exit = main(
+        [
+            "changeset",
+            "evidence-graph",
+            changeset_id,
+            "--summary",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    graph_summary = json.loads(capsys.readouterr().out)
+    claim_id = f"claim:changeset:{changeset_id}:review-posture"
+    graph_claim_exit = main(
+        [
+            "changeset",
+            "evidence-graph",
+            changeset_id,
+            "--claim-id",
+            claim_id,
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    graph_claim = json.loads(capsys.readouterr().out)
+    graph_neighborhood_exit = main(
+        [
+            "changeset",
+            "evidence-graph",
+            changeset_id,
+            "--node-id",
+            claim_id,
+            "--depth",
+            "1",
+            "--reviewer-safe",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    graph_neighborhood = json.loads(capsys.readouterr().out)
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -708,6 +756,20 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert handoff["evidence"]["manual_evidence_count"] == 3
     assert "not publication" in " ".join(handoff["non_claims"])
     assert any("changeset show" in action for action in handoff["safe_next_actions"])
+    assert graph_summary_exit == 0
+    assert graph_summary["target_kind"] == "changeset"
+    assert graph_summary["target_id"] == changeset_id
+    assert graph_summary["claim_count"] == 1
+    assert graph_summary["accepted_risk_claim_count"] == 1
+    assert graph_claim_exit == 0
+    assert graph_claim["claim_id"] == claim_id
+    assert graph_claim["state"] == "accepted_with_risk"
+    assert graph_claim["supporting_edge_ids"]
+    assert graph_neighborhood_exit == 0
+    assert {node["node_id"] for node in graph_neighborhood["nodes"]} >= {claim_id}
+    assert all(
+        node["visibility"] == "reviewer_safe" for node in graph_neighborhood["nodes"]
+    )
     assert export_exit == 0
     assert exported["status"] == "exported"
     assert export_payload["export_kind"] == "changeset_review_export"

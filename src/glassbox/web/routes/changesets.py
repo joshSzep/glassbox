@@ -68,6 +68,9 @@ from glassbox.web.routes.changeset_route_actions import refresh_changeset_respon
 from glassbox.web.routes.changeset_route_actions import (
     suggest_changeset_commit_message_response,
 )
+from glassbox.web.routes.changeset_route_evidence_graph import (
+    router as evidence_graph_router,
+)
 from glassbox.web.routes.changeset_route_feedback import (
     accept_review_feedback_risk_response,
 )
@@ -93,6 +96,7 @@ from glassbox.web.routes.changeset_route_services import workspace_root_for_chan
 from glassbox.web.session_api import ErrorDetailResponse
 
 router = APIRouter(prefix="/changesets")
+router.include_router(evidence_graph_router)
 
 LimitParam = Annotated[int | None, Query(ge=1, le=200)]
 

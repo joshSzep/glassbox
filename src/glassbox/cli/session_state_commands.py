@@ -13,6 +13,10 @@ from glassbox.core.models import SessionRecord
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import SessionStatus
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.evidence_graph import build_session_evidence_graph
+from glassbox.runtime.evidence_graph import claim_support
+from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_import import import_session_package
 from glassbox.runtime.session_queries import SessionQueryService
@@ -52,6 +56,70 @@ def _status_command(args: argparse.Namespace) -> int:
         )
         _print_session_status(query_service.get_session_status_view(args.session_id))
 
+    return 0
+
+
+def _session_evidence_graph_command(args: argparse.Namespace) -> int:
+    if args.depth < 0:
+        raise ValueError("--depth must be non-negative")
+    cwd, db_path = resolve_runtime_location(args)
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        query_service = SessionQueryService(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        )
+        snapshot = query_service.get_session_snapshot(args.session_id)
+        graph = build_session_evidence_graph(snapshot)
+
+    payload = graph
+    if args.claim_id:
+        support = claim_support(graph, args.claim_id)
+        if support is None:
+            raise ValueError(f"unknown evidence graph claim: {args.claim_id}")
+        if args.json:
+            print_json_output(support.model_dump(mode="json"))
+        else:
+            print(f"Claim: {support.title}")
+            print(f"State: {support.state.value}")
+            print(f"Summary: {support.summary}")
+            if support.limitations:
+                print("Limitations:")
+                for limitation in support.limitations:
+                    print(f"  - {limitation}")
+        return 0
+    if args.node_id:
+        payload = evidence_neighborhood(graph, args.node_id, depth=args.depth)
+    if args.summary:
+        summary = summarize_evidence_graph(payload)
+        if args.json:
+            print_json_output(summary.model_dump(mode="json"))
+        else:
+            print(f"Evidence graph: {summary.graph_id}")
+            print(f"Target: {summary.target_kind.value} {summary.target_id or ''}")
+            print(
+                "Counts: "
+                f"{summary.node_count} nodes, "
+                f"{summary.edge_count} edges, "
+                f"{summary.claim_count} claims"
+            )
+            print(
+                "Claim posture: "
+                f"{summary.stale_claim_count} stale, "
+                f"{summary.missing_claim_count} missing, "
+                f"{summary.contradicted_claim_count} contradicted"
+            )
+        return 0
+    if args.json:
+        print_json_output(payload.model_dump(mode="json"))
+    else:
+        summary = summarize_evidence_graph(payload)
+        print(f"Evidence graph: {summary.graph_id}")
+        print(f"Nodes: {summary.node_count}")
+        print(f"Edges: {summary.edge_count}")
+        print("Claims:")
+        for item in payload.claims[:10]:
+            print(f"  - {item.state.value}: {item.title} ({item.claim_id})")
     return 0
 
 
@@ -99,6 +167,8 @@ def _session_command(args: argparse.Namespace) -> int:
         return _fork_command(args)
     if args.session_command == "status":
         return _status_command(args)
+    if args.session_command == "evidence-graph":
+        return _session_evidence_graph_command(args)
     if args.session_command == "compact":
         return _session_compact_command(args)
     if args.session_command == "compactions":

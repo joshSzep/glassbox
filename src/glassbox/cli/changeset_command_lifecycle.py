@@ -25,6 +25,11 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+from glassbox.runtime.evidence_graph import claim_support
+from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 
@@ -155,6 +160,78 @@ def _changeset_show_command(args: argparse.Namespace) -> int:
             verification_plan=verification_plan,
             handoff_readiness=handoff_readiness,
         )
+    return 0
+
+
+def _changeset_evidence_graph_command(args: argparse.Namespace) -> int:
+    if args.depth < 0:
+        raise ValueError("--depth must be non-negative")
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(ChangesetRepository, runtime_context.repositories.sessions)
+        artifacts = runtime_context.repositories.artifacts
+        detail = ChangesetQueryService(repository).get_detail(
+            args.changeset_id,
+            workspace_root=cwd,
+        )
+        verification_plan = ChangesetVerificationService(
+            repository,
+            artifacts,
+        ).preview_plan(args.changeset_id, cwd)
+        graph = build_changeset_evidence_graph(
+            detail,
+            verification_plan=verification_plan,
+        )
+
+    if args.reviewer_safe:
+        graph = reviewer_safe_graph_slice(graph)
+    payload = graph
+    if args.claim_id:
+        support = claim_support(graph, args.claim_id)
+        if support is None:
+            raise ValueError(f"unknown evidence graph claim: {args.claim_id}")
+        if args.json:
+            print_json_output(support.model_dump(mode="json"))
+        else:
+            print(f"Claim: {support.title}")
+            print(f"State: {support.state.value}")
+            print(f"Summary: {support.summary}")
+            _print_limitations(support.limitations)
+        return 0
+    if args.node_id:
+        payload = evidence_neighborhood(graph, args.node_id, depth=args.depth)
+    if args.summary:
+        summary = summarize_evidence_graph(payload)
+        if args.json:
+            print_json_output(summary.model_dump(mode="json"))
+        else:
+            print(f"Evidence graph: {summary.graph_id}")
+            print(f"Target: {summary.target_kind.value} {summary.target_id or ''}")
+            print(
+                "Counts: "
+                f"{summary.node_count} nodes, "
+                f"{summary.edge_count} edges, "
+                f"{summary.claim_count} claims"
+            )
+            print(
+                "Claim posture: "
+                f"{summary.stale_claim_count} stale, "
+                f"{summary.missing_claim_count} missing, "
+                f"{summary.contradicted_claim_count} contradicted, "
+                f"{summary.manual_only_claim_count} manual-only, "
+                f"{summary.accepted_risk_claim_count} accepted risk"
+            )
+        return 0
+    if args.json:
+        print_json_output(payload.model_dump(mode="json"))
+    else:
+        summary = summarize_evidence_graph(payload)
+        print(f"Evidence graph: {summary.graph_id}")
+        print(f"Nodes: {summary.node_count}")
+        print(f"Edges: {summary.edge_count}")
+        print("Claims:")
+        for item in payload.claims[:10]:
+            print(f"  - {item.state.value}: {item.title} ({item.claim_id})")
     return 0
 
 

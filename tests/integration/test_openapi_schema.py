@@ -31,6 +31,8 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/sessions" in paths
     assert "/sessions/aggregate" in paths
     assert "/sessions/{session_id}" in paths
+    assert "/sessions/{session_id}/evidence-graph" in paths
+    assert "/sessions/{session_id}/evidence-graph/summary" in paths
     assert "/sessions/{session_id}/checkpoints" in paths
     assert "/sessions/{session_id}/events" in paths
     assert "/sessions/{session_id}/messages" in paths
@@ -44,6 +46,11 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/changesets" in paths
     assert "/changesets/{changeset_id}" in paths
     assert "/changesets/{changeset_id}/refresh" in paths
+    assert "/changesets/{changeset_id}/evidence-graph" in paths
+    assert "/changesets/{changeset_id}/evidence-graph/summary" in paths
+    assert "/changesets/{changeset_id}/evidence-graph/claims/{claim_id}" in paths
+    assert "/changesets/{changeset_id}/evidence-graph/nodes/{node_id}" in paths
+    assert "/changesets/{changeset_id}/evidence-graph/neighborhood" in paths
     assert "/changesets/{changeset_id}/commit-readiness" in paths
     assert "/changesets/{changeset_id}/commit-message" in paths
     assert "/changesets/{changeset_id}/archive" in paths
@@ -74,6 +81,10 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "KnowledgeCueSourceKind" in components
     assert "SessionCheckpointPageResponse" in components
     assert "SessionSnapshotResponse" in components
+    assert "EvidenceGraph" in components
+    assert "EvidenceGraphSummary" in components
+    assert "ClaimSupport" in components
+    assert "EvidenceGraphNode" in components
     assert "TaskCheckpointResponse" in components
     assert "ActionAcceptedResponse" in components
     assert "ResolveApprovalRequest" in components

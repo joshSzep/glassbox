@@ -4397,6 +4397,106 @@
         "title": "ChildSessionSummaryResponse",
         "type": "object"
       },
+      "ClaimSupport": {
+        "additionalProperties": false,
+        "description": "Evidence support posture for one local claim or recommendation.",
+        "properties": {
+          "accepted_risk_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Accepted Risk Node Ids",
+            "type": "array"
+          },
+          "claim_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/EvidenceGraphConfidence",
+            "default": "unknown"
+          },
+          "contradicting_edge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Contradicting Edge Ids",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "missing_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceGraphMissingEvidence"
+            },
+            "maxItems": 50,
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "stale_node_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Stale Node Ids",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ClaimSupportState"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "supporting_edge_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Supporting Edge Ids",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EvidenceGraphVisibility",
+            "default": "operator_only"
+          }
+        },
+        "required": ["claim_id", "title", "summary", "state"],
+        "title": "ClaimSupport",
+        "type": "object"
+      },
+      "ClaimSupportState": {
+        "description": "How well local evidence supports a graph claim.",
+        "enum": [
+          "supported",
+          "missing",
+          "stale",
+          "contradicted",
+          "manual-only",
+          "accepted_with_risk",
+          "unsupported"
+        ],
+        "title": "ClaimSupportState",
+        "type": "string"
+      },
       "CommandEnvironmentSummaryResponse": {
         "properties": {
           "capture_scope": {
@@ -6224,6 +6324,408 @@
         "title": "EventTransportObservability",
         "type": "object"
       },
+      "EvidenceGraph": {
+        "additionalProperties": false,
+        "description": "Bounded derived graph for explaining claim support.",
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ClaimSupport"
+            },
+            "maxItems": 200,
+            "title": "Claims",
+            "type": "array"
+          },
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceGraphEdge"
+            },
+            "maxItems": 1000,
+            "title": "Edges",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "graph_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceGraphNode"
+            },
+            "maxItems": 500,
+            "title": "Nodes",
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/NextActionTarget"
+          }
+        },
+        "required": ["graph_id", "target", "generated_at"],
+        "title": "EvidenceGraph",
+        "type": "object"
+      },
+      "EvidenceGraphConfidence": {
+        "description": "Confidence posture for evidence graph nodes, edges, and claims.",
+        "enum": ["high", "medium", "low", "unknown"],
+        "title": "EvidenceGraphConfidence",
+        "type": "string"
+      },
+      "EvidenceGraphEdge": {
+        "additionalProperties": false,
+        "description": "One typed relationship between local evidence graph nodes.",
+        "properties": {
+          "confidence": {
+            "$ref": "#/components/schemas/EvidenceGraphConfidence",
+            "default": "unknown"
+          },
+          "edge_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Edge Id",
+            "type": "string"
+          },
+          "from_node_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "From Node Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceGraphEdgeKind"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "to_node_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "To Node Id",
+            "type": "string"
+          }
+        },
+        "required": ["edge_id", "kind", "from_node_id", "to_node_id", "summary"],
+        "title": "EvidenceGraphEdge",
+        "type": "object"
+      },
+      "EvidenceGraphEdgeKind": {
+        "description": "Relationship kinds between evidence graph nodes.",
+        "enum": [
+          "supports",
+          "contradicts",
+          "supersedes",
+          "makes-stale",
+          "verifies",
+          "skipped-by",
+          "accepted-risk-for",
+          "derived-from",
+          "safe-next-action-for"
+        ],
+        "title": "EvidenceGraphEdgeKind",
+        "type": "string"
+      },
+      "EvidenceGraphFreshness": {
+        "description": "Freshness posture for evidence referenced by a graph.",
+        "enum": ["fresh", "stale", "missing", "superseded", "manual-only", "unknown"],
+        "title": "EvidenceGraphFreshness",
+        "type": "string"
+      },
+      "EvidenceGraphMissingEvidence": {
+        "additionalProperties": false,
+        "description": "A missing support item that has no local evidence node yet.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceGraphNodeKind"
+          },
+          "missing_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Missing Id",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "$ref": "#/components/schemas/NextAction"
+            },
+            "maxItems": 10,
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["missing_id", "kind", "summary"],
+        "title": "EvidenceGraphMissingEvidence",
+        "type": "object"
+      },
+      "EvidenceGraphNode": {
+        "additionalProperties": false,
+        "description": "One local evidence node in a derived graph.",
+        "properties": {
+          "confidence": {
+            "$ref": "#/components/schemas/EvidenceGraphConfidence",
+            "default": "unknown"
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/EvidenceGraphFreshness",
+            "default": "unknown"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceGraphNodeKind"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "node_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Node Id",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceGraphProvenance"
+            },
+            "maxItems": 20,
+            "title": "Provenance",
+            "type": "array"
+          },
+          "redaction_status": {
+            "$ref": "#/components/schemas/EvidenceGraphRedactionStatus",
+            "default": "unknown"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "visibility": {
+            "$ref": "#/components/schemas/EvidenceGraphVisibility",
+            "default": "operator_only"
+          }
+        },
+        "required": ["node_id", "kind", "title", "summary"],
+        "title": "EvidenceGraphNode",
+        "type": "object"
+      },
+      "EvidenceGraphNodeKind": {
+        "description": "Local evidence node families used in derived evidence graphs.",
+        "enum": [
+          "event",
+          "artifact",
+          "command",
+          "tool_attempt",
+          "verification_check",
+          "review_feedback",
+          "manual_evidence",
+          "memory_entry",
+          "repository_intelligence_source",
+          "eval_case",
+          "background_job",
+          "release_gate_row",
+          "projection",
+          "next_action",
+          "claim"
+        ],
+        "title": "EvidenceGraphNodeKind",
+        "type": "string"
+      },
+      "EvidenceGraphProvenance": {
+        "additionalProperties": false,
+        "description": "Summary provenance for one evidence graph item.",
+        "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_kind": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "source_sequence": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Sequence"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["source_kind", "summary"],
+        "title": "EvidenceGraphProvenance",
+        "type": "object"
+      },
+      "EvidenceGraphRedactionStatus": {
+        "description": "Whether graph evidence can be shown in reviewer-safe contexts.",
+        "enum": ["safe_summary", "local_only", "redacted", "blocked", "unknown"],
+        "title": "EvidenceGraphRedactionStatus",
+        "type": "string"
+      },
+      "EvidenceGraphSummary": {
+        "additionalProperties": false,
+        "description": "Compact count summary for a derived evidence graph.",
+        "properties": {
+          "accepted_risk_claim_count": {
+            "minimum": 0.0,
+            "title": "Accepted Risk Claim Count",
+            "type": "integer"
+          },
+          "claim_count": {
+            "minimum": 0.0,
+            "title": "Claim Count",
+            "type": "integer"
+          },
+          "contradicted_claim_count": {
+            "minimum": 0.0,
+            "title": "Contradicted Claim Count",
+            "type": "integer"
+          },
+          "edge_count": {
+            "minimum": 0.0,
+            "title": "Edge Count",
+            "type": "integer"
+          },
+          "graph_id": {
+            "title": "Graph Id",
+            "type": "string"
+          },
+          "limitation_count": {
+            "minimum": 0.0,
+            "title": "Limitation Count",
+            "type": "integer"
+          },
+          "manual_only_claim_count": {
+            "minimum": 0.0,
+            "title": "Manual Only Claim Count",
+            "type": "integer"
+          },
+          "missing_claim_count": {
+            "minimum": 0.0,
+            "title": "Missing Claim Count",
+            "type": "integer"
+          },
+          "node_count": {
+            "minimum": 0.0,
+            "title": "Node Count",
+            "type": "integer"
+          },
+          "stale_claim_count": {
+            "minimum": 0.0,
+            "title": "Stale Claim Count",
+            "type": "integer"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "target_kind": {
+            "$ref": "#/components/schemas/NextActionTargetKind"
+          }
+        },
+        "required": [
+          "graph_id",
+          "target_kind",
+          "node_count",
+          "edge_count",
+          "claim_count",
+          "stale_claim_count",
+          "missing_claim_count",
+          "contradicted_claim_count",
+          "manual_only_claim_count",
+          "accepted_risk_claim_count",
+          "limitation_count"
+        ],
+        "title": "EvidenceGraphSummary",
+        "type": "object"
+      },
+      "EvidenceGraphVisibility": {
+        "description": "Visibility class for evidence graph material.",
+        "enum": ["operator_only", "reviewer_safe", "release_safe"],
+        "title": "EvidenceGraphVisibility",
+        "type": "string"
+      },
       "ForkSessionRequest": {
         "properties": {
           "branch_label": {
@@ -7406,6 +7908,388 @@
         "required": ["kind", "text"],
         "title": "MessagePartResponse",
         "type": "object"
+      },
+      "NextAction": {
+        "additionalProperties": false,
+        "description": "Shared advisory next-action contract for operator-facing surfaces.",
+        "properties": {
+          "action_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Action Id",
+            "type": "string"
+          },
+          "command": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextActionCommandRecipe"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/RepositoryIntelligenceConfidence",
+            "default": "unknown"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NextActionKind"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "missing_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/NextActionPriority"
+          },
+          "recommended_surfaces": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionSurface"
+            },
+            "maxItems": 10,
+            "title": "Recommended Surfaces",
+            "type": "array"
+          },
+          "reviewer_safe": {
+            "default": true,
+            "title": "Reviewer Safe",
+            "type": "boolean"
+          },
+          "safety_class": {
+            "$ref": "#/components/schemas/NextActionSafetyClass",
+            "default": "read_only"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/NextActionSeverity",
+            "default": "info"
+          },
+          "stale_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Stale Evidence",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "supporting_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Supporting Evidence",
+            "type": "array"
+          },
+          "target": {
+            "$ref": "#/components/schemas/NextActionTarget"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["action_id", "title", "summary", "kind", "priority", "target"],
+        "title": "NextAction",
+        "type": "object"
+      },
+      "NextActionCommandRecipe": {
+        "additionalProperties": false,
+        "description": "Advisory command shape attached to a next action.",
+        "properties": {
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Command",
+            "type": "array"
+          },
+          "cwd_hint": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cwd Hint"
+          },
+          "display": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Display",
+            "type": "string"
+          },
+          "expected_exit_codes": {
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "title": "Expected Exit Codes",
+            "type": "array"
+          },
+          "purpose": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "requires_approval": {
+            "default": true,
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
+          "safety_class": {
+            "$ref": "#/components/schemas/NextActionSafetyClass",
+            "default": "command_recipe"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "maximum": 7200.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          }
+        },
+        "required": ["command", "display", "purpose"],
+        "title": "NextActionCommandRecipe",
+        "type": "object"
+      },
+      "NextActionEvidenceKind": {
+        "description": "Compact evidence reference classes for next-action support.",
+        "enum": [
+          "event",
+          "artifact",
+          "command",
+          "tool_attempt",
+          "verification",
+          "review_feedback",
+          "manual_evidence",
+          "memory",
+          "repository_intelligence",
+          "eval",
+          "background_job",
+          "release_gate",
+          "projection",
+          "api_response",
+          "cli_output"
+        ],
+        "title": "NextActionEvidenceKind",
+        "type": "string"
+      },
+      "NextActionEvidenceRef": {
+        "additionalProperties": false,
+        "description": "Compact local evidence reference for next-action support.",
+        "properties": {
+          "freshness": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NextActionEvidenceKind"
+          },
+          "redaction": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redaction"
+          },
+          "ref_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Ref Id",
+            "type": "string"
+          },
+          "reviewer_safe": {
+            "default": true,
+            "title": "Reviewer Safe",
+            "type": "boolean"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "ref_id", "summary"],
+        "title": "NextActionEvidenceRef",
+        "type": "object"
+      },
+      "NextActionKind": {
+        "description": "Operator workflow family for a next action.",
+        "enum": [
+          "inspect",
+          "answer",
+          "approve",
+          "recover",
+          "refresh",
+          "verify",
+          "review",
+          "handoff",
+          "maintain",
+          "document"
+        ],
+        "title": "NextActionKind",
+        "type": "string"
+      },
+      "NextActionPriority": {
+        "description": "Shared operator priority vocabulary for advisory next actions.",
+        "enum": [
+          "blocked",
+          "action-needed",
+          "degraded",
+          "recommended",
+          "optional",
+          "historical",
+          "maintenance-only"
+        ],
+        "title": "NextActionPriority",
+        "type": "string"
+      },
+      "NextActionSafetyClass": {
+        "description": "Safety boundary for carrying out a next action.",
+        "enum": [
+          "read_only",
+          "plan_only",
+          "operator_decision",
+          "command_recipe",
+          "workspace_write",
+          "publication_blocked"
+        ],
+        "title": "NextActionSafetyClass",
+        "type": "string"
+      },
+      "NextActionSeverity": {
+        "description": "Impact level for a next action within its priority bucket.",
+        "enum": ["critical", "high", "medium", "low", "info"],
+        "title": "NextActionSeverity",
+        "type": "string"
+      },
+      "NextActionSurface": {
+        "description": "Consumer surface where a next action is useful.",
+        "enum": ["cli", "tui", "dashboard", "api", "review_brief", "handoff", "release_evidence"],
+        "title": "NextActionSurface",
+        "type": "string"
+      },
+      "NextActionTarget": {
+        "additionalProperties": false,
+        "description": "Local object or surface a next action is about.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/NextActionTargetKind"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          }
+        },
+        "required": ["kind"],
+        "title": "NextActionTarget",
+        "type": "object"
+      },
+      "NextActionTargetKind": {
+        "description": "Supported local targets for next-action routing.",
+        "enum": [
+          "workspace",
+          "session",
+          "turn",
+          "task",
+          "changeset",
+          "review_feedback",
+          "verification",
+          "repository_intelligence",
+          "memory",
+          "background_job",
+          "artifact",
+          "provider",
+          "projection",
+          "release",
+          "unknown"
+        ],
+        "title": "NextActionTargetKind",
+        "type": "string"
       },
       "OperatorSessionSummaryResponse": {
         "properties": {
@@ -9257,6 +10141,12 @@
         ],
         "title": "RepositoryIntelligenceCommandRecipeResponse",
         "type": "object"
+      },
+      "RepositoryIntelligenceConfidence": {
+        "description": "Confidence classes for advisory repository intelligence records.",
+        "enum": ["high", "medium", "low", "unknown"],
+        "title": "RepositoryIntelligenceConfidence",
+        "type": "string"
       },
       "RepositoryIntelligenceContextItemSnapshot": {
         "additionalProperties": false,
@@ -18009,6 +18899,350 @@
         "summary": "Preview Changeset Commit Readiness"
       }
     },
+    "/changesets/{changeset_id}/evidence-graph": {
+      "get": {
+        "description": "Return a bounded derived evidence graph for one changeset.",
+        "operationId": "get_changeset_evidence_graph_route_changesets__changeset_id__evidence_graph_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer_safe",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reviewer Safe",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraph"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Changeset Evidence Graph Route"
+      }
+    },
+    "/changesets/{changeset_id}/evidence-graph/claims/{claim_id}": {
+      "get": {
+        "description": "Return one claim support record from a changeset evidence graph.",
+        "operationId": "get_changeset_evidence_graph_claim_route_changesets__changeset_id__evidence_graph_claims__claim_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer_safe",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reviewer Safe",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimSupport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Changeset Evidence Graph Claim Route"
+      }
+    },
+    "/changesets/{changeset_id}/evidence-graph/neighborhood": {
+      "get": {
+        "description": "Return a bounded evidence graph neighborhood around one node.",
+        "operationId": "get_changeset_evidence_graph_neighborhood_route_changesets__changeset_id__evidence_graph_neighborhood_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "maximum": 4,
+              "minimum": 0,
+              "title": "Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer_safe",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reviewer Safe",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraph"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Changeset Evidence Graph Neighborhood Route"
+      }
+    },
+    "/changesets/{changeset_id}/evidence-graph/nodes/{node_id}": {
+      "get": {
+        "description": "Return one node summary from a changeset evidence graph.",
+        "operationId": "get_changeset_evidence_graph_node_route_changesets__changeset_id__evidence_graph_nodes__node_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "node_id",
+            "required": true,
+            "schema": {
+              "title": "Node Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer_safe",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reviewer Safe",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraphNode"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Changeset Evidence Graph Node Route"
+      }
+    },
+    "/changesets/{changeset_id}/evidence-graph/summary": {
+      "get": {
+        "description": "Return evidence graph counts and claim posture for one changeset.",
+        "operationId": "get_changeset_evidence_graph_summary_route_changesets__changeset_id__evidence_graph_summary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "changeset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Changeset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "reviewer_safe",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Reviewer Safe",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraphSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Changeset Evidence Graph Summary Route"
+      }
+    },
     "/changesets/{changeset_id}/feedback": {
       "post": {
         "description": "Record local review feedback evidence for one changeset.",
@@ -20652,6 +21886,108 @@
           }
         },
         "summary": "Stream Session Events"
+      }
+    },
+    "/sessions/{session_id}/evidence-graph": {
+      "get": {
+        "description": "Return a bounded derived evidence graph for one session.",
+        "operationId": "get_session_evidence_graph_sessions__session_id__evidence_graph_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraph"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Evidence Graph"
+      }
+    },
+    "/sessions/{session_id}/evidence-graph/summary": {
+      "get": {
+        "description": "Return evidence graph counts and claim posture for one session.",
+        "operationId": "get_session_evidence_graph_summary_sessions__session_id__evidence_graph_summary_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceGraphSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Session Evidence Graph Summary"
       }
     },
     "/sessions/{session_id}/fork": {

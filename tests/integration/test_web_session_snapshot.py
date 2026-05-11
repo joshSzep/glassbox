@@ -189,6 +189,12 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
                 base_url="http://testserver",
             ) as client:
                 response = await client.get(f"/sessions/{state.session_id}")
+                graph_response = await client.get(
+                    f"/sessions/{state.session_id}/evidence-graph"
+                )
+                graph_summary_response = await client.get(
+                    f"/sessions/{state.session_id}/evidence-graph/summary"
+                )
 
             assert response.status_code == 200
             body = response.json()
@@ -220,6 +226,17 @@ def test_get_session_returns_snapshot_after_session_started(tmp_path: Path) -> N
                 "items": [],
                 "additional_item_count": 0,
             }
+            assert graph_response.status_code == 200
+            graph_body = graph_response.json()
+            assert graph_body["target"]["kind"] == "session"
+            assert graph_body["target"]["target_id"] == str(state.session_id)
+            assert graph_body["claims"][0]["state"] == "supported"
+            assert graph_body["claims"][0]["claim_id"] == (
+                f"claim:session:{state.session_id}:operator-posture"
+            )
+            assert graph_summary_response.status_code == 200
+            assert graph_summary_response.json()["claim_count"] == 1
+            assert graph_summary_response.json()["node_count"] >= 2
         finally:
             connection.close()
 

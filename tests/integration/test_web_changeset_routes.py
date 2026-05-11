@@ -281,6 +281,29 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
                 handoff_readiness_response = await client.get(
                     f"/changesets/{changeset_id}/handoff-readiness"
                 )
+                graph_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph"
+                )
+                graph_summary_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph/summary"
+                )
+                claim_id = f"claim:changeset:{changeset_id}:review-posture"
+                claim_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph/claims/{claim_id}"
+                )
+                feedback_node_id = f"review-feedback:{feedback_id}"
+                node_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph/nodes/"
+                    f"{feedback_node_id}"
+                )
+                neighborhood_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph/neighborhood",
+                    params={"node_id": claim_id, "depth": 1},
+                )
+                reviewer_safe_graph_response = await client.get(
+                    f"/changesets/{changeset_id}/evidence-graph",
+                    params={"reviewer_safe": True},
+                )
                 (tmp_path / "app.py").write_text(
                     "print('changed again')\n",
                     encoding="utf-8",
@@ -495,6 +518,36 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             )
             assert "not publication" in " ".join(
                 handoff_readiness_response.json()["non_claims"]
+            )
+            assert graph_response.status_code == 200
+            graph = graph_response.json()
+            assert graph["target"]["kind"] == "changeset"
+            assert graph["target"]["target_id"] == changeset_id
+            assert graph["claims"][0]["claim_id"] == claim_id
+            assert graph["claims"][0]["state"] == "accepted_with_risk"
+            assert any(
+                node["node_id"] == feedback_node_id
+                and node["kind"] == "review_feedback"
+                for node in graph["nodes"]
+            )
+            assert graph_summary_response.status_code == 200
+            assert graph_summary_response.json()["claim_count"] == 1
+            assert graph_summary_response.json()["accepted_risk_claim_count"] == 1
+            assert claim_response.status_code == 200
+            assert claim_response.json()["claim_id"] == claim_id
+            assert claim_response.json()["state"] == "accepted_with_risk"
+            assert node_response.status_code == 200
+            assert node_response.json()["node_id"] == feedback_node_id
+            assert neighborhood_response.status_code == 200
+            neighborhood_node_ids = {
+                node["node_id"] for node in neighborhood_response.json()["nodes"]
+            }
+            assert claim_id in neighborhood_node_ids
+            assert feedback_node_id in neighborhood_node_ids
+            assert reviewer_safe_graph_response.status_code == 200
+            assert all(
+                node["visibility"] == "reviewer_safe"
+                for node in reviewer_safe_graph_response.json()["nodes"]
             )
             assert stale_response.status_code == 200
             assert stale_response.json()["inventory_status"]["stale"] is True

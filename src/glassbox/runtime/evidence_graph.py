@@ -80,7 +80,10 @@ def build_changeset_evidence_graph(
             kind=EvidenceGraphNodeKind.CLAIM,
             title="Changeset review posture",
             summary=changeset.summary or changeset.objective,
+            freshness=EvidenceGraphFreshness.FRESH,
             confidence=EvidenceGraphConfidence.UNKNOWN,
+            redaction_status=EvidenceGraphRedactionStatus.SAFE_SUMMARY,
+            visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
         )
     )
 
@@ -421,6 +424,9 @@ def build_session_evidence_graph(
             kind=EvidenceGraphNodeKind.CLAIM,
             title="Session operator posture",
             summary=f"Session status is {snapshot.status}.",
+            freshness=EvidenceGraphFreshness.FRESH,
+            redaction_status=EvidenceGraphRedactionStatus.SAFE_SUMMARY,
+            visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
         )
     )
 

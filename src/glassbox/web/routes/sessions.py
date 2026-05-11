@@ -7,7 +7,9 @@ from uuid import UUID
 from fastapi import APIRouter
 from fastapi import Query
 
+from glassbox.core import EvidenceGraph
 from glassbox.runtime.daemon import inspect_runtime_owner
+from glassbox.runtime.evidence_graph import EvidenceGraphSummary
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.routes.session_route_actions import (
@@ -34,6 +36,12 @@ from glassbox.web.routes.session_route_queries import get_session_artifact_respo
 from glassbox.web.routes.session_route_queries import get_session_checkpoint_response
 from glassbox.web.routes.session_route_queries import get_session_compaction_response
 from glassbox.web.routes.session_route_queries import get_session_event_log_response
+from glassbox.web.routes.session_route_queries import (
+    get_session_evidence_graph_response,
+)
+from glassbox.web.routes.session_route_queries import (
+    get_session_evidence_graph_summary_response,
+)
 from glassbox.web.routes.session_route_queries import get_session_snapshot_response
 from glassbox.web.routes.session_route_queries import get_session_tool_call_response
 from glassbox.web.routes.session_route_queries import get_session_transcript_response
@@ -114,6 +122,34 @@ async def get_session_aggregate(
         limit=limit,
         owner_status=inspect_runtime_owner(context.infrastructure.artifacts_root),
     )
+
+
+@router.get(
+    "/{session_id}/evidence-graph",
+    response_model=EvidenceGraph,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_evidence_graph(
+    session_id: UUID,
+    context: RuntimeContextDep,
+) -> EvidenceGraph:
+    """Return a bounded derived evidence graph for one session."""
+
+    return get_session_evidence_graph_response(session_id, context)
+
+
+@router.get(
+    "/{session_id}/evidence-graph/summary",
+    response_model=EvidenceGraphSummary,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_session_evidence_graph_summary(
+    session_id: UUID,
+    context: RuntimeContextDep,
+) -> EvidenceGraphSummary:
+    """Return evidence graph counts and claim posture for one session."""
+
+    return get_session_evidence_graph_summary_response(session_id, context)
 
 
 @router.post(

@@ -47,6 +47,13 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             "Preview review-loop-aware verification without running commands.",
         ),
         CommandGuideEntry(
+            "glassbox changeset evidence-graph CHANGESET_ID --summary --cwd .",
+            (
+                "Inspect claim support, stale evidence, missing evidence, "
+                "manual-only support, and accepted risk without raw logs."
+            ),
+        ),
+        CommandGuideEntry(
             (
                 "glassbox changeset feedback add CHANGESET_ID "
                 "--kind requested_change --summary SUMMARY --cwd ."

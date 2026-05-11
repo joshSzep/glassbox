@@ -45,6 +45,13 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 ),
             ),
             CommandGuideEntry(
+                "glassbox session evidence-graph SESSION_ID --summary --cwd .",
+                (
+                    "Inspect session claim support, stale projections, missing "
+                    "operator decisions, and safe next actions."
+                ),
+            ),
+            CommandGuideEntry(
                 "glassbox task list --cwd .",
                 "List durable task plans and their next actions.",
             ),
