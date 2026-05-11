@@ -3533,6 +3533,13 @@
             "title": "Non Claims",
             "type": "array"
           },
+          "plan_entries": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationPlanEntryResponse"
+            },
+            "title": "Plan Entries",
+            "type": "array"
+          },
           "readiness": {
             "$ref": "#/components/schemas/ChangesetVerificationReadinessResponse"
           },
@@ -3578,6 +3585,13 @@
             "title": "Session Id",
             "type": "string"
           },
+          "skipped_checks": {
+            "items": {
+              "$ref": "#/components/schemas/ChangesetVerificationSkippedCheckResponse"
+            },
+            "title": "Skipped Checks",
+            "type": "array"
+          },
           "topology_impacts": {
             "items": {
               "$ref": "#/components/schemas/ChangesetTopologyImpactResponse"
@@ -3591,6 +3605,8 @@
           "session_id",
           "inventory_freshness",
           "changed_paths",
+          "plan_entries",
+          "skipped_checks",
           "recommended_commands",
           "eval_profiles",
           "recipes",
@@ -4158,6 +4174,50 @@
           "non_claims"
         ],
         "title": "ChangesetVerificationReviewLoopSummaryResponse",
+        "type": "object"
+      },
+      "ChangesetVerificationSkippedCheckResponse": {
+        "properties": {
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "matched_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Matched Paths",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "target_kind": {
+            "title": "Target Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_id",
+          "target_kind",
+          "reason",
+          "explanation",
+          "matched_paths",
+          "safe_next_actions"
+        ],
+        "title": "ChangesetVerificationSkippedCheckResponse",
         "type": "object"
       },
       "CheckpointAbsenceResponse": {
@@ -16446,6 +16506,331 @@
         },
         "required": ["loc", "msg", "type"],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VerificationPlanCommandRecipeResponse": {
+        "properties": {
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "cwd_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cwd Hint"
+          },
+          "display": {
+            "title": "Display",
+            "type": "string"
+          },
+          "expected_exit_codes": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Expected Exit Codes",
+            "type": "array"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "requires_approval": {
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
+          "safety_class": {
+            "title": "Safety Class",
+            "type": "string"
+          },
+          "timeout_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout Seconds"
+          }
+        },
+        "required": [
+          "command",
+          "display",
+          "purpose",
+          "safety_class",
+          "requires_approval",
+          "expected_exit_codes"
+        ],
+        "title": "VerificationPlanCommandRecipeResponse",
+        "type": "object"
+      },
+      "VerificationPlanEntryResponse": {
+        "properties": {
+          "blocking": {
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "command_recipe": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationPlanCommandRecipeResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "eval_case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Case Id"
+          },
+          "eval_profile_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eval Profile Id"
+          },
+          "evidence_references": {
+            "items": {
+              "$ref": "#/components/schemas/VerificationPlanEvidenceRefResponse"
+            },
+            "title": "Evidence References",
+            "type": "array"
+          },
+          "execution_requires_approval": {
+            "title": "Execution Requires Approval",
+            "type": "boolean"
+          },
+          "expected_exit_codes": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Expected Exit Codes",
+            "type": "array"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "lifecycle_state": {
+            "title": "Lifecycle State",
+            "type": "string"
+          },
+          "manual_evidence_required": {
+            "title": "Manual Evidence Required",
+            "type": "boolean"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "release_surfaces": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Release Surfaces",
+            "type": "array"
+          },
+          "selection_rationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selection Rationale"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "stale_reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stale Reasons",
+            "type": "array"
+          },
+          "superseded_by_verification_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Verification Id"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationPlanTargetResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timeout_seconds": {
+            "title": "Timeout Seconds",
+            "type": "integer"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verification_id",
+          "check_name",
+          "kind",
+          "lifecycle_state",
+          "command",
+          "source",
+          "rationale",
+          "blocking",
+          "timeout_seconds",
+          "expected_exit_codes",
+          "changed_paths",
+          "release_surfaces",
+          "evidence_references",
+          "stale_reasons",
+          "manual_evidence_required",
+          "execution_requires_approval"
+        ],
+        "title": "VerificationPlanEntryResponse",
+        "type": "object"
+      },
+      "VerificationPlanEvidenceRefResponse": {
+        "properties": {
+          "freshness": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Freshness"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "redaction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redaction"
+          },
+          "ref_id": {
+            "title": "Ref Id",
+            "type": "string"
+          },
+          "reviewer_safe": {
+            "title": "Reviewer Safe",
+            "type": "boolean"
+          },
+          "source_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "ref_id", "summary", "reviewer_safe"],
+        "title": "VerificationPlanEvidenceRefResponse",
+        "type": "object"
+      },
+      "VerificationPlanTargetResponse": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          }
+        },
+        "required": ["kind"],
+        "title": "VerificationPlanTargetResponse",
         "type": "object"
       },
       "WorkingSetItemSnapshot": {

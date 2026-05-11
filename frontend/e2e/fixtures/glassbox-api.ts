@@ -1339,6 +1339,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 0,
       accessibility_evidence_count: 0,
@@ -1413,6 +1414,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["pnpm run test"],
     session_id: defaultSessionId,
+    skipped_checks: [],
   };
 }
 

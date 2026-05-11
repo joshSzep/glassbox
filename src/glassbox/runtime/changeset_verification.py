@@ -20,6 +20,7 @@ from glassbox.runtime.changeset_detail import review_response_summary_for_previe
 from glassbox.runtime.changeset_inventory_status import inventory_status
 from glassbox.runtime.changeset_models import ChangesetVerificationEvidenceRecordResult
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_models import PathVerificationPlanPreview
 from glassbox.runtime.changeset_repository_contracts import ChangesetRepository
 from glassbox.runtime.changeset_topology import derive_changeset_topology_impacts
 from glassbox.runtime.changeset_verification_preview import artifact_ids_from_readiness
@@ -37,6 +38,7 @@ from glassbox.runtime.changeset_verification_preview import target_previews
 from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
+from glassbox.runtime.verification_plan_builder import build_verification_plan_entries
 from glassbox.runtime.workspace_profile import load_workspace_profile
 from glassbox.services import ArtifactRepository
 
@@ -117,6 +119,11 @@ class ChangesetVerificationService:
             readiness=readiness,
             topology_impacts=topology_impacts,
         )
+        plan_entries, skipped_checks = build_verification_plan_entries(
+            changed_paths=changed_paths,
+            readiness=readiness,
+            recommendation=recommendation,
+        )
         return ChangesetVerificationPlanPreview(
             changeset_id=changeset.changeset_id,
             session_id=changeset.session_id,
@@ -125,6 +132,8 @@ class ChangesetVerificationService:
             ),
             inventory_freshness=inventory_freshness,
             changed_paths=changed_paths,
+            plan_entries=plan_entries,
+            skipped_checks=skipped_checks,
             recommended_commands=preview_commands(
                 readiness,
                 recommendation,
@@ -159,6 +168,55 @@ class ChangesetVerificationService:
                     "publish, deploy, push, and upload commands are not "
                     "recommended as verification"
                 ),
+            ],
+        )
+
+    def preview_paths(
+        self,
+        workspace_root: Path,
+        changed_paths: list[str],
+    ) -> PathVerificationPlanPreview:
+        normalized_paths = list(dict.fromkeys(path for path in changed_paths if path))
+        recommendation, recommendation_limitations = recommendation_for_preview(
+            workspace_root,
+            normalized_paths,
+        )
+        plan_entries, skipped_checks = build_verification_plan_entries(
+            changed_paths=normalized_paths,
+            recommendation=recommendation,
+        )
+        recommended_commands = (
+            list(recommendation.suggested_commands)
+            if recommendation is not None
+            else []
+        )
+        safe_next_actions = list(
+            dict.fromkeys(
+                [
+                    *recommended_commands,
+                    "glassbox changeset verification-plan CHANGESET_ID --cwd .",
+                ]
+            )
+        )
+        return PathVerificationPlanPreview(
+            workspace_root=str(workspace_root),
+            changed_paths=normalized_paths,
+            plan_entries=plan_entries,
+            skipped_checks=skipped_checks,
+            recommended_commands=recommended_commands,
+            eval_profiles=eval_profile_ids_for_preview(recommendation),
+            recipes=recipe_previews(recommendation),
+            recommended_targets=target_previews(recommendation),
+            release_surfaces=release_surface_previews(recommendation),
+            reason_groups=(
+                recommendation.reason_groups if recommendation is not None else []
+            ),
+            limitations=recommendation_limitations,
+            safe_next_actions=safe_next_actions,
+            non_claims=[
+                "path verification plan preview does not run commands",
+                "path preview is not persisted changeset evidence",
+                "manual-only entries are advisory and are not passes",
             ],
         )
 

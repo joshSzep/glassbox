@@ -15,6 +15,7 @@ from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionPr
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
+from glassbox.runtime.changesets import PathVerificationPlanPreview
 from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changesets import ReviewFeedbackRecordResult
 from glassbox.runtime.commit_messages import CommitMessageSuggestion
@@ -243,6 +244,8 @@ def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
         print("Expected scope:")
         for path in preview.changed_paths[:20]:
             print(f"  - {path}")
+    _print_plan_entries(preview.plan_entries)
+    _print_skipped_checks(preview.skipped_checks)
     if preview.recommended_commands:
         print("Recommended commands:")
         for command in preview.recommended_commands:
@@ -285,6 +288,53 @@ def _print_verification_plan(preview: ChangesetVerificationPlanPreview) -> None:
     print("Safe next actions:")
     for action in preview.safe_next_actions:
         print(f"  - {action}")
+
+
+def _print_path_verification_plan(preview: PathVerificationPlanPreview) -> None:
+    print("Verification plan for changed paths")
+    print(f"Workspace: {preview.workspace_root}")
+    if preview.changed_paths:
+        print("Expected scope:")
+        for path in preview.changed_paths[:20]:
+            print(f"  - {path}")
+    _print_plan_entries(preview.plan_entries)
+    _print_skipped_checks(preview.skipped_checks)
+    if preview.recommended_commands:
+        print("Recommended commands:")
+        for command in preview.recommended_commands:
+            print(f"  - {command}")
+    if preview.recipes:
+        print("Recipes:")
+        for recipe in preview.recipes:
+            print(f"  - {recipe.title} ({recipe.recipe_id})")
+    _print_limitations(preview.limitations)
+    print("Safe next actions:")
+    for action in preview.safe_next_actions:
+        print(f"  - {action}")
+
+
+def _print_plan_entries(entries) -> None:
+    if not entries:
+        return
+    print("Plan entries:")
+    for entry in entries:
+        print(
+            f"  - {entry.lifecycle_state.value}/{entry.kind.value}: {entry.check_name}"
+        )
+        if entry.command:
+            print(f"    command: {' '.join(entry.command)}")
+        if entry.selection_rationale:
+            print(f"    why: {entry.selection_rationale}")
+        if entry.stale_reasons:
+            print(f"    stale: {entry.stale_reasons[0]}")
+
+
+def _print_skipped_checks(skipped_checks) -> None:
+    if not skipped_checks:
+        return
+    print("Skipped checks:")
+    for skipped in skipped_checks:
+        print(f"  - {skipped.target_kind}/{skipped.target_id}: {skipped.explanation}")
 
 
 def _print_commit_message_suggestion(

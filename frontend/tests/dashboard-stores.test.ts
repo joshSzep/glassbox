@@ -1991,6 +1991,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 0,
       accessibility_evidence_count: 0,
@@ -2049,6 +2050,7 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     retained_artifact_ids: [],
     safe_next_actions: ["uv run glassbox eval run commit-smoke --cwd ."],
     session_id: "session-1",
+    skipped_checks: [],
   };
 }
 

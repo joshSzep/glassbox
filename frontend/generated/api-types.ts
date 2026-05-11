@@ -3190,6 +3190,8 @@ export interface components {
       limitations: string[];
       /** Non Claims */
       non_claims: string[];
+      /** Plan Entries */
+      plan_entries: components["schemas"]["VerificationPlanEntryResponse"][];
       readiness: components["schemas"]["ChangesetVerificationReadinessResponse"];
       /** Reason Groups */
       reason_groups: components["schemas"]["ChangesetVerificationReasonGroupResponse"][];
@@ -3204,6 +3206,8 @@ export interface components {
       safe_next_actions: string[];
       /** Session Id */
       session_id: string;
+      /** Skipped Checks */
+      skipped_checks: components["schemas"]["ChangesetVerificationSkippedCheckResponse"][];
       /** Topology Impacts */
       topology_impacts: components["schemas"]["ChangesetTopologyImpactResponse"][];
     };
@@ -3381,6 +3385,21 @@ export interface components {
       stale_response_count: number;
       /** Topology Impact Count */
       topology_impact_count: number;
+    };
+    /** ChangesetVerificationSkippedCheckResponse */
+    ChangesetVerificationSkippedCheckResponse: {
+      /** Explanation */
+      explanation: string;
+      /** Matched Paths */
+      matched_paths: string[];
+      /** Reason */
+      reason: string;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Target Id */
+      target_id: string;
+      /** Target Kind */
+      target_kind: string;
     };
     /** CheckpointAbsenceResponse */
     CheckpointAbsenceResponse: {
@@ -7677,6 +7696,96 @@ export interface components {
       msg: string;
       /** Error Type */
       type: string;
+    };
+    /** VerificationPlanCommandRecipeResponse */
+    VerificationPlanCommandRecipeResponse: {
+      /** Command */
+      command: string[];
+      /** Cwd Hint */
+      cwd_hint?: string | null;
+      /** Display */
+      display: string;
+      /** Expected Exit Codes */
+      expected_exit_codes: number[];
+      /** Purpose */
+      purpose: string;
+      /** Requires Approval */
+      requires_approval: boolean;
+      /** Safety Class */
+      safety_class: string;
+      /** Timeout Seconds */
+      timeout_seconds?: number | null;
+    };
+    /** VerificationPlanEntryResponse */
+    VerificationPlanEntryResponse: {
+      /** Blocking */
+      blocking: boolean;
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Command */
+      command: string[];
+      command_recipe?: components["schemas"]["VerificationPlanCommandRecipeResponse"] | null;
+      /** Eval Case Id */
+      eval_case_id?: string | null;
+      /** Eval Profile Id */
+      eval_profile_id?: string | null;
+      /** Evidence References */
+      evidence_references: components["schemas"]["VerificationPlanEvidenceRefResponse"][];
+      /** Execution Requires Approval */
+      execution_requires_approval: boolean;
+      /** Expected Exit Codes */
+      expected_exit_codes: number[];
+      /** Kind */
+      kind: string;
+      /** Lifecycle State */
+      lifecycle_state: string;
+      /** Manual Evidence Required */
+      manual_evidence_required: boolean;
+      /** Rationale */
+      rationale: string;
+      /** Release Surfaces */
+      release_surfaces: string[];
+      /** Selection Rationale */
+      selection_rationale?: string | null;
+      /** Source */
+      source: string;
+      /** Stale Reasons */
+      stale_reasons: string[];
+      /** Superseded By Verification Id */
+      superseded_by_verification_id?: string | null;
+      target?: components["schemas"]["VerificationPlanTargetResponse"] | null;
+      /** Timeout Seconds */
+      timeout_seconds: number;
+      /** Verification Id */
+      verification_id: string;
+    };
+    /** VerificationPlanEvidenceRefResponse */
+    VerificationPlanEvidenceRefResponse: {
+      /** Freshness */
+      freshness?: string | null;
+      /** Kind */
+      kind: string;
+      /** Redaction */
+      redaction?: string | null;
+      /** Ref Id */
+      ref_id: string;
+      /** Reviewer Safe */
+      reviewer_safe: boolean;
+      /** Source Path */
+      source_path?: string | null;
+      /** Summary */
+      summary: string;
+    };
+    /** VerificationPlanTargetResponse */
+    VerificationPlanTargetResponse: {
+      /** Kind */
+      kind: string;
+      /** Label */
+      label?: string | null;
+      /** Target Id */
+      target_id?: string | null;
     };
     /**
      * WorkingSetItemSnapshot

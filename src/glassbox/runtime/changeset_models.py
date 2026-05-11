@@ -21,6 +21,7 @@ from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import ReviewFeedbackScopeRecord
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
+from glassbox.core import VerificationPlanEntry
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.changeset_topology import ChangesetTopologyImpact
 from glassbox.runtime.changeset_verification_readiness import (
@@ -193,6 +194,19 @@ class ChangesetVerificationReviewLoopSummary(BaseModel):
     non_claims: list[str] = Field(default_factory=list)
 
 
+class ChangesetVerificationSkippedCheckPreview(BaseModel):
+    """A recommended check that stays out of the executable preview plan."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    target_id: str
+    target_kind: str
+    reason: str
+    explanation: str
+    matched_paths: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
 class ChangesetVerificationPlanPreview(BaseModel):
     """Preview-only verification plan for one changeset."""
 
@@ -203,6 +217,10 @@ class ChangesetVerificationPlanPreview(BaseModel):
     inventory_artifact_id: ArtifactId | None = None
     inventory_freshness: ChangesetInventoryFreshness
     changed_paths: list[str] = Field(default_factory=list)
+    plan_entries: list[VerificationPlanEntry] = Field(default_factory=list)
+    skipped_checks: list[ChangesetVerificationSkippedCheckPreview] = Field(
+        default_factory=list
+    )
     recommended_commands: list[str] = Field(default_factory=list)
     eval_profiles: list[str] = Field(default_factory=list)
     recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
@@ -225,6 +243,32 @@ class ChangesetVerificationPlanPreview(BaseModel):
     expected_scope: list[str] = Field(default_factory=list)
     retained_artifact_ids: list[ArtifactId] = Field(default_factory=list)
     readiness: ChangesetVerificationReadiness
+    limitations: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
+class PathVerificationPlanPreview(BaseModel):
+    """Preview-only verification plan for an explicit changed-path set."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workspace_root: str
+    changed_paths: list[str] = Field(default_factory=list)
+    plan_entries: list[VerificationPlanEntry] = Field(default_factory=list)
+    skipped_checks: list[ChangesetVerificationSkippedCheckPreview] = Field(
+        default_factory=list
+    )
+    recommended_commands: list[str] = Field(default_factory=list)
+    eval_profiles: list[str] = Field(default_factory=list)
+    recipes: list[ChangesetVerificationRecipePreview] = Field(default_factory=list)
+    recommended_targets: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
+    release_surfaces: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
+    reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
@@ -309,7 +353,9 @@ __all__ = [
     "ChangesetVerificationPlanPreview",
     "ChangesetVerificationRecipePreview",
     "ChangesetVerificationReviewLoopSummary",
+    "ChangesetVerificationSkippedCheckPreview",
     "ManualEvidenceRecordResult",
+    "PathVerificationPlanPreview",
     "ReviewFeedbackFixupInventoryResult",
     "ReviewFeedbackRecordResult",
 ]

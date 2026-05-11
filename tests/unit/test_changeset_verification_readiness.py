@@ -18,10 +18,12 @@ from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
 from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
+from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
 )
+from glassbox.runtime.verification_plan_builder import build_verification_plan_entries
 from glassbox.runtime.workspace_profile import WorkspaceProfile
 from glassbox.runtime.workspace_profile import WorkspaceVerificationDefaults
 from glassbox.tools.workflow import DiffFileSummary
@@ -309,6 +311,56 @@ def test_readiness_no_changed_paths_is_not_applicable() -> None:
 
     assert readiness.state == ChangesetVerificationState.NOT_APPLICABLE
     assert readiness.requirements[0].blocking is False
+
+
+def test_verification_plan_builder_proposes_entries_and_keeps_advisory_separate() -> (
+    None
+):
+    changed_paths = ["frontend/app/changesets/page.tsx"]
+    command = "pnpm --dir frontend test -- changeset-console.test.tsx"
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=changed_paths,
+        recipes=[
+            EvalVerificationRecipeRecommendation(
+                recipe_id="frontend-changeset-console",
+                title="Frontend changeset console",
+                source="repository-intelligence",
+                matched_paths=changed_paths,
+                commands=[command],
+            )
+        ],
+        profiles=[
+            EvalProfileRecommendation(
+                profile_id="live-provider-canary",
+                title="Live provider canary",
+                confidence="direct",
+                verification_stage="advisory",
+                track="live-provider-canary",
+                blocking=False,
+                matched_paths=changed_paths,
+            )
+        ],
+    )
+
+    entries, skipped = build_verification_plan_entries(
+        changed_paths=changed_paths,
+        recommendation=recommendation,
+    )
+
+    command_entries = [entry for entry in entries if entry.command == command.split()]
+    manual_entries = [entry for entry in entries if entry.manual_evidence_required]
+    assert command_entries
+    assert command_entries[0].source == VerificationPlanSource.REPOSITORY_INTELLIGENCE
+    assert command_entries[0].lifecycle_state.value == "proposed"
+    assert command_entries[0].command_recipe is not None
+    assert any(entry.check_name == "Advisory browser evidence" for entry in entries)
+    assert any(
+        entry.check_name == "Advisory accessibility evidence" for entry in entries
+    )
+    assert manual_entries
+    assert skipped[0].target_id == "live-provider-canary"
+    assert "explicitly selects" in skipped[0].explanation
 
 
 def _inventory(path: str) -> ChangeInventoryArtifact:

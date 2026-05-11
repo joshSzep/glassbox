@@ -820,6 +820,37 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert archived["payload"]["event_type"] == "ChangesetArchived"
 
 
+def test_changeset_verification_plan_accepts_path_preview(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    exit_code = main(
+        [
+            "changeset",
+            "verification-plan",
+            "--path",
+            "frontend/app/changesets/page.tsx",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["changed_paths"] == ["frontend/app/changesets/page.tsx"]
+    assert payload["plan_entries"]
+    assert any(
+        entry["lifecycle_state"] == "manual-only"
+        and entry["manual_evidence_required"] is True
+        for entry in payload["plan_entries"]
+    )
+    assert "not persisted changeset evidence" in " ".join(payload["non_claims"])
+
+
 def test_changeset_evidence_records_skipped_live_evidence_without_placeholders(
     tmp_path: Path,
     capsys,

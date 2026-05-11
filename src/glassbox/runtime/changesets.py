@@ -15,6 +15,7 @@ from glassbox.runtime.changeset_models import ChangesetVerificationEvidenceRecor
 from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.changeset_models import ChangesetVerificationRecipePreview
 from glassbox.runtime.changeset_models import ManualEvidenceRecordResult
+from glassbox.runtime.changeset_models import PathVerificationPlanPreview
 from glassbox.runtime.changeset_models import ReviewFeedbackFixupInventoryResult
 from glassbox.runtime.changeset_models import ReviewFeedbackRecordResult
 from glassbox.runtime.changeset_queries import ChangesetQueryService
@@ -48,6 +49,7 @@ __all__ = [
     "BrowserEvidenceActionService",
     "ManualEvidenceActionService",
     "ManualEvidenceRecordResult",
+    "PathVerificationPlanPreview",
     "ReviewFeedbackActionService",
     "ReviewFeedbackFixupInventoryResult",
     "ReviewFeedbackFixupInventoryService",

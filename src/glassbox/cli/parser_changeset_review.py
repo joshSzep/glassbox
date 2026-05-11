@@ -11,13 +11,23 @@ def _add_changeset_review_parsers(
 ) -> None:
     verification_plan_parser = changeset_subparsers.add_parser(
         "verification-plan",
-        help="preview verification plan for a changeset",
+        help="preview verification plan for a changeset or path list",
         description=(
             "Preview recommended verification commands, eval profiles, recipes, "
             "and retained evidence without running commands."
         ),
     )
-    verification_plan_parser.add_argument("changeset_id", type=_parse_uuid)
+    verification_plan_parser.add_argument("changeset_id", nargs="?", type=_parse_uuid)
+    verification_plan_parser.add_argument(
+        "--path",
+        dest="paths",
+        action="append",
+        default=[],
+        help=(
+            "workspace-relative changed path to plan for when no changeset ID is "
+            "available; may be repeated"
+        ),
+    )
     verification_plan_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(verification_plan_parser)
 

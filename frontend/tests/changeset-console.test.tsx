@@ -850,6 +850,7 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     inventory_freshness: "fresh",
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
+    plan_entries: [],
     review_loop_summary: {
       accepted_risk_response_count: 1,
       accessibility_evidence_count: 1,
@@ -932,6 +933,7 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["uv run pytest tests/unit"],
     session_id: "session-1",
+    skipped_checks: [],
   };
 }
 

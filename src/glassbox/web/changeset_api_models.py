@@ -314,12 +314,75 @@ class ChangesetVerificationReviewLoopSummaryResponse(BaseModel):
     non_claims: list[str]
 
 
+class VerificationPlanEvidenceRefResponse(BaseModel):
+    kind: str
+    ref_id: str
+    summary: str
+    source_path: str | None = None
+    freshness: str | None = None
+    redaction: str | None = None
+    reviewer_safe: bool
+
+
+class VerificationPlanCommandRecipeResponse(BaseModel):
+    command: list[str]
+    display: str
+    purpose: str
+    safety_class: str
+    requires_approval: bool
+    expected_exit_codes: list[int]
+    timeout_seconds: int | None = None
+    cwd_hint: str | None = None
+
+
+class VerificationPlanTargetResponse(BaseModel):
+    kind: str
+    target_id: str | None = None
+    label: str | None = None
+
+
+class VerificationPlanEntryResponse(BaseModel):
+    verification_id: str
+    check_name: str
+    kind: str
+    lifecycle_state: str
+    target: VerificationPlanTargetResponse | None = None
+    command: list[str]
+    command_recipe: VerificationPlanCommandRecipeResponse | None = None
+    source: str
+    rationale: str
+    selection_rationale: str | None = None
+    blocking: bool
+    timeout_seconds: int
+    expected_exit_codes: list[int]
+    changed_paths: list[str]
+    eval_case_id: str | None = None
+    eval_profile_id: str | None = None
+    release_surfaces: list[str]
+    evidence_references: list[VerificationPlanEvidenceRefResponse]
+    stale_reasons: list[str]
+    manual_evidence_required: bool
+    execution_requires_approval: bool
+    superseded_by_verification_id: str | None = None
+
+
+class ChangesetVerificationSkippedCheckResponse(BaseModel):
+    target_id: str
+    target_kind: str
+    reason: str
+    explanation: str
+    matched_paths: list[str]
+    safe_next_actions: list[str]
+
+
 class ChangesetVerificationPlanPreviewResponse(BaseModel):
     changeset_id: str
     session_id: str
     inventory_artifact_id: str | None = None
     inventory_freshness: str
     changed_paths: list[str]
+    plan_entries: list[VerificationPlanEntryResponse]
+    skipped_checks: list[ChangesetVerificationSkippedCheckResponse]
     recommended_commands: list[str]
     eval_profiles: list[str]
     recipes: list[ChangesetVerificationRecipePreviewResponse]

@@ -9,6 +9,7 @@ from glassbox.cli.changeset_command_formatters import _print_adoption_preview
 from glassbox.cli.changeset_command_formatters import _print_changeset_detail
 from glassbox.cli.changeset_command_formatters import _print_changeset_list
 from glassbox.cli.changeset_command_formatters import _print_limitations
+from glassbox.cli.changeset_command_formatters import _print_path_verification_plan
 from glassbox.cli.changeset_command_formatters import _print_verification_plan
 from glassbox.cli.changeset_command_formatters import (
     changeset_next_action_record_payloads,
@@ -286,6 +287,15 @@ def _changeset_verification_plan_command(args: argparse.Namespace) -> int:
             cast(ChangesetRepository, runtime_context.repositories.sessions),
             runtime_context.repositories.artifacts,
         )
+        if args.changeset_id is None:
+            if not args.paths:
+                raise ValueError("changeset_id or at least one --path is required")
+            path_preview = service.preview_paths(cwd, args.paths)
+            if args.json:
+                print_json_output(path_preview.model_dump(mode="json"))
+            else:
+                _print_path_verification_plan(path_preview)
+            return 0
         preview = service.preview_plan(args.changeset_id, cwd)
 
     if args.json:

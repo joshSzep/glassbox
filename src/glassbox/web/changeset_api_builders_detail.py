@@ -36,6 +36,11 @@ from glassbox.web.changeset_api_models import ChangesetVerificationRequirementRe
 from glassbox.web.changeset_api_models import (
     ChangesetVerificationReviewLoopSummaryResponse,
 )
+from glassbox.web.changeset_api_models import ChangesetVerificationSkippedCheckResponse
+from glassbox.web.changeset_api_models import VerificationPlanCommandRecipeResponse
+from glassbox.web.changeset_api_models import VerificationPlanEntryResponse
+from glassbox.web.changeset_api_models import VerificationPlanEvidenceRefResponse
+from glassbox.web.changeset_api_models import VerificationPlanTargetResponse
 
 
 def build_changeset_summary_response(
@@ -163,6 +168,21 @@ def build_changeset_verification_plan_response(
         inventory_artifact_id=_optional_str(preview.inventory_artifact_id),
         inventory_freshness=preview.inventory_freshness.value,
         changed_paths=preview.changed_paths,
+        plan_entries=[
+            build_verification_plan_entry_response(entry)
+            for entry in preview.plan_entries
+        ],
+        skipped_checks=[
+            ChangesetVerificationSkippedCheckResponse(
+                target_id=skipped.target_id,
+                target_kind=skipped.target_kind,
+                reason=skipped.reason,
+                explanation=skipped.explanation,
+                matched_paths=skipped.matched_paths,
+                safe_next_actions=skipped.safe_next_actions,
+            )
+            for skipped in preview.skipped_checks
+        ],
         recommended_commands=preview.recommended_commands,
         eval_profiles=preview.eval_profiles,
         recipes=[
@@ -221,6 +241,67 @@ def build_changeset_verification_plan_response(
         limitations=preview.limitations,
         safe_next_actions=preview.safe_next_actions,
         non_claims=preview.non_claims,
+    )
+
+
+def build_verification_plan_entry_response(entry) -> VerificationPlanEntryResponse:
+    return VerificationPlanEntryResponse(
+        verification_id=str(entry.verification_id),
+        check_name=entry.check_name,
+        kind=entry.kind.value,
+        lifecycle_state=entry.lifecycle_state.value,
+        target=(
+            VerificationPlanTargetResponse(
+                kind=entry.target.kind.value,
+                target_id=entry.target.target_id,
+                label=entry.target.label,
+            )
+            if entry.target is not None
+            else None
+        ),
+        command=entry.command,
+        command_recipe=(
+            VerificationPlanCommandRecipeResponse(
+                command=entry.command_recipe.command,
+                display=entry.command_recipe.display,
+                purpose=entry.command_recipe.purpose,
+                safety_class=entry.command_recipe.safety_class.value,
+                requires_approval=entry.command_recipe.requires_approval,
+                expected_exit_codes=entry.command_recipe.expected_exit_codes,
+                timeout_seconds=entry.command_recipe.timeout_seconds,
+                cwd_hint=entry.command_recipe.cwd_hint,
+            )
+            if entry.command_recipe is not None
+            else None
+        ),
+        source=entry.source.value,
+        rationale=entry.rationale,
+        selection_rationale=entry.selection_rationale,
+        blocking=entry.blocking,
+        timeout_seconds=entry.timeout_seconds,
+        expected_exit_codes=entry.expected_exit_codes,
+        changed_paths=[path.as_posix() for path in entry.changed_paths],
+        eval_case_id=entry.eval_case_id,
+        eval_profile_id=entry.eval_profile_id,
+        release_surfaces=entry.release_surfaces,
+        evidence_references=[
+            VerificationPlanEvidenceRefResponse(
+                kind=ref.kind.value,
+                ref_id=ref.ref_id,
+                summary=ref.summary,
+                source_path=ref.source_path,
+                freshness=ref.freshness,
+                redaction=ref.redaction,
+                reviewer_safe=ref.reviewer_safe,
+            )
+            for ref in entry.evidence_references
+        ],
+        stale_reasons=entry.stale_reasons,
+        manual_evidence_required=entry.manual_evidence_required,
+        execution_requires_approval=entry.execution_requires_approval,
+        superseded_by_verification_id=_optional_str(
+            entry.superseded_by_verification_id
+        ),
     )
 
 

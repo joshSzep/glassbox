@@ -57,3 +57,27 @@ Execution requires the normal command policy path and, when applicable,
 operator approval. A skipped check remains skipped. Accepted risk must name its
 rationale and scope through canonical evidence. Manual-only checks require
 manual evidence and must stay separate from deterministic command results.
+
+## Preview Generation
+
+`glassbox changeset verification-plan CHANGESET_ID --cwd .` now returns a
+preview-only plan with explicit `plan_entries` and `skipped_checks` beside the
+existing readiness summary, recommended commands, eval profiles, recipes,
+release surfaces, stale evidence, limitations, safe next actions, and
+non-claims. The corresponding dashboard/API route exposes the same plan-entry
+lifecycle, source, command recipe, evidence references, stale reasons, changed
+paths, eval target IDs, release surfaces, and manual-evidence posture.
+
+Operators can also preview an unpersisted changed-path set with repeated
+`--path` arguments:
+
+```bash
+glassbox changeset verification-plan --path src/glassbox/runtime/foo.py --cwd .
+```
+
+Path previews are planning-only. They may use repository intelligence, eval
+metadata, command recipes, and advisory/manual-evidence heuristics, but they do
+not create a changeset, record events, run commands, select checks, mark checks
+passed, or approve any command. Persisted changeset previews remain the
+reviewable route when retained inventory, review feedback, manual evidence, and
+handoff posture matter.

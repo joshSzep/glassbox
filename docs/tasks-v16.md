@@ -675,7 +675,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1631: Generate Verification Plans From Changesets And Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1630`
 - Goal: produce reviewable verification plans from changed paths, changeset
   inventory, repository intelligence, eval metadata, command recipes, and
