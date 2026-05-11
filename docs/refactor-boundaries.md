@@ -802,6 +802,38 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   the first post-v15 pass. Future repository-intelligence core model movement
   should preserve public imports and event registration semantics explicitly.
 
+#### Post-V15 Repository-Intelligence Core Domain Strategy
+
+- The current repository-intelligence model family stays in
+  `glassbox.core.models` for this roadmap. That family includes
+  `RepositoryIndexProvenance`, `RepositoryIndexEntry`,
+  `RepositoryIntelligenceSourceManifest`, `RepositoryIntelligencePathHint`,
+  `RepositoryIntelligencePackageBoundary`,
+  `RepositoryIntelligenceCommandRecipe`,
+  `RepositoryIntelligenceOwnershipHint`, `RepositoryIntelligenceSubsystem`,
+  `RepositoryIntelligenceReleaseSurface`,
+  `RepositoryIntelligenceMemoryReference`, and `RepositoryIndexSnapshot`.
+- A future extraction should use an explicit domain module such as
+  `core/models_repository_intelligence.py` only when repository-intelligence
+  growth makes validator ownership, snapshot-schema review, or import review
+  materially harder in the broad public module. Do not split these models for
+  line count alone, and do not split one-off field additions away from their
+  neighboring snapshot contracts.
+- If repository-intelligence event payloads are introduced later, they should
+  move as a cohesive family into a module such as
+  `core/events_repository_intelligence.py`, while `core/events.py` keeps
+  `EventPayload`, `EventPayloadType`, `event_payload_adapter`,
+  `EventEnvelope`, and public compatibility re-exports.
+- Event payload registration must remain explicit and deterministic. Future
+  repository-intelligence domain modules must not use dynamic discovery,
+  import-time filesystem scans, plugin registration, runtime imports, store
+  imports, CLI imports, web imports, or frontend imports to affect canonical
+  persisted event payloads.
+- `glassbox.core.models`, `glassbox.core.events`, and `glassbox.core` must keep
+  compatibility re-exports during any future extraction so runtime, store, CLI,
+  web, replay, eval, API schema, and test imports migrate deliberately rather
+  than as a hidden side effect.
+
 ### Post-V15 Accepted Compatibility Shims
 
 - `src/glassbox/cli/repository_commands.py`: repository command dispatcher.

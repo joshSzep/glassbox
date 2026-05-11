@@ -837,7 +837,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R761: Define Core Repository-Intelligence Model Domain Strategy
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R700
 - Target files:
   - [refactor-boundaries.md](./refactor-boundaries.md)

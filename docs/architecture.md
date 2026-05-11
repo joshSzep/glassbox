@@ -854,9 +854,10 @@ moves cohesive event or model families into domain-owned helpers.
 
 Future splits should be domain-first and explicit. Reasonable event/model
 families include sessions, turns, tools, tasks, branch search, background jobs,
-workspace memory, repository index, provider recovery, verification, and
-compaction. A split should happen only when a domain expansion makes review,
-registration, or ownership risky; line count alone is not enough.
+workspace memory, repository index and repository intelligence, provider
+recovery, verification, and compaction. A split should happen only when a
+domain expansion makes review, registration, or ownership risky; line count
+alone is not enough.
 
 `core/events.py` remains the canonical registration point for persisted event
 payloads. If event classes move into modules such as `core/events_tasks.py` or
@@ -871,6 +872,18 @@ and value objects. Domain-owned model modules may be introduced when validators,
 record contracts, and review ownership naturally travel together, but the public
 imports used by runtime, store, CLI, web, and tests should remain stable during
 the migration.
+
+Repository-intelligence snapshot models currently remain in
+`core/models.py`: provenance, index entries, source manifests, path hints,
+package boundaries, command recipes, owner hints, subsystems, release surfaces,
+memory references, and `RepositoryIndexSnapshot` are reviewed together because
+their validators define one rebuildable local snapshot contract. If future
+growth makes that contract hard to review in the broad public module, the
+preferred extraction is a cohesive `core/models_repository_intelligence.py`
+module with compatibility re-exports from `core/models.py` and `glassbox.core`.
+Repository-intelligence event payloads should follow the same explicit pattern
+through a future `core/events_repository_intelligence.py` module while keeping
+`EventPayloadType` assembly deterministic in `core/events.py`.
 
 ## Session Domain Models
 

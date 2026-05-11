@@ -376,6 +376,38 @@ def test_post_v15_repository_intelligence_boundary_strategy_is_documented() -> N
         assert required_text in architecture_doc
 
 
+def test_post_v15_repository_intelligence_core_domain_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### Post-V15 Repository-Intelligence Core Domain Strategy",
+        "The current repository-intelligence model family stays in",
+        "`RepositoryIntelligenceSourceManifest`",
+        "`RepositoryIntelligenceCommandRecipe`",
+        "`RepositoryIntelligenceMemoryReference`",
+        "`RepositoryIndexSnapshot`",
+        "`core/models_repository_intelligence.py`",
+        "`core/events_repository_intelligence.py`",
+        "Event payload registration must remain explicit and deterministic",
+        "compatibility re-exports during any future extraction",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "repository index and repository intelligence",
+        "Repository-intelligence snapshot models currently remain in",
+        "`core/models_repository_intelligence.py`",
+        "`core/events_repository_intelligence.py`",
+        "`EventPayloadType` assembly deterministic in `core/events.py`",
+    ):
+        assert required_text in architecture_doc
+
+
 def test_v10_core_domain_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"
