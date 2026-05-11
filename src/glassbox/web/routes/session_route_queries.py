@@ -1,6 +1,5 @@
 """HTTP-local read helpers for session routes."""
 
-from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -15,14 +14,12 @@ from glassbox.runtime.evidence_graph import EvidenceGraphSummary
 from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
-from glassbox.runtime.observability import build_background_job_observability
 from glassbox.runtime.observability import build_repository_intelligence_observability
 from glassbox.runtime.observability import build_workspace_memory_observability
 from glassbox.runtime.provider_canary import load_provider_canary_evidence
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
-from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
-from glassbox.services import SessionRepository
+from glassbox.runtime.workspace_runtime_summary import build_workspace_runtime_summary
 from glassbox.web.routes.pagination import page_info
 from glassbox.web.session_api import ArtifactDetailResponse
 from glassbox.web.session_api import ContextCompactionResponse
@@ -369,27 +366,4 @@ def artifact_detail_from_event(event) -> ArtifactDetailResponse:
         turn_id=str(payload.turn_id),
         content_sha256=payload.content_sha256,
         size_bytes=payload.size_bytes,
-    )
-
-
-def build_workspace_runtime_summary(
-    workspace_root: Path,
-    owner_status: RuntimeOwnerStatus,
-    session_repository: SessionRepository,
-) -> WorkspaceRuntimeSummaryView:
-    record = owner_status.record
-    dashboard_url = record.dashboard_url if record is not None else None
-    background_jobs = build_background_job_observability(session_repository)
-    return WorkspaceRuntimeSummaryView(
-        workspace_root=str(workspace_root),
-        state=owner_status.state,
-        health=owner_status.health,
-        pid=record.pid if record is not None else None,
-        dashboard_url=dashboard_url,
-        health_url=(dashboard_url.rstrip("/") + "/healthz") if dashboard_url else None,
-        session_index_url=dashboard_url,
-        started_at=record.started_at if record is not None else None,
-        background_job_failed_count=background_jobs.failed_count,
-        background_job_retryable_count=background_jobs.retryable_count,
-        background_job_abandoned_count=background_jobs.abandoned_count,
     )

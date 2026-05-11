@@ -292,6 +292,35 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
                 "action_needed": 4,
                 "historical": 1,
             }
+            assert body["operator_queue_schema_version"] == "operator-queue.v1"
+            assert body["operator_queue_counts"] == {
+                "total": 5,
+                "work_blocking": 3,
+                "review_blocking": 0,
+                "verification_blocking": 0,
+                "maintenance": 1,
+                "advisory": 0,
+                "informational": 1,
+            }
+            assert [item["family"] for item in body["operator_queue"]] == [
+                "work_blocking",
+                "work_blocking",
+                "work_blocking",
+                "maintenance",
+                "informational",
+            ]
+            queue_item = next(
+                item
+                for item in body["operator_queue"]
+                if item["dedupe_key"]["key"]
+                == f"work:session:{approval_state.session_id}:approval:{approval_id}"
+            )
+            assert queue_item["target"]["target_id"] == str(approval_state.session_id)
+            assert queue_item["safe_next_action"]["kind"] == "approve"
+            assert (
+                queue_item["evidence_summary"]["supporting_evidence"][0]["ref_id"]
+                == approval_id
+            )
             assert body["projection_health_counts"] == {
                 "ok": 5,
                 "stale": 1,

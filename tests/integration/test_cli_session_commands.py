@@ -108,6 +108,7 @@ def test_cli_help_lists_session_oriented_commands(
     assert "artifacts" in captured.out
     assert "backup" in captured.out
     assert "projection" in captured.out
+    assert "queue" in captured.out
     assert "replay" in captured.out
     assert "eval" in captured.out
 
@@ -320,6 +321,49 @@ def test_cli_session_list_supports_json_and_limit(
     assert [session["session_id"] for session in payload] == [str(second_session_id)]
     assert payload[0]["latest_message_summary"] == (
         "assistant: I received your request: Second prompt"
+    )
+
+
+def test_cli_queue_list_reports_ranked_operator_items(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id, approval_id = _seed_pending_approval(tmp_path)
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "queue",
+            "list",
+            "--view",
+            "action-needed",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["schema_version"] == "operator-queue.v1"
+    assert payload["view"] == "action-needed"
+    assert payload["counts"]["work_blocking"] == 1
+    assert payload["filtered_counts"]["work_blocking"] == 1
+    assert [item["target"]["target_id"] for item in payload["items"]] == [
+        str(session_id)
+    ]
+    item = payload["items"][0]
+    assert item["family"] == "work_blocking"
+    assert item["state"] == "action_needed"
+    assert item["safe_next_action"]["kind"] == "approve"
+    assert item["evidence_summary"]["supporting_evidence"][0]["ref_id"] == str(
+        approval_id
+    )
+    assert item["dedupe_key"]["key"] == (
+        f"work:session:{session_id}:approval:{approval_id}"
     )
 
 

@@ -4972,6 +4972,168 @@ export interface components {
       | "projection"
       | "release"
       | "unknown";
+    /**
+     * OperatorQueueCountsView
+     * @description Aggregate v16 queue counts by operator attention family.
+     */
+    OperatorQueueCountsView: {
+      /**
+       * Advisory
+       * @default 0
+       */
+      advisory: number;
+      /**
+       * Informational
+       * @default 0
+       */
+      informational: number;
+      /**
+       * Maintenance
+       * @default 0
+       */
+      maintenance: number;
+      /**
+       * Review Blocking
+       * @default 0
+       */
+      review_blocking: number;
+      /**
+       * Total
+       * @default 0
+       */
+      total: number;
+      /**
+       * Verification Blocking
+       * @default 0
+       */
+      verification_blocking: number;
+      /**
+       * Work Blocking
+       * @default 0
+       */
+      work_blocking: number;
+    };
+    /**
+     * OperatorQueueDedupeKey
+     * @description Stable merge key for queue items about the same underlying problem.
+     */
+    OperatorQueueDedupeKey: {
+      /** Key */
+      key: string;
+      scope: components["schemas"]["OperatorQueueDedupeScope"];
+      target: components["schemas"]["NextActionTarget"];
+    };
+    /**
+     * OperatorQueueDedupeScope
+     * @description Scope used to merge queue items that point at the same problem.
+     * @enum {string}
+     */
+    OperatorQueueDedupeScope:
+      | "target"
+      | "family_target"
+      | "evidence_fingerprint"
+      | "workspace_singleton";
+    /**
+     * OperatorQueueDismissalPolicy
+     * @description How a derived queue item may leave the visible queue.
+     * @enum {string}
+     */
+    OperatorQueueDismissalPolicy:
+      | "not_dismissible"
+      | "dismissible_until_changed"
+      | "dismissible_for_session"
+      | "canonical_decision_required";
+    /**
+     * OperatorQueueEvidenceSummary
+     * @description Bounded evidence summary attached to a unified operator queue item.
+     */
+    OperatorQueueEvidenceSummary: {
+      /** Claim Id */
+      claim_id?: string | null;
+      /** Evidence Graph Id */
+      evidence_graph_id?: string | null;
+      /**
+       * Limitation Count
+       * @default 0
+       */
+      limitation_count: number;
+      /** Missing Evidence */
+      missing_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      /** Stale Evidence */
+      stale_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      /** Summary */
+      summary: string;
+      support_state?: components["schemas"]["ClaimSupportState"] | null;
+      /** Supporting Evidence */
+      supporting_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+    };
+    /**
+     * OperatorQueueFamily
+     * @description Operator attention families for one unified queue.
+     * @enum {string}
+     */
+    OperatorQueueFamily:
+      | "work_blocking"
+      | "review_blocking"
+      | "verification_blocking"
+      | "maintenance"
+      | "advisory"
+      | "informational";
+    /**
+     * OperatorQueueItem
+     * @description Shared contract for one derived operator attention item.
+     */
+    OperatorQueueItem: {
+      /**
+       * Action Needed
+       * @default false
+       */
+      action_needed: boolean;
+      /**
+       * Blocking
+       * @default false
+       */
+      blocking: boolean;
+      dedupe_key: components["schemas"]["OperatorQueueDedupeKey"];
+      /** @default not_dismissible */
+      dismissal_policy: components["schemas"]["OperatorQueueDismissalPolicy"];
+      evidence_summary: components["schemas"]["OperatorQueueEvidenceSummary"];
+      family: components["schemas"]["OperatorQueueFamily"];
+      /** Item Id */
+      item_id: string;
+      /** Limitations */
+      limitations?: string[];
+      /** Owner Label */
+      owner_label: string;
+      owner_surface: components["schemas"]["NextActionSurface"];
+      priority: components["schemas"]["NextActionPriority"];
+      safe_next_action: components["schemas"]["NextAction"];
+      /** @default info */
+      severity: components["schemas"]["NextActionSeverity"];
+      /**
+       * Stale
+       * @default false
+       */
+      stale: boolean;
+      state: components["schemas"]["OperatorQueueState"];
+      target: components["schemas"]["NextActionTarget"];
+      /** Updated At */
+      updated_at?: string | null;
+    };
+    /**
+     * OperatorQueueState
+     * @description Current posture of a derived operator queue item.
+     * @enum {string}
+     */
+    OperatorQueueState:
+      | "action_needed"
+      | "blocked"
+      | "active"
+      | "stale"
+      | "degraded"
+      | "ready"
+      | "watching"
+      | "historical";
     /** OperatorSessionSummaryResponse */
     OperatorSessionSummaryResponse: {
       /** Action Needed */
@@ -6464,6 +6626,14 @@ export interface components {
       knowledge_posture?: components["schemas"]["WorkspaceKnowledgePosture"] | null;
       /** Limit */
       limit: number | null;
+      /** Operator Queue */
+      operator_queue?: components["schemas"]["OperatorQueueItem"][];
+      operator_queue_counts?: components["schemas"]["OperatorQueueCountsView"];
+      /**
+       * Operator Queue Schema Version
+       * @default operator-queue.v1
+       */
+      operator_queue_schema_version: string;
       projection_health_counts: components["schemas"]["ProjectionHealthCountsAggregateResponse"];
       provider_evidence?: components["schemas"]["ProviderEvidenceSummaryResponse"];
       /** Queue */

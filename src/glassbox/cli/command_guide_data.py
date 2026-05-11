@@ -38,6 +38,13 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 "List persisted sessions in the workspace.",
             ),
             CommandGuideEntry(
+                "glassbox queue list --view action-needed --cwd .",
+                (
+                    "Show the ranked operator queue with safe next actions and "
+                    "evidence references."
+                ),
+            ),
+            CommandGuideEntry(
                 "glassbox session status SESSION_ID --cwd .",
                 (
                     "Inspect one session's transcript, actions, evidence, and "

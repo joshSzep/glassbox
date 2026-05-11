@@ -5,8 +5,10 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import Field
 
+from glassbox.core import OperatorQueueItem
 from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
 from glassbox.runtime.observability import RepositoryIntelligenceObservability
+from glassbox.runtime.session_query_models import OperatorQueueCountsView
 from glassbox.web.session_api_snapshot import SessionSummaryResponse
 
 
@@ -83,7 +85,12 @@ class SessionAggregateResponse(BaseModel):
     status: str | None
     sort: str
     limit: int | None
+    operator_queue_schema_version: str = "operator-queue.v1"
     queue_counts: SessionQueueCountsResponse
+    operator_queue_counts: OperatorQueueCountsView = Field(
+        default_factory=OperatorQueueCountsView
+    )
+    operator_queue: list[OperatorQueueItem] = Field(default_factory=list)
     projection_health_counts: ProjectionHealthCountsAggregateResponse
     runtime: WorkspaceRuntimeSummaryResponse
     provider_evidence: ProviderEvidenceSummaryResponse = Field(

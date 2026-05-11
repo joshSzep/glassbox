@@ -61,6 +61,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.memory_commands import _memory_command
     from glassbox.cli.observability_commands import _observability_command
     from glassbox.cli.provider_commands import _provider_command
+    from glassbox.cli.queue_commands import _queue_command
     from glassbox.cli.readiness_commands import _readiness_command
     from glassbox.cli.replay_eval_commands import _eval_command
     from glassbox.cli.replay_eval_commands import _replay_command
@@ -77,6 +78,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "autonomy": _autonomy_command,
         "session": _session_command,
         "task": _task_command,
+        "queue": _queue_command,
         "changeset": _changeset_command,
         "changesets": _changeset_command,
         "worktree": _worktree_command,

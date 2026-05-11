@@ -125,6 +125,20 @@ def test_openapi_schema_includes_browser_transport_contracts(
         == "#/components/schemas/WorkspaceKnowledgePosture"
     )
     assert (
+        components["SessionAggregateResponse"]["properties"]["operator_queue"]["items"][
+            "$ref"
+        ]
+        == "#/components/schemas/OperatorQueueItem"
+    )
+    assert (
+        components["SessionAggregateResponse"]["properties"]["operator_queue_counts"][
+            "$ref"
+        ]
+        == "#/components/schemas/OperatorQueueCountsView"
+    )
+    assert "NextAction" in components
+    assert "OperatorQueueDedupeKey" in components
+    assert (
         components["KnowledgePostureCue"]["properties"]["provenance"]["items"]["$ref"]
         == "#/components/schemas/KnowledgeCueProvenance"
     )

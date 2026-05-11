@@ -114,3 +114,18 @@ Runtime sorting is deterministic:
 Aggregators dedupe by `dedupe_key.key` and keep the strongest item according to
 that same ordering. This lets several projections point at the same problem
 without multiplying rows or erasing the domain-specific owner label.
+
+## CLI And API Surfaces
+
+`glassbox queue list --cwd .` prints the ranked queue for the current workspace.
+Use `--view action-needed`, `--view verification`, `--view review`,
+`--view maintenance`, `--view advisory`, or `--view historical` for common
+operator slices. `--family`, `--state`, `--priority`, and `--limit` narrow the
+result further, and `--json` returns a stable `operator-queue.v1` payload with
+full counts, filtered counts, safe next actions, evidence summaries, and dedupe
+keys. The command is read-only; it never runs a suggested action.
+
+`GET /sessions/aggregate` keeps its existing session-list fields and adds
+`operator_queue_schema_version`, `operator_queue_counts`, and `operator_queue`.
+Dashboard clients can adopt the richer queue data without replacing the
+existing session summary behavior.

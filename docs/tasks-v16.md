@@ -589,7 +589,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1622: Expose Queue Through CLI, API, And Command Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1621`
 - Goal: make the unified queue available to terminal, scripts, and dashboard
   clients

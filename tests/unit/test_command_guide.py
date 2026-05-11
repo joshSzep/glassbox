@@ -16,6 +16,8 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert "glassbox repo status --cwd ." in rendered
     assert "glassbox repo refresh --cwd ." in rendered
     assert "glassbox repo path PATH --cwd ." in rendered
+    assert "glassbox queue list --view action-needed --cwd ." in rendered
+    assert "safe next actions and evidence references" in rendered
     assert "glassbox session evidence-graph SESSION_ID --summary --cwd ." in rendered
     assert "Review Loop Maturity" in rendered
     assert "glassbox changeset create --from workspace-diff" in rendered

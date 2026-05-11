@@ -8291,6 +8291,295 @@
         "title": "NextActionTargetKind",
         "type": "string"
       },
+      "OperatorQueueCountsView": {
+        "additionalProperties": false,
+        "description": "Aggregate v16 queue counts by operator attention family.",
+        "properties": {
+          "advisory": {
+            "default": 0,
+            "title": "Advisory",
+            "type": "integer"
+          },
+          "informational": {
+            "default": 0,
+            "title": "Informational",
+            "type": "integer"
+          },
+          "maintenance": {
+            "default": 0,
+            "title": "Maintenance",
+            "type": "integer"
+          },
+          "review_blocking": {
+            "default": 0,
+            "title": "Review Blocking",
+            "type": "integer"
+          },
+          "total": {
+            "default": 0,
+            "title": "Total",
+            "type": "integer"
+          },
+          "verification_blocking": {
+            "default": 0,
+            "title": "Verification Blocking",
+            "type": "integer"
+          },
+          "work_blocking": {
+            "default": 0,
+            "title": "Work Blocking",
+            "type": "integer"
+          }
+        },
+        "title": "OperatorQueueCountsView",
+        "type": "object"
+      },
+      "OperatorQueueDedupeKey": {
+        "additionalProperties": false,
+        "description": "Stable merge key for queue items about the same underlying problem.",
+        "properties": {
+          "key": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Key",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/OperatorQueueDedupeScope"
+          },
+          "target": {
+            "$ref": "#/components/schemas/NextActionTarget"
+          }
+        },
+        "required": ["scope", "key", "target"],
+        "title": "OperatorQueueDedupeKey",
+        "type": "object"
+      },
+      "OperatorQueueDedupeScope": {
+        "description": "Scope used to merge queue items that point at the same problem.",
+        "enum": ["target", "family_target", "evidence_fingerprint", "workspace_singleton"],
+        "title": "OperatorQueueDedupeScope",
+        "type": "string"
+      },
+      "OperatorQueueDismissalPolicy": {
+        "description": "How a derived queue item may leave the visible queue.",
+        "enum": [
+          "not_dismissible",
+          "dismissible_until_changed",
+          "dismissible_for_session",
+          "canonical_decision_required"
+        ],
+        "title": "OperatorQueueDismissalPolicy",
+        "type": "string"
+      },
+      "OperatorQueueEvidenceSummary": {
+        "additionalProperties": false,
+        "description": "Bounded evidence summary attached to a unified operator queue item.",
+        "properties": {
+          "claim_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "evidence_graph_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Graph Id"
+          },
+          "limitation_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Limitation Count",
+            "type": "integer"
+          },
+          "missing_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "stale_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Stale Evidence",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "support_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClaimSupportState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "supporting_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Supporting Evidence",
+            "type": "array"
+          }
+        },
+        "required": ["summary"],
+        "title": "OperatorQueueEvidenceSummary",
+        "type": "object"
+      },
+      "OperatorQueueFamily": {
+        "description": "Operator attention families for one unified queue.",
+        "enum": [
+          "work_blocking",
+          "review_blocking",
+          "verification_blocking",
+          "maintenance",
+          "advisory",
+          "informational"
+        ],
+        "title": "OperatorQueueFamily",
+        "type": "string"
+      },
+      "OperatorQueueItem": {
+        "additionalProperties": false,
+        "description": "Shared contract for one derived operator attention item.",
+        "properties": {
+          "action_needed": {
+            "default": false,
+            "title": "Action Needed",
+            "type": "boolean"
+          },
+          "blocking": {
+            "default": false,
+            "title": "Blocking",
+            "type": "boolean"
+          },
+          "dedupe_key": {
+            "$ref": "#/components/schemas/OperatorQueueDedupeKey"
+          },
+          "dismissal_policy": {
+            "$ref": "#/components/schemas/OperatorQueueDismissalPolicy",
+            "default": "not_dismissible"
+          },
+          "evidence_summary": {
+            "$ref": "#/components/schemas/OperatorQueueEvidenceSummary"
+          },
+          "family": {
+            "$ref": "#/components/schemas/OperatorQueueFamily"
+          },
+          "item_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Item Id",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "owner_label": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Owner Label",
+            "type": "string"
+          },
+          "owner_surface": {
+            "$ref": "#/components/schemas/NextActionSurface"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/NextActionPriority"
+          },
+          "safe_next_action": {
+            "$ref": "#/components/schemas/NextAction"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/NextActionSeverity",
+            "default": "info"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          },
+          "state": {
+            "$ref": "#/components/schemas/OperatorQueueState"
+          },
+          "target": {
+            "$ref": "#/components/schemas/NextActionTarget"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "item_id",
+          "family",
+          "state",
+          "priority",
+          "target",
+          "owner_surface",
+          "owner_label",
+          "safe_next_action",
+          "evidence_summary",
+          "dedupe_key"
+        ],
+        "title": "OperatorQueueItem",
+        "type": "object"
+      },
+      "OperatorQueueState": {
+        "description": "Current posture of a derived operator queue item.",
+        "enum": [
+          "action_needed",
+          "blocked",
+          "active",
+          "stale",
+          "degraded",
+          "ready",
+          "watching",
+          "historical"
+        ],
+        "title": "OperatorQueueState",
+        "type": "string"
+      },
       "OperatorSessionSummaryResponse": {
         "properties": {
           "action_needed": {
@@ -12638,6 +12927,21 @@
               }
             ],
             "title": "Limit"
+          },
+          "operator_queue": {
+            "items": {
+              "$ref": "#/components/schemas/OperatorQueueItem"
+            },
+            "title": "Operator Queue",
+            "type": "array"
+          },
+          "operator_queue_counts": {
+            "$ref": "#/components/schemas/OperatorQueueCountsView"
+          },
+          "operator_queue_schema_version": {
+            "default": "operator-queue.v1",
+            "title": "Operator Queue Schema Version",
+            "type": "string"
           },
           "projection_health_counts": {
             "$ref": "#/components/schemas/ProjectionHealthCountsAggregateResponse"

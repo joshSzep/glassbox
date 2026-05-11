@@ -143,6 +143,17 @@ export function makeSessionAggregate(
   return {
     limit: null,
     knowledge_posture: makeKnowledgePosture(),
+    operator_queue: [],
+    operator_queue_counts: {
+      advisory: 0,
+      informational: 0,
+      maintenance: 0,
+      review_blocking: 0,
+      total: 0,
+      verification_blocking: 0,
+      work_blocking: 0,
+    },
+    operator_queue_schema_version: "operator-queue.v1",
     projection_health_counts: { degraded: 0, ok: sessions.length, stale: 0, unavailable: 0 },
     provider_evidence: makeProviderEvidence(),
     queue: "all",
