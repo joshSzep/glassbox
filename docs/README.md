@@ -134,6 +134,9 @@ operator authority explicit.
   source-linked audit of current next-action, readiness, verification,
   recovery, evidence, queue, dashboard, TUI, and command-guide surfaces before
   v16 implementation
+- [evidence-graph.md](./evidence-graph.md): v16 evidence graph contract for
+  nodes, edges, claim support states, provenance, freshness, confidence,
+  limitations, redaction posture, and reviewer-safe visibility
 - [tasks-v16.md](./tasks-v16.md): v16 operator flow compression task graph for
   shared next-action models, evidence graph foundation, unified operator
   queue, verification orchestration, compressed changeset workup, dashboard and
@@ -396,6 +399,10 @@ operator authority explicit.
   source-linked baseline before changing current session, task, changeset,
   review, handoff, repository intelligence, observability, dashboard, TUI, or
   command-guide guidance surfaces
+- [evidence-graph.md](./evidence-graph.md): use the shared v16 evidence graph
+  vocabulary for claim support, evidence nodes, graph edges, stale evidence,
+  missing evidence, manual-only support, accepted risk, and reviewer-safe
+  graph slices
 - [tasks-v16.md](./tasks-v16.md): follow the dependency-ordered implementation
   graph for turning the v16 contract and audit into shared models, APIs, CLI
   output, dashboard panels, TUI entry points, evals, and release evidence
@@ -522,6 +529,9 @@ operator authority explicit.
 - [v16-operator-flow-audit.md](./v16-operator-flow-audit.md): source-linked
   v16 audit of current guidance, evidence, readiness, recovery, dashboard, TUI,
   and command-guide surfaces before implementation
+- [evidence-graph.md](./evidence-graph.md): v16 evidence graph vocabulary for
+  claim support, evidence relationships, freshness, confidence, redaction, and
+  visibility
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

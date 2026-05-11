@@ -452,7 +452,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1611: Define Evidence Graph Models And Claim Support Semantics
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1610`
 - Goal: define how claims and recommendations link back to local evidence
   without requiring raw transcript, raw artifact, or raw command-log exposure

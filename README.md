@@ -175,6 +175,7 @@ Start here based on what you need:
 - [docs/refactor-v15.md](docs/refactor-v15.md)
 - [docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md)
 - [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md)
+- [docs/evidence-graph.md](docs/evidence-graph.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

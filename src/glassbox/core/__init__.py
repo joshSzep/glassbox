@@ -193,9 +193,15 @@ from glassbox.core.models import ChangesetReviewBriefRecord
 from glassbox.core.models import ChangesetSourceRecord
 from glassbox.core.models import ChangesetVerificationPostureRecord
 from glassbox.core.models import CheckpointAbsenceRecord
+from glassbox.core.models import ClaimSupport
 from glassbox.core.models import CommandEnvironmentSummary
 from glassbox.core.models import CommandToolchainVersion
 from glassbox.core.models import ContextCompactionRecord
+from glassbox.core.models import EvidenceGraph
+from glassbox.core.models import EvidenceGraphEdge
+from glassbox.core.models import EvidenceGraphMissingEvidence
+from glassbox.core.models import EvidenceGraphNode
+from glassbox.core.models import EvidenceGraphProvenance
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import LongRunStatusRecord
@@ -267,10 +273,17 @@ from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
+from glassbox.core.types import ClaimSupportState
 from glassbox.core.types import CommandPurpose
 from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
+from glassbox.core.types import EvidenceGraphConfidence
+from glassbox.core.types import EvidenceGraphEdgeKind
+from glassbox.core.types import EvidenceGraphFreshness
+from glassbox.core.types import EvidenceGraphNodeKind
+from glassbox.core.types import EvidenceGraphRedactionStatus
+from glassbox.core.types import EvidenceGraphVisibility
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
 from glassbox.core.types import ManualEvidenceFreshness
@@ -409,6 +422,8 @@ __all__ = [
     "ChangesetVerificationState",
     "CheckpointAbsenceReason",
     "CheckpointAbsenceRecord",
+    "ClaimSupport",
+    "ClaimSupportState",
     "CommandPurpose",
     "CommandReviewRelevance",
     "CommandEnvironmentSummary",
@@ -427,6 +442,17 @@ __all__ = [
     "EventEnvelope",
     "EventPayload",
     "EventPayloadType",
+    "EvidenceGraph",
+    "EvidenceGraphConfidence",
+    "EvidenceGraphEdge",
+    "EvidenceGraphEdgeKind",
+    "EvidenceGraphFreshness",
+    "EvidenceGraphMissingEvidence",
+    "EvidenceGraphNode",
+    "EvidenceGraphNodeKind",
+    "EvidenceGraphProvenance",
+    "EvidenceGraphRedactionStatus",
+    "EvidenceGraphVisibility",
     "ForkedSession",
     "InheritedTranscriptMessage",
     "LongRunPhase",

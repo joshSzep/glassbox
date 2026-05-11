@@ -8,6 +8,19 @@ import pytest
 from pydantic import ValidationError
 
 from glassbox.core import AutonomyBudget
+from glassbox.core import ClaimSupport
+from glassbox.core import ClaimSupportState
+from glassbox.core import EvidenceGraph
+from glassbox.core import EvidenceGraphConfidence
+from glassbox.core import EvidenceGraphEdge
+from glassbox.core import EvidenceGraphEdgeKind
+from glassbox.core import EvidenceGraphFreshness
+from glassbox.core import EvidenceGraphMissingEvidence
+from glassbox.core import EvidenceGraphNode
+from glassbox.core import EvidenceGraphNodeKind
+from glassbox.core import EvidenceGraphProvenance
+from glassbox.core import EvidenceGraphRedactionStatus
+from glassbox.core import EvidenceGraphVisibility
 from glassbox.core import ForkedSession
 from glassbox.core import InheritedTranscriptMessage
 from glassbox.core import MessagePart
@@ -283,6 +296,122 @@ def test_next_action_compatibility_helpers_wrap_legacy_strings() -> None:
     ]
     assert actions[0].target.kind == NextActionTargetKind.SESSION
     assert actions[0].action_id.startswith("next-action:session:")
+
+
+def test_evidence_graph_round_trip_preserves_claim_support() -> None:
+    generated_at = datetime(2026, 5, 10, tzinfo=UTC)
+    graph = EvidenceGraph(
+        graph_id="graph:changeset:cs_123",
+        target=NextActionTarget(
+            kind=NextActionTargetKind.CHANGESET,
+            target_id="cs_123",
+        ),
+        generated_at=generated_at,
+        nodes=[
+            EvidenceGraphNode(
+                node_id="artifact:inventory",
+                kind=EvidenceGraphNodeKind.ARTIFACT,
+                title="Change inventory",
+                summary="Inventory covers three changed paths.",
+                provenance=[
+                    EvidenceGraphProvenance(
+                        source_kind="artifact",
+                        source_id="artifact:inventory",
+                        source_path=".glassbox/artifacts/inventory.json",
+                        summary="managed changeset inventory artifact",
+                    )
+                ],
+                freshness=EvidenceGraphFreshness.FRESH,
+                confidence=EvidenceGraphConfidence.HIGH,
+                redaction_status=EvidenceGraphRedactionStatus.SAFE_SUMMARY,
+                visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
+            ),
+            EvidenceGraphNode(
+                node_id="claim:verification-ready",
+                kind=EvidenceGraphNodeKind.CLAIM,
+                title="Verification ready",
+                summary="Verification posture can be inspected.",
+                freshness=EvidenceGraphFreshness.UNKNOWN,
+                confidence=EvidenceGraphConfidence.MEDIUM,
+            ),
+        ],
+        edges=[
+            EvidenceGraphEdge(
+                edge_id="edge:inventory-supports-claim",
+                kind=EvidenceGraphEdgeKind.SUPPORTS,
+                from_node_id="artifact:inventory",
+                to_node_id="claim:verification-ready",
+                summary="fresh inventory supports verification readiness scope",
+                confidence=EvidenceGraphConfidence.HIGH,
+            )
+        ],
+        claims=[
+            ClaimSupport(
+                claim_id="claim:verification-ready",
+                title="Verification ready",
+                summary="Fresh inventory supports verification readiness scope.",
+                state=ClaimSupportState.SUPPORTED,
+                confidence=EvidenceGraphConfidence.HIGH,
+                supporting_edge_ids=["edge:inventory-supports-claim"],
+                visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
+            )
+        ],
+    )
+
+    restored = EvidenceGraph.model_validate(graph.model_dump(mode="python"))
+
+    assert restored == graph
+    assert restored.claims[0].state == ClaimSupportState.SUPPORTED
+    assert restored.nodes[0].visibility == EvidenceGraphVisibility.REVIEWER_SAFE
+
+
+def test_evidence_graph_rejects_edges_to_missing_nodes() -> None:
+    with pytest.raises(ValidationError):
+        EvidenceGraph(
+            graph_id="graph:bad",
+            target=NextActionTarget(kind=NextActionTargetKind.TASK),
+            generated_at=datetime(2026, 5, 10, tzinfo=UTC),
+            nodes=[
+                EvidenceGraphNode(
+                    node_id="claim:ready",
+                    kind=EvidenceGraphNodeKind.CLAIM,
+                    title="Ready",
+                    summary="Ready claim.",
+                )
+            ],
+            edges=[
+                EvidenceGraphEdge(
+                    edge_id="edge:missing",
+                    kind=EvidenceGraphEdgeKind.SUPPORTS,
+                    from_node_id="artifact:missing",
+                    to_node_id="claim:ready",
+                    summary="missing artifact cannot support claim",
+                )
+            ],
+        )
+
+
+def test_evidence_graph_missing_evidence_can_link_safe_next_action() -> None:
+    action = next_actions_from_summaries(
+        ["glassbox changeset verification-plan CHANGESET --cwd ."],
+        target_kind=NextActionTargetKind.CHANGESET,
+        target_id="cs_123",
+        kind=NextActionKind.VERIFY,
+        priority=NextActionPriority.RECOMMENDED,
+    )[0]
+
+    missing = EvidenceGraphMissingEvidence(
+        missing_id="missing:verification-plan",
+        kind=EvidenceGraphNodeKind.VERIFICATION_CHECK,
+        summary="No retained verification plan exists yet.",
+        safe_next_actions=[action],
+    )
+
+    restored = EvidenceGraphMissingEvidence.model_validate(
+        missing.model_dump(mode="python")
+    )
+
+    assert restored.safe_next_actions[0].kind == NextActionKind.VERIFY
 
 
 def test_invalidated_workspace_memory_requires_reason() -> None:
