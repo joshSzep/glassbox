@@ -368,7 +368,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1601: Audit Current Next-Action And Evidence Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1600`
 - Goal: establish a source-linked baseline of every current place that emits
   next-action, readiness, verification, recovery, or evidence-support language
