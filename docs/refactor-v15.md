@@ -760,7 +760,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R752: Split Frontend Repository Panels Into Overview, Path, Recipe, Memory, And Freshness Sections
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R750
 - Target files:
   - `frontend/components/console/knowledge-autonomy/repository-panels.tsx`
