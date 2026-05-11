@@ -781,7 +781,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1640: Add One-Command Changeset Workup Preview
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1623`, `GBX-1631`
 - Goal: provide a non-mutating workup preview that turns current workspace
   changes into a reviewable action map

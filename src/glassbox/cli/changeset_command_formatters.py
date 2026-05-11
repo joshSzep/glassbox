@@ -16,6 +16,7 @@ from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetVerificationPlanDispositionResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanExecutionResult
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
+from glassbox.runtime.changesets import ChangesetWorkupPreview
 from glassbox.runtime.changesets import ManualEvidenceRecordResult
 from glassbox.runtime.changesets import PathVerificationPlanPreview
 from glassbox.runtime.changesets import ReviewFeedbackFixupInventoryResult
@@ -74,6 +75,73 @@ def _print_adoption_preview(preview: BranchCandidateAdoptionPreview) -> None:
     for action in preview.safe_next_actions:
         print(f"  - {action}")
     print("Glassbox did not merge, commit, push, or open a PR.")
+
+
+def _print_workup_preview(preview: ChangesetWorkupPreview) -> None:
+    print("Changeset workup preview (read-only)")
+    print(f"Workspace: {preview.workspace_root}")
+    print(f"Scope: {preview.scope.value}")
+    print(
+        "Mutation: "
+        f"changeset_created={str(preview.changeset_created).lower()}, "
+        f"source_mutation={str(preview.source_mutation_performed).lower()}, "
+        f"commands_run={str(preview.command_execution_performed).lower()}"
+    )
+    print(f"Changed paths: {len(preview.changed_paths)}")
+    for path in preview.changed_paths[:20]:
+        print(f"  - {path}")
+    if preview.candidate_groupings:
+        print("Candidate changeset grouping:")
+        for grouping in preview.candidate_groupings:
+            print(
+                f"  - {grouping.title}: {grouping.changed_path_count} path(s), "
+                f"risk {grouping.risk_level}"
+            )
+            if grouping.create_command:
+                print(f"    create: {grouping.create_command}")
+            for limitation in grouping.limitations:
+                print(f"    limitation: {limitation}")
+    inventory = preview.inventory.summary
+    print(
+        "Inventory: "
+        f"{inventory.included_path_count} included, "
+        f"{inventory.generated_path_count} generated, "
+        f"{inventory.test_path_count} tests, "
+        f"{inventory.docs_path_count} docs, "
+        f"{inventory.policy_sensitive_path_count} policy-sensitive"
+    )
+    if preview.repository_intelligence_impacts:
+        print("Repository intelligence impact:")
+        for impact in preview.repository_intelligence_impacts[:5]:
+            print(
+                f"  - {impact.component_id}: {impact.recommendation_posture} "
+                f"({len(impact.matched_paths)} path(s))"
+            )
+    if preview.review_risks:
+        print("Review risks:")
+        for risk in preview.review_risks:
+            print(f"  - {risk.level}: {risk.summary}")
+            for path in risk.paths[:5]:
+                print(f"    path: {path}")
+    print("Verification preview:")
+    print(f"  Plan entries: {len(preview.verification_plan.plan_entries)}")
+    for entry in preview.verification_plan.plan_entries[:5]:
+        print(
+            f"  - {entry.lifecycle_state.value}/{entry.kind.value}: {entry.check_name}"
+        )
+        if entry.command:
+            print(f"    command: {' '.join(entry.command)}")
+    if preview.memory_candidates:
+        print("Memory candidates:")
+        for candidate in preview.memory_candidates:
+            print(f"  - {candidate.source}: {candidate.summary}")
+    _print_limitations(preview.limitations)
+    print("Safe next actions:")
+    for action in preview.safe_next_actions:
+        print(f"  - {action}")
+    print("Non-claims:")
+    for non_claim in preview.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _print_changeset_detail(

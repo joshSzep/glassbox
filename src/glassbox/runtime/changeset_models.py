@@ -35,6 +35,7 @@ from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFixupInventoryArtifact
 from glassbox.runtime.review_responses import ReviewFixupInventoryStatus
 from glassbox.services import StoredArtifact
+from glassbox.tools.workflow import DiffSummaryScope
 
 
 class ChangesetDerivationResult(BaseModel):
@@ -325,6 +326,80 @@ class PathVerificationPlanPreview(BaseModel):
     reason_groups: list[EvalRecommendationReasonGroup] = Field(default_factory=list)
     limitations: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
+    non_claims: list[str] = Field(default_factory=list)
+
+
+class ChangesetWorkupCandidateGrouping(BaseModel):
+    """Non-mutating candidate grouping for local workspace changes."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source_kind: str = "workspace-diff"
+    title: str
+    changed_path_count: int = Field(ge=0)
+    generated_path_count: int = Field(default=0, ge=0)
+    test_path_count: int = Field(default=0, ge=0)
+    docs_path_count: int = Field(default=0, ge=0)
+    policy_sensitive_path_count: int = Field(default=0, ge=0)
+    risk_level: str = "unknown"
+    create_command: str | None = None
+    limitations: list[str] = Field(default_factory=list)
+
+
+class ChangesetWorkupReviewRisk(BaseModel):
+    """Review risk surfaced before a changeset is created."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    level: str
+    summary: str
+    paths: list[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+
+
+class ChangesetWorkupMemoryCandidatePreview(BaseModel):
+    """Review-gated memory cue derived from a workup preview."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    summary: str
+    matched_paths: list[str] = Field(default_factory=list)
+    safe_next_actions: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
+class ChangesetWorkupPreview(BaseModel):
+    """Read-only action map for turning workspace changes into review posture."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    workspace_root: str
+    scope: DiffSummaryScope
+    path_filters: list[str] = Field(default_factory=list)
+    inspected_only: bool = True
+    changeset_created: bool = False
+    source_mutation_performed: bool = False
+    command_execution_performed: bool = False
+    changed_paths: list[str] = Field(default_factory=list)
+    candidate_groupings: list[ChangesetWorkupCandidateGrouping] = Field(
+        default_factory=list
+    )
+    inventory: ChangeInventoryArtifact
+    verification_plan: PathVerificationPlanPreview
+    repository_intelligence_impacts: list[ChangesetTopologyImpact] = Field(
+        default_factory=list
+    )
+    review_risks: list[ChangesetWorkupReviewRisk] = Field(default_factory=list)
+    memory_candidates: list[ChangesetWorkupMemoryCandidatePreview] = Field(
+        default_factory=list
+    )
+    stale_evidence: list[ChangesetPathVerificationTargetPreview] = Field(
+        default_factory=list
+    )
+    safe_next_actions: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
 
 

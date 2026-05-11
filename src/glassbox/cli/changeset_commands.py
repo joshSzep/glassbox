@@ -33,6 +33,7 @@ from glassbox.cli.changeset_command_handlers import (
     _changeset_supersede_verification_command,
 )
 from glassbox.cli.changeset_command_handlers import _changeset_verification_plan_command
+from glassbox.cli.changeset_command_handlers import _changeset_workup_preview_command
 
 
 def _changeset_command(args: argparse.Namespace) -> int:
@@ -43,6 +44,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_adoption_preview_command(args)
     if command == "adopt-candidate":
         return _changeset_adopt_candidate_command(args)
+    if command == "workup-preview":
+        return _changeset_workup_preview_command(args)
     if command == "list":
         return _changeset_list_command(args)
     if command == "show":

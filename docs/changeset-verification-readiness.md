@@ -52,6 +52,28 @@ starts with `glassbox changeset refresh <changeset-id> --cwd .`.
 
 ## Plan Preview And Evidence Capture
 
+Before creating changeset evidence, operators can compress the local-change
+review path into one read-only action map:
+
+```bash
+glassbox changeset workup-preview --cwd .
+```
+
+The workup preview inspects the current git diff, candidate workspace-diff
+grouping, structured change inventory, repository-intelligence impact,
+verification plan, review risks, review-gated memory cues, stale or missing
+evidence, and safe next commands. It does not create a changeset, stage files,
+commit, push, or run verification commands. JSON output is available for
+scripts and dashboard clients:
+
+```bash
+glassbox changeset workup-preview --session SESSION_ID --json --cwd .
+```
+
+Ignored paths remain absent unless git diff or status reports them; generated,
+untracked, docs, test, and policy-sensitive paths are counted in the inventory
+so the operator can decide whether to create or split changeset evidence.
+
 Operators can preview the intended verification plan without running anything:
 
 ```bash

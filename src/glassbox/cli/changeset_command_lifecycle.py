@@ -13,6 +13,7 @@ from glassbox.cli.changeset_command_formatters import _print_path_verification_p
 from glassbox.cli.changeset_command_formatters import _print_verification_disposition
 from glassbox.cli.changeset_command_formatters import _print_verification_execution
 from glassbox.cli.changeset_command_formatters import _print_verification_plan
+from glassbox.cli.changeset_command_formatters import _print_workup_preview
 from glassbox.cli.changeset_command_formatters import (
     changeset_next_action_record_payloads,
 )
@@ -31,6 +32,7 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetReviewBriefService
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.changesets import ChangesetWorkupPreviewService
 from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
@@ -38,6 +40,7 @@ from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
+from glassbox.tools.workflow import DiffSummaryScope
 
 
 def _changeset_create_command(args: argparse.Namespace) -> int:
@@ -114,6 +117,24 @@ def _changeset_adopt_candidate_command(args: argparse.Namespace) -> int:
         )
         print("Workspace mutation performed: false")
         _print_adoption_preview(result.preview)
+    return 0
+
+
+def _changeset_workup_preview_command(args: argparse.Namespace) -> int:
+    if args.max_files < 1:
+        raise ValueError("--max-files must be greater than zero")
+    cwd, _db_path = resolve_runtime_location(args)
+    preview = ChangesetWorkupPreviewService().preview_sync(
+        cwd,
+        paths=args.paths,
+        scope=DiffSummaryScope(args.scope),
+        session_id=str(args.session_id) if args.session_id is not None else None,
+        max_files=args.max_files,
+    )
+    if args.json:
+        print_json_output(preview.model_dump(mode="json"))
+    else:
+        _print_workup_preview(preview)
     return 0
 
 

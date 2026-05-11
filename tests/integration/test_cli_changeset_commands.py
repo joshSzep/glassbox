@@ -852,6 +852,70 @@ def test_changeset_verification_plan_accepts_path_preview(
     assert "not persisted changeset evidence" in " ".join(payload["non_claims"])
 
 
+def test_changeset_workup_preview_reports_read_only_action_map(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    _init_git_repo(tmp_path)
+    _seed_task(db_path, tmp_path, session_id, task_id)
+    (tmp_path / "app.py").write_text("print('changed')\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "review.md").write_text("review flow\n", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "changeset",
+            "workup-preview",
+            "--session",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["inspected_only"] is True
+    assert payload["changeset_created"] is False
+    assert payload["source_mutation_performed"] is False
+    assert payload["command_execution_performed"] is False
+    assert sorted(payload["changed_paths"]) == ["app.py", "docs/review.md"]
+    assert payload["candidate_groupings"][0]["source_kind"] == "workspace-diff"
+    assert payload["candidate_groupings"][0]["changed_path_count"] == 2
+    assert payload["inventory"]["summary"]["docs_path_count"] == 1
+    assert payload["verification_plan"]["plan_entries"]
+    assert payload["memory_candidates"]
+    assert any(
+        "changeset create --from workspace-diff" in action
+        for action in payload["safe_next_actions"]
+    )
+    assert "no changeset was created" in payload["non_claims"]
+
+    text_exit = main(
+        [
+            "changeset",
+            "workup-preview",
+            "--path",
+            "docs",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    text_output = capsys.readouterr().out
+
+    assert text_exit == 0
+    assert "Changeset workup preview (read-only)" in text_output
+    assert "no changeset was created" in text_output
+
+
 def test_changeset_verification_plan_records_operator_dispositions(
     tmp_path: Path,
     capsys,

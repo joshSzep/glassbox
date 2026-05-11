@@ -19,6 +19,15 @@ REVIEW_LOOP_COMMAND_GUIDE_SECTION = CommandGuideSection(
             ),
         ),
         CommandGuideEntry(
+            "glassbox changeset workup-preview --cwd .",
+            (
+                "Preview changed paths, candidate changeset grouping, "
+                "verification plan, repository impact, review risks, memory "
+                "cues, and safe next commands without creating changeset "
+                "evidence or running commands."
+            ),
+        ),
+        CommandGuideEntry(
             (
                 "glassbox changeset create --from workspace-diff "
                 "--objective OBJECTIVE --cwd ."

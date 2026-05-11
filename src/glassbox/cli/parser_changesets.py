@@ -5,6 +5,7 @@ import argparse
 from glassbox.cli.parser_changeset_evidence import _add_changeset_evidence_parsers
 from glassbox.cli.parser_changeset_feedback import _add_changeset_feedback_parsers
 from glassbox.cli.parser_changeset_review import _add_changeset_review_parsers
+from glassbox.cli.parser_changeset_workup import _add_changeset_workup_parser
 from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _parse_uuid
 
@@ -106,6 +107,8 @@ def _add_changeset_parsers(
     )
     adopt_candidate_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(adopt_candidate_parser)
+
+    _add_changeset_workup_parser(changeset_subparsers)
 
     list_parser = changeset_subparsers.add_parser(
         "list",
