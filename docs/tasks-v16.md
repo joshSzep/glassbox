@@ -832,7 +832,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1642: Connect Review Feedback To Verification Plan Updates
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1634`, `GBX-1641`
 - Goal: make local review feedback naturally produce fixup-oriented
   verification updates and evidence graph links

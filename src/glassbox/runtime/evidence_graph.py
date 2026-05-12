@@ -93,6 +93,7 @@ def build_changeset_evidence_graph(
     accepted_risk_node_ids: list[str] = []
     supporting_edge_ids: list[str] = []
     contradicting_edge_ids: list[str] = []
+    response_plan_accepted_risk_count = 0
 
     if detail.inventory is None:
         missing.append(
@@ -253,6 +254,9 @@ def build_changeset_evidence_graph(
             )
         )
 
+    response_status_by_feedback = {
+        str(item.feedback_id): item for item in detail.review_response_summary.items
+    }
     for item in detail.review_feedback[:50]:
         node_id = f"review-feedback:{item.feedback_id}"
         graph.add_node(
@@ -291,6 +295,115 @@ def build_changeset_evidence_graph(
             contradicting_edge_ids.append(edge_id)
         else:
             supporting_edge_ids.append(edge_id)
+        response_status = response_status_by_feedback.get(str(item.feedback_id))
+        if response_status is None:
+            continue
+        if response_status.latest_fixup_inventory_artifact_id is not None:
+            fixup_node_id = (
+                f"artifact:{response_status.latest_fixup_inventory_artifact_id}"
+            )
+            if response_status.stale:
+                stale_node_ids.append(fixup_node_id)
+            graph.add_node(
+                EvidenceGraphNode(
+                    node_id=fixup_node_id,
+                    kind=EvidenceGraphNodeKind.ARTIFACT,
+                    title="Response-linked fixup inventory",
+                    summary=(
+                        f"{response_status.changed_path_count} changed path(s); "
+                        f"{response_status.matched_scope_path_count} scoped match(es)"
+                    ),
+                    provenance=[
+                        EvidenceGraphProvenance(
+                            source_kind="review_feedback_fixup_inventory",
+                            source_id=str(
+                                response_status.latest_fixup_inventory_artifact_id
+                            ),
+                            source_sequence=(
+                                response_status.latest_fixup_inventory_sequence
+                            ),
+                            summary=response_status.latest_source_summary
+                            or "response-linked fixup inventory",
+                        )
+                    ],
+                    freshness=(
+                        EvidenceGraphFreshness.STALE
+                        if response_status.stale
+                        else EvidenceGraphFreshness.FRESH
+                    ),
+                    confidence=EvidenceGraphConfidence.MEDIUM,
+                    redaction_status=EvidenceGraphRedactionStatus.SAFE_SUMMARY,
+                    visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
+                    limitations=response_status.verification_limitations,
+                )
+            )
+            supporting_edge_ids.append(
+                graph.add_edge(
+                    EvidenceGraphEdgeKind.SUPPORTS,
+                    fixup_node_id,
+                    claim_id,
+                    "fixup inventory links feedback to changed paths",
+                    confidence=EvidenceGraphConfidence.MEDIUM,
+                )
+            )
+            graph.add_edge(
+                EvidenceGraphEdgeKind.DERIVED_FROM,
+                fixup_node_id,
+                node_id,
+                "fixup inventory was recorded for this feedback item",
+                confidence=EvidenceGraphConfidence.MEDIUM,
+            )
+        for plan_entry in response_status.verification_plan_entries[:20]:
+            verification_node_id = f"verification:{plan_entry.verification_id}"
+            freshness = _response_plan_entry_freshness(plan_entry.relationship)
+            if freshness == EvidenceGraphFreshness.STALE:
+                stale_node_ids.append(verification_node_id)
+            if freshness == EvidenceGraphFreshness.MANUAL_ONLY:
+                manual_only_node_ids.append(verification_node_id)
+            if plan_entry.relationship == "accepted-risk":
+                accepted_risk_node_ids.append(verification_node_id)
+                response_plan_accepted_risk_count += 1
+            graph.add_node(
+                EvidenceGraphNode(
+                    node_id=verification_node_id,
+                    kind=EvidenceGraphNodeKind.VERIFICATION_CHECK,
+                    title=plan_entry.check_name,
+                    summary=plan_entry.reason,
+                    provenance=[
+                        EvidenceGraphProvenance(
+                            source_kind="review_response_verification_plan_link",
+                            source_id=str(plan_entry.verification_id),
+                            summary=(
+                                "verification overlaps response-linked fixup paths"
+                            ),
+                        )
+                    ],
+                    freshness=freshness,
+                    confidence=_response_plan_entry_confidence(plan_entry.relationship),
+                    redaction_status=EvidenceGraphRedactionStatus.SAFE_SUMMARY,
+                    visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
+                    limitations=plan_entry.safe_next_actions,
+                )
+            )
+            graph.add_edge(
+                EvidenceGraphEdgeKind.DERIVED_FROM,
+                verification_node_id,
+                node_id,
+                "verification plan link was derived from feedback fixup paths",
+                confidence=EvidenceGraphConfidence.MEDIUM,
+            )
+            response_edge_kind = _response_plan_entry_edge_kind(plan_entry.relationship)
+            response_edge_id = graph.add_edge(
+                response_edge_kind,
+                verification_node_id,
+                claim_id,
+                f"{plan_entry.relationship} response verification shapes claim",
+                confidence=_response_plan_entry_confidence(plan_entry.relationship),
+            )
+            if response_edge_kind == EvidenceGraphEdgeKind.CONTRADICTS:
+                contradicting_edge_ids.append(response_edge_id)
+            else:
+                supporting_edge_ids.append(response_edge_id)
 
     for item in detail.command_evidence.items[:50]:
         node_id = f"command:{item.tool_attempt_id}"
@@ -368,6 +481,7 @@ def build_changeset_evidence_graph(
                 if verification_plan is not None
                 else 0
             )
+            + response_plan_accepted_risk_count
         ),
         manual_evidence_count=len(detail.manual_evidence),
         manual_only_node_count=len(manual_only_node_ids),
@@ -832,6 +946,34 @@ def _requirement_confidence(state: str) -> EvidenceGraphConfidence:
     if state in {"missing", "skipped"}:
         return EvidenceGraphConfidence.LOW
     return EvidenceGraphConfidence.UNKNOWN
+
+
+def _response_plan_entry_freshness(relationship: str) -> EvidenceGraphFreshness:
+    if relationship == "stale":
+        return EvidenceGraphFreshness.STALE
+    if relationship in {"skipped", "accepted-risk"}:
+        return EvidenceGraphFreshness.MANUAL_ONLY
+    return EvidenceGraphFreshness.FRESH
+
+
+def _response_plan_entry_confidence(relationship: str) -> EvidenceGraphConfidence:
+    if relationship == "fresh":
+        return EvidenceGraphConfidence.HIGH
+    if relationship in {"stale", "failed"}:
+        return EvidenceGraphConfidence.MEDIUM
+    return EvidenceGraphConfidence.LOW
+
+
+def _response_plan_entry_edge_kind(relationship: str) -> EvidenceGraphEdgeKind:
+    if relationship in {"stale", "failed"}:
+        return EvidenceGraphEdgeKind.CONTRADICTS
+    if relationship == "skipped":
+        return EvidenceGraphEdgeKind.SKIPPED_BY
+    if relationship == "accepted-risk":
+        return EvidenceGraphEdgeKind.ACCEPTED_RISK_FOR
+    if relationship == "fresh":
+        return EvidenceGraphEdgeKind.VERIFIES
+    return EvidenceGraphEdgeKind.SUPPORTS
 
 
 def _claim_state(

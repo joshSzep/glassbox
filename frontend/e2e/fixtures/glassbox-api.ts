@@ -1269,6 +1269,15 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           verification_safe_next_actions: [
             `glassbox changeset verification-plan ${changeset.changeset_id} --cwd .`,
           ],
+          verification_plan_entries: [],
+          selected_plan_entry_count: 0,
+          stale_plan_entry_count: 0,
+          skipped_plan_entry_count: 0,
+          accepted_risk_plan_entry_count: 0,
+          newly_required_check_count: 0,
+          verification_limitations: [
+            "verification ledger was unavailable for response-plan linking",
+          ],
           verification_state: "not_applicable",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-1 --cwd .",

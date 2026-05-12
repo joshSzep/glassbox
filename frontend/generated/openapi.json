@@ -12777,6 +12777,10 @@
       },
       "ReviewFeedbackResponseStatusResponse": {
         "properties": {
+          "accepted_risk_plan_entry_count": {
+            "title": "Accepted Risk Plan Entry Count",
+            "type": "integer"
+          },
           "blockers": {
             "items": {
               "type": "string"
@@ -12868,6 +12872,10 @@
             "title": "Matched Scope Path Count",
             "type": "integer"
           },
+          "newly_required_check_count": {
+            "title": "Newly Required Check Count",
+            "type": "integer"
+          },
           "non_claims": {
             "items": {
               "type": "string"
@@ -12893,9 +12901,21 @@
             "title": "Safe Next Actions",
             "type": "array"
           },
+          "selected_plan_entry_count": {
+            "title": "Selected Plan Entry Count",
+            "type": "integer"
+          },
+          "skipped_plan_entry_count": {
+            "title": "Skipped Plan Entry Count",
+            "type": "integer"
+          },
           "stale": {
             "title": "Stale",
             "type": "boolean"
+          },
+          "stale_plan_entry_count": {
+            "title": "Stale Plan Entry Count",
+            "type": "integer"
           },
           "stale_reason": {
             "anyOf": [
@@ -12911,6 +12931,20 @@
           "summary": {
             "title": "Summary",
             "type": "string"
+          },
+          "verification_limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Verification Limitations",
+            "type": "array"
+          },
+          "verification_plan_entries": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewFeedbackVerificationPlanEntryStatusResponse"
+            },
+            "title": "Verification Plan Entries",
+            "type": "array"
           },
           "verification_reason": {
             "anyOf": [
@@ -12957,6 +12991,13 @@
           "verification_state",
           "verification_requirement_ids",
           "verification_safe_next_actions",
+          "verification_plan_entries",
+          "selected_plan_entry_count",
+          "stale_plan_entry_count",
+          "skipped_plan_entry_count",
+          "accepted_risk_plan_entry_count",
+          "newly_required_check_count",
+          "verification_limitations",
           "blockers",
           "safe_next_actions",
           "non_claims"
@@ -13116,6 +13157,63 @@
           "last_sequence"
         ],
         "title": "ReviewFeedbackScopeResponse",
+        "type": "object"
+      },
+      "ReviewFeedbackVerificationPlanEntryStatusResponse": {
+        "properties": {
+          "changed_paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed Paths",
+            "type": "array"
+          },
+          "check_name": {
+            "title": "Check Name",
+            "type": "string"
+          },
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Command",
+            "type": "array"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "relationship": {
+            "title": "Relationship",
+            "type": "string"
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_id": {
+            "title": "Verification Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verification_id",
+          "check_name",
+          "status",
+          "relationship",
+          "reason",
+          "command",
+          "changed_paths",
+          "safe_next_actions"
+        ],
+        "title": "ReviewFeedbackVerificationPlanEntryStatusResponse",
         "type": "object"
       },
       "RuntimeContextNoteSnapshot": {

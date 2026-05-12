@@ -20,6 +20,9 @@ from glassbox.web.review_loop_api import ReviewFeedbackFixupInventoryStatusRespo
 from glassbox.web.review_loop_api import ReviewFeedbackResponse
 from glassbox.web.review_loop_api import ReviewFeedbackResponseStatusResponse
 from glassbox.web.review_loop_api import ReviewFeedbackScopeResponse
+from glassbox.web.review_loop_api import (
+    ReviewFeedbackVerificationPlanEntryStatusResponse,
+)
 
 
 def build_review_feedback_response(
@@ -169,6 +172,25 @@ def build_review_feedback_response_status_response(
         verification_reason=status.verification_reason,
         verification_requirement_ids=status.verification_requirement_ids,
         verification_safe_next_actions=status.verification_safe_next_actions,
+        verification_plan_entries=[
+            ReviewFeedbackVerificationPlanEntryStatusResponse(
+                verification_id=str(entry.verification_id),
+                check_name=entry.check_name,
+                status=entry.status,
+                relationship=entry.relationship,
+                reason=entry.reason,
+                command=entry.command,
+                changed_paths=entry.changed_paths,
+                safe_next_actions=entry.safe_next_actions,
+            )
+            for entry in status.verification_plan_entries
+        ],
+        selected_plan_entry_count=status.selected_plan_entry_count,
+        stale_plan_entry_count=status.stale_plan_entry_count,
+        skipped_plan_entry_count=status.skipped_plan_entry_count,
+        accepted_risk_plan_entry_count=status.accepted_risk_plan_entry_count,
+        newly_required_check_count=status.newly_required_check_count,
+        verification_limitations=status.verification_limitations,
         blockers=status.blockers,
         safe_next_actions=status.safe_next_actions,
         non_claims=status.non_claims,

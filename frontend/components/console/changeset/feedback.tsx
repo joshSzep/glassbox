@@ -167,6 +167,18 @@ export function ReviewFeedbackPanel({
                         Verification {response.verification_state}
                         {response.verification_reason ? ` - ${response.verification_reason}` : ""}
                       </DataListMeta>
+                      <DataListMeta>
+                        Plan link {response.selected_plan_entry_count} selected -{" "}
+                        {response.stale_plan_entry_count} stale -{" "}
+                        {response.skipped_plan_entry_count} skipped -{" "}
+                        {response.accepted_risk_plan_entry_count} accepted risk -{" "}
+                        {response.newly_required_check_count} newly required
+                      </DataListMeta>
+                      {response.verification_plan_entries.slice(0, 1).map((entry) => (
+                        <DataListMeta className="break-all" key={entry.verification_id}>
+                          Affected check: {entry.relationship} {entry.status} - {entry.check_name}
+                        </DataListMeta>
+                      ))}
                       {response.verification_safe_next_actions.slice(0, 1).map((action) => (
                         <DataListMeta className="break-all" key={action}>
                           Inspect first: {action}

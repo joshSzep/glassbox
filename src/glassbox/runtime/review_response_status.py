@@ -18,6 +18,9 @@ from glassbox.runtime.changeset_safe_commands import changeset_handoff_readiness
 from glassbox.runtime.changeset_safe_commands import changeset_verification_plan_command
 from glassbox.runtime.changeset_safe_commands import show_changeset_command
 from glassbox.runtime.review_response_models import ReviewFeedbackResponseStatus
+from glassbox.runtime.review_response_models import (
+    ReviewFeedbackVerificationPlanEntryStatus,
+)
 from glassbox.runtime.review_response_models import ReviewFixupInventoryStatus
 
 
@@ -45,15 +48,21 @@ def review_feedback_response_status(
         status_stale = freshness_status.stale
         status_reason = freshness_status.reason
         status_freshness = freshness_status.freshness
-    verification_state, verification_reason, verification_ids, verification_actions = (
-        _response_verification_state(
-            feedback=feedback,
-            latest=latest,
-            paths=paths,
-            task_ledger=task_ledger,
-            freshness_stale=status_stale,
-            freshness_reason=status_reason,
-        )
+    (
+        verification_state,
+        verification_reason,
+        verification_ids,
+        verification_actions,
+        verification_plan_entries,
+        newly_required_check_count,
+        verification_limitations,
+    ) = _response_verification_state(
+        feedback=feedback,
+        latest=latest,
+        paths=paths,
+        task_ledger=task_ledger,
+        freshness_stale=status_stale,
+        freshness_reason=status_reason,
     )
     response_state = _response_state(
         feedback,
@@ -107,6 +116,23 @@ def review_feedback_response_status(
         verification_reason=verification_reason,
         verification_requirement_ids=verification_ids,
         verification_safe_next_actions=verification_actions,
+        verification_plan_entries=verification_plan_entries,
+        selected_plan_entry_count=sum(
+            1 for entry in verification_plan_entries if entry.status == "planned"
+        ),
+        stale_plan_entry_count=sum(
+            1 for entry in verification_plan_entries if entry.relationship == "stale"
+        ),
+        skipped_plan_entry_count=sum(
+            1 for entry in verification_plan_entries if entry.status == "skipped"
+        ),
+        accepted_risk_plan_entry_count=sum(
+            1
+            for entry in verification_plan_entries
+            if entry.status == "accepted_with_risk"
+        ),
+        newly_required_check_count=newly_required_check_count,
+        verification_limitations=verification_limitations,
         blockers=blockers,
         safe_next_actions=list(dict.fromkeys(safe_next_actions)),
         non_claims=review_response_non_claims(),
@@ -269,13 +295,24 @@ def _response_verification_state(
     task_ledger: list[TaskVerificationLedgerRecord] | None,
     freshness_stale: bool,
     freshness_reason: str | None,
-) -> tuple[ChangesetVerificationState, str | None, list[str], list[str]]:
+) -> tuple[
+    ChangesetVerificationState,
+    str | None,
+    list[str],
+    list[str],
+    list[ReviewFeedbackVerificationPlanEntryStatus],
+    int,
+    list[str],
+]:
     if feedback.disposition == ReviewFeedbackDisposition.ACCEPTED_WITH_RISK:
         return (
             ChangesetVerificationState.ACCEPTED_WITH_RISK,
             "feedback response is accepted with local risk",
             [],
             [changeset_feedback_show_command(feedback.feedback_id)],
+            [],
+            0,
+            ["accepted risk is local evidence and does not mark checks passed"],
         )
     if latest is None:
         return (
@@ -283,6 +320,9 @@ def _response_verification_state(
             "feedback has no response-linked fixup inventory to verify",
             [],
             [changeset_verification_plan_command(feedback.changeset_id)],
+            [],
+            1,
+            ["record response-linked fixup inventory before mapping checks"],
         )
     if freshness_stale:
         return (
@@ -291,6 +331,9 @@ def _response_verification_state(
             or "response-linked fixup inventory is stale against workspace state",
             [f"fixup-inventory:{latest.artifact_id}"],
             [changeset_verification_plan_command(feedback.changeset_id)],
+            [],
+            1,
+            ["refresh fixup inventory before trusting response verification"],
         )
     if latest.changed_path_count > 0 and latest.matched_scope_path_count == 0:
         return (
@@ -298,6 +341,9 @@ def _response_verification_state(
             "fixup inventory has no path records matching feedback scope",
             [f"fixup-inventory:{latest.artifact_id}"],
             [changeset_feedback_show_command(feedback.feedback_id)],
+            [],
+            1,
+            ["verification cannot be mapped until fixup paths match feedback scope"],
         )
     if task_ledger is None:
         return (
@@ -305,6 +351,9 @@ def _response_verification_state(
             "verification ledger was not available for this response surface",
             [],
             [changeset_verification_plan_command(feedback.changeset_id)],
+            [],
+            0,
+            ["verification ledger was unavailable for response-plan linking"],
         )
 
     response_paths = {_normalize_path(path.path) for path in paths}
@@ -314,6 +363,9 @@ def _response_verification_state(
             "fixup inventory has no path records, so verification cannot be mapped",
             [f"fixup-inventory:{latest.artifact_id}"],
             [changeset_verification_plan_command(feedback.changeset_id)],
+            [],
+            1,
+            ["response-linked evidence has no paths for verification matching"],
         )
     matching_entries = [
         entry
@@ -327,8 +379,28 @@ def _response_verification_state(
             ChangesetVerificationState.MISSING,
             "no retained verification check targets response-linked fixup paths",
             [f"fixup-inventory:{latest.artifact_id}"],
-            [changeset_verification_plan_command(feedback.changeset_id)],
+            [
+                (
+                    "select or record verification for response-linked paths with "
+                    f"{changeset_verification_plan_command(feedback.changeset_id)}"
+                )
+            ],
+            [],
+            1,
+            ["no selected, skipped, or accepted-risk check overlaps fixup paths"],
         )
+    plan_entries = [
+        _plan_entry_status(
+            entry,
+            latest=latest,
+            response_paths=response_paths,
+        )
+        for entry in sorted(
+            matching_entries,
+            key=lambda candidate: candidate.last_sequence,
+            reverse=True,
+        )[:10]
+    ]
     entry = max(matching_entries, key=lambda candidate: candidate.last_sequence)
     state = _verification_state_for_task_status(entry.status)
     evidence_sequence = entry.last_success_sequence or entry.last_sequence
@@ -351,6 +423,9 @@ def _response_verification_state(
                     "response-linked fixups"
                 )
             ],
+            plan_entries,
+            0,
+            ["fresh verification requires evidence newer than the fixup inventory"],
         )
     reason = _verification_reason(entry, state)
     actions = (
@@ -361,6 +436,9 @@ def _response_verification_state(
         reason,
         [str(entry.verification_id), f"fixup-inventory:{latest.artifact_id}"],
         actions,
+        plan_entries,
+        0,
+        _plan_limitations_for_entries(plan_entries),
     )
 
 
@@ -410,6 +488,91 @@ def _ledger_command(entry: TaskVerificationLedgerRecord) -> str:
 
 def _normalize_path(path: str | Path) -> str:
     return str(path).replace("\\", "/").strip().lstrip("./")
+
+
+def _plan_entry_status(
+    entry: TaskVerificationLedgerRecord,
+    *,
+    latest: ReviewFeedbackFixupInventoryRecord,
+    response_paths: set[str],
+) -> ReviewFeedbackVerificationPlanEntryStatus:
+    relationship = _plan_relationship(entry, latest=latest)
+    reason = (
+        f"{entry.check_name} passed before response-linked fixup inventory changed "
+        "overlapping paths"
+        if relationship == "stale"
+        else _verification_reason(
+            entry,
+            _verification_state_for_task_status(entry.status),
+        )
+    )
+    safe_next_actions = []
+    if relationship == "stale":
+        command = _ledger_command(entry)
+        if command:
+            safe_next_actions.append(
+                f"rerun {command} because response-linked fixups are newer"
+            )
+    elif entry.status in {
+        TaskVerificationStatus.FAILED,
+        TaskVerificationStatus.CANCELLED,
+        TaskVerificationStatus.SKIPPED,
+    }:
+        safe_next_actions.append(_retry_action(entry))
+    return ReviewFeedbackVerificationPlanEntryStatus(
+        verification_id=entry.verification_id,
+        check_name=entry.check_name,
+        status=entry.status.value,
+        relationship=relationship,
+        reason=reason,
+        command=[str(part) for part in entry.command],
+        changed_paths=[
+            path.as_posix()
+            for path in entry.changed_paths
+            if _normalize_path(path) in response_paths
+        ],
+        safe_next_actions=safe_next_actions,
+    )
+
+
+def _plan_relationship(
+    entry: TaskVerificationLedgerRecord,
+    *,
+    latest: ReviewFeedbackFixupInventoryRecord,
+) -> str:
+    if (
+        entry.status == TaskVerificationStatus.PASSED
+        and latest.last_sequence is not None
+        and (entry.last_success_sequence or entry.last_sequence) < latest.last_sequence
+    ):
+        return "stale"
+    if entry.status == TaskVerificationStatus.PLANNED:
+        return "selected"
+    if entry.status == TaskVerificationStatus.SKIPPED:
+        return "skipped"
+    if entry.status == TaskVerificationStatus.ACCEPTED_WITH_RISK:
+        return "accepted-risk"
+    if entry.status == TaskVerificationStatus.PASSED:
+        return "fresh"
+    if entry.status in {
+        TaskVerificationStatus.FAILED,
+        TaskVerificationStatus.CANCELLED,
+    }:
+        return "failed"
+    return "affected"
+
+
+def _plan_limitations_for_entries(
+    entries: list[ReviewFeedbackVerificationPlanEntryStatus],
+) -> list[str]:
+    limitations: list[str] = []
+    if any(entry.relationship == "stale" for entry in entries):
+        limitations.append("one or more checks predate response-linked fixup paths")
+    if any(entry.relationship == "skipped" for entry in entries):
+        limitations.append("skipped checks remain visible and are not passes")
+    if any(entry.relationship == "accepted-risk" for entry in entries):
+        limitations.append("accepted-risk checks are local evidence, not approval")
+    return limitations
 
 
 __all__ = [

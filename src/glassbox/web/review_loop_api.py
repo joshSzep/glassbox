@@ -60,6 +60,17 @@ class ReviewFeedbackResponse(BaseModel):
     last_sequence: int
 
 
+class ReviewFeedbackVerificationPlanEntryStatusResponse(BaseModel):
+    verification_id: str
+    check_name: str
+    status: str
+    relationship: str
+    reason: str
+    command: list[str]
+    changed_paths: list[str]
+    safe_next_actions: list[str]
+
+
 class ReviewFeedbackResponseStatusResponse(BaseModel):
     feedback_id: str
     changeset_id: str
@@ -82,6 +93,13 @@ class ReviewFeedbackResponseStatusResponse(BaseModel):
     verification_reason: str | None = None
     verification_requirement_ids: list[str]
     verification_safe_next_actions: list[str]
+    verification_plan_entries: list[ReviewFeedbackVerificationPlanEntryStatusResponse]
+    selected_plan_entry_count: int
+    stale_plan_entry_count: int
+    skipped_plan_entry_count: int
+    accepted_risk_plan_entry_count: int
+    newly_required_check_count: int
+    verification_limitations: list[str]
     blockers: list[str]
     safe_next_actions: list[str]
     non_claims: list[str]

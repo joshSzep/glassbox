@@ -765,6 +765,7 @@ def _print_feedback_detail(
         print("  Response paths:")
         for summary in response_status.path_summaries[:5]:
             print(f"    - {summary}")
+    _print_response_verification_plan_link(response_status, indent="  ")
     if response_status.blockers:
         print("  Blockers:")
         for blocker in response_status.blockers:
@@ -801,6 +802,7 @@ def _print_review_response_summary(
                 f"{item.changed_path_count} paths, "
                 f"{item.matched_scope_path_count} scoped matches"
             )
+            _print_response_verification_plan_link(item, indent="  ")
             if item.stale_reason is not None:
                 print(
                     "  Freshness: "
@@ -865,6 +867,7 @@ def _print_fixup_inventory_result(
         print(f"Verification: {response_status.verification_state.value}")
         if response_status.verification_reason is not None:
             print(f"Verification reason: {response_status.verification_reason}")
+        _print_response_verification_plan_link(response_status)
         if result.inventory.paths:
             print("Path summaries:")
             for path in result.inventory.paths[:5]:
@@ -880,3 +883,31 @@ def _print_fixup_inventory_result(
         for non_claim in result.inventory.non_claims:
             print(f"  - {non_claim}")
     return 0
+
+
+def _print_response_verification_plan_link(
+    response_status: ReviewFeedbackResponseStatus,
+    *,
+    indent: str = "",
+) -> None:
+    print(
+        f"{indent}Plan link: "
+        f"{response_status.selected_plan_entry_count} selected, "
+        f"{response_status.stale_plan_entry_count} stale, "
+        f"{response_status.skipped_plan_entry_count} skipped, "
+        f"{response_status.accepted_risk_plan_entry_count} accepted risk, "
+        f"{response_status.newly_required_check_count} newly required"
+    )
+    if response_status.verification_plan_entries:
+        print(f"{indent}Affected verification:")
+        for entry in response_status.verification_plan_entries[:3]:
+            command = " ".join(entry.command)
+            suffix = f" - {command}" if command else ""
+            print(
+                f"{indent}  - {entry.verification_id} "
+                f"{entry.relationship} {entry.status}: {entry.check_name}{suffix}"
+            )
+    if response_status.verification_limitations:
+        print(f"{indent}Verification limitations:")
+        for limitation in response_status.verification_limitations[:3]:
+            print(f"{indent}  - {limitation}")

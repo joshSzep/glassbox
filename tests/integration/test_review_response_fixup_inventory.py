@@ -200,6 +200,13 @@ def test_fixup_inventory_links_feedback_paths_and_detects_drift(
     assert "passed before response-linked fixup" in (
         fresh_summary.items[0].verification_reason or ""
     )
+    assert fresh_summary.items[0].stale_plan_entry_count == 1
+    assert fresh_summary.items[0].newly_required_check_count == 0
+    assert fresh_summary.items[0].verification_plan_entries[0].relationship == "stale"
+    assert (
+        fresh_summary.items[0].verification_plan_entries[0].verification_id
+        == verification_id
+    )
     assert (
         "rerun uv run pytest"
         in (fresh_summary.items[0].verification_safe_next_actions[0])

@@ -147,6 +147,13 @@ glassbox changeset feedback show FEEDBACK_ID --cwd .
 glassbox changeset verification-plan CHANGESET_ID --cwd .
 ```
 
+Response status also connects fixup paths to retained verification plan
+entries when their changed paths overlap. The CLI, API, dashboard, and
+evidence graph expose affected checks, stale checks, selected checks, skipped
+checks, accepted-risk checks, newly required checks, and limitations so the
+operator can refresh the plan or rerun a local check without treating the
+feedback as reviewer-approved.
+
 Feedback scope metadata may name a changeset, file, task, turn, artifact,
 verification, or branch candidate. File scopes store paths and optional line
 hints only; they do not retain raw file contents.

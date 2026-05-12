@@ -6576,6 +6576,8 @@ export interface components {
     };
     /** ReviewFeedbackResponseStatusResponse */
     ReviewFeedbackResponseStatusResponse: {
+      /** Accepted Risk Plan Entry Count */
+      accepted_risk_plan_entry_count: number;
       /** Blockers */
       blockers: string[];
       /** Changed Path Count */
@@ -6602,6 +6604,8 @@ export interface components {
       latest_source_summary?: string | null;
       /** Matched Scope Path Count */
       matched_scope_path_count: number;
+      /** Newly Required Check Count */
+      newly_required_check_count: number;
       /** Non Claims */
       non_claims: string[];
       /** Path Summaries */
@@ -6610,12 +6614,22 @@ export interface components {
       response_state: string;
       /** Safe Next Actions */
       safe_next_actions: string[];
+      /** Selected Plan Entry Count */
+      selected_plan_entry_count: number;
+      /** Skipped Plan Entry Count */
+      skipped_plan_entry_count: number;
       /** Stale */
       stale: boolean;
+      /** Stale Plan Entry Count */
+      stale_plan_entry_count: number;
       /** Stale Reason */
       stale_reason?: string | null;
       /** Summary */
       summary: string;
+      /** Verification Limitations */
+      verification_limitations: string[];
+      /** Verification Plan Entries */
+      verification_plan_entries: components["schemas"]["ReviewFeedbackVerificationPlanEntryStatusResponse"][];
       /** Verification Reason */
       verification_reason?: string | null;
       /** Verification Requirement Ids */
@@ -6664,6 +6678,25 @@ export interface components {
       turn_id?: string | null;
       /** Verification Id */
       verification_id?: string | null;
+    };
+    /** ReviewFeedbackVerificationPlanEntryStatusResponse */
+    ReviewFeedbackVerificationPlanEntryStatusResponse: {
+      /** Changed Paths */
+      changed_paths: string[];
+      /** Check Name */
+      check_name: string;
+      /** Command */
+      command: string[];
+      /** Reason */
+      reason: string;
+      /** Relationship */
+      relationship: string;
+      /** Safe Next Actions */
+      safe_next_actions: string[];
+      /** Status */
+      status: string;
+      /** Verification Id */
+      verification_id: string;
     };
     /**
      * RuntimeContextNoteSnapshot

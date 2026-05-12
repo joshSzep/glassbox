@@ -175,11 +175,13 @@ remain local response evidence; neither records reviewer approval.
 API and dashboard read surfaces should continue to expose response-linked
 inventory through response status fields: `fixup_inventory_count`,
 `latest_fixup_inventory_artifact_id`, `latest_fixup_inventory_sequence`,
-`latest_fixup_inventory_at`, verification state, blockers, stale reason, safe
-next actions, and non-claims. Dashboard feedback rows should show whether
-inventory is missing, attached, stale, mismatched, failed, skipped, accepted
-with risk, or ready for handoff, and should link back to the feedback detail
-and changeset verification plan before offering any mutation.
+`latest_fixup_inventory_at`, verification state, affected verification plan
+entries, selected/skipped/stale/accepted-risk counts, newly required check
+counts, blockers, stale reason, safe next actions, and non-claims. Dashboard
+feedback rows should show whether inventory is missing, attached, stale,
+mismatched, failed, skipped, accepted with risk, or ready for handoff, and
+should link back to the feedback detail and changeset verification plan before
+offering any mutation.
 
 `GBX-1422` adds the paired write path without introducing a separate approval
 model:
@@ -276,6 +278,19 @@ local check to rerun and why, for example that the check predates
 response-linked fixups. Glassbox should recommend verification commands only as
 inspection or local checks. It should not recommend publish, deploy, push,
 upload, merge, or release commands as response verification.
+
+GBX-1642 makes that relationship typed instead of prose-only. Response status
+now includes `verification_plan_entries` for retained checks whose changed
+paths overlap response-linked fixup paths. Each entry names the verification
+ID, check name, status, relationship (`selected`, `fresh`, `stale`, `skipped`,
+`accepted-risk`, or `failed`), command, changed paths, reason, and safe next
+actions. The summary also exposes counts for selected, stale, skipped,
+accepted-risk, and newly required checks. When no retained check overlaps the
+fixup paths, Glassbox marks a newly required check and points operators to the
+changeset verification plan instead of implying that feedback was verified.
+Evidence graph views link feedback, fixup inventory, and affected
+verification checks with stale, skipped, accepted-risk, or verifying edges, but
+those links remain advisory local evidence.
 
 The changeset verification-plan preview also includes a review-loop summary.
 That summary counts feedback, response states, stale response checks, missing

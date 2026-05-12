@@ -239,6 +239,8 @@ describe("changeset console", () => {
     );
 
     expect(markup).toContain("Response ready_for_handoff");
+    expect(markup).toContain("Plan link 0 selected - 1 stale");
+    expect(markup).toContain("Affected check: stale passed - focused response check");
     expect(markup).toContain("Review feedback is local evidence, not approval.");
   });
 
@@ -619,6 +621,15 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           verification_safe_next_actions: [
             `glassbox changeset verification-plan ${changeset.changeset_id} --cwd .`,
           ],
+          verification_plan_entries: [],
+          selected_plan_entry_count: 0,
+          stale_plan_entry_count: 0,
+          skipped_plan_entry_count: 0,
+          accepted_risk_plan_entry_count: 0,
+          newly_required_check_count: 1,
+          verification_limitations: [
+            "record response-linked fixup inventory before mapping checks",
+          ],
           verification_state: "missing",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-1 --cwd .",
@@ -651,6 +662,28 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           verification_safe_next_actions: [
             "rerun uv run pytest tests/test_app.py because focused response check predates response-linked fixups",
           ],
+          verification_plan_entries: [
+            {
+              verification_id: "verification-1",
+              check_name: "focused response check",
+              status: "passed",
+              relationship: "stale",
+              reason: "focused response check is fresh for response-linked fixup paths",
+              command: ["uv", "run", "pytest", "tests/test_app.py"],
+              changed_paths: ["app.py"],
+              safe_next_actions: [
+                "rerun uv run pytest tests/test_app.py because response-linked fixups are newer",
+              ],
+            },
+          ],
+          selected_plan_entry_count: 0,
+          stale_plan_entry_count: 1,
+          skipped_plan_entry_count: 0,
+          accepted_risk_plan_entry_count: 0,
+          newly_required_check_count: 0,
+          verification_limitations: [
+            "fresh verification requires evidence newer than the fixup inventory",
+          ],
           verification_state: "stale",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-2 --cwd .",
@@ -680,6 +713,15 @@ function makeChangesetDetail(changeset: ChangesetSummary): ChangesetDetail {
           verification_reason: "feedback response is accepted with local risk",
           verification_requirement_ids: [],
           verification_safe_next_actions: ["glassbox changeset feedback show feedback-3 --cwd ."],
+          verification_plan_entries: [],
+          selected_plan_entry_count: 0,
+          stale_plan_entry_count: 0,
+          skipped_plan_entry_count: 0,
+          accepted_risk_plan_entry_count: 0,
+          newly_required_check_count: 0,
+          verification_limitations: [
+            "accepted risk is local evidence and does not mark checks passed",
+          ],
           verification_state: "accepted_with_risk",
           safe_next_actions: [
             "glassbox changeset feedback show feedback-3 --cwd .",

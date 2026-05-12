@@ -16,6 +16,7 @@ from glassbox.core import ReviewFeedbackFixupPathSummary
 from glassbox.core import ReviewFeedbackId
 from glassbox.core import ReviewFixupSourceKind
 from glassbox.core import ReviewResponseState
+from glassbox.core import TaskVerificationId
 
 REVIEW_FIXUP_INVENTORY_ARTIFACT_KIND = "review_feedback_fixup_inventory"
 REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION = 1
@@ -57,6 +58,21 @@ class ReviewFixupInventoryArtifact(BaseModel):
     non_claims: list[str] = Field(default_factory=list)
 
 
+class ReviewFeedbackVerificationPlanEntryStatus(BaseModel):
+    """A verification plan or ledger entry affected by response-linked paths."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    verification_id: TaskVerificationId
+    check_name: str = Field(min_length=1, max_length=200)
+    status: str = Field(min_length=1, max_length=80)
+    relationship: str = Field(min_length=1, max_length=80)
+    reason: str = Field(min_length=1, max_length=2000)
+    command: list[str] = Field(default_factory=list, max_length=64)
+    changed_paths: list[str] = Field(default_factory=list, max_length=100)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=10)
+
+
 class ReviewFeedbackResponseStatus(BaseModel):
     """Derived response posture for one feedback item."""
 
@@ -85,6 +101,15 @@ class ReviewFeedbackResponseStatus(BaseModel):
     verification_reason: str | None = Field(default=None, max_length=2000)
     verification_requirement_ids: list[str] = Field(default_factory=list)
     verification_safe_next_actions: list[str] = Field(default_factory=list)
+    verification_plan_entries: list[ReviewFeedbackVerificationPlanEntryStatus] = Field(
+        default_factory=list
+    )
+    selected_plan_entry_count: int = Field(default=0, ge=0)
+    stale_plan_entry_count: int = Field(default=0, ge=0)
+    skipped_plan_entry_count: int = Field(default=0, ge=0)
+    accepted_risk_plan_entry_count: int = Field(default=0, ge=0)
+    newly_required_check_count: int = Field(default=0, ge=0)
+    verification_limitations: list[str] = Field(default_factory=list)
     blockers: list[str] = Field(default_factory=list)
     safe_next_actions: list[str] = Field(default_factory=list)
     non_claims: list[str] = Field(default_factory=list)
@@ -114,6 +139,7 @@ __all__ = [
     "REVIEW_FIXUP_INVENTORY_SCHEMA_VERSION",
     "ChangesetReviewResponseSummary",
     "ReviewFeedbackResponseStatus",
+    "ReviewFeedbackVerificationPlanEntryStatus",
     "ReviewFixupInventoryArtifact",
     "ReviewFixupInventoryStatus",
 ]

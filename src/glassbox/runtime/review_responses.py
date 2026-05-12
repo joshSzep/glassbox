@@ -10,6 +10,9 @@ from glassbox.runtime.review_response_models import (
 )
 from glassbox.runtime.review_response_models import ChangesetReviewResponseSummary
 from glassbox.runtime.review_response_models import ReviewFeedbackResponseStatus
+from glassbox.runtime.review_response_models import (
+    ReviewFeedbackVerificationPlanEntryStatus,
+)
 from glassbox.runtime.review_response_models import ReviewFixupInventoryArtifact
 from glassbox.runtime.review_response_models import ReviewFixupInventoryStatus
 from glassbox.runtime.review_response_status import review_feedback_response_status
@@ -22,6 +25,7 @@ __all__ = [
     "ReviewFixupInventoryArtifact",
     "ReviewFixupInventoryStatus",
     "ReviewFeedbackResponseStatus",
+    "ReviewFeedbackVerificationPlanEntryStatus",
     "ChangesetReviewResponseSummary",
     "changeset_review_response_summary",
     "review_feedback_response_status",

@@ -250,6 +250,11 @@ def test_response_status_marks_passed_verification_stale_after_fixup() -> None:
     assert status.verification_state == ChangesetVerificationState.STALE
     assert "passed before response-linked fixup" in (status.verification_reason or "")
     assert str(verification_id) in status.verification_requirement_ids
+    assert status.stale_plan_entry_count == 1
+    assert status.newly_required_check_count == 0
+    assert status.verification_plan_entries[0].verification_id == verification_id
+    assert status.verification_plan_entries[0].relationship == "stale"
+    assert status.verification_plan_entries[0].changed_paths == ["app.py"]
     assert "rerun uv run pytest" in status.verification_safe_next_actions[0]
     assert "predates response-linked fixups" in status.safe_next_actions[-1]
 
@@ -297,10 +302,72 @@ def test_response_status_marks_fresh_response_verification_passed() -> None:
     assert status.response_state == ReviewResponseState.READY_FOR_HANDOFF
     assert status.verification_state == ChangesetVerificationState.PASSED
     assert "fresh" in (status.verification_reason or "")
+    assert status.verification_plan_entries[0].relationship == "fresh"
+    assert status.stale_plan_entry_count == 0
     assert status.verification_safe_next_actions == []
     assert status.safe_next_actions[-1].startswith(
         "glassbox changeset handoff-readiness"
     )
+
+
+def test_response_status_counts_selected_skipped_and_accepted_risk_plan_links() -> None:
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    feedback_id = new_review_feedback_id()
+    artifact_id = new_artifact_id()
+    feedback = _feedback_record(session_id, changeset_id, feedback_id)
+    inventory = _fixup_inventory_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        last_sequence=10,
+    )
+    path = _fixup_path_record(
+        session_id=session_id,
+        feedback_id=feedback_id,
+        changeset_id=changeset_id,
+        artifact_id=artifact_id,
+        path="app.py",
+        last_sequence=10,
+    )
+    ledger = [
+        _ledger(
+            session_id=session_id,
+            status=TaskVerificationStatus.PLANNED,
+            changed_paths=["app.py"],
+        ),
+        _ledger(
+            session_id=session_id,
+            status=TaskVerificationStatus.SKIPPED,
+            changed_paths=["app.py"],
+            last_sequence=11,
+        ),
+        _ledger(
+            session_id=session_id,
+            status=TaskVerificationStatus.ACCEPTED_WITH_RISK,
+            changed_paths=["app.py"],
+            last_sequence=12,
+        ),
+    ]
+
+    status = review_feedback_response_status(
+        feedback=feedback,
+        inventories=[inventory],
+        paths=[path],
+        task_ledger=ledger,
+    )
+
+    assert status.selected_plan_entry_count == 1
+    assert status.skipped_plan_entry_count == 1
+    assert status.accepted_risk_plan_entry_count == 1
+    assert status.newly_required_check_count == 0
+    assert {entry.relationship for entry in status.verification_plan_entries} == {
+        "selected",
+        "skipped",
+        "accepted-risk",
+    }
+    assert "skipped checks remain visible" in " ".join(status.verification_limitations)
 
 
 def test_response_status_does_not_invent_staleness_without_path_mapping() -> None:
@@ -326,6 +393,7 @@ def test_response_status_does_not_invent_staleness_without_path_mapping() -> Non
 
     assert status.verification_state == ChangesetVerificationState.MISSING
     assert "cannot be mapped" in (status.verification_reason or "")
+    assert status.newly_required_check_count == 1
     assert status.response_state == ReviewResponseState.RESPONDED
 
 
