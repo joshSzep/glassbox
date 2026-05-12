@@ -88,6 +88,13 @@ def test_wheel_content_validator_reports_missing_metadata_and_assets(
         "wheel missing required file: glassbox/web/static_next/index.html" in problems
     )
     assert "wheel missing required file: glassbox/cli/task_commands.py" in problems
+    assert "wheel missing required file: glassbox/cli/queue_commands.py" in problems
+    assert "wheel missing required file: glassbox/runtime/evidence_graph.py" in problems
+    assert "wheel missing required file: glassbox/runtime/operator_queue.py" in problems
+    assert (
+        "wheel missing required file: "
+        "glassbox/runtime/verification_plan_builder.py" in problems
+    )
     assert "wheel missing required file: glassbox/runtime/task_queries.py" in problems
     assert (
         "wheel missing required file: glassbox/runtime/repository_index_builder.py"
@@ -193,6 +200,16 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v15-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/v15-release-candidate.md" in problems
     assert "sdist missing required file: docs/tasks-v15.md" in problems
+    assert "sdist missing required file: docs/tasks-v16.md" in problems
+    assert "sdist missing required file: docs/evidence-graph.md" in problems
+    assert "sdist missing required file: docs/operator-queue.md" in problems
+    assert "sdist missing required file: docs/verification-orchestrator.md" in problems
+    assert (
+        "sdist missing required file: "
+        "docs/v16-operator-flow-compression-contract.md" in problems
+    )
+    assert "sdist missing required file: docs/v16-operator-flow-audit.md" in problems
+    assert "sdist missing required file: docs/maintenance-cues.md" in problems
     assert "sdist missing required file: docs/tasks-v13.md" in problems
     assert "sdist missing required file: docs/review-feedback.md" in problems
     assert "sdist missing required file: docs/manual-evidence.md" in problems
@@ -355,17 +372,23 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/cli/memory_commands.py", "")
         wheel.writestr("glassbox/cli/observability_commands.py", "")
         wheel.writestr("glassbox/cli/provider_commands.py", "")
+        wheel.writestr("glassbox/cli/queue_commands.py", "")
         wheel.writestr("glassbox/cli/readiness_commands.py", "")
         wheel.writestr("glassbox/cli/repository_commands.py", "")
         wheel.writestr("glassbox/cli/replay_eval_commands.py", "")
+        wheel.writestr("glassbox/cli/parser_session_evidence.py", "")
         wheel.writestr("glassbox/cli/task_commands.py", "")
         wheel.writestr("glassbox/runtime/autonomy.py", "")
         wheel.writestr("glassbox/runtime/background_jobs.py", "")
         wheel.writestr("glassbox/runtime/branch_search.py", "")
+        wheel.writestr("glassbox/runtime/changeset_verification.py", "")
+        wheel.writestr("glassbox/runtime/changeset_workup.py", "")
+        wheel.writestr("glassbox/runtime/evidence_graph.py", "")
         wheel.writestr("glassbox/runtime/eval_profile_models.py", "")
         wheel.writestr("glassbox/runtime/eval_recommendations.py", "")
         wheel.writestr("glassbox/runtime/evals.py", "")
         wheel.writestr("glassbox/runtime/observability.py", "")
+        wheel.writestr("glassbox/runtime/operator_queue.py", "")
         wheel.writestr("glassbox/runtime/provider_canary.py", "")
         wheel.writestr("glassbox/runtime/provider_diagnostics.py", "")
         wheel.writestr("glassbox/runtime/provider_recommendations.py", "")
@@ -383,12 +406,14 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/runtime/task_plan_capture.py", "")
         wheel.writestr("glassbox/runtime/task_queries.py", "")
         wheel.writestr("glassbox/runtime/verification.py", "")
+        wheel.writestr("glassbox/runtime/verification_plan_builder.py", "")
         wheel.writestr("glassbox/runtime/workspace_topology.py", "")
         wheel.writestr("glassbox/runtime/workspace_memory_capture.py", "")
         wheel.writestr("glassbox/web/app.py", "")
         wheel.writestr("glassbox/web/repository_index_api.py", "")
         wheel.writestr("glassbox/web/repository_index_routes.py", "")
         wheel.writestr("glassbox/web/repository_intelligence_api.py", "")
+        wheel.writestr("glassbox/web/routes/changeset_route_evidence_graph.py", "")
         wheel.writestr("glassbox/web/routes/repository_intelligence.py", "")
         wheel.writestr("glassbox/web/static_next/index.html", "<html></html>")
         wheel.writestr("glassbox/web/static_next/_next/static/chunks/app.js", "")
@@ -494,6 +519,14 @@ def _write_sdist(
                 "docs/v15-dogfooding-summary.md",
                 "docs/v15-release-candidate.md",
                 "docs/tasks-v15.md",
+                "docs/v16-operator-flow-compression-contract.md",
+                "docs/v16-operator-flow-audit.md",
+                "docs/tasks-v16.md",
+                "docs/evidence-graph.md",
+                "docs/operator-queue.md",
+                "docs/verification-orchestrator.md",
+                "docs/maintenance-cues.md",
+                "docs/v16-flow-cockpit-evidence.md",
                 "docs/review-feedback.md",
                 "docs/review-responses.md",
                 "docs/manual-evidence.md",
@@ -665,17 +698,23 @@ def _write_sdist(
                 "src/glassbox/cli/memory_commands.py",
                 "src/glassbox/cli/observability_commands.py",
                 "src/glassbox/cli/provider_commands.py",
+                "src/glassbox/cli/queue_commands.py",
                 "src/glassbox/cli/readiness_commands.py",
                 "src/glassbox/cli/repository_commands.py",
                 "src/glassbox/cli/replay_eval_commands.py",
+                "src/glassbox/cli/parser_session_evidence.py",
                 "src/glassbox/cli/task_commands.py",
                 "src/glassbox/runtime/autonomy.py",
                 "src/glassbox/runtime/background_jobs.py",
                 "src/glassbox/runtime/branch_search.py",
+                "src/glassbox/runtime/changeset_verification.py",
+                "src/glassbox/runtime/changeset_workup.py",
+                "src/glassbox/runtime/evidence_graph.py",
                 "src/glassbox/runtime/eval_profile_models.py",
                 "src/glassbox/runtime/eval_recommendations.py",
                 "src/glassbox/runtime/evals.py",
                 "src/glassbox/runtime/observability.py",
+                "src/glassbox/runtime/operator_queue.py",
                 "src/glassbox/runtime/provider_canary.py",
                 "src/glassbox/runtime/provider_diagnostics.py",
                 "src/glassbox/runtime/provider_recommendations.py",
@@ -693,11 +732,13 @@ def _write_sdist(
                 "src/glassbox/runtime/task_plan_capture.py",
                 "src/glassbox/runtime/task_queries.py",
                 "src/glassbox/runtime/verification.py",
+                "src/glassbox/runtime/verification_plan_builder.py",
                 "src/glassbox/runtime/workspace_topology.py",
                 "src/glassbox/runtime/workspace_memory_capture.py",
                 "src/glassbox/web/repository_index_api.py",
                 "src/glassbox/web/repository_index_routes.py",
                 "src/glassbox/web/repository_intelligence_api.py",
+                "src/glassbox/web/routes/changeset_route_evidence_graph.py",
                 "src/glassbox/web/routes/repository_intelligence.py",
             ):
                 _add_tar_text(sdist, f"glassbox-0.10.0/{source_path}", "\n")

@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 SMOKE_SCRIPT = REPO_ROOT / "scripts" / "validate_installed_wheel_smoke.py"
 
 
-def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
+def test_installed_wheel_smoke_dry_run_lists_v16_operator_flow_surfaces(
     tmp_path: Path,
 ) -> None:
     wheel_path = tmp_path / "glassbox-0.10.0-py3-none-any.whl"
@@ -44,6 +44,10 @@ def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
     assert "installed repository index: status" in result.stdout
     assert "installed repository intelligence: status" in result.stdout
     assert "installed repository intelligence: stale cues" in result.stdout
+    assert "installed operator queue: list" in result.stdout
+    assert "installed changeset: verification plan help" in result.stdout
+    assert "installed changeset: evidence graph help" in result.stdout
+    assert "installed session: evidence graph help" in result.stdout
     assert "installed background jobs: list" in result.stdout
     assert "installed branch-search: list" in result.stdout
     assert "installed dashboard: static routes" in result.stdout
@@ -59,5 +63,13 @@ def test_installed_wheel_smoke_dry_run_lists_v11_version_surface(
     )
     assert any(
         stage["label"] == "installed repository intelligence: status"
+        for stage in summary["stages"]
+    )
+    assert any(
+        stage["label"] == "installed operator queue: list"
+        for stage in summary["stages"]
+    )
+    assert any(
+        stage["label"] == "installed changeset: verification plan help"
         for stage in summary["stages"]
     )

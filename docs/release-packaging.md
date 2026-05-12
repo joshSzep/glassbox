@@ -17,9 +17,12 @@ pnpm --dir frontend build
 The frontend build exports the Next.js app and copies `frontend/out/` into `src/glassbox/web/static_next/`. The `pyproject.toml` wheel and sdist targets include `src/glassbox/web/static_next/**` as release artifacts.
 
 The source distribution also carries repository-owned eval fixtures, v15
-repository-intelligence docs, and generated frontend API contracts: `evals/**`,
-`docs/v15-repository-intelligence-*.md`, `docs/tasks-v15.md`,
-`frontend/generated/openapi.json`, and `frontend/generated/api-types.ts`.
+repository-intelligence docs, v16 operator-flow docs, and generated frontend API
+contracts: `evals/**`, `docs/v15-repository-intelligence-*.md`,
+`docs/tasks-v15.md`, `docs/v16-operator-flow-*.md`, `docs/tasks-v16.md`,
+`docs/evidence-graph.md`, `docs/operator-queue.md`,
+`docs/verification-orchestrator.md`, `frontend/generated/openapi.json`, and
+`frontend/generated/api-types.ts`.
 Refresh the generated API files before building whenever FastAPI routes or
 response schemas change.
 
@@ -48,8 +51,12 @@ glassbox memory list --cwd .
 glassbox repo index status --cwd .
 glassbox repo status --cwd .
 glassbox repo stale --cwd .
+glassbox queue list --cwd .
 glassbox job list --cwd .
 glassbox branch-search list --cwd .
+glassbox changeset verification-plan --help
+glassbox changeset evidence-graph --help
+glassbox session evidence-graph --help
 glassbox eval profile list --cwd .
 glassbox eval profile show release-candidate --cwd .
 ```
@@ -92,12 +99,13 @@ uv run python scripts/validate_package_contents.py
 
 Before publishing, validate the wheel and sdist contents and confirm
 `glassbox/web/static_next/index.html`, `_next/static/...` assets, Python package
-modules, repository-intelligence runtime/API modules, source-distribution docs,
-eval fixtures, generated API contracts, `textual>=6,<7`, and the `glassbox`
-console script are present. The FastAPI app validates the static export at
-startup time for dashboard requests: if `index.html` is missing or references a
-missing `/app/_next/...` file, `/` returns a developer-facing 503 that points
-back to `pnpm --dir frontend build`.
+modules, repository-intelligence runtime/API modules, v16 queue/evidence graph
+and verification-plan modules, source-distribution docs, eval fixtures,
+generated API contracts, `textual>=6,<7`, and the `glassbox` console script are
+present. The FastAPI app validates the static export at startup time for
+dashboard requests: if `index.html` is missing or references a missing
+`/app/_next/...` file, `/` returns a developer-facing 503 that points back to
+`pnpm --dir frontend build`.
 
 The v6 release gate also refreshes generated API files with `pnpm --dir frontend api:generate`, fails if `frontend/generated/openapi.json` or `frontend/generated/api-types.ts` changed, runs `pnpm --dir frontend build`, validates `src/glassbox/web/static_next/` with `uv run python scripts/validate_frontend_release_assets.py`, builds both distributions, and runs `uv run python scripts/validate_package_contents.py`.
 
@@ -138,6 +146,10 @@ glassbox memory list --json --cwd .
 glassbox repo index status --json --cwd .
 glassbox repo status --json --cwd .
 glassbox repo stale --json --cwd .
+glassbox queue list --json --cwd .
+glassbox changeset verification-plan --help
+glassbox changeset evidence-graph --help
+glassbox session evidence-graph --help
 glassbox job list --json --cwd .
 glassbox branch-search list --json --cwd .
 glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
@@ -152,6 +164,14 @@ glassbox eval run smoke.hello --cwd .
 `glassbox --help`, `command tree`, `session chat --help`, and `session attach --help` prove the installed console script can import the command inventory and TUI dependency stack. The explicit `--plain` smoke protects fallback behavior in clean environments where a full-screen TUI is not practical. The v6 gate starts the dashboard from the installed wheel and requests `/`, `/app`, and one referenced `/app/_next/...` asset without a Node process. It also runs daemon status/start/stop in a temporary workspace and executes the deterministic `smoke.hello` eval against copied eval fixtures.
 
 The installed smoke matrix now also covers the v8 local-autonomy surfaces from a wheel: autonomy profile listing, task inspection, workspace-memory listing, repository-index status, background-job listing, and branch-search listing. V15 extends that installed smoke posture with `glassbox repo status --json` and `glassbox repo stale --json` so installed packages can inspect repository-intelligence health and stale cues without Node.js, pnpm, or a source checkout. These checks run against empty temporary workspaces, so they remain credential-free and do not require provider access.
+
+V16 extends the package smoke posture with `glassbox queue list --json`,
+`glassbox changeset verification-plan --help`,
+`glassbox changeset evidence-graph --help`, and
+`glassbox session evidence-graph --help`. These installed checks prove the
+operator queue, verification-plan preview surface, and evidence graph
+inspection commands import from the wheel without requiring Node.js or a source
+checkout.
 
 The v9 smoke matrix adds first-run readiness, workflow-oriented command
 discovery, and promoted `release-candidate` profile inspection. These checks
@@ -183,6 +203,7 @@ Known terminal limitations for this release candidate:
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
 - Installed-package terminal and onboarding smoke passed for root help, `command tree`, `command guide --json`, `readiness check --json`, `session chat --help`, `session attach --help`, explicit plain fallback, provider diagnostics, and profile-example diagnostics.
 - Installed-package v8 autonomy smoke passed for autonomy profile listing, task inspection, memory listing, repository-index status, background-job listing, and branch-search listing.
+- Installed-package v16 operator-flow smoke passed for queue listing, verification-plan help, and session/changeset evidence graph help.
 - Installed-package dashboard smoke passed for `/`, `/app`, and a representative static asset without Node.js running.
 - Installed-package daemon smoke passed for status/start/stop in a temporary workspace.
 - Installed-package eval smoke passed for profile listing, `release-candidate` profile inspection, and `smoke.hello` in a temporary workspace with copied eval fixtures.

@@ -332,6 +332,8 @@ def build_installed_wheel_smoke_checks(
     profile_workspace = smoke_root / "profile"
     memory_workspace = smoke_root / "memory"
     index_workspace = smoke_root / "index"
+    queue_workspace = smoke_root / "queue"
+    changeset_workspace = smoke_root / "changeset"
     job_workspace = smoke_root / "job"
     branch_search_workspace = smoke_root / "branch-search"
     daemon_workspace = smoke_root / "daemon"
@@ -475,6 +477,46 @@ def build_installed_wheel_smoke_checks(
                 "--json",
                 "--cwd",
                 str(index_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed operator queue: list",
+            _installed_glassbox_command(
+                wheel_path,
+                "queue",
+                "list",
+                "--json",
+                "--cwd",
+                str(queue_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed changeset: verification plan help",
+            _installed_glassbox_command(
+                wheel_path,
+                "changeset",
+                "verification-plan",
+                "--help",
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed changeset: evidence graph help",
+            _installed_glassbox_command(
+                wheel_path,
+                "changeset",
+                "evidence-graph",
+                "--help",
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed session: evidence graph help",
+            _installed_glassbox_command(
+                wheel_path,
+                "session",
+                "evidence-graph",
+                "--help",
+                "--cwd",
+                str(changeset_workspace),
             ),
         ),
         InstalledSmokeCheck(

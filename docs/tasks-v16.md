@@ -1189,7 +1189,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1672: Package V16 Assets And Installed-Smoke Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1671`, `GBX-1652`
 - Goal: ensure queue, evidence graph, verification orchestrator, generated API
   types, docs, eval fixtures, scripts, and static dashboard assets ship cleanly
@@ -1213,6 +1213,14 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - v16 operator flow surfaces work from both source checkout and installed
     package paths
+- Completed:
+  - Extended package-content validation to require v16 queue, evidence graph,
+    changeset workup, verification-plan runtime modules, routes, docs,
+    generated API files, scripts, and static dashboard assets.
+  - Added installed-wheel smoke coverage for `glassbox queue list`,
+    changeset verification-plan help, and session/changeset evidence graph help.
+  - Updated [release-packaging.md](./release-packaging.md) with source-builder
+    and installed-package expectations for v16 operator-flow surfaces.
 
 ---
 

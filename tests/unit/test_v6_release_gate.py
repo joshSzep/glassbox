@@ -44,6 +44,10 @@ def test_v6_release_gate_script_runs_expected_checks() -> None:
         "installed repository index: status",
         "installed repository intelligence: status",
         "installed repository intelligence: stale cues",
+        "installed operator queue: list",
+        "installed changeset: verification plan help",
+        "installed changeset: evidence graph help",
+        "installed session: evidence graph help",
         "installed background jobs: list",
         "installed branch-search: list",
         "installed daemon: start",
@@ -162,6 +166,10 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed repository index: status",
         "installed repository intelligence: status",
         "installed repository intelligence: stale cues",
+        "installed operator queue: list",
+        "installed changeset: verification plan help",
+        "installed changeset: evidence graph help",
+        "installed session: evidence graph help",
         "installed background jobs: list",
         "installed branch-search: list",
         "installed daemon: status before start",
@@ -225,13 +233,27 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "--cwd",
         str(tmp_path / "index"),
     )
-    assert checks[16].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
-    assert checks[17].command[-3:] == (
+    assert checks[16].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "queue"),
+    )
+    assert checks[17].command[-2:] == ("verification-plan", "--help")
+    assert checks[18].command[-2:] == ("evidence-graph", "--help")
+    assert checks[19].command[-5:] == (
+        "session",
+        "evidence-graph",
+        "--help",
+        "--cwd",
+        str(tmp_path / "changeset"),
+    )
+    assert checks[20].command[-3:] == ("--json", "--cwd", str(tmp_path / "job"))
+    assert checks[21].command[-3:] == (
         "--json",
         "--cwd",
         str(tmp_path / "branch-search"),
     )
-    assert "9876" in checks[19].command
+    assert "9876" in checks[23].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
