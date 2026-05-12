@@ -100,6 +100,10 @@ def test_changeset_evidence_graph_exposes_missing_evidence() -> None:
         "missing:changeset-inventory",
         "missing:verification-plan",
     }
+    assert any("legacy or sparse changesets" in item for item in graph.limitations)
+    assert any(
+        "verification-plan support is missing" in item for item in graph.limitations
+    )
 
 
 def test_changeset_evidence_graph_marks_skipped_as_manual_only() -> None:

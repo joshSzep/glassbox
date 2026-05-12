@@ -72,6 +72,26 @@ def _bundle() -> ReplayBundle:
     )
 
 
+def test_replay_bundle_accepts_older_sparse_optional_fields() -> None:
+    payload = _bundle().model_dump(mode="json")
+    payload.pop("bundle_kind")
+    payload.pop("bundle_version")
+    payload.pop("inherited_messages")
+    payload.pop("inherited_runtime_notes")
+    payload.pop("task_plan_events")
+    payload["baseline"].pop("cancellations")
+    payload["baseline"].pop("task_plans")
+    payload["baseline"].pop("budget_posture")
+    payload["baseline"].pop("long_run_events")
+
+    bundle = ReplayBundle.model_validate(payload)
+
+    assert bundle.bundle_version == 1
+    assert bundle.task_plan_events == []
+    assert bundle.baseline.task_plans == []
+    assert bundle.baseline.long_run_events == []
+
+
 def test_replay_orchestrator_builds_exact_match_result() -> None:
     comparison = ReplayComparisonOutcome(
         source_session_id=new_session_id(),

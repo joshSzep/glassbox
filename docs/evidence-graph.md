@@ -259,3 +259,16 @@ rows for evidence graph derivation, neighborhood queries, summary payloads, and
 dashboard neighborhood payloads. Budget failures should be fixed by keeping
 summaries bounded, linking to explicit detail routes, or adding rebuildable
 derived projections only after measured evidence shows they are needed.
+
+## Legacy And Sparse Evidence
+
+Older sessions and changesets may predate structured inventories, verification
+plans, review-feedback fixup evidence, or richer v16 next-action records. The
+graph builder must keep those targets inspectable: return sparse claim support,
+name missing inventory or verification-plan support, and add graph limitations
+instead of failing historical inspection.
+
+For sessions with unavailable projections, the session graph should explain
+that it is using sparse canonical metadata until projections are rebuilt. For
+minimal sessions with only startup evidence, the graph should say that richer
+v16 evidence families are absent rather than treating absence as corruption.

@@ -94,6 +94,12 @@ def build_changeset_evidence_graph(
             visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
         )
     )
+    if detail.inventory is None:
+        graph.add_limitation(
+            "Changeset has no structured inventory; this graph remains "
+            "inspectable for legacy or sparse changesets, but inventory-backed "
+            "claim support is missing."
+        )
 
     stale_node_ids: list[str] = []
     manual_only_node_ids: list[str] = []
@@ -165,6 +171,11 @@ def build_changeset_evidence_graph(
             )
 
     if verification_plan is None:
+        graph.add_limitation(
+            "No verification plan preview was supplied; this graph remains "
+            "compatible with older changesets, but verification-plan support "
+            "is missing."
+        )
         missing.append(
             _missing(
                 "missing:verification-plan",
@@ -594,6 +605,16 @@ def build_session_evidence_graph(
             visibility=EvidenceGraphVisibility.REVIEWER_SAFE,
         )
     )
+    if snapshot.projection_health.state == "unavailable":
+        graph.add_limitation(
+            "Session projections are unavailable; this graph uses sparse "
+            "canonical session metadata until projections are rebuilt."
+        )
+    elif not snapshot.transcript and snapshot.last_sequence == 0:
+        graph.add_limitation(
+            "Session has only sparse startup evidence; older or minimal "
+            "sessions may not contain richer v16 evidence families."
+        )
 
     supporting_edge_ids: list[str] = []
     contradicting_edge_ids: list[str] = []

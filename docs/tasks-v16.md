@@ -1157,7 +1157,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1671: Harden Compatibility And Migration Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1670`, `GBX-1632`
 - Goal: keep older sessions, older changesets, older eval bundles, and older
   databases useful when v16 evidence and verification plan fields are absent
@@ -1177,6 +1177,15 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - v16 features enrich new work while preserving useful inspection of older
     local evidence
+- Completed:
+  - Added explicit sparse/legacy limitations to session and changeset evidence
+    graphs when structured inventory, verification-plan support, or projections
+    are absent.
+  - Kept older replay bundle shapes compatible by covering missing optional
+    replay/task-plan fields with model defaults.
+  - Documented legacy and sparse evidence behavior in
+    [evidence-graph.md](./evidence-graph.md) and sparse verification plan
+    interpretation in [verification-orchestrator.md](./verification-orchestrator.md).
 
 ### GBX-1672: Package V16 Assets And Installed-Smoke Paths
 

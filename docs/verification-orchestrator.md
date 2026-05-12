@@ -101,6 +101,16 @@ verification plan generation row and a verification plan preview payload row.
 Budget failures should be addressed by keeping preview entries bounded and
 moving expanded recommendation detail behind explicit inspection commands.
 
+## Legacy And Sparse Plans
+
+Older changesets may not have structured inventory, retained task verification
+ledger rows, or persisted plan disposition events. Verification planning should
+still return a preview with limitations, missing evidence, and safe inspection
+commands rather than failing historical changeset inspection. An empty or sparse
+preview is not a pass; it means the operator should refresh inventory, inspect
+repository recommendations, or record explicit manual/skipped evidence before
+using the plan in a review or handoff story.
+
 ## Local Dispositions
 
 Once a changeset preview names a `verification_id`, operators can persist local
