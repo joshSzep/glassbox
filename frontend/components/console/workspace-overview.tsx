@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, RefreshCcw, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import { OperatorQueueLanes } from "@/components/console/workspace-overview/operator-queue-lanes";
 import { QueueNavigation } from "@/components/console/workspace-overview/queue-navigation";
 import { queueDescriptor } from "@/components/console/workspace-overview/queue-descriptors";
 import { RecoveryCues } from "@/components/console/workspace-overview/recovery-cues";
@@ -112,19 +113,27 @@ export function WorkspaceOverview({
                     value="Fetching aggregate session state."
                   />
                 ) : hasRows ? (
-                  <SessionAttentionRows
-                    onSelectSession={onSelectSession}
-                    selectedQueue={selectedQueue}
-                    selectedSessionId={selectedSessionId}
-                    sessions={data.sessionIndex}
-                  />
+                  <div className="grid gap-4">
+                    <OperatorQueueLanes data={data} onSelectSession={onSelectSession} />
+                    <SessionAttentionRows
+                      onSelectSession={onSelectSession}
+                      selectedQueue={selectedQueue}
+                      selectedSessionId={selectedSessionId}
+                      sessions={data.sessionIndex}
+                    />
+                  </div>
                 ) : (
-                  <StatePanel
-                    icon={CheckCircle2}
-                    title="No sessions in this queue"
-                    tone="success"
-                    value="There is no operator work matching the current filter."
-                  />
+                  <div className="grid gap-4">
+                    <OperatorQueueLanes data={data} onSelectSession={onSelectSession} />
+                    {data.operatorQueue.length > 0 || data.operatorQueueCounts.total > 0 ? null : (
+                      <StatePanel
+                        icon={CheckCircle2}
+                        title="No sessions in this queue"
+                        tone="success"
+                        value="There is no operator work matching the current filter."
+                      />
+                    )}
+                  </div>
                 )}
               </div>
               {inspector}

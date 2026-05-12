@@ -13,6 +13,7 @@ import {
 } from "../stores/dashboard-stores";
 import {
   makeEnvelope,
+  makeOperatorQueueItem,
   makeSessionAggregate,
   makeSessionSnapshot,
   makeSessionSummary,
@@ -580,7 +581,19 @@ describe("console store", () => {
       createApiClient({
         getSessionAggregate: async (query) => {
           calls.push(query);
-          return makeSessionAggregate([session], { queue: "questions" });
+          return makeSessionAggregate([session], {
+            operator_queue: [makeOperatorQueueItem("question-queue-item")],
+            operator_queue_counts: {
+              advisory: 0,
+              informational: 0,
+              maintenance: 0,
+              review_blocking: 0,
+              total: 1,
+              verification_blocking: 0,
+              work_blocking: 1,
+            },
+            queue: "questions",
+          });
         },
       }),
     );
@@ -590,6 +603,9 @@ describe("console store", () => {
     expect(calls).toEqual([{ queue: "questions", sort: "priority", status: null }]);
     expect(store.getState()).toMatchObject({ loadState: "loaded" });
     expect(store.getState().data.selectedQueue).toBe("questions");
+    expect(store.getState().data.operatorQueue).toHaveLength(1);
+    expect(store.getState().data.operatorQueueCounts.work_blocking).toBe(1);
+    expect(store.getState().data.operatorQueueSchemaVersion).toBe("operator-queue.v1");
     expect(store.getState().data.sessionIndex[0]?.session_id).toBe("session-1");
     expect(store.getState().data.workspaceAttention).toMatchObject({
       kind: "question",

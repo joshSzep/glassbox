@@ -1,6 +1,7 @@
 import {
   createDashboardState,
   createEmptyKnowledgePosture,
+  createEmptyOperatorQueueCounts,
   createEmptyProviderEvidence,
 } from "@/state/session-initial-state";
 import type {
@@ -36,6 +37,12 @@ export function hydrateSessionAggregate(
           next_actions: [...(aggregate.knowledge_posture.next_actions ?? [])],
         }
       : createEmptyKnowledgePosture(),
+    operatorQueue: [...(aggregate.operator_queue ?? [])],
+    operatorQueueCounts: {
+      ...createEmptyOperatorQueueCounts(),
+      ...(aggregate.operator_queue_counts ?? {}),
+    },
+    operatorQueueSchemaVersion: aggregate.operator_queue_schema_version,
     queueCounts: { ...aggregate.queue_counts },
     runtimeSummary: { ...aggregate.runtime },
     selectedQueue: aggregate.queue ?? state.selectedQueue,

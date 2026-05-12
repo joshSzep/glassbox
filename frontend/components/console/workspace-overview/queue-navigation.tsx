@@ -27,7 +27,9 @@ export function QueueNavigation({
         <h2 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
           Queues
         </h2>
-        <Badge variant="muted">{data.queueCounts.total}</Badge>
+        <Badge variant={data.operatorQueueCounts.total > 0 ? "warning" : "muted"}>
+          {data.operatorQueueCounts.total} operator
+        </Badge>
       </div>
       <section
         className="mb-3 rounded-md border border-border/70 bg-surface p-3"
@@ -181,6 +183,46 @@ export function QueueNavigation({
 }
 
 function queuePrioritySummary(data: DashboardState) {
+  if (data.operatorQueueCounts.work_blocking > 0) {
+    return {
+      description: "Unified queue has action-needed work before lower-priority sessions.",
+      icon: operatorStatusTokens.actionNeeded.icon,
+      label: `${data.operatorQueueCounts.work_blocking} action-needed`,
+      variant: "warning" as const,
+    };
+  }
+  if (data.operatorQueueCounts.verification_blocking > 0) {
+    return {
+      description: "Verification evidence is blocking confidence claims.",
+      icon: operatorStatusTokens.degraded.icon,
+      label: `${data.operatorQueueCounts.verification_blocking} verification`,
+      variant: "info" as const,
+    };
+  }
+  if (data.operatorQueueCounts.review_blocking > 0) {
+    return {
+      description: "Review handoff needs response-linked evidence or risk decisions.",
+      icon: operatorStatusTokens.approval.icon,
+      label: `${data.operatorQueueCounts.review_blocking} review`,
+      variant: "warning" as const,
+    };
+  }
+  if (data.operatorQueueCounts.maintenance > 0) {
+    return {
+      description: "Maintenance queue items need upkeep before they become blockers.",
+      icon: operatorStatusTokens.degraded.icon,
+      label: `${data.operatorQueueCounts.maintenance} maintenance`,
+      variant: "outline" as const,
+    };
+  }
+  if (data.operatorQueueCounts.advisory + data.operatorQueueCounts.informational > 0) {
+    return {
+      description: "Advisory queue items are visible without blocking current work.",
+      icon: operatorStatusTokens.unknown.icon,
+      label: `${data.operatorQueueCounts.advisory + data.operatorQueueCounts.informational} advisory`,
+      variant: "muted" as const,
+    };
+  }
   if (data.queueCounts.approvals > 0) {
     return {
       description: "Review approval risk before prompts, forks, or passive evidence.",

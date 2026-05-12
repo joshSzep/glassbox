@@ -189,6 +189,85 @@ export function makeSessionAggregate(
   };
 }
 
+export function makeOperatorQueueItem(
+  itemId: string,
+  overrides: Partial<components["schemas"]["OperatorQueueItem"]> = {},
+): components["schemas"]["OperatorQueueItem"] {
+  const target = overrides.target ?? {
+    kind: "session",
+    label: "Approval session",
+    target_id: "approval-session",
+  };
+  return {
+    action_needed: true,
+    blocking: true,
+    dedupe_key: {
+      key: `${target.kind}:${target.target_id ?? itemId}`,
+      scope: "family_target",
+      target,
+    },
+    dismissal_policy: "canonical_decision_required",
+    evidence_summary: {
+      claim_id: "claim-approval",
+      evidence_graph_id: "graph-approval",
+      limitation_count: 1,
+      missing_evidence: [],
+      stale_evidence: [],
+      summary: "Pending approval event and policy decision evidence are present.",
+      support_state: "supported",
+      supporting_evidence: [
+        {
+          freshness: "fresh",
+          kind: "event",
+          ref_id: "event-approval-1",
+          reviewer_safe: true,
+          source_path: null,
+          summary: "Approval requested by active turn.",
+        },
+      ],
+    },
+    family: "work_blocking",
+    item_id: itemId,
+    limitations: ["Operator approval is required before the command can run."],
+    owner_label: "Session runtime",
+    owner_surface: "dashboard",
+    priority: "blocked",
+    safe_next_action: {
+      action_id: `${itemId}:action`,
+      command: {
+        command: ["uv", "run", "glassbox", "session", "approval", "inspect", "approval-session"],
+        cwd_hint: ".",
+        display: "uv run glassbox session approval inspect approval-session --cwd .",
+        expected_exit_codes: [0],
+        purpose: "Inspect the approval before resolving it.",
+        requires_approval: false,
+        safety_class: "read_only",
+        timeout_seconds: null,
+      },
+      confidence: "high",
+      kind: "approve",
+      limitations: [],
+      missing_evidence: [],
+      priority: "blocked",
+      recommended_surfaces: ["dashboard", "cli"],
+      reviewer_safe: true,
+      safety_class: "operator_decision",
+      severity: "critical",
+      stale_evidence: [],
+      summary: "Review the requested command and approve or deny it.",
+      supporting_evidence: [],
+      target,
+      title: "Resolve pending approval",
+    },
+    severity: "critical",
+    stale: false,
+    state: "blocked",
+    target,
+    updated_at: "2026-04-23T00:00:02Z",
+    ...overrides,
+  };
+}
+
 export function makeSessionSnapshot(
   sessionId: string,
   overrides: Partial<components["schemas"]["SessionSnapshotResponse"]> = {},

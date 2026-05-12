@@ -12,6 +12,7 @@ import {
 import {
   makeProjectionHealth,
   makeKnowledgePosture,
+  makeOperatorQueueItem,
   makeProviderEvidence,
   makeSessionAggregate,
   makeSessionSnapshot,
@@ -93,6 +94,170 @@ describe("workspace overview console", () => {
     expect(markup).toContain("Approve command execution");
     expect(markup).toContain("/app/sessions/approval-session?queue=approvals");
     expect(markup).toContain("Questions");
+  });
+
+  it("prioritizes unified operator queue lanes with details and deep links", () => {
+    const state = hydrateSessionAggregate(
+      createDashboardState(),
+      makeSessionAggregate([makeSessionSummary("approval-session")], {
+        operator_queue: [
+          makeOperatorQueueItem("approval-item"),
+          makeOperatorQueueItem("verification-item", {
+            action_needed: true,
+            blocking: true,
+            evidence_summary: {
+              claim_id: "claim-verification",
+              evidence_graph_id: "graph-verification",
+              limitation_count: 0,
+              missing_evidence: [
+                {
+                  freshness: "missing",
+                  kind: "verification",
+                  ref_id: "plan-entry-1",
+                  reviewer_safe: true,
+                  source_path: null,
+                  summary: "Unit verification has not run.",
+                },
+              ],
+              stale_evidence: [],
+              summary: "Verification plan entry is required before handoff.",
+              support_state: "missing",
+              supporting_evidence: [],
+            },
+            family: "verification_blocking",
+            priority: "action-needed",
+            safe_next_action: {
+              ...makeOperatorQueueItem("verification-template").safe_next_action,
+              command: {
+                command: ["uv", "run", "pytest", "tests/unit/test_review_responses.py"],
+                cwd_hint: ".",
+                display: "uv run pytest tests/unit/test_review_responses.py --cwd .",
+                expected_exit_codes: [0],
+                purpose: "Run required verification.",
+                requires_approval: false,
+                safety_class: "read_only",
+                timeout_seconds: null,
+              },
+              confidence: "medium",
+              kind: "verify",
+              summary: "Run the required verification before marking review ready.",
+              title: "Run required verification",
+            },
+            severity: "high",
+            target: {
+              kind: "verification",
+              label: "Review response plan",
+              target_id: "plan-entry-1",
+            },
+          }),
+          makeOperatorQueueItem("review-item", {
+            family: "review_blocking",
+            safe_next_action: {
+              ...makeOperatorQueueItem("review-template").safe_next_action,
+              confidence: "high",
+              kind: "review",
+              summary: "Inspect unresolved reviewer feedback and linked fixup inventory.",
+              title: "Inspect review feedback",
+            },
+            target: { kind: "review_feedback", label: "Reviewer note 7", target_id: "feedback-7" },
+          }),
+          makeOperatorQueueItem("maintenance-item", {
+            blocking: false,
+            evidence_summary: {
+              claim_id: null,
+              evidence_graph_id: null,
+              limitation_count: 0,
+              missing_evidence: [],
+              stale_evidence: [
+                {
+                  freshness: "stale",
+                  kind: "repository_intelligence",
+                  ref_id: "src/glassbox/runtime/operator_queue.py",
+                  reviewer_safe: true,
+                  source_path: "src/glassbox/runtime/operator_queue.py",
+                  summary: "Repository intelligence snapshot is stale.",
+                },
+              ],
+              summary: "Repository intelligence should be refreshed.",
+              support_state: "stale",
+              supporting_evidence: [],
+            },
+            family: "maintenance",
+            priority: "maintenance-only",
+            safe_next_action: {
+              ...makeOperatorQueueItem("maintenance-template").safe_next_action,
+              confidence: "medium",
+              kind: "refresh",
+              summary: "Refresh repository intelligence before relying on ownership hints.",
+              title: "Refresh repository index",
+            },
+            severity: "medium",
+            stale: true,
+            state: "stale",
+            target: {
+              kind: "repository_intelligence",
+              label: "src/glassbox/runtime/operator_queue.py",
+              target_id: "src/glassbox/runtime/operator_queue.py",
+            },
+          }),
+          makeOperatorQueueItem("advisory-item", {
+            action_needed: false,
+            blocking: false,
+            family: "advisory",
+            priority: "optional",
+            safe_next_action: {
+              ...makeOperatorQueueItem("advisory-template").safe_next_action,
+              confidence: "low",
+              kind: "inspect",
+              summary: "Inspect provider canary evidence when choosing a model.",
+              title: "Inspect provider posture",
+            },
+            severity: "info",
+            state: "ready",
+            target: { kind: "provider", label: "openai", target_id: "openai" },
+          }),
+        ],
+        operator_queue_counts: {
+          advisory: 1,
+          informational: 0,
+          maintenance: 1,
+          review_blocking: 1,
+          total: 5,
+          verification_blocking: 1,
+          work_blocking: 1,
+        },
+      }),
+    );
+
+    const markup = renderOverview(state, "loaded", null, "all");
+
+    expect(markup).toContain("Unified Operator Queue");
+    expect(markup).toContain("operator-queue.v1");
+    expect(markup).toContain("Action Needed");
+    expect(markup).toContain("Verification");
+    expect(markup).toContain("Review");
+    expect(markup).toContain("Maintenance");
+    expect(markup).toContain("Advisory");
+    expect(markup).toContain("Resolve pending approval");
+    expect(markup).toContain("Review the requested command and approve or deny it.");
+    expect(markup).toContain("uv run glassbox session approval inspect approval-session --cwd .");
+    expect(markup).toContain("Pending approval event and policy decision evidence are present.");
+    expect(markup).toContain("fresh");
+    expect(markup).toContain("high");
+    expect(markup).toContain("Operator approval is required before the command can run.");
+    expect(markup).toContain("/app/sessions/approval-session");
+    expect(markup).toContain("evidence graph");
+    expect(markup).toContain("graph-approval");
+    expect(markup).toContain("Run required verification");
+    expect(markup).toContain("/app/changesets?verification=plan-entry-1");
+    expect(markup).toContain("Inspect review feedback");
+    expect(markup).toContain("/app/changesets?feedback=feedback-7");
+    expect(markup).toContain("Refresh repository index");
+    expect(markup).toContain(
+      "/app/repository-index?path=src%2Fglassbox%2Fruntime%2Foperator_queue.py",
+    );
+    expect(markup).toContain("Inspect provider posture");
+    expect(markup).toContain("/app?provider=openai");
   });
 
   it("renders loading, empty, error, and degraded states", () => {

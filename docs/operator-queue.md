@@ -130,6 +130,24 @@ keys. The command is read-only; it never runs a suggested action.
 Dashboard clients can adopt the richer queue data without replacing the
 existing session summary behavior.
 
+## Dashboard Presentation
+
+The dashboard workspace overview renders the unified queue before the legacy
+session attention rows. It groups ranked items into action-needed,
+verification, review, maintenance, and advisory lanes so operators can scan the
+cross-surface work before drilling into individual sessions.
+
+Each item shows its target, reason, safe next action, evidence summary,
+freshness, confidence, and limitations. Target links route to the closest local
+dashboard surface, including sessions, tasks, changesets, repository paths,
+verification and review anchors, background jobs, artifacts, projections, and
+provider posture. Evidence links use the bounded evidence references from the
+queue item instead of exposing raw artifacts inline.
+
+The layout is intentionally dense: lanes wrap responsively, rows are keyboard
+focusable, and long commands or paths use bounded wrapping/truncation so the
+operator queue remains usable on narrow screens.
+
 ## Contextual Next-Action Records
 
 High-traffic CLI status surfaces keep their existing string fields and now add

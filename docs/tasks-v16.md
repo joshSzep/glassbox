@@ -884,7 +884,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1650: Build Unified Dashboard Operator Queue
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1622`
 - Goal: make the dashboard workspace overview prioritize the unified operator
   queue instead of forcing attention through separate panels

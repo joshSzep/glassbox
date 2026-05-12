@@ -1,6 +1,7 @@
 import type {
   DashboardState,
   KnowledgePosture,
+  OperatorQueueCounts,
   ProjectionHealthCounts,
   ProviderEvidence,
   QueueCounts,
@@ -16,6 +17,9 @@ export function createDashboardState(): DashboardState {
     compareSessionId: null,
     eventLog: [],
     liveOutput: [],
+    operatorQueue: [],
+    operatorQueueCounts: createEmptyOperatorQueueCounts(),
+    operatorQueueSchemaVersion: "operator-queue.v1",
     projectionHealthCounts: createEmptyProjectionHealthCounts(),
     providerEvidence: createEmptyProviderEvidence(),
     knowledgePosture: createEmptyKnowledgePosture(),
@@ -26,6 +30,18 @@ export function createDashboardState(): DashboardState {
     sessionIndex: [],
     sessionIndexSort: "priority",
     workspaceAttention: createHealthyWorkspaceAttentionSummary(),
+  };
+}
+
+export function createEmptyOperatorQueueCounts(): OperatorQueueCounts {
+  return {
+    advisory: 0,
+    informational: 0,
+    maintenance: 0,
+    review_blocking: 0,
+    total: 0,
+    verification_blocking: 0,
+    work_blocking: 0,
   };
 }
 
