@@ -17,13 +17,29 @@ from glassbox.core import NextActionSeverity
 from glassbox.core import NextActionSurface
 from glassbox.core import NextActionTarget
 from glassbox.core import NextActionTargetKind
+from glassbox.runtime.daemon import RuntimeOwnerStatus
+from glassbox.runtime.observability_artifacts import build_artifact_observability
+from glassbox.runtime.observability_background_jobs import (
+    build_background_job_observability,
+)
 from glassbox.runtime.observability_models import ArtifactObservability
 from glassbox.runtime.observability_models import BackgroundJobObservability
 from glassbox.runtime.observability_models import ProjectionObservability
 from glassbox.runtime.observability_models import RepositoryIntelligenceObservability
 from glassbox.runtime.observability_models import RuntimeObservability
 from glassbox.runtime.observability_models import VerificationObservability
+from glassbox.runtime.observability_projections import build_projection_observability
+from glassbox.runtime.observability_repository_intelligence import (
+    build_repository_intelligence_observability,
+)
+from glassbox.runtime.observability_runtime import build_runtime_observability
+from glassbox.runtime.observability_verification import build_verification_observability
+from glassbox.runtime.observability_workspace_memory import (
+    build_workspace_memory_observability,
+)
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
+from glassbox.runtime.provider_canary import load_provider_canary_evidence
+from glassbox.services import SessionRepository
 
 READINESS_MAINTENANCE_CHECKS = {
     "provider-configuration": MaintenanceCueKind.PROVIDER_CONFIG_ISSUES,
@@ -207,6 +223,37 @@ def build_readiness_maintenance_cues(
         )
     _add_backup_cue(cues, workspace_root, readiness=True)
     return cues
+
+
+def build_workspace_summary_maintenance_cues(
+    workspace_root: Path,
+    owner_status: RuntimeOwnerStatus,
+    session_repository: SessionRepository,
+) -> list[MaintenanceCue]:
+    """Build maintenance cues for aggregate queue runtime summaries."""
+
+    background_jobs = build_background_job_observability(session_repository)
+    memory = build_workspace_memory_observability(
+        session_repository,
+        workspace_root=workspace_root,
+    )
+    return build_observability_maintenance_cues(
+        workspace_root=workspace_root,
+        runtime=build_runtime_observability(
+            owner_status,
+            event_transport_stats=_SummaryTransportStats(),
+            workspace_root=workspace_root,
+        ),
+        projections=build_projection_observability(session_repository),
+        background_jobs=background_jobs,
+        repository_intelligence=build_repository_intelligence_observability(
+            workspace_root,
+            memory=memory,
+        ),
+        artifacts=build_artifact_observability(workspace_root, session_repository),
+        verification=build_verification_observability(workspace_root),
+        provider_canary=load_provider_canary_evidence(workspace_root),
+    )
 
 
 def cue_next_action_commands(cues: Sequence[MaintenanceCue]) -> list[str]:
@@ -712,6 +759,14 @@ def _command_from_display(display: str) -> list[str] | None:
     return command or None
 
 
+class _SummaryTransportStats:
+    subscriber_count = 0
+    dropped_events = 0
+    queue_capacity = 64
+    max_queue_depth = 0
+    last_published_sequence = None
+
+
 def _missing_backup(workspace_root: Path) -> bool:
     backup_dir = workspace_root / ".glassbox" / "backups"
     if not backup_dir.exists():
@@ -724,5 +779,6 @@ __all__ = [
     "build_observability_maintenance_cues",
     "build_observability_next_actions",
     "build_readiness_maintenance_cues",
+    "build_workspace_summary_maintenance_cues",
     "cue_next_action_commands",
 ]

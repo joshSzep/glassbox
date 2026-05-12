@@ -75,6 +75,6 @@ cleanup is intentionally outside automatic cue handling.
 
 Observability status emits `maintenance_cues` in JSON and prints a compact text
 section. Readiness reports expose `maintenance_cues` while keeping readiness
-status derived only from readiness checks. Later queue/dashboard integration can
-project the same cue records into `maintenance` or `advisory` lanes without
-reinterpreting severity, evidence, or command safety.
+status derived only from readiness checks. The aggregate operator queue projects
+the same cue records into `maintenance` rows with their evidence, safe command
+recipe, and destructive-action warning notes preserved.

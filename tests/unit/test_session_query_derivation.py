@@ -7,11 +7,15 @@ import pytest
 
 from glassbox.core import ClaimSupportState
 from glassbox.core import LongRunStatusRecord
+from glassbox.core import MaintenanceCue
+from glassbox.core import MaintenanceCueKind
 from glassbox.core import NextAction
+from glassbox.core import NextActionCommandRecipe
 from glassbox.core import NextActionEvidenceKind
 from glassbox.core import NextActionEvidenceRef
 from glassbox.core import NextActionKind
 from glassbox.core import NextActionPriority
+from glassbox.core import NextActionSafetyClass
 from glassbox.core import NextActionSeverity
 from glassbox.core import NextActionSurface
 from glassbox.core import NextActionTarget
@@ -116,6 +120,76 @@ def test_runtime_operator_queue_prioritizes_and_counts_session_attention() -> No
     assert counts.informational == 1
     assert queue[0].dismissal_policy == (
         OperatorQueueDismissalPolicy.CANONICAL_DECISION_REQUIRED
+    )
+
+
+def test_runtime_operator_queue_projects_maintenance_cues_after_active_work() -> None:
+    approval = build_operator_session_summary(
+        _session_summary(pending_approval_id="approval-1")
+    )
+    target = NextActionTarget(
+        kind=NextActionTargetKind.WORKSPACE,
+        target_id="/tmp/glassbox",
+        label="Workspace",
+    )
+    runtime = WorkspaceRuntimeSummaryView(
+        workspace_root="/tmp/glassbox",
+        state="running",
+        maintenance_cues=[
+            MaintenanceCue(
+                cue_id="maintenance:/tmp/glassbox:backup_posture",
+                kind=MaintenanceCueKind.BACKUP_POSTURE,
+                title="Backup posture",
+                summary="No retained workspace backup archive was found.",
+                priority=NextActionPriority.RECOMMENDED,
+                severity=NextActionSeverity.INFO,
+                target=target,
+                safe_next_actions=[
+                    NextAction(
+                        action_id="backup:create",
+                        title="Create a workspace backup",
+                        summary="Capture state before maintenance.",
+                        kind=NextActionKind.MAINTAIN,
+                        priority=NextActionPriority.RECOMMENDED,
+                        severity=NextActionSeverity.INFO,
+                        safety_class=NextActionSafetyClass.COMMAND_RECIPE,
+                        target=target,
+                        command=NextActionCommandRecipe(
+                            command=["glassbox", "backup", "create", "--cwd", "."],
+                            display="glassbox backup create --cwd .",
+                            purpose="Capture state before maintenance.",
+                        ),
+                    )
+                ],
+                missing_evidence=[
+                    NextActionEvidenceRef(
+                        kind=NextActionEvidenceKind.ARTIFACT,
+                        ref_id="/tmp/glassbox/.glassbox/backups",
+                        summary="No local backup archive was found.",
+                        freshness="missing",
+                    )
+                ],
+            )
+        ],
+    )
+
+    queue = build_operator_queue([approval], runtime=runtime)
+    counts = operator_queue_counts(queue)
+    maintenance = next(
+        item for item in queue if item.family == OperatorQueueFamily.MAINTENANCE
+    )
+
+    assert [item.family for item in queue] == [
+        OperatorQueueFamily.WORK_BLOCKING,
+        OperatorQueueFamily.MAINTENANCE,
+    ]
+    assert counts.work_blocking == 1
+    assert counts.maintenance == 1
+    assert maintenance.state == OperatorQueueState.WATCHING
+    assert maintenance.action_needed is False
+    assert maintenance.safe_next_action.command is not None
+    assert maintenance.safe_next_action.command.display == (
+        "glassbox backup create --cwd ."
     )
 
 

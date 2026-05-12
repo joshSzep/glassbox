@@ -1049,7 +1049,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1661: Add Maintenance Queue Integration And Remediation Guidance
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1660`, `GBX-1621`
 - Goal: integrate maintenance cues into the unified queue with precise safe
   next actions
@@ -1071,6 +1071,14 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - operators see maintenance risks before they corrupt confidence in active
     work
+- Completed:
+  - Added maintenance cues to workspace runtime summaries and projected them
+    into unified operator queue rows with maintenance-family counts.
+  - Preserved active work priority ahead of advisory maintenance while keeping
+    safe command recipes and destructive-action warning notes visible in CLI,
+    API, and dashboard payloads.
+  - Updated aggregate queue tests to cover cue priority, dedupe keys, and
+    maintenance-only output beside active work items.
 
 ### GBX-1662: Add Recovery Playbooks As Local Evidence
 

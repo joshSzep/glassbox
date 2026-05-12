@@ -294,21 +294,38 @@ def test_get_sessions_aggregate_returns_priority_counts_and_runtime_summary(
             }
             assert body["operator_queue_schema_version"] == "operator-queue.v1"
             assert body["operator_queue_counts"] == {
-                "total": 5,
+                "total": 10,
                 "work_blocking": 3,
                 "review_blocking": 0,
                 "verification_blocking": 0,
-                "maintenance": 1,
+                "maintenance": 6,
                 "advisory": 0,
                 "informational": 1,
             }
-            assert [item["family"] for item in body["operator_queue"]] == [
+            assert [item["family"] for item in body["operator_queue"][:3]] == [
                 "work_blocking",
                 "work_blocking",
                 "work_blocking",
-                "maintenance",
-                "informational",
             ]
+            assert (
+                sum(
+                    1
+                    for item in body["operator_queue"]
+                    if item["family"] == "maintenance"
+                )
+                == 6
+            )
+            assert {
+                item["dedupe_key"]["key"]
+                for item in body["operator_queue"]
+                if item["family"] == "maintenance"
+            } >= {
+                "maintenance:projection_drift",
+                "maintenance:backup_posture",
+                "maintenance:stale_repository_intelligence",
+                "maintenance:provider_config_issues",
+                "maintenance:eval_baseline_drift",
+            }
             queue_item = next(
                 item
                 for item in body["operator_queue"]

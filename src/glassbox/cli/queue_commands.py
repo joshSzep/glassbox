@@ -126,7 +126,11 @@ def _print_queue_items(items: Sequence[OperatorQueueItem]) -> None:
         )
         print(f"  Target: {target}")
         print(f"  Next: {item.safe_next_action.title}")
+        if item.safe_next_action.command is not None:
+            print(f"  Command: {item.safe_next_action.command.display}")
         print(f"  Evidence: {item.evidence_summary.summary}")
+        for limitation in item.limitations[:2]:
+            print(f"  Warning: {limitation}")
 
 
 __all__ = [

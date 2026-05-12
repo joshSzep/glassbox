@@ -100,10 +100,13 @@ requires it for the requested workflow.
 queue from existing aggregate session evidence and workspace runtime health.
 The initial producer covers pending approvals, pending questions, failed
 sessions, degraded session projections, stale or stuck long-running sessions,
-active turns, and failed or retryable background jobs. Later v16 slices extend
-the same contract to changesets, review feedback, verification ledgers,
-repository intelligence, memory posture, artifact pressure, provider posture,
-release gates, and dashboard/TUI presentation without changing item semantics.
+active turns, and workspace maintenance cues. Maintenance rows are projected
+from the typed cue model for projection drift, stale daemon owner, failed or
+retryable background jobs, artifact pressure, backup posture, stale repository
+intelligence, provider posture, package asset staleness, and eval baseline
+drift. Later v16 slices extend the same contract to changesets, review
+feedback, verification ledgers, memory posture, release gates, and
+dashboard/TUI presentation without changing item semantics.
 
 Runtime sorting is deterministic:
 

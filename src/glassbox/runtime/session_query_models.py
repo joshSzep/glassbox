@@ -12,6 +12,7 @@ from glassbox.core.models import ApprovalRecord
 from glassbox.core.models import AutonomyBudgetPostureRecord
 from glassbox.core.models import CheckpointAbsenceRecord
 from glassbox.core.models import LongRunStatusRecord
+from glassbox.core.models import MaintenanceCue
 from glassbox.core.models import OperatorQueueItem
 from glassbox.core.models import PolicyActivitySummary
 from glassbox.core.models import ProjectionHealth
@@ -172,6 +173,7 @@ class WorkspaceRuntimeSummaryView(BaseModel):
     background_job_failed_count: int = 0
     background_job_retryable_count: int = 0
     background_job_abandoned_count: int = 0
+    maintenance_cues: list[MaintenanceCue] = Field(default_factory=list)
 
 
 class SessionAggregateView(BaseModel):

@@ -4,6 +4,9 @@ from pathlib import Path
 
 from glassbox.runtime.daemon import RuntimeOwnerStatus
 from glassbox.runtime.observability import build_background_job_observability
+from glassbox.runtime.observability_maintenance_cues import (
+    build_workspace_summary_maintenance_cues,
+)
 from glassbox.runtime.session_query_models import WorkspaceRuntimeSummaryView
 from glassbox.services import SessionRepository
 
@@ -30,6 +33,11 @@ def build_workspace_runtime_summary(
         background_job_failed_count=background_jobs.failed_count,
         background_job_retryable_count=background_jobs.retryable_count,
         background_job_abandoned_count=background_jobs.abandoned_count,
+        maintenance_cues=build_workspace_summary_maintenance_cues(
+            workspace_root,
+            owner_status,
+            session_repository,
+        ),
     )
 
 
