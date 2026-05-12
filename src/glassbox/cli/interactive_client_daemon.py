@@ -15,7 +15,9 @@ from glassbox.cli.interactive_client_sse import iter_sse_events
 from glassbox.cli.interactive_client_sse import raise_for_action_error
 from glassbox.cli.interactive_client_sse import request_runtime
 from glassbox.cli.interactive_review_actions import create_changeset_result
+from glassbox.cli.interactive_review_actions import evidence_graph_summary_result
 from glassbox.cli.interactive_review_actions import generate_brief_result
+from glassbox.cli.interactive_review_actions import operator_queue_result
 from glassbox.cli.interactive_review_actions import payload_feedback_status_result
 from glassbox.cli.interactive_review_actions import payload_handoff_readiness_result
 from glassbox.cli.interactive_review_actions import payload_refresh_inventory_result
@@ -151,11 +153,60 @@ class DaemonInteractiveSessionClient:
         *,
         changeset_id: str | None = None,
     ) -> ReviewLoopActionResult:
+        if action in {
+            ReviewLoopAction.OPERATOR_QUEUE,
+            ReviewLoopAction.NEXT_ACTIONS,
+            ReviewLoopAction.MAINTENANCE_CHECKS,
+        }:
+            view = "all"
+            if action == ReviewLoopAction.NEXT_ACTIONS:
+                view = "action-needed"
+            elif action == ReviewLoopAction.MAINTENANCE_CHECKS:
+                view = "maintenance"
+            response = await request_runtime(
+                self.client,
+                "GET",
+                "/sessions/aggregate",
+                dashboard_url=self.dashboard_url,
+            )
+            raise_for_action_error(response)
+            return operator_queue_result(
+                action=action,
+                view=view,
+                payload=response.json(),
+            )
         resolved_changeset_id = changeset_id or await self._latest_changeset_id()
         if resolved_changeset_id is None:
+            if action == ReviewLoopAction.EVIDENCE_GRAPH:
+                response = await request_runtime(
+                    self.client,
+                    "GET",
+                    f"/sessions/{self.session_id}/evidence-graph/summary",
+                    dashboard_url=self.dashboard_url,
+                )
+                raise_for_action_error(response)
+                return evidence_graph_summary_result(
+                    summary=response.json(),
+                    target_label=f"session {self.session_id}",
+                    session_id=str(self.session_id),
+                )
             raise InteractiveClientError(
                 InteractiveClientErrorKind.VALIDATION_ERROR,
                 "No changeset exists for this session. Start with /review create.",
+            )
+        if action == ReviewLoopAction.EVIDENCE_GRAPH:
+            response = await request_runtime(
+                self.client,
+                "GET",
+                f"/changesets/{resolved_changeset_id}/evidence-graph/summary",
+                dashboard_url=self.dashboard_url,
+                params={"reviewer_safe": True},
+            )
+            raise_for_action_error(response)
+            return evidence_graph_summary_result(
+                summary=response.json(),
+                target_label=f"changeset {resolved_changeset_id}",
+                changeset_id=resolved_changeset_id,
             )
         if action == ReviewLoopAction.STATUS:
             response = await request_runtime(

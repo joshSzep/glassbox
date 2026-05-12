@@ -1353,6 +1353,21 @@ async def _run_review_palette_action_test() -> None:
             "11111111-1111-1111-1111-111111111111",
         )
 
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.REVIEW_OPERATOR_QUEUE
+        )
+        assert client.review_actions[-1] == (ReviewLoopAction.OPERATOR_QUEUE, None)
+        assert "Operator queue" in conversation.content_text
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.REVIEW_EVIDENCE_GRAPH,
+            argument="11111111-1111-1111-1111-111111111111",
+        )
+        assert client.review_actions[-1] == (
+            ReviewLoopAction.EVIDENCE_GRAPH,
+            "11111111-1111-1111-1111-111111111111",
+        )
+
         pilot.app.exit()
 
     await app.close_client()
@@ -1718,6 +1733,17 @@ class _FakeInteractiveClient:
         elif action == ReviewLoopAction.PREVIEW_VERIFICATION:
             headline = f"Previewed verification for {resolved_changeset_id}"
             details = ("Readiness: passed", "1 recommended command(s); none were run.")
+        elif action == ReviewLoopAction.OPERATOR_QUEUE:
+            headline = "Operator queue"
+            details = (
+                "Counts: 1 total, 1 work, 0 review, 0 verification, 0 maintenance.",
+            )
+        elif action == ReviewLoopAction.EVIDENCE_GRAPH:
+            headline = f"Evidence graph summary for changeset {resolved_changeset_id}"
+            details = (
+                "Target: changeset 11111111-1111-1111-1111-111111111111",
+                "Counts: 4 nodes, 3 edges, 1 claims.",
+            )
         else:
             headline = f"Review action {action.value} for {resolved_changeset_id}"
             details = ("No mutation beyond explicit local evidence occurred.",)

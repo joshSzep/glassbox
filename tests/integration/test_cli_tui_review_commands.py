@@ -73,6 +73,15 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
             ReviewLoopAction.STATUS,
             changeset_id=result.changeset_id,
         )
+        queue = await client.run_review_action(ReviewLoopAction.OPERATOR_QUEUE)
+        next_actions = await client.run_review_action(ReviewLoopAction.NEXT_ACTIONS)
+        evidence_graph = await client.run_review_action(
+            ReviewLoopAction.EVIDENCE_GRAPH,
+            changeset_id=result.changeset_id,
+        )
+        maintenance = await client.run_review_action(
+            ReviewLoopAction.MAINTENANCE_CHECKS
+        )
 
         changesets = runtime_context.repositories.sessions.list_changesets(
             session_id=state.session_id,
@@ -93,6 +102,20 @@ async def _run_local_tui_review_create_test(tmp_path: Path) -> None:
         assert sources[0].source_session_id == state.session_id
         assert status.changeset_id == result.changeset_id
         assert "Review status" in status.headline
+        assert queue.headline == "Operator queue"
+        assert any("Counts:" in detail for detail in queue.details)
+        assert queue.safe_next_actions[0] == (
+            "glassbox queue list --view action-needed --cwd ."
+        )
+        assert next_actions.headline == "Next actions"
+        assert "glassbox queue list --view action-needed --cwd ." in (
+            next_actions.safe_next_actions
+        )
+        assert evidence_graph.changeset_id == result.changeset_id
+        assert "Evidence graph summary" in evidence_graph.headline
+        assert any("Claim posture:" in detail for detail in evidence_graph.details)
+        assert maintenance.headline == "Maintenance checks"
+        assert "glassbox observability status --cwd ." in maintenance.safe_next_actions
         assert any("Missing fixup inventory" in item for item in missing_status.details)
         assert any(
             f"glassbox changeset feedback fixup {feedback.feedback.feedback_id} --cwd ."

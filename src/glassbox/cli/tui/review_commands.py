@@ -24,6 +24,10 @@ def review_slash_command(rest: str) -> TerminalSlashCommand:
     argument = parts[1] if len(parts) > 1 else None
     if subcommand in {"workup", "guide", "guided"}:
         return TerminalSlashCommand(TerminalCommandId.REVIEW_WORKUP_GUIDE, argument)
+    if subcommand in {"queue", "operator-queue"}:
+        return TerminalSlashCommand(TerminalCommandId.REVIEW_OPERATOR_QUEUE, argument)
+    if subcommand in {"next", "next-action", "next-actions"}:
+        return TerminalSlashCommand(TerminalCommandId.REVIEW_NEXT_ACTIONS, argument)
     if subcommand in {"create", "new"}:
         return TerminalSlashCommand(TerminalCommandId.REVIEW_CREATE_CHANGESET, argument)
     if subcommand == "refresh":
@@ -38,8 +42,15 @@ def review_slash_command(rest: str) -> TerminalSlashCommand:
         return TerminalSlashCommand(
             TerminalCommandId.REVIEW_PREVIEW_VERIFICATION, argument
         )
+    if subcommand in {"evidence", "evidence-graph", "graph"}:
+        return TerminalSlashCommand(TerminalCommandId.REVIEW_EVIDENCE_GRAPH, argument)
     if subcommand in {"handoff", "handoff-readiness"}:
         return TerminalSlashCommand(TerminalCommandId.REVIEW_INSPECT_HANDOFF, argument)
+    if subcommand in {"maintenance", "maintenance-checks"}:
+        return TerminalSlashCommand(
+            TerminalCommandId.REVIEW_MAINTENANCE_CHECKS,
+            argument,
+        )
     if subcommand in {"status", "feedback", "responses"}:
         return TerminalSlashCommand(
             TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS, argument
@@ -74,8 +85,12 @@ def review_disabled_reason(
             return "runtime unavailable"
         return None
     if command_id in {
+        TerminalCommandId.REVIEW_OPERATOR_QUEUE,
+        TerminalCommandId.REVIEW_NEXT_ACTIONS,
         TerminalCommandId.REVIEW_PREVIEW_VERIFICATION,
+        TerminalCommandId.REVIEW_EVIDENCE_GRAPH,
         TerminalCommandId.REVIEW_INSPECT_HANDOFF,
+        TerminalCommandId.REVIEW_MAINTENANCE_CHECKS,
         TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
         TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP,
     }:
@@ -212,6 +227,10 @@ def dashboard_review_url(
 def review_action_for_command(
     command_id: TerminalCommandId,
 ) -> ReviewLoopAction | None:
+    if command_id == TerminalCommandId.REVIEW_OPERATOR_QUEUE:
+        return ReviewLoopAction.OPERATOR_QUEUE
+    if command_id == TerminalCommandId.REVIEW_NEXT_ACTIONS:
+        return ReviewLoopAction.NEXT_ACTIONS
     if command_id == TerminalCommandId.REVIEW_REFRESH_INVENTORY:
         return ReviewLoopAction.REFRESH_INVENTORY
     if command_id == TerminalCommandId.REVIEW_WORKUP_GUIDE:
@@ -220,8 +239,12 @@ def review_action_for_command(
         return ReviewLoopAction.GENERATE_BRIEF
     if command_id == TerminalCommandId.REVIEW_PREVIEW_VERIFICATION:
         return ReviewLoopAction.PREVIEW_VERIFICATION
+    if command_id == TerminalCommandId.REVIEW_EVIDENCE_GRAPH:
+        return ReviewLoopAction.EVIDENCE_GRAPH
     if command_id == TerminalCommandId.REVIEW_INSPECT_HANDOFF:
         return ReviewLoopAction.INSPECT_HANDOFF
+    if command_id == TerminalCommandId.REVIEW_MAINTENANCE_CHECKS:
+        return ReviewLoopAction.MAINTENANCE_CHECKS
     if command_id == TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS:
         return ReviewLoopAction.SHOW_FEEDBACK_STATUS
     if command_id == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP:

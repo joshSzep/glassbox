@@ -43,12 +43,16 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.INTERRUPT in command_ids
     assert TerminalCommandId.CLEAR_TRANSCRIPT in command_ids
     assert TerminalCommandId.REVIEW_CREATE_CHANGESET in command_ids
+    assert TerminalCommandId.REVIEW_OPERATOR_QUEUE in command_ids
+    assert TerminalCommandId.REVIEW_NEXT_ACTIONS in command_ids
     assert TerminalCommandId.REVIEW_WORKUP_GUIDE in command_ids
     assert TerminalCommandId.REVIEW_REFRESH_INVENTORY in command_ids
     assert TerminalCommandId.REVIEW_OPEN_DASHBOARD in command_ids
     assert TerminalCommandId.REVIEW_GENERATE_BRIEF in command_ids
     assert TerminalCommandId.REVIEW_PREVIEW_VERIFICATION in command_ids
+    assert TerminalCommandId.REVIEW_EVIDENCE_GRAPH in command_ids
     assert TerminalCommandId.REVIEW_INSPECT_HANDOFF in command_ids
+    assert TerminalCommandId.REVIEW_MAINTENANCE_CHECKS in command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in command_ids
     assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in command_ids
     assert TerminalCommandId.QUIT in command_ids
@@ -114,6 +118,12 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
         item.spec.command_id for item in filter_command_items(items, "missing fixup")
     ]
     assert missing_fixup_command_ids == [TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS]
+    queue_command_ids = [
+        item.spec.command_id for item in filter_command_items(items, "queue")
+    ]
+    assert TerminalCommandId.REVIEW_OPERATOR_QUEUE in queue_command_ids
+    assert TerminalCommandId.REVIEW_NEXT_ACTIONS in queue_command_ids
+    assert TerminalCommandId.REVIEW_MAINTENANCE_CHECKS in queue_command_ids
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:
@@ -196,9 +206,22 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
         == TerminalCommandId.REVIEW_CREATE_CHANGESET
     )
     assert command_from_slash("/review workup") == TerminalCommandId.REVIEW_WORKUP_GUIDE
+    assert command_from_slash("/queue") == TerminalCommandId.REVIEW_OPERATOR_QUEUE
+    assert (
+        command_from_slash("/operator queue") == TerminalCommandId.REVIEW_OPERATOR_QUEUE
+    )
+    assert command_from_slash("/next-actions") == TerminalCommandId.REVIEW_NEXT_ACTIONS
     assert (
         command_from_slash("/changeset brief")
         == TerminalCommandId.REVIEW_GENERATE_BRIEF
+    )
+    assert (
+        command_from_slash("/review evidence-graph")
+        == TerminalCommandId.REVIEW_EVIDENCE_GRAPH
+    )
+    assert (
+        command_from_slash("/maintenance checks")
+        == TerminalCommandId.REVIEW_MAINTENANCE_CHECKS
     )
     assert (
         command_from_slash("/review fixup 11111111-1111-1111-1111-111111111111")
@@ -216,6 +239,9 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     brief = slash_command_from_text(
         "/changeset brief 11111111-1111-1111-1111-111111111111"
     )
+    evidence = slash_command_from_text(
+        "/evidence-graph 33333333-3333-3333-3333-333333333333"
+    )
     fixup = slash_command_from_text(
         "/review fixup 22222222-2222-2222-2222-222222222222"
     )
@@ -229,6 +255,9 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     assert brief is not None
     assert brief.command_id == TerminalCommandId.REVIEW_GENERATE_BRIEF
     assert brief.argument == "11111111-1111-1111-1111-111111111111"
+    assert evidence is not None
+    assert evidence.command_id == TerminalCommandId.REVIEW_EVIDENCE_GRAPH
+    assert evidence.argument == "33333333-3333-3333-3333-333333333333"
     assert fixup is not None
     assert fixup.command_id == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP
     assert fixup.argument == "22222222-2222-2222-2222-222222222222"

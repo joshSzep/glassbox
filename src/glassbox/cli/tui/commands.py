@@ -4,9 +4,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from glassbox.cli.tui.conversation import TerminalConversationState
-from glassbox.cli.tui.conversation import TerminalMode
-from glassbox.cli.tui.conversation import TerminalStreamStatus
-from glassbox.cli.tui.conversation import latest_artifact_path_from_state
 
 
 class TerminalCommandId(StrEnum):
@@ -25,12 +22,16 @@ class TerminalCommandId(StrEnum):
     INTERRUPT = "interrupt"
     CLEAR_TRANSCRIPT = "clear_transcript"
     REVIEW_CREATE_CHANGESET = "review_create_changeset"
+    REVIEW_OPERATOR_QUEUE = "review_operator_queue"
+    REVIEW_NEXT_ACTIONS = "review_next_actions"
     REVIEW_WORKUP_GUIDE = "review_workup_guide"
     REVIEW_REFRESH_INVENTORY = "review_refresh_inventory"
     REVIEW_OPEN_DASHBOARD = "review_open_dashboard"
     REVIEW_GENERATE_BRIEF = "review_generate_brief"
     REVIEW_PREVIEW_VERIFICATION = "review_preview_verification"
+    REVIEW_EVIDENCE_GRAPH = "review_evidence_graph"
     REVIEW_INSPECT_HANDOFF = "review_inspect_handoff"
+    REVIEW_MAINTENANCE_CHECKS = "review_maintenance_checks"
     REVIEW_SHOW_FEEDBACK_STATUS = "review_show_feedback_status"
     REVIEW_RECORD_FEEDBACK_FIXUP = "review_record_feedback_fixup"
     QUIT = "quit"
@@ -158,6 +159,23 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         slash_aliases=("/review workup", "/review guide", "/changeset workup"),
     ),
     TerminalCommandSpec(
+        TerminalCommandId.REVIEW_OPERATOR_QUEUE,
+        "Review: Operator Queue",
+        "Inspect ranked queue items, evidence summaries, and safe next actions",
+        slash_aliases=(
+            "/queue",
+            "/operator-queue",
+            "/operator queue",
+            "/review queue",
+        ),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.REVIEW_NEXT_ACTIONS,
+        "Review: Next Actions",
+        "Show action-needed queue entries without leaving the conversation",
+        slash_aliases=("/next-actions", "/next action", "/review next-actions"),
+    ),
+    TerminalCommandSpec(
         TerminalCommandId.REVIEW_CREATE_CHANGESET,
         "Review: Create Changeset",
         "Create local review changeset evidence from the current workspace diff",
@@ -193,10 +211,31 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         ),
     ),
     TerminalCommandSpec(
+        TerminalCommandId.REVIEW_EVIDENCE_GRAPH,
+        "Review: Evidence Graph",
+        "Inspect claim support, missing evidence, stale evidence, and limitations",
+        slash_aliases=(
+            "/evidence-graph",
+            "/evidence graph",
+            "/review evidence-graph",
+            "/changeset evidence-graph",
+        ),
+    ),
+    TerminalCommandSpec(
         TerminalCommandId.REVIEW_INSPECT_HANDOFF,
         "Review: Inspect Handoff",
         "Inspect blockers, missing brief, skipped evidence, and handoff posture",
         slash_aliases=("/review handoff", "/changeset handoff"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.REVIEW_MAINTENANCE_CHECKS,
+        "Review: Maintenance Checks",
+        "Inspect queue-linked projection, background job, and runtime health cues",
+        slash_aliases=(
+            "/maintenance",
+            "/maintenance checks",
+            "/review maintenance",
+        ),
     ),
     TerminalCommandSpec(
         TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS,
@@ -230,7 +269,9 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
 def command_items_for_state(
     state: TerminalConversationState,
 ) -> tuple[TerminalCommandItem, ...]:
-    return tuple(_item_for_spec(spec, state) for spec in _COMMAND_SPECS)
+    from glassbox.cli.tui.command_state import item_for_spec
+
+    return tuple(item_for_spec(spec, state) for spec in _COMMAND_SPECS)
 
 
 def filter_command_items(
@@ -265,7 +306,16 @@ def slash_command_from_text(text: str) -> TerminalSlashCommand | None:
         from glassbox.cli.tui.review_commands import review_slash_command
 
         return review_slash_command(parts[1] if len(parts) > 1 else "")
+    normalized_text = text.strip().lower()
     for spec in _COMMAND_SPECS:
+        for alias in sorted(spec.slash_aliases, key=len, reverse=True):
+            if normalized_text == alias:
+                return TerminalSlashCommand(spec.command_id)
+            if normalized_text.startswith(f"{alias} "):
+                return TerminalSlashCommand(
+                    spec.command_id,
+                    text.strip()[len(alias) :].strip(),
+                )
         if normalized in spec.slash_aliases:
             return TerminalSlashCommand(
                 spec.command_id,
@@ -281,74 +331,4 @@ def command_item_by_id(
     for item in items:
         if item.spec.command_id == command_id:
             return item
-    return None
-
-
-def _item_for_spec(
-    spec: TerminalCommandSpec,
-    state: TerminalConversationState,
-) -> TerminalCommandItem:
-    disabled_reason = _disabled_reason(spec.command_id, state)
-    return TerminalCommandItem(
-        spec=spec,
-        enabled=disabled_reason is None,
-        disabled_reason=disabled_reason,
-    )
-
-
-def _disabled_reason(
-    command_id: TerminalCommandId,
-    state: TerminalConversationState,
-) -> str | None:
-    from glassbox.cli.tui.review_commands import is_review_command
-    from glassbox.cli.tui.review_commands import review_disabled_reason
-
-    if is_review_command(command_id):
-        return review_disabled_reason(command_id, state)
-    if command_id in {
-        TerminalCommandId.OPEN_DASHBOARD,
-        TerminalCommandId.COPY_DASHBOARD_URL,
-    }:
-        if state.header.dashboard_url is None:
-            return "dashboard unavailable"
-    if command_id in {
-        TerminalCommandId.COPY_ARTIFACT_PATH,
-        TerminalCommandId.OPEN_ARTIFACT_PATH,
-    }:
-        if latest_artifact_path_from_state(state) is None:
-            return "no artifact path"
-    if command_id in {TerminalCommandId.APPROVE, TerminalCommandId.DENY}:
-        if (
-            state.pending_approval is None
-            or state.pending_approval.decision is not None
-        ):
-            return "no pending approval"
-        if state.header.stream_status in {
-            TerminalStreamStatus.RECONNECTING,
-            TerminalStreamStatus.UNAVAILABLE,
-            TerminalStreamStatus.HISTORICAL_ONLY,
-        }:
-            return "runtime unavailable"
-    if command_id == TerminalCommandId.SUBMIT_ANSWER:
-        if state.pending_question is None or state.pending_question.answer is not None:
-            return "no pending question"
-        if state.header.stream_status in {
-            TerminalStreamStatus.RECONNECTING,
-            TerminalStreamStatus.UNAVAILABLE,
-            TerminalStreamStatus.HISTORICAL_ONLY,
-        }:
-            return "runtime unavailable"
-        if not state.composer.text.strip():
-            return "answer draft is empty"
-    if command_id == TerminalCommandId.INTERRUPT:
-        if state.header.mode not in {
-            TerminalMode.THINKING,
-            TerminalMode.RUNNING_TOOL,
-            TerminalMode.AWAITING_APPROVAL,
-            TerminalMode.AWAITING_ANSWER,
-        }:
-            return "no active turn"
-    if command_id == TerminalCommandId.CLEAR_TRANSCRIPT:
-        if not state.messages and not state.turns and state.failure is None:
-            return "transcript is empty"
     return None

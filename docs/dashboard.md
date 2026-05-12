@@ -25,6 +25,14 @@ Open that URL while the full-screen terminal chat is still running to watch the 
 
 The intended split is simple: the terminal remains the primary coding-agent conversation surface, and the dashboard is the paired operator console for deeper inspection. Use the dashboard when you want queue views, lineage, event details, tool output, replay/eval cues, or broader workspace context without interrupting the chat flow.
 
+The terminal command palette and plain interactive mode expose compact entry
+points for the same cockpit language: `/review queue`, `/review next-actions`,
+`/review workup`, `/review verify CHANGESET_ID`,
+`/review evidence-graph CHANGESET_ID`, and `/review maintenance`. These render
+bounded queue, verification, evidence-graph, and maintenance summaries in the
+conversation first, then point to the CLI or dashboard for deeper inspection.
+They do not run checks, approve actions, stage, commit, push, or publish.
+
 If default dashboard startup fails, `chat` keeps the terminal workflow running and prints a warning that the dashboard is unavailable for that session.
 
 If you explicitly set `--dashboard-host` or `--dashboard-port` and startup fails, `chat` exits with an error instead.

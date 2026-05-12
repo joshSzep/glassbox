@@ -35,6 +35,10 @@ def _parse_review_command(text: str) -> _ParsedReviewCommand:
         return _ParsedReviewCommand("create", argument)
     if subcommand in {"workup", "guide", "guided"}:
         return _ParsedReviewCommand(ReviewLoopAction.WORKUP_GUIDE, argument)
+    if subcommand in {"queue", "operator-queue"}:
+        return _ParsedReviewCommand(ReviewLoopAction.OPERATOR_QUEUE, argument)
+    if subcommand in {"next", "next-action", "next-actions"}:
+        return _ParsedReviewCommand(ReviewLoopAction.NEXT_ACTIONS, argument)
     if subcommand in {"status", "feedback", "responses"}:
         return _ParsedReviewCommand(ReviewLoopAction.SHOW_FEEDBACK_STATUS, argument)
     if subcommand in {"fixup", "record-fixup"}:
@@ -45,8 +49,12 @@ def _parse_review_command(text: str) -> _ParsedReviewCommand:
         return _ParsedReviewCommand(ReviewLoopAction.GENERATE_BRIEF, argument)
     if subcommand in {"verify", "verification", "verification-plan"}:
         return _ParsedReviewCommand(ReviewLoopAction.PREVIEW_VERIFICATION, argument)
+    if subcommand in {"evidence", "evidence-graph", "graph"}:
+        return _ParsedReviewCommand(ReviewLoopAction.EVIDENCE_GRAPH, argument)
     if subcommand in {"handoff", "handoff-readiness"}:
         return _ParsedReviewCommand(ReviewLoopAction.INSPECT_HANDOFF, argument)
+    if subcommand in {"maintenance", "maintenance-checks"}:
+        return _ParsedReviewCommand(ReviewLoopAction.MAINTENANCE_CHECKS, argument)
     if subcommand in {"dashboard", "open-dashboard"}:
         return _ParsedReviewCommand("dashboard", argument)
     return _ParsedReviewCommand(

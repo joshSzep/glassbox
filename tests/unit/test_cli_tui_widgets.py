@@ -1,6 +1,8 @@
 """Widget rendering tests for the terminal app frame."""
 
 from glassbox.cli.interactive_client import InteractiveSessionSnapshot
+from glassbox.cli.interactive_client import ReviewLoopAction
+from glassbox.cli.interactive_review_actions import operator_queue_result
 from glassbox.cli.tui.conversation import TerminalStreamStatus
 from glassbox.cli.tui.conversation import conversation_state_from_snapshot
 from glassbox.cli.tui.conversation import reduce_events
@@ -599,6 +601,46 @@ def test_details_pane_distinguishes_denied_policy_and_invariant_block() -> None:
         "policy reason: blocked: path '../secrets' is outside workspace"
         in blocked_rendered
     )
+
+
+def test_operator_queue_result_renders_bounded_detail_lines() -> None:
+    payload = {
+        "operator_queue_counts": {
+            "total": 6,
+            "work_blocking": 1,
+            "review_blocking": 0,
+            "verification_blocking": 0,
+            "maintenance": 5,
+        },
+        "operator_queue": [
+            {
+                "family": "maintenance",
+                "priority": "action_needed",
+                "severity": "medium",
+                "action_needed": True,
+                "target": {"label": f"Target {index}"},
+                "safe_next_action": {"title": f"Inspect item {index}"},
+                "evidence_summary": {"summary": f"Evidence {index}"},
+            }
+            for index in range(6)
+        ],
+    }
+
+    result = operator_queue_result(
+        action=ReviewLoopAction.MAINTENANCE_CHECKS,
+        view="maintenance",
+        payload=payload,
+    )
+    rendered = "\n".join(result.details)
+
+    assert result.headline == "Maintenance checks"
+    assert (
+        "Counts: 6 total, 1 work, 0 review, 0 verification, 5 maintenance." in rendered
+    )
+    assert "Inspect item 0" in rendered
+    assert "Inspect item 4" in rendered
+    assert "Inspect item 5" not in rendered
+    assert "glassbox queue list --view maintenance --cwd ." in result.safe_next_actions
 
 
 def test_transcript_empty_states_are_specific() -> None:

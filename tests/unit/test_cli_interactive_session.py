@@ -24,6 +24,10 @@ def test_plain_review_command_vocabulary_matches_tui_aliases() -> None:
     create = _parse_review_command("/review create objective text")
     status = _parse_review_command("/changeset")
     verify = _parse_review_command("/review verification-plan change-1")
+    queue = _parse_review_command("/review queue")
+    next_actions = _parse_review_command("/review next-actions")
+    evidence = _parse_review_command("/review evidence-graph change-1")
+    maintenance = _parse_review_command("/review maintenance")
     handoff = _parse_review_command("/review handoff change-1")
     dashboard = _parse_review_command("/review dashboard change-1")
 
@@ -31,8 +35,13 @@ def test_plain_review_command_vocabulary_matches_tui_aliases() -> None:
     assert create.argument == "objective text"
     assert status.action == ReviewLoopAction.SHOW_FEEDBACK_STATUS
     assert status.argument is None
+    assert queue.action == ReviewLoopAction.OPERATOR_QUEUE
+    assert next_actions.action == ReviewLoopAction.NEXT_ACTIONS
     assert verify.action == ReviewLoopAction.PREVIEW_VERIFICATION
     assert verify.argument == "change-1"
+    assert evidence.action == ReviewLoopAction.EVIDENCE_GRAPH
+    assert evidence.argument == "change-1"
+    assert maintenance.action == ReviewLoopAction.MAINTENANCE_CHECKS
     assert handoff.action == ReviewLoopAction.INSPECT_HANDOFF
     assert dashboard.action == "dashboard"
 
@@ -65,6 +74,11 @@ def test_plain_review_help_documents_safe_shortcuts() -> None:
     assert "/review create [OBJECTIVE]" in help_text
     assert (
         "/review verify CHANGESET_ID preview verification without running commands"
+        in help_text
+    )
+    assert "/review queue inspect the ranked operator queue" in help_text
+    assert (
+        "/review evidence-graph CHANGESET_ID inspect evidence graph posture"
         in help_text
     )
     assert (

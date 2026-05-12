@@ -1,5 +1,6 @@
 """Review-loop action result shaping for interactive clients."""
 
+from collections.abc import Mapping
 from typing import Any
 from typing import cast
 from uuid import UUID
@@ -357,6 +358,116 @@ def payload_feedback_status_result(
     )
 
 
+def operator_queue_result(
+    *,
+    action: ReviewLoopAction,
+    view: str,
+    payload: Mapping[str, Any],
+) -> ReviewLoopActionResult:
+    """Shape the typed operator queue into a bounded terminal summary."""
+
+    items = [
+        item
+        for item in cast(list[Any], payload.get("operator_queue", []))
+        if isinstance(item, dict) and _queue_view_matches(item, view)
+    ]
+    counts = cast(dict[str, Any], payload.get("operator_queue_counts", {}))
+    headline = {
+        ReviewLoopAction.OPERATOR_QUEUE: "Operator queue",
+        ReviewLoopAction.NEXT_ACTIONS: "Next actions",
+        ReviewLoopAction.MAINTENANCE_CHECKS: "Maintenance checks",
+    }.get(action, "Operator queue")
+    details = [
+        _queue_counts_line(counts),
+        f"View: {view}; showing {min(len(items), 5)} of {len(items)} item(s).",
+        *_queue_item_lines(items[:5]),
+    ]
+    safe_next_actions = {
+        ReviewLoopAction.NEXT_ACTIONS: (
+            "glassbox queue list --view action-needed --cwd .",
+            "glassbox session status SESSION_ID --cwd .",
+        ),
+        ReviewLoopAction.MAINTENANCE_CHECKS: (
+            "glassbox queue list --view maintenance --cwd .",
+            "glassbox observability status --cwd .",
+        ),
+    }.get(
+        action,
+        (
+            "glassbox queue list --view action-needed --cwd .",
+            "glassbox queue list --view maintenance --cwd .",
+        ),
+    )
+    return ReviewLoopActionResult(
+        action=action,
+        headline=headline,
+        details=tuple(details),
+        limitations=(
+            "Queue entries are derived from local state and remain advisory.",
+        ),
+        safe_next_actions=safe_next_actions,
+    )
+
+
+def evidence_graph_summary_result(
+    *,
+    summary: Mapping[str, Any],
+    target_label: str,
+    changeset_id: str | None = None,
+    session_id: str | None = None,
+) -> ReviewLoopActionResult:
+    """Shape evidence graph counts into a concise terminal detail view."""
+
+    target_kind = str(summary.get("target_kind", "unknown"))
+    target_id = summary.get("target_id")
+    details = (
+        f"Target: {target_kind} {target_id or target_label}",
+        (
+            "Counts: "
+            f"{summary.get('node_count', 0)} nodes, "
+            f"{summary.get('edge_count', 0)} edges, "
+            f"{summary.get('claim_count', 0)} claims."
+        ),
+        (
+            "Claim posture: "
+            f"{summary.get('stale_claim_count', 0)} stale, "
+            f"{summary.get('missing_claim_count', 0)} missing, "
+            f"{summary.get('contradicted_claim_count', 0)} contradicted."
+        ),
+        (
+            "Manual/risk posture: "
+            f"{summary.get('manual_only_claim_count', 0)} manual-only, "
+            f"{summary.get('accepted_risk_claim_count', 0)} accepted risk, "
+            f"{summary.get('limitation_count', 0)} limitation(s)."
+        ),
+    )
+    if changeset_id is not None:
+        safe_next_actions = (
+            f"glassbox changeset evidence-graph {changeset_id} --summary --cwd .",
+            f"glassbox changeset verification-plan {changeset_id} --cwd .",
+        )
+        dashboard_path = f"/app/changesets/{changeset_id}"
+    else:
+        resolved_session_id = session_id or "SESSION_ID"
+        safe_next_actions = (
+            f"glassbox session evidence-graph {resolved_session_id} --summary --cwd .",
+            "glassbox queue list --view action-needed --cwd .",
+        )
+        dashboard_path = None
+    return ReviewLoopActionResult(
+        action=ReviewLoopAction.EVIDENCE_GRAPH,
+        headline=f"Evidence graph summary for {target_label}",
+        changeset_id=changeset_id,
+        details=details,
+        limitations=(
+            "The terminal summary is bounded; inspect the dashboard or CLI graph "
+            "for node and edge details.",
+        ),
+        safe_next_actions=safe_next_actions,
+        dashboard_path=dashboard_path,
+    )
+
+
 def review_feedback_message(result: ReviewLoopActionResult) -> str:
     parts = [result.headline]
     if result.limitations:
@@ -370,6 +481,53 @@ def string_tuple(items: object) -> tuple[str, ...]:
     if not isinstance(items, list):
         return ()
     return tuple(str(item) for item in items)
+
+
+def _queue_counts_line(counts: Mapping[str, Any]) -> str:
+    return (
+        "Counts: "
+        f"{counts.get('total', 0)} total, "
+        f"{counts.get('work_blocking', 0)} work, "
+        f"{counts.get('review_blocking', 0)} review, "
+        f"{counts.get('verification_blocking', 0)} verification, "
+        f"{counts.get('maintenance', 0)} maintenance."
+    )
+
+
+def _queue_item_lines(items: list[dict[str, Any]]) -> tuple[str, ...]:
+    if not items:
+        return ("No queue items currently match this view.",)
+    lines: list[str] = []
+    for index, item in enumerate(items, start=1):
+        action = cast(dict[str, Any], item.get("safe_next_action") or {})
+        evidence = cast(dict[str, Any], item.get("evidence_summary") or {})
+        target = cast(dict[str, Any], item.get("target") or {})
+        target_label = target.get("label") or target.get("target_id") or "workspace"
+        title = str(action.get("title") or item.get("owner_label") or "Inspect item")
+        lines.append(
+            f"{index}. {item.get('priority')}/{item.get('severity')} "
+            f"{item.get('family')}: {title}"
+        )
+        lines.append(f"   Target: {target_label}")
+        lines.append(f"   Evidence: {evidence.get('summary', 'local state')}")
+        command = cast(dict[str, Any], action.get("command") or {})
+        if command.get("display"):
+            lines.append(f"   Command: {command['display']}")
+    return tuple(lines)
+
+
+def _queue_view_matches(item: Mapping[str, Any], view: str) -> bool:
+    if view == "all":
+        return True
+    if view == "action-needed":
+        return bool(item.get("action_needed"))
+    if view == "maintenance":
+        return item.get("family") == "maintenance"
+    if view == "verification":
+        return item.get("family") == "verification_blocking"
+    if view == "review":
+        return item.get("family") == "review_blocking"
+    return True
 
 
 def missing_fixup_feedback_ids(summary: Any) -> tuple[str, ...]:

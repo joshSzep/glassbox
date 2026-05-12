@@ -962,7 +962,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1653: Add TUI Queue And Guided Flow Entry Points
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1641`, `GBX-1650`
 - Goal: make the primary terminal conversation surface aware of queue items,
   guided workup flows, verification plans, and evidence graph inspection

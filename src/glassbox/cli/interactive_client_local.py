@@ -12,10 +12,12 @@ from glassbox.cli.interactive_client_models import InteractiveSessionSnapshot
 from glassbox.cli.interactive_client_models import ReviewLoopAction
 from glassbox.cli.interactive_client_models import ReviewLoopActionResult
 from glassbox.cli.interactive_review_actions import create_changeset_result
+from glassbox.cli.interactive_review_actions import evidence_graph_summary_result
 from glassbox.cli.interactive_review_actions import feedback_status_result
 from glassbox.cli.interactive_review_actions import fixup_inventory_result
 from glassbox.cli.interactive_review_actions import generate_brief_result
 from glassbox.cli.interactive_review_actions import handoff_readiness_result
+from glassbox.cli.interactive_review_actions import operator_queue_result
 from glassbox.cli.interactive_review_actions import preview_verification_result
 from glassbox.cli.interactive_review_actions import refresh_inventory_result
 from glassbox.cli.interactive_review_actions import review_status_result_from_detail
@@ -124,6 +126,18 @@ class LocalInteractiveSessionClient:
         *,
         changeset_id: str | None = None,
     ) -> ReviewLoopActionResult:
+        if action in {
+            ReviewLoopAction.OPERATOR_QUEUE,
+            ReviewLoopAction.NEXT_ACTIONS,
+            ReviewLoopAction.MAINTENANCE_CHECKS,
+        }:
+            view = "all"
+            if action == ReviewLoopAction.NEXT_ACTIONS:
+                view = "action-needed"
+            elif action == ReviewLoopAction.MAINTENANCE_CHECKS:
+                view = "maintenance"
+            aggregate = self._session_aggregate_payload()
+            return operator_queue_result(action=action, view=view, payload=aggregate)
         if action == ReviewLoopAction.RECORD_FEEDBACK_FIXUP:
             if changeset_id is None:
                 raise InteractiveClientError(
@@ -171,6 +185,24 @@ class LocalInteractiveSessionClient:
                     changeset_id=None,
                     changed_path_count=len(workup_preview.changed_paths),
                 )
+            if action == ReviewLoopAction.EVIDENCE_GRAPH:
+                from glassbox.runtime.evidence_graph import build_session_evidence_graph
+                from glassbox.runtime.evidence_graph import summarize_evidence_graph
+                from glassbox.runtime.session_queries import SessionQueryService
+
+                query_service = SessionQueryService(
+                    self.runtime_context.repositories.sessions,
+                    self.runtime_context.repositories.artifacts,
+                )
+                snapshot = query_service.get_session_snapshot(self.session_id)
+                summary = summarize_evidence_graph(
+                    build_session_evidence_graph(snapshot)
+                )
+                return evidence_graph_summary_result(
+                    summary=summary.model_dump(mode="json"),
+                    target_label=f"session {self.session_id}",
+                    session_id=str(self.session_id),
+                )
             raise InteractiveClientError(
                 InteractiveClientErrorKind.VALIDATION_ERROR,
                 "No changeset exists for this session. Start with /review create.",
@@ -178,6 +210,31 @@ class LocalInteractiveSessionClient:
         workspace_root = self._workspace_root()
         repository = self._changeset_repository()
         artifact_repository = self.runtime_context.repositories.artifacts
+        if action == ReviewLoopAction.EVIDENCE_GRAPH:
+            from glassbox.runtime.changesets import ChangesetQueryService
+            from glassbox.runtime.changesets import ChangesetVerificationService
+            from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+            from glassbox.runtime.evidence_graph import summarize_evidence_graph
+
+            detail = ChangesetQueryService(repository).get_detail(
+                resolved_changeset_id,
+                workspace_root=workspace_root,
+            )
+            verification_plan = ChangesetVerificationService(
+                repository,
+                artifact_repository,
+            ).preview_plan(resolved_changeset_id, workspace_root)
+            summary = summarize_evidence_graph(
+                build_changeset_evidence_graph(
+                    detail,
+                    verification_plan=verification_plan,
+                )
+            )
+            return evidence_graph_summary_result(
+                summary=summary.model_dump(mode="json"),
+                target_label=f"changeset {resolved_changeset_id}",
+                changeset_id=str(resolved_changeset_id),
+            )
         if action == ReviewLoopAction.STATUS:
             from glassbox.runtime.changesets import ChangesetQueryService
 
@@ -322,6 +379,29 @@ class LocalInteractiveSessionClient:
             limit=1,
         )
         return changesets[0].changeset_id if changesets else None
+
+    def _session_aggregate_payload(self) -> dict:
+        from glassbox.runtime.daemon import inspect_runtime_owner
+        from glassbox.runtime.session_queries import SessionQueryService
+        from glassbox.runtime.workspace_runtime_summary import (
+            build_workspace_runtime_summary,
+        )
+
+        workspace_root = self._workspace_root()
+        query_service = SessionQueryService(
+            self.runtime_context.repositories.sessions,
+            self.runtime_context.repositories.artifacts,
+        )
+        aggregate = query_service.get_session_aggregate(
+            runtime=build_workspace_runtime_summary(
+                workspace_root,
+                inspect_runtime_owner(
+                    self.runtime_context.infrastructure.artifacts_root
+                ),
+                self.runtime_context.repositories.sessions,
+            )
+        )
+        return aggregate.model_dump(mode="json")
 
     def _changeset_repository(self):
         from glassbox.runtime.changesets import ChangesetRepository
