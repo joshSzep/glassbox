@@ -523,6 +523,53 @@
             "notes": "Repository-intelligence changes should run the deterministic v15 fixture set, focused repository index/topology/memory/eval recommendation tests, and the release-candidate profile before release signoff. Dashboard/browser/accessibility evidence remains advisory."
         },
         {
+            "rule_id": "v16-operator-flow",
+            "title": "V16 operator flow compression surfaces",
+            "path_globs": [
+                "src/glassbox/runtime/operator_queue.py",
+                "src/glassbox/runtime/evidence_graph.py",
+                "src/glassbox/runtime/verification_plan_builder.py",
+                "src/glassbox/runtime/changeset_workup.py",
+                "src/glassbox/runtime/changeset_verification.py",
+                "src/glassbox/runtime/maintenance*.py",
+                "src/glassbox/cli/queue_commands.py",
+                "src/glassbox/cli/parser_session_evidence.py",
+                "src/glassbox/web/routes/changeset_route_evidence_graph.py",
+                "tests/unit/test_operator_queue.py",
+                "tests/unit/test_evidence_graph.py",
+                "tests/unit/test_changeset_verification_readiness.py",
+                "tests/integration/test_performance_budgets.py",
+                "docs/evidence-graph.md",
+                "docs/operator-queue.md",
+                "docs/verification-orchestrator.md",
+                "docs/maintenance-cues.md",
+                "docs/v16-operator-flow-*.md",
+                "evals/cases/operator-flow*.json",
+                "evals/bundles/operator-flow*.json"
+            ],
+            "owners": ["runtime.operator-flow"],
+            "capabilities": [
+                "operator_flow_queue_ranking",
+                "operator_flow_evidence_graph_claim_support",
+                "operator_flow_verification_plan_lifecycle",
+                "operator_flow_skipped_check_posture",
+                "operator_flow_changeset_workup_preview",
+                "operator_flow_maintenance_cue_surfacing",
+                "operator_flow_reviewer_safe_bundle"
+            ],
+            "case_ids": [
+                "operator-flow.queue-ranking",
+                "operator-flow.evidence-graph-support",
+                "operator-flow.verification-plan-lifecycle",
+                "operator-flow.skipped-check-posture",
+                "operator-flow.changeset-workup-preview",
+                "operator-flow.maintenance-cues",
+                "operator-flow.reviewer-safe-bundle"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Operator-flow changes should run the deterministic v16 fixture set, focused queue/evidence/verification tests, and the release-candidate profile before release signoff. Dashboard/browser/accessibility evidence remains advisory unless promoted by a deterministic fixture."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "operator-flow.maintenance-cues",
+  "title": "Maintenance cues surface stale operator evidence",
+  "bundle_path": "../bundles/operator-flow.maintenance-cues.json",
+  "tags": ["v16-operator-flow", "operator-flow", "maintenance-cues"],
+  "notes": "Deterministic v16 fixture evidence that maintenance cues surface stale, missing, or oversized operator-flow evidence with safe remediation commands.",
+  "release_contract": {
+    "owner": "runtime.operator-flow",
+    "capabilities": ["operator_flow_maintenance_cue_surfacing"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-12T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000168006",
+      "rationale": "Promoted for GBX-1680 to retain deterministic release-candidate evidence for v16 maintenance cue surfacing."
+    }
+  ]
+}

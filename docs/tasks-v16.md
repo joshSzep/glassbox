@@ -1228,7 +1228,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1680: Add Deterministic V16 Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1643`, `GBX-1662`, `GBX-1672`
 - Goal: promote stable operator flow compression behavior into deterministic
   eval coverage
@@ -1250,6 +1250,18 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - release reviewers can see deterministic eval coverage for the core v16
     operator flow contracts
+
+Completed:
+
+- Added deterministic release-candidate eval cases and replay bundles for
+  operator queue ranking, evidence graph claim support, verification plan
+  lifecycle, skipped check posture, changeset workup previews, maintenance cues,
+  and reviewer-safe evidence bundles.
+- Updated the eval coverage manifest, release-candidate profile budget, impact
+  rules, validation recipes, and package-content guards for the promoted v16
+  operator-flow fixtures.
+- Added unit coverage proving release-candidate selection, coverage audit
+  status, and path-to-eval recommendations include the new v16 surfaces.
 
 ### GBX-1681: Add V16 Release Gate
 

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "operator-flow.skipped-check-posture",
+  "title": "Skipped checks stay visible before handoff",
+  "bundle_path": "../bundles/operator-flow.skipped-check-posture.json",
+  "tags": ["v16-operator-flow", "operator-flow", "verification-plan"],
+  "notes": "Deterministic v16 fixture evidence that skipped checks preserve rationale, risk, and safe follow-up posture before reviewer handoff.",
+  "release_contract": {
+    "owner": "runtime.operator-flow",
+    "capabilities": ["operator_flow_skipped_check_posture"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-12T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000168004",
+      "rationale": "Promoted for GBX-1680 to retain deterministic release-candidate evidence for v16 skipped-check posture."
+    }
+  ]
+}

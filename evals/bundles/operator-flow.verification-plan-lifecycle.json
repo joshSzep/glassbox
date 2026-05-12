@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Preview and update a changeset verification plan lifecycle"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v16 verification plan lifecycle posture",
+        "turn_id": "00000000-0000-0000-0000-000000168103"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v16 verification plan lifecycle posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000168103"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Preview and update a changeset verification plan lifecycle"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Keep verification plans tied to changed files, evidence, status, and reviewer handoff.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Derive plan entries from changed paths, release surfaces, and prior verification evidence.",
+            "order": 0,
+            "status": "completed",
+            "title": "Generate plan preview"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Retain lifecycle state for queued, running, passed, failed, and skipped checks.",
+            "order": 1,
+            "status": "completed",
+            "title": "Record lifecycle posture"
+          }
+        ],
+        "title": "Verification plan lifecycle review",
+        "verifications": [
+          {
+            "check_name": "operator-flow.verification-plan-lifecycle fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "verification plan lifecycle evidence stays bounded and reviewable"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Preview and update a changeset verification plan lifecycle"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000168003",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "operator-flow.verification-plan-lifecycle"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

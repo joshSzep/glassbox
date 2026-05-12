@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "operator-flow.verification-plan-lifecycle",
+  "title": "Verification plan lifecycle remains explicit",
+  "bundle_path": "../bundles/operator-flow.verification-plan-lifecycle.json",
+  "tags": ["v16-operator-flow", "operator-flow", "verification-plan"],
+  "notes": "Deterministic v16 fixture evidence that verification plan preview and lifecycle posture remain bounded, reviewable, and explicit about skipped checks.",
+  "release_contract": {
+    "owner": "runtime.operator-flow",
+    "capabilities": ["operator_flow_verification_plan_lifecycle"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-12T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000168003",
+      "rationale": "Promoted for GBX-1680 to retain deterministic release-candidate evidence for v16 verification plan lifecycle behavior."
+    }
+  ]
+}

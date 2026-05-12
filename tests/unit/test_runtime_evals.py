@@ -422,7 +422,7 @@ def test_repository_eval_profiles_align_with_v6_gate_stages() -> None:
     assert profiles["release-candidate"].verification_stage == "release-candidate"
     assert profiles["release-candidate"].blocking is True
     assert profiles["release-candidate"].budget is not None
-    assert profiles["release-candidate"].budget.max_selected_case_count == 30
+    assert profiles["release-candidate"].budget.max_selected_case_count == 37
     assert profiles["release-candidate"].budget.allow_advisory_cases is False
     assert provider_profiles["live-provider-canary"].blocking is False
     assert provider_profiles["live-provider-canary"].track == "live-provider-canary"
@@ -607,7 +607,39 @@ def test_repository_release_candidate_profile_includes_v15_intelligence_cases() 
         "repository_intelligence_memory_command_recommendation",
         "repository_intelligence_context_drift",
     }.issubset(capabilities)
-    assert len(cases) == 30
+    assert len(cases) >= 30
+
+
+def test_repository_release_candidate_profile_includes_v16_operator_flow_cases() -> (
+    None
+):
+    cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    case_ids = {case.case_id for case in cases}
+    capabilities = {
+        capability
+        for case in cases
+        for capability in case.release_contract.capabilities
+    }
+
+    assert {
+        "operator-flow.queue-ranking",
+        "operator-flow.evidence-graph-support",
+        "operator-flow.verification-plan-lifecycle",
+        "operator-flow.skipped-check-posture",
+        "operator-flow.changeset-workup-preview",
+        "operator-flow.maintenance-cues",
+        "operator-flow.reviewer-safe-bundle",
+    }.issubset(case_ids)
+    assert {
+        "operator_flow_queue_ranking",
+        "operator_flow_evidence_graph_claim_support",
+        "operator_flow_verification_plan_lifecycle",
+        "operator_flow_skipped_check_posture",
+        "operator_flow_changeset_workup_preview",
+        "operator_flow_maintenance_cue_surfacing",
+        "operator_flow_reviewer_safe_bundle",
+    }.issubset(capabilities)
+    assert len(cases) == 37
 
 
 def test_resolve_eval_suite_selection_applies_profile_before_extra_tag_filter(

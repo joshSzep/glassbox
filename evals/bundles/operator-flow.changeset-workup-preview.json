@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Build a compact changeset workup preview for review"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v16 changeset workup preview",
+        "turn_id": "00000000-0000-0000-0000-000000168105"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v16 changeset workup preview",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000168105"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Build a compact changeset workup preview for review"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Keep changeset workup previews concise while retaining reviewer-critical evidence.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Summarize requirements, changed files, inventory, manual evidence, and review feedback links.",
+            "order": 0,
+            "status": "completed",
+            "title": "Assemble workup inputs"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Preview residual risk, verification state, limitations, and safe handoff actions.",
+            "order": 1,
+            "status": "completed",
+            "title": "Render compact preview"
+          }
+        ],
+        "title": "Changeset workup preview review",
+        "verifications": [
+          {
+            "check_name": "operator-flow.changeset-workup-preview fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "workup preview keeps evidence, verification, limitations, and handoff posture compact"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Build a compact changeset workup preview for review"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000168005",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "operator-flow.changeset-workup-preview"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

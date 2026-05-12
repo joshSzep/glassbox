@@ -242,6 +242,48 @@ def test_v15_repository_intelligence_cases_are_release_candidate_covered() -> No
         assert status.selected_case_ids == [case_id]
 
 
+def test_v16_operator_flow_cases_are_release_candidate_covered() -> None:
+    release_cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    release_case_ids = {case.case_id for case in release_cases}
+    expected_case_ids = {
+        "operator-flow.queue-ranking",
+        "operator-flow.evidence-graph-support",
+        "operator-flow.verification-plan-lifecycle",
+        "operator-flow.skipped-check-posture",
+        "operator-flow.changeset-workup-preview",
+        "operator-flow.maintenance-cues",
+        "operator-flow.reviewer-safe-bundle",
+    }
+
+    assert expected_case_ids.issubset(release_case_ids)
+
+    result = audit_eval_coverage(REPO_ROOT, profile_id="release-candidate")
+    statuses = {status.capability_id: status for status in result.capability_statuses}
+
+    for capability_id, case_id in (
+        ("operator_flow_queue_ranking", "operator-flow.queue-ranking"),
+        (
+            "operator_flow_evidence_graph_claim_support",
+            "operator-flow.evidence-graph-support",
+        ),
+        (
+            "operator_flow_verification_plan_lifecycle",
+            "operator-flow.verification-plan-lifecycle",
+        ),
+        ("operator_flow_skipped_check_posture", "operator-flow.skipped-check-posture"),
+        (
+            "operator_flow_changeset_workup_preview",
+            "operator-flow.changeset-workup-preview",
+        ),
+        ("operator_flow_maintenance_cue_surfacing", "operator-flow.maintenance-cues"),
+        ("operator_flow_reviewer_safe_bundle", "operator-flow.reviewer-safe-bundle"),
+    ):
+        status = statuses[capability_id]
+        assert status.covered is True
+        assert status.expected_case_ids == [case_id]
+        assert status.selected_case_ids == [case_id]
+
+
 def _write_eval_case(
     workspace_root: Path,
     *,

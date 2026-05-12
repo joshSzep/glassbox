@@ -574,6 +574,76 @@
       "expected_case_ids": ["repository-intelligence.memory-command"],
       "coverage_mode": "single_case",
       "notes": "GBX-1580 promotes deterministic v15 evidence that confirmed active workspace memory may enrich repository command recommendations only with provenance, freshness, limitations, and review-gated boundaries."
+    },
+    {
+      "capability_id": "operator_flow_queue_ranking",
+      "title": "Operator flow unified next-action ranking",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.queue-ranking"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes compact deterministic v16 evidence that the operator queue keeps ranked safe next actions, reasons, risk, and verification posture visible."
+    },
+    {
+      "capability_id": "operator_flow_evidence_graph_claim_support",
+      "title": "Operator flow evidence graph claim support",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.evidence-graph-support"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that evidence graph summaries retain claim support, provenance, limitations, and reviewer navigation."
+    },
+    {
+      "capability_id": "operator_flow_verification_plan_lifecycle",
+      "title": "Operator flow verification plan lifecycle",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.verification-plan-lifecycle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that verification plan previews and lifecycle state stay bounded, reviewable, and explicit."
+    },
+    {
+      "capability_id": "operator_flow_skipped_check_posture",
+      "title": "Operator flow skipped-check posture",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.skipped-check-posture"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that skipped checks retain rationale, residual risk, and safe follow-up posture before reviewer handoff."
+    },
+    {
+      "capability_id": "operator_flow_changeset_workup_preview",
+      "title": "Operator flow changeset workup preview",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.changeset-workup-preview"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that compact workup previews preserve requirements, changed files, evidence, verification, limitations, and handoff posture."
+    },
+    {
+      "capability_id": "operator_flow_maintenance_cue_surfacing",
+      "title": "Operator flow maintenance cue surfacing",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.maintenance-cues"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that stale, missing, legacy, or oversized operator-flow evidence surfaces maintenance cues and safe remediation commands."
+    },
+    {
+      "capability_id": "operator_flow_reviewer_safe_bundle",
+      "title": "Operator flow reviewer-safe evidence bundle",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["operator-flow.reviewer-safe-bundle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1680 promotes deterministic v16 evidence that reviewer-safe evidence bundles preserve redaction, publication boundaries, verification posture, and safe next actions."
     }
   ]
 }

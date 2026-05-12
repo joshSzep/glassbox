@@ -295,6 +295,14 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: "
         "evals/bundles/repository-intelligence.snapshot-rich.json" in problems
     )
+    assert (
+        "sdist missing required file: "
+        "evals/cases/operator-flow.queue-ranking.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/bundles/operator-flow.queue-ranking.json" in problems
+    )
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
@@ -626,6 +634,13 @@ def _write_sdist(
                 "evals/cases/repository-intelligence.path-verification.json",
                 "evals/cases/repository-intelligence.snapshot-rich.json",
                 "evals/cases/repository-intelligence.stale-degradation.json",
+                "evals/cases/operator-flow.changeset-workup-preview.json",
+                "evals/cases/operator-flow.evidence-graph-support.json",
+                "evals/cases/operator-flow.maintenance-cues.json",
+                "evals/cases/operator-flow.queue-ranking.json",
+                "evals/cases/operator-flow.reviewer-safe-bundle.json",
+                "evals/cases/operator-flow.skipped-check-posture.json",
+                "evals/cases/operator-flow.verification-plan-lifecycle.json",
                 "evals/cases/task-plan.proposal-capture.json",
                 "evals/cases/task.continuation-blocked.json",
                 "evals/cases/tool-attempt.partial-retry.json",
@@ -651,6 +666,13 @@ def _write_sdist(
                 "evals/bundles/repository-intelligence.path-verification.json",
                 "evals/bundles/repository-intelligence.snapshot-rich.json",
                 "evals/bundles/repository-intelligence.stale-degradation.json",
+                "evals/bundles/operator-flow.changeset-workup-preview.json",
+                "evals/bundles/operator-flow.evidence-graph-support.json",
+                "evals/bundles/operator-flow.maintenance-cues.json",
+                "evals/bundles/operator-flow.queue-ranking.json",
+                "evals/bundles/operator-flow.reviewer-safe-bundle.json",
+                "evals/bundles/operator-flow.skipped-check-posture.json",
+                "evals/bundles/operator-flow.verification-plan-lifecycle.json",
                 "evals/bundles/task-plan.proposal-capture.json",
                 "evals/bundles/task.continuation-blocked.json",
                 "evals/bundles/tool-attempt.partial-retry.json",

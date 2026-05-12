@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Prepare reviewer-safe v16 evidence bundle"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v16 reviewer-safe bundle posture",
+        "turn_id": "00000000-0000-0000-0000-000000168107"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v16 reviewer-safe bundle posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000168107"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Prepare reviewer-safe v16 evidence bundle"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Prepare reviewer-safe evidence without leaking unpublished or local-only details.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Collect reviewer-facing evidence, verification outcomes, limitations, and handoff links.",
+            "order": 0,
+            "status": "completed",
+            "title": "Assemble evidence bundle"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Preserve redaction posture, publication boundaries, residual risk, and safe next actions.",
+            "order": 1,
+            "status": "completed",
+            "title": "Check reviewer safety"
+          }
+        ],
+        "title": "Reviewer-safe bundle review",
+        "verifications": [
+          {
+            "check_name": "operator-flow.reviewer-safe-bundle fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "reviewer bundle retains redaction, publication boundary, verification, and safe-action posture"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Prepare reviewer-safe v16 evidence bundle"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000168007",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "operator-flow.reviewer-safe-bundle"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

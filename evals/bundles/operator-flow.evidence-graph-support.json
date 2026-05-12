@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Inspect evidence graph support for a v16 changeset claim"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v16 evidence graph claim support",
+        "turn_id": "00000000-0000-0000-0000-000000168102"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v16 evidence graph claim support",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000168102"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect evidence graph support for a v16 changeset claim"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Make evidence graph claim support deterministic and reviewer navigable.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Attach changed files, requirements, manual evidence, review feedback, and verification plan references to the claim.",
+            "order": 0,
+            "status": "completed",
+            "title": "Derive support graph"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Expose bounded neighborhoods, provenance, and limitations without losing unsupported-claim posture.",
+            "order": 1,
+            "status": "completed",
+            "title": "Review claim support"
+          }
+        ],
+        "title": "Evidence graph support review",
+        "verifications": [
+          {
+            "check_name": "operator-flow.evidence-graph-support fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "claim support remains connected to evidence, limitations, and safe review navigation"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Inspect evidence graph support for a v16 changeset claim"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000168002",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "operator-flow.evidence-graph-support"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

@@ -247,6 +247,43 @@
             "notes": "Use for repository-intelligence snapshot, path-to-verification, freshness, memory-derived command, and context-drift changes. Keep dashboard/browser/accessibility evidence advisory unless promoted by a deterministic fixture."
         },
         {
+            "recipe_id": "operator-flow-v16",
+            "title": "Operator flow v16 checks",
+            "path_globs": [
+                "src/glassbox/runtime/operator_queue.py",
+                "src/glassbox/runtime/evidence_graph.py",
+                "src/glassbox/runtime/verification_plan_builder.py",
+                "src/glassbox/runtime/changeset_workup.py",
+                "src/glassbox/runtime/changeset_verification.py",
+                "src/glassbox/cli/queue_commands.py",
+                "src/glassbox/cli/parser_session_evidence.py",
+                "src/glassbox/web/routes/changeset_route_evidence_graph.py",
+                "docs/evidence-graph.md",
+                "docs/operator-queue.md",
+                "docs/verification-orchestrator.md",
+                "docs/maintenance-cues.md",
+                "docs/v16-operator-flow-*.md",
+                "evals/cases/operator-flow*.json",
+                "evals/bundles/operator-flow*.json"
+            ],
+            "commands": [
+                "uv run pytest tests/unit/test_evidence_graph.py tests/unit/test_changeset_verification_readiness.py tests/integration/test_performance_budgets.py tests/unit/test_runtime_eval_coverage.py -q",
+                "uv run glassbox eval run --profile release-candidate --cwd .",
+                "uv run glassbox eval audit --profile release-candidate --cwd ."
+            ],
+            "case_ids": [
+                "operator-flow.queue-ranking",
+                "operator-flow.evidence-graph-support",
+                "operator-flow.verification-plan-lifecycle",
+                "operator-flow.skipped-check-posture",
+                "operator-flow.changeset-workup-preview",
+                "operator-flow.maintenance-cues",
+                "operator-flow.reviewer-safe-bundle"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Use for v16 operator queue, evidence graph, verification plan, changeset workup, maintenance cue, and reviewer-safe bundle changes. Keep dashboard/browser/accessibility evidence advisory unless promoted by a deterministic fixture."
+        },
+        {
             "recipe_id": "packaging",
             "title": "Packaging and installed smoke checks",
             "path_globs": [

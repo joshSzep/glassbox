@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "operator-flow.changeset-workup-preview",
+  "title": "Changeset workup preview stays compact",
+  "bundle_path": "../bundles/operator-flow.changeset-workup-preview.json",
+  "tags": ["v16-operator-flow", "operator-flow", "changeset-workup"],
+  "notes": "Deterministic v16 fixture evidence that changeset workup previews keep requirements, touched files, evidence, verification, and handoff posture compact.",
+  "release_contract": {
+    "owner": "runtime.operator-flow",
+    "capabilities": ["operator_flow_changeset_workup_preview"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-12T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000168005",
+      "rationale": "Promoted for GBX-1680 to retain deterministic release-candidate evidence for v16 changeset workup preview behavior."
+    }
+  ]
+}

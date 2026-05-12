@@ -1,0 +1,125 @@
+{
+  "actions": [
+    {
+      "action_type": "user_message",
+      "text": "Review skipped verification checks before handoff"
+    }
+  ],
+  "baseline": {
+    "approvals": [],
+    "budget_posture": null,
+    "cancellations": [
+      {
+        "event": "requested",
+        "reason": "eval fixture preserves v16 skipped-check posture",
+        "turn_id": "00000000-0000-0000-0000-000000168104"
+      },
+      {
+        "event": "turn_cancelled",
+        "reason": "eval fixture preserves v16 skipped-check posture",
+        "stage": "model_call",
+        "turn_id": "00000000-0000-0000-0000-000000168104"
+      }
+    ],
+    "event_families": [
+      "SessionStarted",
+      "UserMessageReceived",
+      "TurnStarted",
+      "TaskCreated",
+      "TaskStepCompleted",
+      "TaskVerificationCompleted",
+      "CancellationRequested",
+      "TurnCancelled",
+      "TurnCompleted"
+    ],
+    "final_state": {
+      "has_active_turn": false,
+      "has_pending_approval": false,
+      "has_pending_question": false,
+      "status": "running"
+    },
+    "inherited_transcript": [],
+    "lineage": null,
+    "long_run_events": [],
+    "post_fork_transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Review skipped verification checks before handoff"
+          }
+        ],
+        "role": "user"
+      }
+    ],
+    "questions": [],
+    "task_plans": [
+      {
+        "blocked_detail": null,
+        "blocked_reason": null,
+        "current_step_order": 1,
+        "goal": "Keep skipped verification checks explicit, risk-labeled, and follow-up ready.",
+        "status": "completed",
+        "steps": [
+          {
+            "blocked_reason": null,
+            "description": "Retain check name, skip reason, stale or missing evidence, and affected review posture.",
+            "order": 0,
+            "status": "completed",
+            "title": "Summarize skipped checks"
+          },
+          {
+            "blocked_reason": null,
+            "description": "Preserve safe next actions for rerun, manual evidence, or reviewer-visible residual risk.",
+            "order": 1,
+            "status": "completed",
+            "title": "Capture follow-up posture"
+          }
+        ],
+        "title": "Skipped check posture review",
+        "verifications": [
+          {
+            "check_name": "operator-flow.skipped-check-posture fixture",
+            "status": "passed",
+            "step_order": 1,
+            "summary": "skipped checks remain visible with rationale, risk, and follow-up posture"
+          }
+        ]
+      }
+    ],
+    "tool_calls": [],
+    "transcript": [
+      {
+        "parts": [
+          {
+            "kind": "text",
+            "text": "Review skipped verification checks before handoff"
+          }
+        ],
+        "role": "user"
+      }
+    ]
+  },
+  "bundle_kind": "glassbox_replay_bundle",
+  "bundle_version": 1,
+  "model_calls": [],
+  "session_config": {
+    "approval_mode": "confirm",
+    "cwd": "/Users/joshszep/code/glassbox",
+    "model_name": "openai:gpt-5.4"
+  },
+  "source_session_id": "00000000-0000-0000-0000-000000168004",
+  "tool_requests": [],
+  "tool_results": [],
+  "turn_outputs": [
+    {
+      "artifact_kind": "replay_turn_output",
+      "assistant_text": null,
+      "details": {
+        "fixture": "operator-flow.skipped-check-posture"
+      },
+      "manifest_version": 1,
+      "outcome": "cancelled"
+    }
+  ]
+}

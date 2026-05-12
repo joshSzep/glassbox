@@ -514,6 +514,31 @@ def test_recommend_eval_change_impact_routes_v15_repository_intelligence_paths()
     )
 
 
+def test_recommend_eval_change_impact_routes_v16_operator_flow_paths() -> None:
+    report = recommend_eval_change_impact(
+        _REPO_ROOT,
+        touched_paths=["src/glassbox/runtime/evidence_graph.py"],
+    )
+    case_ids = {recommendation.case_id for recommendation in report.cases}
+    profile_ids = {recommendation.profile_id for recommendation in report.profiles}
+
+    assert "v16-operator-flow" in report.matched_rule_ids
+    assert "src/glassbox/runtime/evidence_graph.py" not in report.unmatched_paths
+    assert {
+        "operator-flow.queue-ranking",
+        "operator-flow.evidence-graph-support",
+        "operator-flow.verification-plan-lifecycle",
+        "operator-flow.skipped-check-posture",
+        "operator-flow.changeset-workup-preview",
+        "operator-flow.maintenance-cues",
+        "operator-flow.reviewer-safe-bundle",
+    }.issubset(case_ids)
+    assert "release-candidate" in profile_ids
+    assert "uv run glassbox eval run --profile release-candidate --cwd ." in (
+        report.suggested_commands
+    )
+
+
 def test_recommend_eval_change_impact_routes_changeset_runtime_paths() -> None:
     report = recommend_eval_change_impact(
         _REPO_ROOT,

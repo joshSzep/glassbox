@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "operator-flow.queue-ranking",
+  "title": "Operator flow ranks unified next actions",
+  "bundle_path": "../bundles/operator-flow.queue-ranking.json",
+  "tags": ["v16-operator-flow", "operator-flow", "operator-queue"],
+  "notes": "Deterministic v16 fixture evidence that the unified operator queue preserves ranked safe next actions, reasons, risk, and verification posture.",
+  "release_contract": {
+    "owner": "runtime.operator-flow",
+    "capabilities": ["operator_flow_queue_ranking"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-12T16:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000168001",
+      "rationale": "Promoted for GBX-1680 to retain deterministic release-candidate evidence for unified v16 next-action ranking."
+    }
+  ]
+}
