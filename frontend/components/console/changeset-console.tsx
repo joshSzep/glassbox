@@ -35,6 +35,7 @@ export function ChangesetConsole({
   onInspectHandoff,
   onPreviewVerification,
   onRecordFeedbackFixup,
+  onRecordVerification,
   onRefresh,
   onRefreshChangeset,
   onSelectChangeset,
@@ -80,6 +81,7 @@ export function ChangesetConsole({
             onInspectHandoff={onInspectHandoff}
             onPreviewVerification={onPreviewVerification}
             onRecordFeedbackFixup={onRecordFeedbackFixup}
+            onRecordVerification={onRecordVerification}
             onRefreshChangeset={onRefreshChangeset}
             onShowList={onShowList}
           />
@@ -98,6 +100,7 @@ function ChangesetDetail({
   onInspectHandoff,
   onPreviewVerification,
   onRecordFeedbackFixup,
+  onRecordVerification,
   onRefreshChangeset,
   onShowList,
 }: {
@@ -109,6 +112,7 @@ function ChangesetDetail({
   onInspectHandoff?: () => void;
   onPreviewVerification?: () => void;
   onRecordFeedbackFixup?: ChangesetConsoleProps["onRecordFeedbackFixup"];
+  onRecordVerification?: ChangesetConsoleProps["onRecordVerification"];
   onRefreshChangeset?: () => void;
   onShowList?: () => void;
 }) {
@@ -198,6 +202,8 @@ function ChangesetDetail({
         verificationPlan={verificationPlan}
       />
       <VerificationPanel
+        action={action}
+        onRecordVerification={onRecordVerification}
         posture={detail.detail.verification_posture}
         verificationPlan={verificationPlan}
       />

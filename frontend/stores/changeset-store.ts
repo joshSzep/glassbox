@@ -34,6 +34,7 @@ export type ChangesetActionKind =
   | "inspect-handoff"
   | "preview-verification"
   | "record-feedback-fixup"
+  | "record-verification"
   | "refresh-changeset";
 
 export type ChangesetActionStatus = StoreActionStatus<ChangesetActionKind>;
@@ -89,6 +90,10 @@ export type ChangesetStoreActions = {
   loadChangesetPage: (query?: { sessionId?: string | null }) => Promise<void>;
   previewVerification: (changesetId?: string) => Promise<void>;
   recordFeedbackFixupInventory: (feedbackId: string) => Promise<void>;
+  recordVerification: (input: {
+    taskId?: string | null;
+    verificationId?: string | null;
+  }) => Promise<void>;
   refreshChangeset: (changesetId?: string) => Promise<void>;
   reset: () => void;
   selectChangeset: (changesetId: string) => Promise<void>;

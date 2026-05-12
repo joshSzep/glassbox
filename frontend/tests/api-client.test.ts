@@ -429,6 +429,7 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ changeset: { changeset_id: "changeset/1" } }),
       jsonResponse({ readiness: { state: "missing" } }),
       jsonResponse({ graph_id: "graph-changeset-1" }),
+      jsonResponse({ selected_verification_ids: ["verification/1"] }),
       jsonResponse({ state: "needs_verification" }),
       jsonResponse({ suggestion_label: "suggestion_only_not_committed" }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
@@ -442,6 +443,10 @@ describe("createGlassboxApiClient", () => {
     await client.getChangesetDetail("changeset/1");
     await client.getChangesetVerificationPlan("changeset/1");
     await client.getChangesetEvidenceGraph("changeset/1");
+    await client.recordChangesetVerification({
+      changesetId: "changeset/1",
+      verificationId: "verification/1",
+    });
     await client.getChangesetCommitReadiness("changeset/1");
     await client.getChangesetCommitMessage("changeset/1");
     await client.generateChangesetReviewBrief({
@@ -466,6 +471,7 @@ describe("createGlassboxApiClient", () => {
       "/changesets/changeset%2F1",
       "/changesets/changeset%2F1/verification-plan",
       "/changesets/changeset%2F1/evidence-graph",
+      "/changesets/changeset%2F1/record-verification",
       "/changesets/changeset%2F1/commit-readiness",
       "/changesets/changeset%2F1/commit-message",
       "/changesets/changeset%2F1/brief",
@@ -473,9 +479,12 @@ describe("createGlassboxApiClient", () => {
       "/changesets/changeset%2F1/manual-evidence",
       "/changesets/feedback/feedback%2F1/fixup",
     ]);
-    expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
-    expect(calls[7].init?.body).toBe(JSON.stringify({ actor: "operator" }));
-    expect(calls[8].init?.body).toBe(
+    expect(calls[4].init?.body).toBe(
+      JSON.stringify({ task_id: null, verification_id: "verification/1" }),
+    );
+    expect(calls[7].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
+    expect(calls[8].init?.body).toBe(JSON.stringify({ actor: "operator" }));
+    expect(calls[9].init?.body).toBe(
       JSON.stringify({
         actor: "operator",
         command_text: null,
@@ -488,7 +497,7 @@ describe("createGlassboxApiClient", () => {
         target_kind: "changeset",
       }),
     );
-    expect(calls[9].init?.body).toBe(
+    expect(calls[10].init?.body).toBe(
       JSON.stringify({
         actor: "operator",
         from_workspace: false,

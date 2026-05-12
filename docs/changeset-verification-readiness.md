@@ -143,6 +143,14 @@ checked against the current workspace before rendering readiness, so a workspace
 diff that changes after a recorded verification can make the displayed
 readiness stale even when the latest recorded posture was previously `passed`.
 
+The v16 dashboard groups plan entries into deterministic, advisory, manual, and
+skipped check lanes. Selecting retained verification evidence calls the explicit
+`record-verification` API endpoint; browser-side controls for run, retry, skip,
+and accepted risk stay visibly policy-gated unless a dedicated backend endpoint
+exists. Plan entries link back to the evidence graph claim anchors and retained
+artifact IDs so operators can inspect support without treating skipped or
+accepted-risk checks as passed.
+
 ## Stale Verification
 
 The first stale-verification boundary is sequence- and path-aware. When a

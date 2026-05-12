@@ -936,7 +936,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1652: Build Verification Plan Dashboard Workflow
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1634`, `GBX-1651`
 - Goal: expose verification plan preview, selection, skip, run, retry, and
   accepted-risk posture in the dashboard

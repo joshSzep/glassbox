@@ -1,4 +1,5 @@
 import type {
+  ChangesetRecordVerificationResponse,
   ChangesetReviewBriefGenerateResponse,
   ManualEvidenceActionResponse,
 } from "@/api/client";
@@ -31,6 +32,13 @@ export function verificationPreviewActionMessage(commandCount: number): string {
     `${commandCount} verification command${commandCount === 1 ? "" : "s"} ` +
     "previewed; none were run."
   );
+}
+
+export function recordVerificationActionMessage(
+  response: ChangesetRecordVerificationResponse,
+): string {
+  const count = response.selected_verification_ids.length;
+  return `${count} retained verification entr${count === 1 ? "y" : "ies"} recorded.`;
 }
 
 export function inspectFirstActionMessage(nextAction: string): string {

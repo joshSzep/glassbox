@@ -15,6 +15,7 @@ type BranchSearchDetail = components["schemas"]["BranchSearchDetailResponse"];
 type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type ChangesetSummary = components["schemas"]["ChangesetSummaryResponse"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+type VerificationPlanEntry = components["schemas"]["VerificationPlanEntryResponse"];
 type ChangesetVerificationPlanSummary =
   components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
@@ -59,6 +60,16 @@ describe("changeset console", () => {
     expect(markup).toContain("3 manual evidence");
     expect(markup).toContain("0 plan passed");
     expect(markup).toContain("retained verification failed");
+    expect(markup).toContain("Deterministic checks");
+    expect(markup).toContain("Advisory checks");
+    expect(markup).toContain("Manual checks");
+    expect(markup).toContain("Skipped checks");
+    expect(markup).toContain("Select");
+    expect(markup).toContain("Run");
+    expect(markup).toContain("Retry");
+    expect(markup).toContain("Accept risk");
+    expect(markup).toContain("Inspect artifact");
+    expect(markup).toContain("Evidence graph");
     expect(markup).toContain("Review-loop context");
     expect(markup).toContain("1 missing response checks");
     expect(markup).toContain("pytest unit");
@@ -983,7 +994,38 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
     plan_summary: makeVerificationPlanSummary(changesetId),
-    plan_entries: [],
+    plan_entries: [
+      makeVerificationPlanEntry("verification-1", {
+        evidence_references: [
+          {
+            freshness: "fresh",
+            kind: "artifact",
+            redaction: "safe_summary",
+            ref_id: "artifact-1",
+            reviewer_safe: true,
+            source_path: null,
+            summary: "retained verification output",
+          },
+        ],
+      }),
+      makeVerificationPlanEntry("verification-advisory", {
+        blocking: false,
+        command: [],
+        execution_requires_approval: false,
+        kind: "advisory",
+        manual_evidence_required: false,
+        rationale: "Provider canary evidence is advisory for this changeset.",
+        source: "provider_canary",
+      }),
+      makeVerificationPlanEntry("verification-manual", {
+        blocking: false,
+        command: [],
+        kind: "manual",
+        manual_evidence_required: true,
+        rationale: "Manual dashboard evidence is required for visual posture.",
+        source: "manual_evidence",
+      }),
+    ],
     review_loop_summary: {
       accepted_risk_response_count: 1,
       accessibility_evidence_count: 1,
@@ -1066,7 +1108,16 @@ function makeVerificationPlan(changesetId: string): ChangesetVerificationPlan {
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["uv run pytest tests/unit"],
     session_id: "session-1",
-    skipped_checks: [],
+    skipped_checks: [
+      {
+        explanation: "No frontend route changed in this changeset.",
+        matched_paths: ["src/glassbox/runtime/changesets.py"],
+        reason: "not_applicable",
+        safe_next_actions: [],
+        target_id: "browser-smoke",
+        target_kind: "browser",
+      },
+    ],
   };
 }
 
@@ -1312,6 +1363,41 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "needs_verification",
     verification_id: "verification-1",
+  };
+}
+
+function makeVerificationPlanEntry(
+  verificationId: string,
+  overrides: Partial<VerificationPlanEntry> = {},
+): VerificationPlanEntry {
+  return {
+    blocking: true,
+    changed_paths: ["src/glassbox/runtime/changesets.py"],
+    check_name: "pytest unit",
+    command: ["uv", "run", "pytest", "tests/unit"],
+    command_recipe: null,
+    eval_case_id: null,
+    eval_profile_id: null,
+    evidence_references: [],
+    execution_requires_approval: false,
+    expected_exit_codes: [0],
+    kind: "test",
+    lifecycle_state: "proposed",
+    manual_evidence_required: false,
+    rationale: "Run focused unit coverage for changed runtime code.",
+    release_surfaces: ["review"],
+    selection_rationale: "Runtime code changed.",
+    source: "changed_paths",
+    stale_reasons: [],
+    superseded_by_verification_id: null,
+    target: {
+      kind: "path",
+      label: "src/glassbox/runtime/changesets.py",
+      target_id: "src/glassbox/runtime/changesets.py",
+    },
+    timeout_seconds: 120,
+    verification_id: verificationId,
+    ...overrides,
   };
 }
 

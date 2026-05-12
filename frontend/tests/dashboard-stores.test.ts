@@ -331,6 +331,14 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getChangesetHandoffReadiness: async (changesetId) => makeHandoffReadiness(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
+    recordChangesetVerification: async (input) => ({
+      changeset_id: input.changesetId,
+      event_sequence: 9,
+      readiness: makeChangesetVerificationPlan(input.changesetId).readiness,
+      retained_artifact_ids: ["artifact-command-1"],
+      selected_verification_ids: input.verificationId ? [input.verificationId] : [],
+      session_id: "session-1",
+    }),
     getReviewFeedbackPage: async () => ({ items: [] }),
     getRepositoryIndexEntryDetail: async (entryId) => ({ entry: makeRepositoryEntry(entryId) }),
     getRepositoryIndexStatus: async () => makeRepositoryStatus(),
@@ -1028,6 +1036,7 @@ describe("changeset store", () => {
     await store.getState().loadChangesetPage();
     await store.getState().selectChangeset("changeset-1");
     await store.getState().previewVerification();
+    await store.getState().recordVerification({ verificationId: "verification-1" });
     await store.getState().inspectFeedbackStatus();
     await store.getState().inspectHandoff();
     await store.getState().attachManualEvidence({
@@ -1044,6 +1053,9 @@ describe("changeset store", () => {
       "brief-artifact-1",
     );
     expect(store.getState().detail.verificationPlan?.readiness.state).toBe("missing");
+    expect(store.getState().detail.lastActionMessage).toBe(
+      "Lifecycle brief brief-artifact-1 generated.",
+    );
     expect(store.getState().detail.commitReadiness?.state).toBe("needs_verification");
     expect(store.getState().detail.commitMessage?.suggestion_label).toBe(
       "suggestion_only_not_committed",
@@ -1054,9 +1066,6 @@ describe("changeset store", () => {
     ]);
     expect(store.getState().detail.repositoryIntelligence?.pathInspections[0]?.path).toBe(
       "src/glassbox/runtime/changesets.py",
-    );
-    expect(store.getState().detail.lastActionMessage).toBe(
-      "Lifecycle brief brief-artifact-1 generated.",
     );
     expect(store.getState().action.state).toBe("succeeded");
     expect(store.getState().action.kind).toBe("generate-brief");

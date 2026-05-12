@@ -7,6 +7,7 @@ import {
   handoffActionMessage,
   inspectFirstActionMessage,
   manualEvidenceActionMessage,
+  recordVerificationActionMessage,
   refreshChangesetActionMessage,
   reviewBriefActionMessage,
   verificationPreviewActionMessage,
@@ -43,6 +44,7 @@ export function createChangesetStoreReviewActions({
   | "inspectHandoff"
   | "previewVerification"
   | "recordFeedbackFixupInventory"
+  | "recordVerification"
   | "refreshChangeset"
 > {
   return {
@@ -234,6 +236,24 @@ export function createChangesetStoreReviewActions({
             lastActionMessage: fixupInventoryFailedActionMessage(),
           });
         }
+      }
+    },
+    recordVerification: async (input) => {
+      const selectedChangesetId = requireSelectedChangesetId(get().detail);
+      set({ action: createPendingActionStatus("record-verification") });
+      try {
+        const response = await apiClient.recordChangesetVerification({
+          changesetId: selectedChangesetId,
+          taskId: input.taskId,
+          verificationId: input.verificationId,
+        });
+        await reloadSelectedChangeset(apiClient, selectedChangesetId, set, {
+          lastActionMessage: recordVerificationActionMessage(response),
+        });
+        set({ action: createSucceededActionStatus("record-verification") });
+        await get().loadChangesetPage();
+      } catch (error) {
+        set({ action: createFailedActionStatus("record-verification", error) });
       }
     },
     refreshChangeset: async (changesetId) => {

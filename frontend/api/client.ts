@@ -18,6 +18,7 @@ export type {
   EvidenceGraphResponse,
   ChangesetListPageQuery,
   ChangesetListPageResponse,
+  ChangesetRecordVerificationResponse,
   ChangesetReviewBriefGenerateResponse,
   ChangesetVerificationPlanPreviewResponse,
   CommitMessageSuggestionResponse,

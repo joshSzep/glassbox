@@ -64,6 +64,18 @@ export function changesetConsoleActions({
       }
       void changesetStore.getState().recordFeedbackFixupInventory(feedbackId);
     },
+    onRecordVerification: (
+      input: Parameters<ReturnType<typeof changesetStore.getState>["recordVerification"]>[0],
+    ) => {
+      if (
+        !confirmAction(
+          "Record retained verification evidence for this plan entry? This does not run commands.",
+        )
+      ) {
+        return;
+      }
+      void changesetStore.getState().recordVerification(input);
+    },
     onSelectChangeset: (changesetId: string) => {
       navigate(selectChangesetRoute(route, changesetId));
       void changesetStore.getState().selectChangeset(changesetId);
