@@ -140,6 +140,9 @@ operator authority explicit.
 - [operator-queue.md](./operator-queue.md): v16 unified operator queue
   contract for queue item families, priorities, stale state, evidence
   summaries, dedupe keys, and dismissal semantics
+- [v16-flow-cockpit-evidence.md](./v16-flow-cockpit-evidence.md): retained
+  advisory browser and accessibility evidence for the v16 queue, evidence
+  graph, verification-plan, and maintenance cockpit surfaces
 - [verification-orchestrator.md](./verification-orchestrator.md): v16
   verification planning lifecycle contract for proposed, selected, executed,
   skipped, stale, superseded, manual-only, and accepted-risk checks
@@ -412,6 +415,9 @@ operator authority explicit.
 - [operator-queue.md](./operator-queue.md): use the shared queue vocabulary
   when mapping sessions, tasks, changesets, verification, maintenance, and
   advisory cues into one ranked attention list
+- [v16-flow-cockpit-evidence.md](./v16-flow-cockpit-evidence.md): retain the
+  current advisory browser/accessibility pass and its explicit skipped
+  assistive-technology non-claims
 - [tasks-v16.md](./tasks-v16.md): follow the dependency-ordered implementation
   graph for turning the v16 contract and audit into shared models, APIs, CLI
   output, dashboard panels, TUI entry points, evals, and release evidence

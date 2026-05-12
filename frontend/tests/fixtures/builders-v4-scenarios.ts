@@ -3,6 +3,7 @@ import type { SseEventEnvelope } from "../../api/sse";
 
 import { makeEnvelope } from "./builders-actions";
 import {
+  makeOperatorQueueItem,
   makeProviderEvidence,
   makeProjectionHealth,
   makeRuntimeContext,
@@ -36,8 +37,74 @@ export function makeV4ScenarioAggregate(
       ? sessions
       : sessions.filter((session) => session.queue_memberships.includes(queue));
   const degradedCount = sessions.filter((session) => session.projection_health.degraded).length;
+  const maintenanceTarget = {
+    kind: "projection" as const,
+    label: "Workspace projection health",
+    target_id: "workspace-projection",
+  };
+  const operatorQueue =
+    scenarioId === "projection-degraded"
+      ? [
+          makeOperatorQueueItem("queue:workspace:projection-maintenance", {
+            blocking: false,
+            dismissal_policy: "not_dismissible",
+            evidence_summary: {
+              claim_id: "claim-projection-stale",
+              evidence_graph_id: "graph-maintenance",
+              limitation_count: 1,
+              missing_evidence: [],
+              stale_evidence: [
+                {
+                  freshness: "stale",
+                  kind: "projection",
+                  ref_id: "workspace-projection",
+                  reviewer_safe: true,
+                  source_path: null,
+                  summary: "Projection health is degraded in the fixture workspace.",
+                },
+              ],
+              summary:
+                "Projection health is degraded and should be inspected before relying on queue counts.",
+              support_state: "stale",
+              supporting_evidence: [],
+            },
+            family: "maintenance",
+            limitations: [
+              "Maintenance cues are advisory unless a deterministic gate promotes them.",
+            ],
+            owner_label: "Projection health",
+            priority: "degraded",
+            safe_next_action: {
+              ...makeOperatorQueueItem("queue:workspace:projection-maintenance").safe_next_action,
+              action_id: "workspace:projection:inspect",
+              confidence: "medium",
+              kind: "inspect",
+              priority: "degraded",
+              severity: "medium",
+              summary: "Inspect projection health before depending on derived queue posture.",
+              target: maintenanceTarget,
+              title: "Inspect stale projection",
+            },
+            severity: "medium",
+            stale: true,
+            state: "degraded",
+            target: maintenanceTarget,
+            updated_at: "2026-04-23T00:00:03Z",
+          }),
+        ]
+      : [];
 
   return makeSessionAggregate(filteredSessions, {
+    operator_queue: operatorQueue,
+    operator_queue_counts: {
+      advisory: 0,
+      informational: 0,
+      maintenance: operatorQueue.length,
+      review_blocking: 0,
+      total: operatorQueue.length,
+      verification_blocking: 0,
+      work_blocking: 0,
+    },
     projection_health_counts: {
       degraded: degradedCount,
       ok: Math.max(sessions.length - degradedCount, 0),

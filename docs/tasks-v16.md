@@ -985,7 +985,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1654: Add Browser And Accessibility Evidence For The Flow Cockpit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1650`, `GBX-1651`, `GBX-1652`
 - Goal: collect bounded advisory UX evidence for the operator queue, evidence
   graph, and verification plan dashboard surfaces

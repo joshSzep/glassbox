@@ -315,6 +315,42 @@ test("reviewer can inspect a changeset and generate a brief", async ({ page }) =
   );
 });
 
+test("operator can inspect v16 cockpit evidence surfaces", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page, "projection-degraded");
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.setViewportSize({ height: 900, width: 1280 });
+
+  await page.goto("/app");
+  await expect(page.getByRole("region", { name: "Unified operator queue" })).toBeVisible();
+  await expect(page.getByRole("listitem", { name: "Maintenance queue lane" })).toBeVisible();
+  await expect(page.getByText("Inspect stale projection")).toBeVisible();
+  await expect(page.getByText("Projection health is degraded")).toBeVisible();
+
+  await openClientRoute(page, "/app/changesets/changeset-1");
+  await expect(page.getByRole("heading", { name: "Evidence Graph Explorer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Changeset Evidence Graph" })).toBeVisible();
+  await expect(page.getByLabel("Evidence graph summary")).toContainText("changeset");
+  await expect(page.getByText("Review ready claim needs inspection")).toBeVisible();
+  await expect(page.getByText("pytest rerun is missing for this claim.")).toBeVisible();
+  await expect(page.getByText("Stale pytest result")).toBeVisible();
+
+  await expect(page.getByText("Deterministic checks")).toBeVisible();
+  await expect(page.locator("#verification-plan-entry-verification-1")).toContainText(
+    "frontend checks",
+  );
+  await expect(page.getByText("1 skipped live", { exact: true })).toBeVisible();
+  await expect(page.getByText("Screen-reader pairing was intentionally not run")).toBeVisible();
+  await page.getByRole("button", { name: "Select" }).first().click();
+  await expect
+    .poll(() => fixture.actions.map((action) => action.url))
+    .toContain("/changesets/changeset-1/record-verification");
+  await expect(page.getByText("1 retained verification entry recorded.")).toBeVisible();
+
+  await page.setViewportSize({ height: 844, width: 390 });
+  await expect(page.getByRole("heading", { name: "Changeset Evidence Graph" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+});
+
 test("mobile operator can select a branch-search candidate from the keyboard", async ({ page }) => {
   const fixture = await installGlassboxApiFixture(page);
   page.on("dialog", (dialog) => dialog.accept());

@@ -132,6 +132,10 @@ not merge, rebase, stage, commit, push, or open a PR.
 Fresh v15 advisory browser and accessibility-adjacent evidence for the
 repository intelligence console and changeset deep links is retained in
 [v15-repository-intelligence-evidence.md](./v15-repository-intelligence-evidence.md).
+Fresh v16 advisory browser and accessibility evidence for the unified operator
+queue, changeset evidence graph, verification-plan controls, skipped live
+evidence, and maintenance cues is retained in
+[v16-flow-cockpit-evidence.md](./v16-flow-cockpit-evidence.md).
 
 The browser first reads `GET /sessions/{session_id}` and then subscribes to `GET /sessions/{session_id}/events`.
 Session summary and snapshot responses include a `long_run_status` read model

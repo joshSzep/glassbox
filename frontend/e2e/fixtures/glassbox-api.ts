@@ -4,6 +4,7 @@ import type { components } from "@/generated/api-types";
 import {
   defaultChildSessionId,
   defaultSessionId,
+  makeEvidenceGraph,
   makeV4ForkResponse,
   makeV4ScenarioAggregate,
   makeV4ScenarioSnapshot,
@@ -146,6 +147,9 @@ export async function installGlassboxApiFixture(
           session_id: sessionId,
         },
       });
+    });
+    await page.route(`**/sessions/${sessionId}/evidence-graph`, (route) => {
+      route.fulfill({ json: makeEvidenceGraph(sessionId) });
     });
     await page.route(`**/sessions/${sessionId}/turn-metrics**`, (route) => {
       const snapshot = makeV4ScenarioSnapshot(sessionId, scenarioId);
@@ -491,8 +495,39 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
       });
       return;
     }
+    if (
+      request.method() === "POST" &&
+      path === `/changesets/${changeset.changeset_id}/record-verification`
+    ) {
+      const body = route.request().postDataJSON() as {
+        task_id?: string | null;
+        verification_id?: string | null;
+      };
+      await recordAction(route, state, {
+        changeset_id: changeset.changeset_id,
+        event_sequence: 12,
+        readiness: makeChangesetVerificationPlan(changeset.changeset_id).readiness,
+        retained_artifact_ids: ["artifact-1"],
+        selected_verification_ids: [body.verification_id ?? "verification-1"],
+        session_id: defaultSessionId,
+      });
+      return;
+    }
     if (path === "/changesets") {
       await route.fulfill({ json: { items: [changeset] } });
+      return;
+    }
+    if (path === `/changesets/${changeset.changeset_id}/evidence-graph`) {
+      await route.fulfill({
+        json: makeEvidenceGraph(changeset.changeset_id, {
+          graph_id: "graph-changeset-1",
+          target: {
+            kind: "changeset",
+            label: "changeset-1",
+            target_id: changeset.changeset_id,
+          },
+        }),
+      });
       return;
     }
     if (path === `/changesets/${changeset.changeset_id}/verification-plan`) {
@@ -1352,14 +1387,53 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     limitations: [],
     non_claims: ["verification plan preview does not run commands"],
     plan_summary: makeVerificationPlanSummary(changesetId),
-    plan_entries: [],
+    plan_entries: [
+      {
+        blocking: true,
+        changed_paths: ["frontend/components/console/changeset-console.tsx"],
+        check_name: "frontend checks",
+        command: ["pnpm", "--dir", "frontend", "test"],
+        command_recipe: null,
+        eval_case_id: null,
+        eval_profile_id: null,
+        evidence_references: [
+          {
+            freshness: "fresh",
+            kind: "artifact",
+            redaction: "safe_summary",
+            ref_id: "artifact-1",
+            reviewer_safe: true,
+            source_path: ".glassbox/sessions/session-1/artifacts/artifact-1.json",
+            summary: "Retained frontend test evidence.",
+          },
+        ],
+        execution_requires_approval: true,
+        expected_exit_codes: [0],
+        kind: "test",
+        lifecycle_state: "proposed",
+        manual_evidence_required: false,
+        rationale: "Changed dashboard cockpit surfaces need frontend checks.",
+        release_surfaces: ["dashboard"],
+        selection_rationale: "Matched changed frontend paths.",
+        source: "changed_paths",
+        stale_reasons: [],
+        superseded_by_verification_id: null,
+        target: {
+          kind: "changeset",
+          label: "changeset-1",
+          target_id: changesetId,
+        },
+        timeout_seconds: 600,
+        verification_id: "verification-1",
+      },
+    ],
     review_loop_summary: {
       accepted_risk_response_count: 0,
       accessibility_evidence_count: 0,
       browser_evidence_count: 0,
-      skipped_accessibility_evidence_count: 0,
+      skipped_accessibility_evidence_count: 1,
       skipped_browser_evidence_count: 0,
-      skipped_live_evidence_count: 0,
+      skipped_live_evidence_count: 1,
       failed_response_verification_count: 0,
       feedback_count: 1,
       manual_evidence_count: 1,
@@ -1427,7 +1501,18 @@ function makeChangesetVerificationPlan(changesetId: string): ChangesetVerificati
     retained_artifact_ids: ["artifact-1"],
     safe_next_actions: ["pnpm run test"],
     session_id: defaultSessionId,
-    skipped_checks: [],
+    skipped_checks: [
+      {
+        explanation: "Screen-reader pairing was intentionally not run for this advisory pass.",
+        matched_paths: ["frontend/components/console/changeset-console.tsx"],
+        reason: "assistive technology unavailable",
+        safe_next_actions: [
+          "record a named screen-reader pairing before making accessibility claims",
+        ],
+        target_id: "screen-reader-pairing",
+        target_kind: "accessibility",
+      },
+    ],
   };
 }
 
