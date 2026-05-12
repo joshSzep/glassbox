@@ -154,6 +154,7 @@ describe("createGlassboxApiClient", () => {
         page: { cursor: 0, has_more: false, limit: 12, next_cursor: null, returned_count: 0 },
         session_id: "session/1",
       }),
+      jsonResponse({ graph_id: "graph-session-1" }),
     ]);
     const client = createGlassboxApiClient({ fetch });
 
@@ -162,6 +163,7 @@ describe("createGlassboxApiClient", () => {
     await client.getSessionToolCallPage("session/1", { limit: 10 });
     await client.getSessionTurnMetricsPage("session/1", { limit: 5 });
     await client.getSessionArtifactPage("session/1", { limit: 12 });
+    await client.getSessionEvidenceGraph("session/1");
 
     expect(calls.map((call) => call.input)).toEqual([
       "/sessions/session%2F1/transcript?limit=20",
@@ -169,6 +171,7 @@ describe("createGlassboxApiClient", () => {
       "/sessions/session%2F1/tool-calls?limit=10",
       "/sessions/session%2F1/turn-metrics?limit=5",
       "/sessions/session%2F1/artifacts?limit=12",
+      "/sessions/session%2F1/evidence-graph",
     ]);
   });
 
@@ -425,6 +428,7 @@ describe("createGlassboxApiClient", () => {
       jsonResponse({ items: [] }),
       jsonResponse({ changeset: { changeset_id: "changeset/1" } }),
       jsonResponse({ readiness: { state: "missing" } }),
+      jsonResponse({ graph_id: "graph-changeset-1" }),
       jsonResponse({ state: "needs_verification" }),
       jsonResponse({ suggestion_label: "suggestion_only_not_committed" }),
       jsonResponse({ detail: { changeset: { changeset_id: "changeset/1" } } }),
@@ -437,6 +441,7 @@ describe("createGlassboxApiClient", () => {
     await client.getChangesetPage({ limit: 10, session_id: "session/1" });
     await client.getChangesetDetail("changeset/1");
     await client.getChangesetVerificationPlan("changeset/1");
+    await client.getChangesetEvidenceGraph("changeset/1");
     await client.getChangesetCommitReadiness("changeset/1");
     await client.getChangesetCommitMessage("changeset/1");
     await client.generateChangesetReviewBrief({
@@ -460,6 +465,7 @@ describe("createGlassboxApiClient", () => {
       "/changesets?limit=10&session_id=session%2F1",
       "/changesets/changeset%2F1",
       "/changesets/changeset%2F1/verification-plan",
+      "/changesets/changeset%2F1/evidence-graph",
       "/changesets/changeset%2F1/commit-readiness",
       "/changesets/changeset%2F1/commit-message",
       "/changesets/changeset%2F1/brief",
@@ -467,9 +473,9 @@ describe("createGlassboxApiClient", () => {
       "/changesets/changeset%2F1/manual-evidence",
       "/changesets/feedback/feedback%2F1/fixup",
     ]);
-    expect(calls[5].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
-    expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator" }));
-    expect(calls[7].init?.body).toBe(
+    expect(calls[6].init?.body).toBe(JSON.stringify({ actor: "operator", include_markdown: true }));
+    expect(calls[7].init?.body).toBe(JSON.stringify({ actor: "operator" }));
+    expect(calls[8].init?.body).toBe(
       JSON.stringify({
         actor: "operator",
         command_text: null,
@@ -482,7 +488,7 @@ describe("createGlassboxApiClient", () => {
         target_kind: "changeset",
       }),
     );
-    expect(calls[8].init?.body).toBe(
+    expect(calls[9].init?.body).toBe(
       JSON.stringify({
         actor: "operator",
         from_workspace: false,

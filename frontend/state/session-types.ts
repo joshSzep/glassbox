@@ -1,6 +1,7 @@
 import type { components } from "@/generated/api-types";
 
 export type ProjectionHealth = components["schemas"]["ProjectionHealthResponse"];
+export type EvidenceGraph = components["schemas"]["EvidenceGraph"];
 export type ProviderEvidence = components["schemas"]["ProviderEvidenceSummaryResponse"];
 export type KnowledgePosture = components["schemas"]["WorkspaceKnowledgePosture"];
 export type OperatorQueueCounts = components["schemas"]["OperatorQueueCountsView"];
@@ -89,6 +90,7 @@ export type SessionFields = {
   currentTurnPolicySummary: PolicySummary | null;
   cwd: string | null;
   dashboardUrl: string | null;
+  evidenceGraph: EvidenceGraph | null;
   forkBlockedReason: string | null;
   forkedFromSequence: number | null;
   forkedFromTurnId: string | null;

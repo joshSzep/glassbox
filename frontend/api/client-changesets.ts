@@ -20,6 +20,7 @@ export type ChangesetReviewBriefGenerateResponse =
   components["schemas"]["ChangesetReviewBriefGenerateResponse"];
 export type ChangesetVerificationPlanPreviewResponse =
   components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+export type EvidenceGraphResponse = components["schemas"]["EvidenceGraph"];
 export type ReviewFeedbackListPageResponse =
   components["schemas"]["ReviewFeedbackListPageResponse"];
 
@@ -86,6 +87,13 @@ export function createChangesetEndpoints(requestJson: RequestJson) {
       requestJson<ChangesetVerificationPlanPreviewResponse>(
         "GET",
         `/changesets/${encodeURIComponent(changesetId)}/verification-plan`,
+        requestOptions,
+      ),
+
+    getChangesetEvidenceGraph: (changesetId: string, requestOptions?: RequestOptions) =>
+      requestJson<EvidenceGraphResponse>(
+        "GET",
+        `/changesets/${encodeURIComponent(changesetId)}/evidence-graph`,
         requestOptions,
       ),
 

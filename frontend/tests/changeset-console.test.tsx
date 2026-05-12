@@ -18,6 +18,7 @@ type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPla
 type ChangesetVerificationPlanSummary =
   components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
+type EvidenceGraph = components["schemas"]["EvidenceGraph"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
 
@@ -30,6 +31,7 @@ describe("changeset console", () => {
         detail: {
           branchSearchDetail: makeBranchSearchDetail(),
           detail,
+          evidenceGraph: makeEvidenceGraph("changeset-1"),
           error: null,
           commitMessage: makeCommitMessageSuggestion("changeset-1"),
           commitReadiness: makeCommitReadiness("changeset-1"),
@@ -64,6 +66,12 @@ describe("changeset console", () => {
     expect(markup).toContain("artifact-1");
     expect(markup).toContain("Review Readiness");
     expect(markup).toContain("Review Quick Actions");
+    expect(markup).toContain("Evidence Graph Explorer");
+    expect(markup).toContain("Changeset Evidence Graph");
+    expect(markup).toContain("Review claim has evidence support");
+    expect(markup).toContain("verification_check");
+    expect(markup).toContain("accepted-risk");
+    expect(markup).toContain("Reviewer-safe");
     expect(markup).toContain("Preview Verification");
     expect(markup).toContain("Feedback Status");
     expect(markup).toContain("Handoff Posture");
@@ -884,6 +892,83 @@ function makeBranchSearchDetail(): BranchSearchDetail {
       task_id: "task-1",
       updated_at: "2026-05-01T00:02:00Z",
     },
+  };
+}
+
+function makeEvidenceGraph(changesetId: string): EvidenceGraph {
+  return {
+    claims: [
+      {
+        accepted_risk_node_ids: ["node-risk"],
+        claim_id: "claim-review-ready",
+        confidence: "high",
+        contradicting_edge_ids: [],
+        limitations: ["Handoff readiness is advisory local posture, not publication."],
+        missing_evidence: [
+          {
+            kind: "verification_check",
+            missing_id: "missing-check-1",
+            safe_next_actions: [],
+            summary: "Required reviewer verification should be rerun.",
+          },
+        ],
+        stale_node_ids: [],
+        state: "accepted_with_risk",
+        summary: "Review claim has evidence support with an accepted local risk.",
+        supporting_edge_ids: ["edge-supports-review"],
+        title: "Review claim has evidence support",
+        visibility: "reviewer_safe",
+      },
+    ],
+    edges: [
+      {
+        confidence: "high",
+        edge_id: "edge-supports-review",
+        from_node_id: "node-verification",
+        kind: "supports",
+        limitations: [],
+        summary: "Verification evidence supports the review claim.",
+        to_node_id: "claim-review-ready",
+      },
+    ],
+    generated_at: "2026-05-01T00:04:00Z",
+    graph_id: `graph-${changesetId}`,
+    limitations: ["Raw artifacts are summarized only."],
+    nodes: [
+      {
+        confidence: "high",
+        freshness: "fresh",
+        kind: "verification_check",
+        limitations: [],
+        node_id: "node-verification",
+        provenance: [
+          {
+            source_id: "verification-1",
+            source_kind: "verification",
+            source_path: "tests/unit/test_review_responses.py",
+            source_sequence: null,
+            summary: "Verification record was retained.",
+          },
+        ],
+        redaction_status: "safe_summary",
+        summary: "Selected verification evidence is reviewer safe.",
+        title: "Verification check",
+        visibility: "reviewer_safe",
+      },
+      {
+        confidence: "medium",
+        freshness: "manual-only",
+        kind: "manual_evidence",
+        limitations: [],
+        node_id: "node-risk",
+        provenance: [],
+        redaction_status: "safe_summary",
+        summary: "Operator accepted residual local risk.",
+        title: "Accepted-risk note",
+        visibility: "reviewer_safe",
+      },
+    ],
+    target: { kind: "changeset", label: changesetId, target_id: changesetId },
   };
 }
 

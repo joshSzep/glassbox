@@ -3,6 +3,7 @@ import { ScrollText } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import { EvidenceGraphPanel } from "@/components/console/evidence-graph-panel";
 import { EmptyLine, Pane } from "@/components/console/session-inspector/frame";
 import { formatDuration } from "@/components/console/session-inspector/format";
 import { LoadMoreDetail } from "@/components/console/session-inspector/panes/diagnostics-shared";
@@ -40,6 +41,11 @@ export function EvidencePane({
           </Badge>
           <Badge variant="outline">{recentEvents.length} recent events</Badge>
         </div>
+        <EvidenceGraphPanel
+          emptyTarget={data.sessionId ?? "this session"}
+          graph={data.evidenceGraph}
+          title="Session Evidence Graph"
+        />
         <WhyThisActionEvidence data={data} />
         <EvidenceDetails title="Stream state">
           <DataList density="compact">

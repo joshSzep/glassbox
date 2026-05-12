@@ -81,11 +81,14 @@ export function createChangesetStoreReviewActions({
           apiClient,
           verificationPlan,
         );
-        const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
-          apiClient.getChangesetCommitReadiness(selectedChangesetId),
-          apiClient.getChangesetHandoffReadiness(selectedChangesetId),
-          apiClient.getChangesetCommitMessage(selectedChangesetId),
-        ]);
+        const [commitReadiness, handoffReadiness, commitMessage, evidenceGraph] = await Promise.all(
+          [
+            apiClient.getChangesetCommitReadiness(selectedChangesetId),
+            apiClient.getChangesetHandoffReadiness(selectedChangesetId),
+            apiClient.getChangesetCommitMessage(selectedChangesetId),
+            apiClient.getChangesetEvidenceGraph(selectedChangesetId).catch(() => null),
+          ],
+        );
         set({
           action: createSucceededActionStatus("generate-brief"),
           detail: {
@@ -93,6 +96,7 @@ export function createChangesetStoreReviewActions({
             commitMessage,
             commitReadiness,
             detail: response.detail,
+            evidenceGraph,
             error: null,
             handoffReadiness,
             lastActionMessage: reviewBriefActionMessage(response),
@@ -243,11 +247,14 @@ export function createChangesetStoreReviewActions({
           apiClient,
           verificationPlan,
         );
-        const [commitReadiness, handoffReadiness, commitMessage] = await Promise.all([
-          apiClient.getChangesetCommitReadiness(selectedChangesetId),
-          apiClient.getChangesetHandoffReadiness(selectedChangesetId),
-          apiClient.getChangesetCommitMessage(selectedChangesetId),
-        ]);
+        const [commitReadiness, handoffReadiness, commitMessage, evidenceGraph] = await Promise.all(
+          [
+            apiClient.getChangesetCommitReadiness(selectedChangesetId),
+            apiClient.getChangesetHandoffReadiness(selectedChangesetId),
+            apiClient.getChangesetCommitMessage(selectedChangesetId),
+            apiClient.getChangesetEvidenceGraph(selectedChangesetId).catch(() => null),
+          ],
+        );
         set({
           action: createSucceededActionStatus("refresh-changeset"),
           detail: {
@@ -255,6 +262,7 @@ export function createChangesetStoreReviewActions({
             commitMessage,
             commitReadiness,
             detail: response.detail,
+            evidenceGraph,
             error: null,
             handoffReadiness,
             lastActionMessage: refreshChangesetActionMessage(response.event_sequence),

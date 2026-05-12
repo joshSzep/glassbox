@@ -268,6 +268,122 @@ export function makeOperatorQueueItem(
   };
 }
 
+export function makeEvidenceGraph(
+  targetId = "session-1",
+  overrides: Partial<components["schemas"]["EvidenceGraph"]> = {},
+): components["schemas"]["EvidenceGraph"] {
+  return {
+    claims: [
+      {
+        accepted_risk_node_ids: ["manual-risk-1"],
+        claim_id: "claim-1",
+        confidence: "high",
+        contradicting_edge_ids: [],
+        limitations: ["Manual note is local evidence, not retained command proof."],
+        missing_evidence: [
+          {
+            kind: "verification_check",
+            missing_id: "missing-verification-1",
+            safe_next_actions: [],
+            summary: "pytest rerun is missing for this claim.",
+          },
+        ],
+        stale_node_ids: ["node-stale-command"],
+        state: "stale",
+        summary: "Selected evidence explains why the next action is safe to inspect.",
+        supporting_edge_ids: ["edge-supports-1"],
+        title: "Session action is evidence-backed",
+        visibility: "reviewer_safe",
+      },
+      {
+        accepted_risk_node_ids: [],
+        claim_id: "claim-contradicted",
+        confidence: "medium",
+        contradicting_edge_ids: ["edge-contradicts-1"],
+        limitations: [],
+        missing_evidence: [],
+        stale_node_ids: [],
+        state: "contradicted",
+        summary: "A stale check contradicts the review-ready claim.",
+        supporting_edge_ids: [],
+        title: "Review ready claim needs inspection",
+        visibility: "operator_only",
+      },
+    ],
+    edges: [
+      {
+        confidence: "high",
+        edge_id: "edge-supports-1",
+        from_node_id: "node-event-1",
+        kind: "supports",
+        limitations: [],
+        summary: "The policy event supports the action-needed claim.",
+        to_node_id: "claim-1",
+      },
+      {
+        confidence: "medium",
+        edge_id: "edge-contradicts-1",
+        from_node_id: "node-stale-command",
+        kind: "contradicts",
+        limitations: [],
+        summary: "A stale command result contradicts the ready claim.",
+        to_node_id: "claim-contradicted",
+      },
+    ],
+    generated_at: "2026-04-23T00:00:03Z",
+    graph_id: `graph-${targetId}`,
+    limitations: ["Graph uses bounded summaries and hides raw artifact payloads."],
+    nodes: [
+      {
+        confidence: "high",
+        freshness: "fresh",
+        kind: "event",
+        limitations: [],
+        node_id: "node-event-1",
+        provenance: [
+          {
+            source_id: "event-1",
+            source_kind: "event",
+            source_path: null,
+            source_sequence: 4,
+            summary: "Approval request event was retained.",
+          },
+        ],
+        redaction_status: "safe_summary",
+        summary: "Approval request event retained with sequence metadata.",
+        title: "Approval requested",
+        visibility: "reviewer_safe",
+      },
+      {
+        confidence: "medium",
+        freshness: "stale",
+        kind: "command",
+        limitations: ["Command output is summarized only."],
+        node_id: "node-stale-command",
+        provenance: [],
+        redaction_status: "local_only",
+        summary: "Previous pytest command result is stale.",
+        title: "Stale pytest result",
+        visibility: "operator_only",
+      },
+      {
+        confidence: "low",
+        freshness: "manual-only",
+        kind: "manual_evidence",
+        limitations: [],
+        node_id: "manual-risk-1",
+        provenance: [],
+        redaction_status: "safe_summary",
+        summary: "Operator accepted a bounded local risk.",
+        title: "Accepted risk note",
+        visibility: "reviewer_safe",
+      },
+    ],
+    target: { kind: "session", label: targetId, target_id: targetId },
+    ...overrides,
+  };
+}
+
 export function makeSessionSnapshot(
   sessionId: string,
   overrides: Partial<components["schemas"]["SessionSnapshotResponse"]> = {},

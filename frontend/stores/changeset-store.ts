@@ -3,6 +3,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type {
   BranchSearchDetailResponse,
   ChangesetDetailResponse,
+  EvidenceGraphResponse,
   ChangesetListPageResponse,
   ChangesetVerificationPlanPreviewResponse,
   CommitMessageSuggestionResponse,
@@ -58,6 +59,7 @@ export type ChangesetDetailState = {
   error: string | null;
   commitMessage: CommitMessageSuggestionResponse | null;
   commitReadiness: CommitReadinessResponse | null;
+  evidenceGraph?: EvidenceGraphResponse | null;
   handoffReadiness: HandoffReadinessResponse | null;
   lastActionMessage: string | null;
   loadState: LoadState;

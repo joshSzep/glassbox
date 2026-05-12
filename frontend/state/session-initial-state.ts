@@ -134,6 +134,7 @@ export function createEmptySessionFields(): SessionFields {
     currentTurnPolicySummary: null,
     cwd: null,
     dashboardUrl: null,
+    evidenceGraph: null,
     forkBlockedReason: null,
     forkedFromSequence: null,
     forkedFromTurnId: null,

@@ -15,6 +15,7 @@ import {
   hydrateSelectedSession,
 } from "../state/session-state";
 import {
+  makeEvidenceGraph,
   makeProjectionHealth,
   makeRuntimeContext,
   makeSessionAggregate,
@@ -199,6 +200,13 @@ describe("session inspector", () => {
 
     const evidenceMarkup = renderInspectorTab(data, "evidence");
     expect(evidenceMarkup).toContain("Verification cues");
+    expect(evidenceMarkup).toContain("Session Evidence Graph");
+    expect(evidenceMarkup).toContain("Claim Support");
+    expect(evidenceMarkup).toContain("Node Summaries");
+    expect(evidenceMarkup).toContain("Relationships");
+    expect(evidenceMarkup).toContain("Stale pytest result");
+    expect(evidenceMarkup).toContain("Manual-only");
+    expect(evidenceMarkup).toContain("Reviewer-safe");
     expect(evidenceMarkup).toContain("Evidence overview");
     expect(evidenceMarkup).toContain("Why this action");
     expect(evidenceMarkup).toContain("Policy");
@@ -717,6 +725,7 @@ describe("session inspector", () => {
       liveOutput: [
         { chunk: "pytest passed", stream: "stdout", tool_call_id: "tool-1", turn_id: "turn-1" },
       ],
+      evidenceGraph: makeEvidenceGraph("session-1"),
       selectedSessionId: "session-1",
     };
   }

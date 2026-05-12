@@ -16,6 +16,7 @@ export type SessionToolCallPageResponse = components["schemas"]["SessionToolCall
 export type SessionTurnMetricsPageResponse =
   components["schemas"]["SessionTurnMetricsPageResponse"];
 export type SessionArtifactPageResponse = components["schemas"]["SessionArtifactPageResponse"];
+export type SessionEvidenceGraphResponse = components["schemas"]["EvidenceGraph"];
 export type ToolAttemptRecoveryResponse = components["schemas"]["ToolAttemptRecoveryResponse"];
 export type ForkSessionResponse = components["schemas"]["ForkSessionResponse"];
 
@@ -60,6 +61,13 @@ export function createSessionEndpoints(requestJson: RequestJson) {
       requestJson<SessionSnapshotResponse>(
         "GET",
         `/sessions/${encodeURIComponent(compareSessionId)}`,
+        requestOptions,
+      ),
+
+    getSessionEvidenceGraph: (sessionId: string, requestOptions?: RequestOptions) =>
+      requestJson<SessionEvidenceGraphResponse>(
+        "GET",
+        `/sessions/${encodeURIComponent(sessionId)}/evidence-graph`,
         requestOptions,
       ),
 

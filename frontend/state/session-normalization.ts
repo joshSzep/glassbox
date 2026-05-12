@@ -111,6 +111,7 @@ function normalizeSessionFields(snapshot: SessionSnapshot): SessionFields {
     currentTurnPolicySummary: snapshot.current_turn_policy_summary,
     cwd: snapshot.cwd,
     dashboardUrl: snapshot.dashboard_url,
+    evidenceGraph: null,
     forkBlockedReason: snapshot.fork_blocked_reason,
     forkedFromSequence: snapshot.forked_from_sequence,
     forkedFromTurnId: snapshot.forked_from_turn_id,

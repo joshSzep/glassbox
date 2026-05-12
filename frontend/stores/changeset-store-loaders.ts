@@ -73,14 +73,21 @@ export async function selectChangeset(input: {
   input.set({ detail: createLoadingChangesetDetailState(input.changesetId) });
   try {
     const detail = await input.apiClient.getChangesetDetail(input.changesetId);
-    const [verificationPlan, commitReadiness, handoffReadiness, commitMessage, branchSearchDetail] =
-      await Promise.all([
-        input.apiClient.getChangesetVerificationPlan(input.changesetId),
-        input.apiClient.getChangesetCommitReadiness(input.changesetId),
-        input.apiClient.getChangesetHandoffReadiness(input.changesetId),
-        input.apiClient.getChangesetCommitMessage(input.changesetId),
-        loadBranchSearchForChangeset(input.apiClient, detail),
-      ]);
+    const [
+      verificationPlan,
+      commitReadiness,
+      handoffReadiness,
+      commitMessage,
+      evidenceGraph,
+      branchSearchDetail,
+    ] = await Promise.all([
+      input.apiClient.getChangesetVerificationPlan(input.changesetId),
+      input.apiClient.getChangesetCommitReadiness(input.changesetId),
+      input.apiClient.getChangesetHandoffReadiness(input.changesetId),
+      input.apiClient.getChangesetCommitMessage(input.changesetId),
+      input.apiClient.getChangesetEvidenceGraph(input.changesetId).catch(() => null),
+      loadBranchSearchForChangeset(input.apiClient, detail),
+    ]);
     const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
       input.apiClient,
       verificationPlan,
@@ -94,6 +101,7 @@ export async function selectChangeset(input: {
         commitMessage,
         commitReadiness,
         detail,
+        evidenceGraph,
         error: null,
         handoffReadiness,
         lastActionMessage: null,
@@ -123,14 +131,21 @@ export async function reloadSelectedChangeset(
   options: ReloadSelectedChangesetOptions,
 ): Promise<void> {
   const detail = await apiClient.getChangesetDetail(changesetId);
-  const [verificationPlan, commitReadiness, handoffReadiness, commitMessage, branchSearchDetail] =
-    await Promise.all([
-      apiClient.getChangesetVerificationPlan(changesetId),
-      apiClient.getChangesetCommitReadiness(changesetId),
-      apiClient.getChangesetHandoffReadiness(changesetId),
-      apiClient.getChangesetCommitMessage(changesetId),
-      loadBranchSearchForChangeset(apiClient, detail),
-    ]);
+  const [
+    verificationPlan,
+    commitReadiness,
+    handoffReadiness,
+    commitMessage,
+    evidenceGraph,
+    branchSearchDetail,
+  ] = await Promise.all([
+    apiClient.getChangesetVerificationPlan(changesetId),
+    apiClient.getChangesetCommitReadiness(changesetId),
+    apiClient.getChangesetHandoffReadiness(changesetId),
+    apiClient.getChangesetCommitMessage(changesetId),
+    apiClient.getChangesetEvidenceGraph(changesetId).catch(() => null),
+    loadBranchSearchForChangeset(apiClient, detail),
+  ]);
   const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
     apiClient,
     verificationPlan,
@@ -141,6 +156,7 @@ export async function reloadSelectedChangeset(
       commitMessage,
       commitReadiness,
       detail,
+      evidenceGraph,
       error: null,
       handoffReadiness,
       lastActionMessage: options.lastActionMessage,

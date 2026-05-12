@@ -909,7 +909,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1651: Build Evidence Graph Dashboard Explorer
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1613`, `GBX-1650`
 - Goal: let operators inspect claim support and evidence neighborhoods in the
   dashboard without reading raw event logs

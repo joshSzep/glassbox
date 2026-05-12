@@ -5,6 +5,7 @@ import { RefreshCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
+import { EvidenceGraphPanel } from "@/components/console/evidence-graph-panel";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { ChangesetActionStatus, ChangesetDetailState } from "@/stores/dashboard-stores";
 import { CommitPreparationPanel } from "./changeset/commit-prep";
@@ -171,6 +172,13 @@ function ChangesetDetail({
         onPreviewVerification={onPreviewVerification}
         onRefreshChangeset={onRefreshChangeset}
       />
+      <Section title="Evidence Graph Explorer">
+        <EvidenceGraphPanel
+          emptyTarget={changeset.changeset_id}
+          graph={detail.evidenceGraph}
+          title="Changeset Evidence Graph"
+        />
+      </Section>
       <ReviewPanel
         briefCount={briefCount}
         latestBriefId={changeset.latest_review_brief_artifact_id ?? null}

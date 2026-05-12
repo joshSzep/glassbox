@@ -124,18 +124,21 @@ export function createSessionStore({
         }));
 
         try {
-          const [snapshot, transcriptPage, eventPage, metricsPage] = await Promise.all([
-            apiClient.getSessionSnapshot(sessionId),
-            apiClient.getSessionTranscriptPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
-            apiClient.getSessionEventLogPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
-            apiClient.getSessionTurnMetricsPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
-          ]);
+          const [snapshot, transcriptPage, eventPage, metricsPage, evidenceGraph] =
+            await Promise.all([
+              apiClient.getSessionSnapshot(sessionId),
+              apiClient.getSessionTranscriptPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+              apiClient.getSessionEventLogPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+              apiClient.getSessionTurnMetricsPage(sessionId, { limit: DETAIL_PAGE_SIZE }),
+              apiClient.getSessionEvidenceGraph(sessionId).catch(() => null),
+            ]);
           if (!sessionRequests.isCurrent(currentRequestId)) {
             return;
           }
           set((state) => ({
             data: {
               ...hydrateSelectedSession(state.data, snapshot),
+              evidenceGraph,
               eventLog: eventPage.items.map((event) => ({
                 event_type: event.event_type,
                 sequence: event.sequence,

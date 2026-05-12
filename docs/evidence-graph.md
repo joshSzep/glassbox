@@ -220,3 +220,21 @@ Follow-on derivation should prefer bounded query helpers over new projection
 tables. If later performance evidence requires materialized graph summaries,
 the materialized rows should remain rebuildable from canonical events and
 managed artifacts.
+
+## Dashboard Explorer
+
+The dashboard renders evidence graphs as compact lists before any visual graph
+layout. Selected sessions show a Session Evidence Graph in the inspector's
+Evidence tab, and selected changesets show a Changeset Evidence Graph near the
+review action panels.
+
+The explorer keeps raw payloads out of the default view. It shows graph counts,
+filter buckets for stale, missing, manual-only, accepted-risk, contradictory,
+and reviewer-safe evidence, then claim support, node summaries, relationships,
+and graph limitations. Node links are local anchors so operators can move from
+relationships back to the bounded node summary without opening raw event logs
+or artifact payloads.
+
+If an older session or changeset has no derived graph, the dashboard keeps the
+panel visible with a sparse-state explanation and continues to show the
+existing event, command, verification, and artifact summaries.

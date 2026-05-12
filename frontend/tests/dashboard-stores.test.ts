@@ -13,6 +13,7 @@ import {
 } from "../stores/dashboard-stores";
 import {
   makeEnvelope,
+  makeEvidenceGraph,
   makeOperatorQueueItem,
   makeSessionAggregate,
   makeSessionSnapshot,
@@ -241,6 +242,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       parent_session_id: "session-1",
     }),
     getCompareSessionSnapshot: async (sessionId) => makeSessionSnapshot(sessionId),
+    getChangesetEvidenceGraph: async (changesetId) => makeEvidenceGraph(changesetId),
     getHealth: async () => ({
       event_transport: {
         degraded: false,
@@ -269,6 +271,7 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
       session_id: sessionId,
     }),
     getSessionSnapshot: async (sessionId) => makeSessionSnapshot(sessionId),
+    getSessionEvidenceGraph: async (sessionId) => makeEvidenceGraph(sessionId),
     getSessionToolCallPage: async (sessionId) => ({
       items: [],
       page: { cursor: 0, has_more: false, limit: 100, next_cursor: null, returned_count: 0 },
@@ -1045,6 +1048,7 @@ describe("changeset store", () => {
     expect(store.getState().detail.commitMessage?.suggestion_label).toBe(
       "suggestion_only_not_committed",
     );
+    expect(store.getState().detail.evidenceGraph?.graph_id).toBe("graph-changeset-1");
     expect(store.getState().detail.repositoryIntelligence?.verification?.paths).toEqual([
       "src/glassbox/runtime/changesets.py",
     ]);
@@ -1346,6 +1350,7 @@ describe("session store", () => {
 
     expect(store.getState().loadState).toBe("loaded");
     expect(store.getState().data.sessionId).toBe("session-1");
+    expect(store.getState().data.evidenceGraph?.graph_id).toBe("graph-session-1");
     expect(store.getState().drafts.composerText).toBe("draft prompt");
     expect(store.getState().drafts.answerTextByQuestionId["question-1"]).toBe("draft answer");
   });
