@@ -78,3 +78,27 @@ section. Readiness reports expose `maintenance_cues` while keeping readiness
 status derived only from readiness checks. The aggregate operator queue projects
 the same cue records into `maintenance` rows with their evidence, safe command
 recipe, and destructive-action warning notes preserved.
+
+## Recovery Playbooks
+
+Observability status also emits `recovery_playbooks`. A playbook is local
+guidance linked to one maintenance cue by `cue_id` and evidence references; it
+is not a script and does not execute anything.
+
+Playbooks keep command steps copyable while naming risk:
+
+- projection drift: inspect projection health, then rebuild derived state only
+  after deciding stale projections are lowering confidence
+- stale daemon owner: inspect daemon status, then restart through the daemon
+  command surface
+- failed background jobs: inspect the job, then explicitly retry or abandon it
+  with a reason
+- artifact pressure: inspect retained artifacts and use dry-run pruning before
+  destructive cleanup
+- repository intelligence: review stale sources, then run an explicit refresh
+- provider posture: inspect diagnostics and retained canary evidence before
+  optional live checks
+- backup posture: create or inspect local backup archives before risky
+  maintenance
+- eval baseline drift: inspect retained eval reports before rerunning checks or
+  accepting risk

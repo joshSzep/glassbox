@@ -1082,7 +1082,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1662: Add Recovery Playbooks As Local Evidence
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1661`
 - Goal: provide structured, local recovery playbooks for common degraded states
   without automatically executing them
@@ -1105,6 +1105,14 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - degraded states come with actionable, inspectable recovery guidance rather
     than vague warning text
+- Completed:
+  - Added structured recovery playbooks derived from maintenance cues with
+    command steps, risk notes, confirmation flags, and cue evidence links.
+  - Surfaced playbooks in observability JSON/text output and command-guide
+    recovery guidance without adding any command executor.
+  - Documented projection, daemon, background job, artifact, repository
+    intelligence, provider, backup, and eval recovery guidance in
+    [maintenance-cues.md](./maintenance-cues.md).
 
 ---
 

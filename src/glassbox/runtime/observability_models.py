@@ -5,6 +5,7 @@ from pydantic import ConfigDict
 from pydantic import Field
 
 from glassbox.core import MaintenanceCue
+from glassbox.runtime.observability_recovery_playbooks import RecoveryPlaybook
 from glassbox.runtime.provider_canary import ProviderCanaryEvidenceSummary
 from glassbox.runtime.repository_intelligence_freshness import (
     RepositoryIntelligenceFreshnessCue,
@@ -213,6 +214,7 @@ class WorkspaceObservabilityReport(BaseModel):
     verification: VerificationObservability
     provider_canary: ProviderCanaryEvidenceSummary
     maintenance_cues: list[MaintenanceCue] = Field(default_factory=list)
+    recovery_playbooks: list[RecoveryPlaybook] = Field(default_factory=list)
     next_actions: list[str] = Field(default_factory=list)
 
 
@@ -222,6 +224,7 @@ __all__ = [
     "BranchSearchObservability",
     "EventTransportObservability",
     "MaintenanceCue",
+    "RecoveryPlaybook",
     "ProjectionObservability",
     "RepositoryIndexObservability",
     "RepositoryIntelligenceObservability",

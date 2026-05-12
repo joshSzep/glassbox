@@ -133,6 +133,23 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert projection_cue["safe_next_actions"][0]["command"]["display"] == (
         "glassbox projection check --all --cwd ."
     )
+    playbook_kinds = {
+        playbook["cue_kind"] for playbook in payload["recovery_playbooks"]
+    }
+    assert "projection_drift" in playbook_kinds
+    projection_playbook = next(
+        playbook
+        for playbook in payload["recovery_playbooks"]
+        if playbook["cue_kind"] == "projection_drift"
+    )
+    assert (
+        projection_playbook["evidence_graph_links"][0]["ref_id"]
+        == (projection_cue["cue_id"])
+    )
+    assert any(
+        step["command"] == "glassbox projection rebuild --all --cwd ."
+        for step in projection_playbook["steps"]
+    )
     assert payload["knowledge_posture"]["overall_status"] in {
         "degraded",
         "missing",
@@ -197,6 +214,8 @@ def test_observability_status_text_reports_next_actions(
     assert "Backup before maintenance: glassbox backup create --cwd ." in captured.out
     assert "Maintenance cues:" in captured.out
     assert "Backup posture:" in captured.out
+    assert "Recovery playbooks:" in captured.out
+    assert "Backup posture recovery playbook:" in captured.out
     assert "glassbox eval run" in captured.out
 
 

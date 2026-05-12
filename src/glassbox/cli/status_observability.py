@@ -6,6 +6,7 @@ from glassbox.cli.status_observability_maintenance import print_maintenance_cues
 from glassbox.cli.status_observability_next_actions import (
     observability_next_action_records,
 )
+from glassbox.cli.status_observability_playbooks import print_recovery_playbooks
 from glassbox.runtime.knowledge_posture import WorkspaceKnowledgePosture
 from glassbox.runtime.observability import WorkspaceObservabilityReport
 
@@ -123,6 +124,7 @@ def print_observability_report(
                     f"    provenance: {format_knowledge_provenance(cue.provenance[0])}"
                 )
     print_maintenance_cues(report)
+    print_recovery_playbooks(report)
     for line in format_observability_safe_workflow_lines(report):
         print(line)
     if not report.next_actions:
@@ -183,7 +185,4 @@ def format_observability_safe_workflow_lines(
     return lines
 
 
-__all__ = [
-    "format_observability_safe_workflow_lines",
-    "print_observability_report",
-]
+__all__ = ["format_observability_safe_workflow_lines", "print_observability_report"]

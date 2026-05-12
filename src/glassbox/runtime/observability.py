@@ -29,6 +29,7 @@ from glassbox.runtime.observability_models import VerificationObservability
 from glassbox.runtime.observability_models import WorkspaceMemoryObservability
 from glassbox.runtime.observability_models import WorkspaceObservabilityReport
 from glassbox.runtime.observability_projections import build_projection_observability
+from glassbox.runtime.observability_recovery_playbooks import build_recovery_playbooks
 from glassbox.runtime.observability_repository_index import (
     build_repository_index_observability,
 )
@@ -89,6 +90,7 @@ def build_workspace_observability_report(
         verification=verification,
         provider_canary=provider_canary,
     )
+    recovery_playbooks = build_recovery_playbooks(maintenance_cues)
     next_actions = build_observability_next_actions(
         (
             runtime,
@@ -119,10 +121,11 @@ def build_workspace_observability_report(
         verification=verification,
         provider_canary=provider_canary,
         maintenance_cues=maintenance_cues,
+        recovery_playbooks=recovery_playbooks,
         next_actions=next_actions,
     )
 
 
 # fmt: off
-__all__ = ["ArtifactObservability", "BackgroundJobObservability", "BranchSearchObservability", "EventTransportObservability", "ProjectionObservability", "RepositoryIndexObservability", "RepositoryIntelligenceObservability", "RuntimeObservability", "TaskAutonomyObservability", "VerificationObservability", "WorkspaceMemoryObservability", "WorkspaceObservabilityReport", "build_artifact_observability", "build_background_job_observability", "build_branch_search_observability", "build_event_transport_observability", "build_projection_observability", "build_repository_index_observability", "build_repository_intelligence_observability", "build_runtime_observability", "build_task_autonomy_observability", "build_verification_observability", "build_workspace_memory_observability", "build_workspace_observability_report"]  # noqa: E501
+__all__ = ["ArtifactObservability", "BackgroundJobObservability", "BranchSearchObservability", "EventTransportObservability", "ProjectionObservability", "RepositoryIndexObservability", "RepositoryIntelligenceObservability", "RuntimeObservability", "TaskAutonomyObservability", "VerificationObservability", "WorkspaceMemoryObservability", "WorkspaceObservabilityReport", "build_artifact_observability", "build_background_job_observability", "build_branch_search_observability", "build_event_transport_observability", "build_projection_observability", "build_repository_index_observability", "build_repository_intelligence_observability", "build_recovery_playbooks", "build_runtime_observability", "build_task_autonomy_observability", "build_verification_observability", "build_workspace_memory_observability", "build_workspace_observability_report"]  # noqa: E501
 # fmt: on

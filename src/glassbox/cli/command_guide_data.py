@@ -45,6 +45,10 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 ),
             ),
             CommandGuideEntry(
+                "glassbox queue list --view maintenance --cwd .",
+                "Inspect maintenance queue rows and recovery command warnings.",
+            ),
+            CommandGuideEntry(
                 "glassbox session status SESSION_ID --cwd .",
                 (
                     "Inspect one session's transcript, actions, evidence, and "
@@ -346,8 +350,8 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
             CommandGuideEntry(
                 "glassbox observability status --cwd .",
                 (
-                    "Check projection, verification, artifact, provider, and "
-                    "runtime health together."
+                    "Check projection, verification, artifact, provider, runtime "
+                    "health, and recovery playbooks together."
                 ),
             ),
             CommandGuideEntry(
@@ -422,6 +426,10 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
             CommandGuideEntry(
                 "glassbox projection check --all --cwd .",
                 "Inspect derived projection health without rebuilding.",
+            ),
+            CommandGuideEntry(
+                "glassbox observability status --cwd . --json",
+                "Inspect recovery playbooks linked to degraded maintenance cues.",
             ),
             CommandGuideEntry(
                 "glassbox artifacts inspect --cwd .",
