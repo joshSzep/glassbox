@@ -58,6 +58,13 @@ def _print_readiness_report(report: FirstRunReadinessReport) -> None:
                 _readiness_next_action_records(report, actions=check.next_actions),
                 heading="  next action records:",
             )
+    if report.maintenance_cues:
+        print("Maintenance cues:")
+        for cue in report.maintenance_cues[:6]:
+            print(
+                f"  - {cue.title}: {cue.priority.value}, "
+                f"{cue.severity.value}; {cue.summary}"
+            )
 
 
 def _readiness_next_action_records(

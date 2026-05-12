@@ -2,6 +2,7 @@
 
 from glassbox.cli.next_action_output import print_next_action_records
 from glassbox.cli.status_knowledge import format_knowledge_provenance
+from glassbox.cli.status_observability_maintenance import print_maintenance_cues
 from glassbox.cli.status_observability_next_actions import (
     observability_next_action_records,
 )
@@ -121,6 +122,7 @@ def print_observability_report(
                 print(
                     f"    provenance: {format_knowledge_provenance(cue.provenance[0])}"
                 )
+    print_maintenance_cues(report)
     for line in format_observability_safe_workflow_lines(report):
         print(line)
     if not report.next_actions:

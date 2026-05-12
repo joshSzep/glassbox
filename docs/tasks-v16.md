@@ -1016,7 +1016,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1660: Unify Maintenance Cue Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1620`
 - Goal: represent maintenance and recovery needs as first-class queue and
   next-action items rather than separate expert-only diagnostics
@@ -1036,6 +1036,16 @@ uv run python scripts/validate_v16_release_gate.py
   - `uv run pytest tests/integration/test_observability_status.py tests/unit/test_first_run_readiness.py`
 - Done when:
   - maintenance posture can be surfaced consistently beside active work
+- Completed:
+  - Added typed `MaintenanceCue` and `MaintenanceCueKind` contracts with
+    priority, severity, evidence, safe next actions, and explicit destructive
+    remediation notes.
+  - Derived maintenance cues from existing observability and first-run
+    readiness signals for projections, daemon owner, background jobs,
+    artifacts, backups, repository intelligence, provider posture, package
+    assets, and eval baseline posture.
+  - Documented interpretation, severity/urgency rules, and inspection-first
+    remediation commands in [maintenance-cues.md](./maintenance-cues.md).
 
 ### GBX-1661: Add Maintenance Queue Integration And Remediation Guidance
 

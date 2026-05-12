@@ -140,6 +140,9 @@ operator authority explicit.
 - [operator-queue.md](./operator-queue.md): v16 unified operator queue
   contract for queue item families, priorities, stale state, evidence
   summaries, dedupe keys, and dismissal semantics
+- [maintenance-cues.md](./maintenance-cues.md): v16 typed maintenance cue
+  vocabulary for projection drift, daemon owner, background jobs, artifacts,
+  backups, repository intelligence, provider, package assets, and eval posture
 - [v16-flow-cockpit-evidence.md](./v16-flow-cockpit-evidence.md): retained
   advisory browser and accessibility evidence for the v16 queue, evidence
   graph, verification-plan, and maintenance cockpit surfaces

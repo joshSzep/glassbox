@@ -118,6 +118,21 @@ def test_observability_status_json_reports_health_lag_and_verification(
     assert payload["verification"]["latest_suite_status"] == "failed"
     assert payload["verification"]["latest_exit_code"] == 13
     assert payload["verification"]["latest_failed_case_count"] == 1
+    cue_kinds = {cue["kind"] for cue in payload["maintenance_cues"]}
+    assert {
+        "projection_drift",
+        "backup_posture",
+        "stale_repository_intelligence",
+        "provider_config_issues",
+        "eval_baseline_drift",
+    } <= cue_kinds
+    projection_cue = next(
+        cue for cue in payload["maintenance_cues"] if cue["kind"] == "projection_drift"
+    )
+    assert projection_cue["priority"] == "degraded"
+    assert projection_cue["safe_next_actions"][0]["command"]["display"] == (
+        "glassbox projection check --all --cwd ."
+    )
     assert payload["knowledge_posture"]["overall_status"] in {
         "degraded",
         "missing",
@@ -180,6 +195,8 @@ def test_observability_status_text_reports_next_actions(
     assert "Provider: glassbox provider diagnostics --cwd ." in captured.out
     assert "Repository index: glassbox repo index status --cwd ." in captured.out
     assert "Backup before maintenance: glassbox backup create --cwd ." in captured.out
+    assert "Maintenance cues:" in captured.out
+    assert "Backup posture:" in captured.out
     assert "glassbox eval run" in captured.out
 
 

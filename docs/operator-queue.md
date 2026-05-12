@@ -47,6 +47,10 @@ that are required by the current profile.
 `maintenance` items describe operational upkeep, such as stale repository
 intelligence, stale context compactions, failed background jobs, projection
 drift, artifact pressure, backup gaps, or daemon health problems.
+The typed cue vocabulary behind these items is documented in
+[maintenance-cues.md](./maintenance-cues.md); queue producers should reuse
+those cue kinds, priority rules, evidence references, and safe commands instead
+of inventing subsystem-specific warning labels.
 
 `advisory` items are useful but not blocking by themselves, such as optional
 repository intelligence absence, browser evidence suggestions, manual evidence

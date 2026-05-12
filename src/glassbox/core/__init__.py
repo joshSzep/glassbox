@@ -205,6 +205,7 @@ from glassbox.core.models import EvidenceGraphProvenance
 from glassbox.core.models import ForkedSession
 from glassbox.core.models import InheritedTranscriptMessage
 from glassbox.core.models import LongRunStatusRecord
+from glassbox.core.models import MaintenanceCue
 from glassbox.core.models import ManualEvidenceRecord
 from glassbox.core.models import MessagePart
 from glassbox.core.models import NextAction
@@ -289,6 +290,7 @@ from glassbox.core.types import EvidenceGraphRedactionStatus
 from glassbox.core.types import EvidenceGraphVisibility
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
+from glassbox.core.types import MaintenanceCueKind
 from glassbox.core.types import ManualEvidenceFreshness
 from glassbox.core.types import ManualEvidenceKind
 from glassbox.core.types import ManualEvidenceRedactionStatus
@@ -467,6 +469,8 @@ __all__ = [
     "LongRunPhaseChanged",
     "LongRunPhaseState",
     "LongRunStatusRecord",
+    "MaintenanceCue",
+    "MaintenanceCueKind",
     "ManualEvidenceArchived",
     "ManualEvidenceAttached",
     "ManualEvidenceFreshness",

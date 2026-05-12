@@ -28,6 +28,8 @@ def test_first_run_readiness_reports_healthy_workspace(tmp_path: Path) -> None:
     assert report.status == "ready"
     assert report.summary_counts["fail"] == 0
     assert report.summary_counts["warning"] == 0
+    assert report.maintenance_cues
+    assert _cue_kinds(report) == {"backup_posture"}
     assert _check_status(report, "provider-configuration") == "pass"
     assert _check_status(report, "dashboard-static-assets") == "pass"
     assert _check_status(report, "repository-index") == "pass"
@@ -128,6 +130,7 @@ def test_first_run_readiness_warns_for_missing_live_provider(
 
     assert report.status == "needs_attention"
     assert provider_check.status == "warning"
+    assert "provider_config_issues" in _cue_kinds(report)
     assert "local fallback remains available" in provider_check.detail
     assert (
         "`glassbox provider diagnostics --cwd . --model-name openai:gpt-5.4`"
@@ -153,6 +156,7 @@ def test_first_run_readiness_warns_for_missing_dashboard_assets(
 
     assert report.status == "needs_attention"
     assert dashboard_check.status == "warning"
+    assert "package_asset_staleness" in _cue_kinds(report)
     assert "missing SPA shell" in dashboard_check.detail
     assert "`pnpm --dir frontend build`" in dashboard_check.next_actions
     assert "`glassbox readiness check --cwd .`" in dashboard_check.next_actions
@@ -180,6 +184,7 @@ def test_first_run_readiness_warns_for_stale_repository_index(
 
     assert report.status == "needs_attention"
     assert index_check.status == "warning"
+    assert "stale_repository_intelligence" in _cue_kinds(report)
     assert "Repository index is stale" in index_check.detail
     assert "`glassbox repo index status --cwd .`" in index_check.next_actions
     assert "`glassbox repo index build --cwd .`" in index_check.next_actions
@@ -272,6 +277,7 @@ def test_first_run_readiness_warns_for_missing_eval_profiles(
 
     assert report.status == "needs_attention"
     assert eval_check.status == "warning"
+    assert "eval_baseline_drift" in _cue_kinds(report)
     assert "Eval profile manifest is not ready" in eval_check.detail
     assert (
         "`glassbox eval profile list --cwd .` after adding evals/profiles.json"
@@ -310,6 +316,10 @@ def _check(report, check_id: str):
 
 def _check_status(report, check_id: str) -> str:
     return _check(report, check_id).status
+
+
+def _cue_kinds(report) -> set[str]:
+    return {cue.kind.value for cue in report.maintenance_cues}
 
 
 def _write_spa_build(root: Path) -> Path:

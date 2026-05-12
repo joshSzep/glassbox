@@ -12,10 +12,14 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import computed_field
 
+from glassbox.core import MaintenanceCue
 from glassbox.runtime.bootstrap_storage import RuntimeStoragePaths
 from glassbox.runtime.bootstrap_storage import open_initialized_runtime_database
 from glassbox.runtime.bootstrap_storage import resolve_runtime_storage_paths
 from glassbox.runtime.eval_discovery import load_eval_profiles
+from glassbox.runtime.observability_maintenance_cues import (
+    build_readiness_maintenance_cues,
+)
 from glassbox.runtime.provider_diagnostics import build_provider_diagnostics_report
 from glassbox.runtime.repository_index import RepositoryIndexNotFoundError
 from glassbox.runtime.repository_index import load_repository_index
@@ -56,6 +60,7 @@ class FirstRunReadinessReport(BaseModel):
     workspace_root: Path
     database_path: Path
     checks: list[FirstRunReadinessCheck]
+    maintenance_cues: list[MaintenanceCue] = []
 
     @computed_field
     @property
@@ -100,6 +105,10 @@ def build_first_run_readiness_report(
         workspace_root=storage_paths.workspace_root,
         database_path=storage_paths.database_path,
         checks=checks,
+        maintenance_cues=build_readiness_maintenance_cues(
+            storage_paths.workspace_root,
+            checks,
+        ),
     )
 
 

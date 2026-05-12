@@ -10,6 +10,12 @@ from glassbox.runtime.observability_background_jobs import (
 from glassbox.runtime.observability_branch_search import (
     build_branch_search_observability,
 )
+from glassbox.runtime.observability_maintenance_cues import (
+    build_observability_maintenance_cues,
+)
+from glassbox.runtime.observability_maintenance_cues import (
+    build_observability_next_actions,
+)
 from glassbox.runtime.observability_models import ArtifactObservability
 from glassbox.runtime.observability_models import BackgroundJobObservability
 from glassbox.runtime.observability_models import BranchSearchObservability
@@ -73,9 +79,18 @@ def build_workspace_observability_report(
     artifacts = build_artifact_observability(workspace_root, session_repository)
     verification = build_verification_observability(workspace_root)
     provider_canary = load_provider_canary_evidence(workspace_root)
-    next_actions = [
-        action
-        for section in (
+    maintenance_cues = build_observability_maintenance_cues(
+        workspace_root=workspace_root,
+        runtime=runtime,
+        projections=projections,
+        background_jobs=background_jobs,
+        repository_intelligence=repository_intelligence,
+        artifacts=artifacts,
+        verification=verification,
+        provider_canary=provider_canary,
+    )
+    next_actions = build_observability_next_actions(
+        (
             runtime,
             projections,
             tasks,
@@ -87,9 +102,9 @@ def build_workspace_observability_report(
             artifacts,
             verification,
             provider_canary,
-        )
-        for action in section.next_actions
-    ]
+        ),
+        maintenance_cues,
+    )
     return WorkspaceObservabilityReport(
         workspace_root=str(workspace_root),
         runtime=runtime,
@@ -103,33 +118,11 @@ def build_workspace_observability_report(
         artifacts=artifacts,
         verification=verification,
         provider_canary=provider_canary,
+        maintenance_cues=maintenance_cues,
         next_actions=next_actions,
     )
 
 
-__all__ = [
-    "ArtifactObservability",
-    "BackgroundJobObservability",
-    "BranchSearchObservability",
-    "EventTransportObservability",
-    "ProjectionObservability",
-    "RepositoryIndexObservability",
-    "RepositoryIntelligenceObservability",
-    "RuntimeObservability",
-    "TaskAutonomyObservability",
-    "VerificationObservability",
-    "WorkspaceMemoryObservability",
-    "WorkspaceObservabilityReport",
-    "build_artifact_observability",
-    "build_background_job_observability",
-    "build_branch_search_observability",
-    "build_event_transport_observability",
-    "build_projection_observability",
-    "build_repository_index_observability",
-    "build_repository_intelligence_observability",
-    "build_runtime_observability",
-    "build_task_autonomy_observability",
-    "build_verification_observability",
-    "build_workspace_memory_observability",
-    "build_workspace_observability_report",
-]
+# fmt: off
+__all__ = ["ArtifactObservability", "BackgroundJobObservability", "BranchSearchObservability", "EventTransportObservability", "ProjectionObservability", "RepositoryIndexObservability", "RepositoryIntelligenceObservability", "RuntimeObservability", "TaskAutonomyObservability", "VerificationObservability", "WorkspaceMemoryObservability", "WorkspaceObservabilityReport", "build_artifact_observability", "build_background_job_observability", "build_branch_search_observability", "build_event_transport_observability", "build_projection_observability", "build_repository_index_observability", "build_repository_intelligence_observability", "build_runtime_observability", "build_task_autonomy_observability", "build_verification_observability", "build_workspace_memory_observability", "build_workspace_observability_report"]  # noqa: E501
+# fmt: on
