@@ -140,6 +140,8 @@ starts with
 [docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md),
 the source-linked
 [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md), the
+dogfooding summary in
+[docs/v16-dogfooding-summary.md](docs/v16-dogfooding-summary.md), the
 [evidence graph](docs/evidence-graph.md) and
 [operator queue](docs/operator-queue.md) contracts, and the task graph in
 [docs/tasks-v16.md](docs/tasks-v16.md).
@@ -177,6 +179,7 @@ Start here based on what you need:
 - [docs/refactor-v15.md](docs/refactor-v15.md)
 - [docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md)
 - [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md)
+- [docs/v16-dogfooding-summary.md](docs/v16-dogfooding-summary.md)
 - [docs/evidence-graph.md](docs/evidence-graph.md)
 - [docs/operator-queue.md](docs/operator-queue.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)

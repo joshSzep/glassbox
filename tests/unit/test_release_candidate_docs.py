@@ -1483,6 +1483,40 @@ def test_v15_dogfooding_summary_records_repository_intelligence_passes() -> None
     assert "v15-dogfooding-summary.md" in docs_readme
 
 
+def test_v16_dogfooding_summary_records_operator_flow_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v16-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Residual Risks",
+        "## Disposition",
+        ".glassbox/releases/gbx-1682-v16-dogfooding/",
+        "Operator queue triage",
+        "Maintenance cue recovery",
+        "Changeset workup preview",
+        "Verification plan lifecycle",
+        "Evidence graph inspection",
+        "Review feedback fixup",
+        "Reviewer-safe evidence bundle export",
+        "V16 release gate dry run",
+        "0032535a-71d1-4dd6-b46b-9af802dc80ac",
+        "e38b433e-4e46-452c-b261-ce3061affefe",
+        "55125dbf-32bd-42e9-9bd4-8394229461fa",
+        "docs-only validation",
+        "stale provider canary evidence",
+        "no staging, commit, push, pull request, merge",
+    ):
+        assert required_text in content
+
+    assert "docs/v16-dogfooding-summary.md" in root_readme
+    assert "v16-dogfooding-summary.md" in docs_readme
+
+
 def test_v15_release_candidate_guide_covers_repository_intelligence_model() -> None:
     content = (REPO_ROOT / "docs" / "v15-release-candidate.md").read_text(
         encoding="utf-8"

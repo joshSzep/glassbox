@@ -326,11 +326,11 @@ def _record_v16_advisory_evidence(
         ),
         (
             "v16 dogfooding evidence",
-            "operator-flow dogfooding is planned by GBX-1682 and remains advisory "
-            "until recorded separately from deterministic gate evidence",
+            "operator-flow dogfooding is recorded by GBX-1682 and remains advisory "
+            "beside deterministic gate evidence",
             "dogfooding",
             "docs/v16-dogfooding-summary.md",
-            "planned",
+            "recorded",
         ),
         (
             "v16 manual release evidence",
@@ -394,7 +394,7 @@ def _print_dry_run(
         print("- v16 advisory provider evidence: skipped by default")
     print("- v16 advisory dashboard browser evidence: recorded from retained summary")
     print("- v16 advisory accessibility evidence: recorded from retained summary")
-    print("- v16 dogfooding evidence: planned GBX-1682 advisory summary")
+    print("- v16 dogfooding evidence: recorded GBX-1682 advisory summary")
     print("- v16 manual release evidence: planned advisory release notes")
     print("- installed wheel smoke: latest dist/glassbox-*.whl")
 

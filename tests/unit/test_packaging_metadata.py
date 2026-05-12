@@ -202,6 +202,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/tasks-v15.md" in problems
     assert "sdist missing required file: docs/tasks-v16.md" in problems
     assert "sdist missing required file: docs/v16-release-gate.md" in problems
+    assert "sdist missing required file: docs/v16-dogfooding-summary.md" in problems
     assert "sdist missing required file: docs/evidence-graph.md" in problems
     assert "sdist missing required file: docs/operator-queue.md" in problems
     assert "sdist missing required file: docs/verification-orchestrator.md" in problems
@@ -534,6 +535,7 @@ def _write_sdist(
                 "docs/v16-operator-flow-compression-contract.md",
                 "docs/v16-operator-flow-audit.md",
                 "docs/v16-release-gate.md",
+                "docs/v16-dogfooding-summary.md",
                 "docs/tasks-v16.md",
                 "docs/evidence-graph.md",
                 "docs/operator-queue.md",

@@ -78,7 +78,7 @@ def test_v16_release_gate_dry_run_records_operator_flow_evidence(
     assert summary["advisory"][-5]["status"] == "planned"
     assert summary["advisory"][-4]["status"] == "recorded"
     assert summary["advisory"][-3]["required_for_release"] is False
-    assert summary["advisory"][-2]["status"] == "planned"
+    assert summary["advisory"][-2]["status"] == "recorded"
     assert summary["advisory"][-1]["status"] == "planned"
     assert summary["artifacts"]["v16_task_graph"] == "docs/tasks-v16.md"
     assert summary["artifacts"]["v16_release_gate"] == "docs/v16-release-gate.md"

@@ -1307,7 +1307,7 @@ Completed:
 
 ### GBX-1682: Run V16 Operator Flow Dogfooding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1681`
 - Goal: exercise v16 on real local work and turn findings into fixes, docs,
   evals, accepted risks, or post-v16 follow-ups
@@ -1329,6 +1329,20 @@ Completed:
 - Done when:
   - real use confirms the v16 flow is calmer and sharper, or names bounded
     residual risks before release
+
+Completed:
+
+- Added [v16-dogfooding-summary.md](./v16-dogfooding-summary.md) with retained
+  local evidence references under `.glassbox/releases/gbx-1682-v16-dogfooding/`.
+- Exercised queue triage, maintenance cue recovery, changeset workup preview,
+  changeset creation and inventory refresh, verification plan lifecycle,
+  evidence graph summary, review feedback fixup, reviewer-safe bundle export,
+  feedback status, and the v16 gate dry-run.
+- Recorded findings by fix-now, docs, tests/evals, accepted risks, and
+  post-v16 follow-ups, including duplicate docs-only verification plan rows as a
+  bounded follow-up rather than a release blocker.
+- Updated docs/package guardrails and the v16 gate advisory summary so
+  dogfooding evidence is recorded but remains non-blocking.
 
 ### GBX-1683: Publish V16 Operator Flow Release-Candidate Guide
 
