@@ -1265,7 +1265,7 @@ Completed:
 
 ### GBX-1681: Add V16 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1680`
 - Goal: provide one deterministic release-gate command for v16 operator flow
   compression
@@ -1290,6 +1290,20 @@ Completed:
 - Done when:
   - one command can produce retained v16 release evidence without conflating
     advisory confidence with deterministic authority
+
+Completed:
+
+- Added `scripts/validate_v16_release_gate.py` and
+  [v16-release-gate.md](./v16-release-gate.md) with dry-run planning,
+  retained summary output, installed-wheel smoke, inherited v15 deterministic
+  coverage, and v16 operator-flow blocking stages.
+- Added v16-specific gate stages for release-candidate eval proof, promoted
+  operator-flow eval smoke, operator queue smoke, evidence graph smoke,
+  verification plan smoke, runtime coverage, CLI/API coverage, frontend smoke,
+  package contents, release docs, and eval coverage audit.
+- Kept provider, dashboard/browser, accessibility, dogfooding, and manual
+  release evidence in non-blocking advisory summary entries.
+- Added unit tests for gate planning and dry-run retained evidence.
 
 ### GBX-1682: Run V16 Operator Flow Dogfooding
 

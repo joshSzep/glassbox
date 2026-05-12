@@ -201,6 +201,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/v15-release-candidate.md" in problems
     assert "sdist missing required file: docs/tasks-v15.md" in problems
     assert "sdist missing required file: docs/tasks-v16.md" in problems
+    assert "sdist missing required file: docs/v16-release-gate.md" in problems
     assert "sdist missing required file: docs/evidence-graph.md" in problems
     assert "sdist missing required file: docs/operator-queue.md" in problems
     assert "sdist missing required file: docs/verification-orchestrator.md" in problems
@@ -315,6 +316,9 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: scripts/validate_v15_release_gate.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/validate_v16_release_gate.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_v11_release_gate.py" in problems
@@ -529,6 +533,7 @@ def _write_sdist(
                 "docs/tasks-v15.md",
                 "docs/v16-operator-flow-compression-contract.md",
                 "docs/v16-operator-flow-audit.md",
+                "docs/v16-release-gate.md",
                 "docs/tasks-v16.md",
                 "docs/evidence-graph.md",
                 "docs/operator-queue.md",
@@ -705,6 +710,7 @@ def _write_sdist(
                 "scripts/v13_release_gate_helpers.py",
                 "scripts/validate_v14_release_gate.py",
                 "scripts/validate_v15_release_gate.py",
+                "scripts/validate_v16_release_gate.py",
                 "scripts/v14_release_gate_helpers.py",
                 "scripts/v14_release_gate_stages.py",
                 "scripts/v14_release_gate_advisory.py",
