@@ -25,6 +25,8 @@ def test_project_metadata_includes_terminal_runtime_dependencies() -> None:
     project = _pyproject()["project"]
 
     assert project["scripts"]["glassbox"] == "glassbox.cli:main"
+    assert "pydantic-ai-slim[anthropic,openai]>=1.83,<2" in project["dependencies"]
+    assert "pydantic-ai>=1.83,<2" not in project["dependencies"]
     assert "textual>=6,<7" in project["dependencies"]
     assert all(
         "node" not in dependency.lower() for dependency in project["dependencies"]
@@ -203,6 +205,7 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert "sdist missing required file: docs/tasks-v16.md" in problems
     assert "sdist missing required file: docs/v16-release-gate.md" in problems
     assert "sdist missing required file: docs/v16-dogfooding-summary.md" in problems
+    assert "sdist missing required file: docs/v16-release-candidate.md" in problems
     assert "sdist missing required file: docs/evidence-graph.md" in problems
     assert "sdist missing required file: docs/operator-queue.md" in problems
     assert "sdist missing required file: docs/verification-orchestrator.md" in problems
@@ -536,6 +539,7 @@ def _write_sdist(
                 "docs/v16-operator-flow-audit.md",
                 "docs/v16-release-gate.md",
                 "docs/v16-dogfooding-summary.md",
+                "docs/v16-release-candidate.md",
                 "docs/tasks-v16.md",
                 "docs/evidence-graph.md",
                 "docs/operator-queue.md",

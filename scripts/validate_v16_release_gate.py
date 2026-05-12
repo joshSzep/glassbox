@@ -159,6 +159,7 @@ def build_gate_stages(evidence_dir: Path | None = None) -> list[GateStage]:
                 "frontend",
                 "test",
                 "--",
+                "--maxWorkers=1",
                 "workspace-overview.test.ts",
                 "changeset-console.test.tsx",
                 "session-inspector.test.ts",
@@ -334,11 +335,11 @@ def _record_v16_advisory_evidence(
         ),
         (
             "v16 manual release evidence",
-            "manual, browser, accessibility, and provider confidence stays "
-            "non-blocking unless later promoted by deterministic fixtures",
+            "manual release-candidate evidence is recorded in the v16 guide "
+            "and remains non-blocking beside deterministic gate evidence",
             "manual",
             "docs/v16-release-candidate.md",
-            "planned",
+            "recorded",
         ),
     ]
     for label, reason, directory_name, docs_path, latest_status in advisory_entries:
@@ -395,7 +396,7 @@ def _print_dry_run(
     print("- v16 advisory dashboard browser evidence: recorded from retained summary")
     print("- v16 advisory accessibility evidence: recorded from retained summary")
     print("- v16 dogfooding evidence: recorded GBX-1682 advisory summary")
-    print("- v16 manual release evidence: planned advisory release notes")
+    print("- v16 manual release evidence: recorded v16 release-candidate guide")
     print("- installed wheel smoke: latest dist/glassbox-*.whl")
 
 

@@ -124,6 +124,9 @@ operator authority explicit.
   operator-flow dogfooding evidence for queue triage, maintenance cues,
   changeset workup, verification plans, evidence graph inspection, review
   feedback fixup, and reviewer-safe bundle export
+- [v16-release-candidate.md](./v16-release-candidate.md): v16
+  release-candidate guide for the supported operator-flow operating model,
+  validation path, advisory evidence expectations, residual risks, and decision
 - [tasks-v15.md](./tasks-v15.md): v15 repository intelligence v2 task graph for
   snapshot schema, discovery, command recipes, owner/subsystem hints,
   path-to-verification guidance, memory integration, freshness, CLI/API,

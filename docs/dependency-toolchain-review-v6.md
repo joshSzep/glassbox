@@ -20,7 +20,7 @@ their own validation evidence.
 | `aiofiles` | `>=25.1.0` | `25.1.0` | Used for async file serving/storage paths; low churn risk. |
 | `fastapi` | `>=0.115,<1` | `0.136.0` | Primary web API and dashboard shell surface; keep OpenAPI generation in the release gate. |
 | `pydantic` | `>=2.11,<3` | `2.13.1` | Core event/model validation; do not cross to v3 without replay/schema review. |
-| `pydantic-ai` | `>=1.83,<2` | `1.83.0` | Provider/model integration boundary; live-provider canaries remain advisory evidence. |
+| `pydantic-ai-slim[anthropic,openai]` | `>=1.83,<2` | `1.83.0` | Provider/model integration boundary for the supported OpenAI and Anthropic runtime paths; live-provider canaries remain advisory evidence. The package intentionally avoids unused provider extras in installed-wheel smoke. |
 | `textual` | `>=6,<7` | `6.12.0` | Primary TUI dependency; installed-wheel smoke and manual terminal review are release evidence. |
 | `uvicorn[standard]` | `>=0.34,<1` | `0.44.0` | Dashboard and daemon server runtime; installed dashboard smoke covers packaged serving. |
 
@@ -72,8 +72,9 @@ Before v6 release signoff:
   v6 and should be visible in package metadata and docs.
 - `ty` is still alpha software. A future alpha update may change diagnostics;
   the narrow bound reduces accidental churn.
-- `pydantic-ai` and provider SDK transitive dependencies affect real-provider
-  behavior. Advisory provider canaries are the release evidence until live
-  provider checks become deterministic enough to block.
+- `pydantic-ai-slim`, OpenAI, Anthropic, and provider SDK transitive
+  dependencies affect real-provider behavior. Advisory provider canaries are
+  the release evidence until live provider checks become deterministic enough
+  to block.
 - Next.js and React are pinned to current major versions; static export and
   dashboard route smoke are the release evidence for packaged users.

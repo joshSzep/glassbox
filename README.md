@@ -97,8 +97,8 @@ publication boundaries, and integrated changeset UX.
 The v14 release candidate is the latest review-loop maturity guide. The v15
 release candidate adds repository intelligence v2: local, rebuildable,
 freshness-aware, provenance-backed repository awareness that remains advisory
-and subordinate to deterministic release evidence. V16 planning is now focused
-on operator flow compression: unified next-action language, evidence graph
+and subordinate to deterministic release evidence. The v16 release candidate
+adds operator flow compression: unified next-action language, evidence graph
 claim support, verification orchestration, operator queueing, and
 maintenance-aware guidance without hidden automation.
 
@@ -142,6 +142,8 @@ the source-linked
 [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md), the
 dogfooding summary in
 [docs/v16-dogfooding-summary.md](docs/v16-dogfooding-summary.md), the
+release-candidate guide in
+[docs/v16-release-candidate.md](docs/v16-release-candidate.md), the
 [evidence graph](docs/evidence-graph.md) and
 [operator queue](docs/operator-queue.md) contracts, and the task graph in
 [docs/tasks-v16.md](docs/tasks-v16.md).
@@ -180,6 +182,7 @@ Start here based on what you need:
 - [docs/v16-operator-flow-compression-contract.md](docs/v16-operator-flow-compression-contract.md)
 - [docs/v16-operator-flow-audit.md](docs/v16-operator-flow-audit.md)
 - [docs/v16-dogfooding-summary.md](docs/v16-dogfooding-summary.md)
+- [docs/v16-release-candidate.md](docs/v16-release-candidate.md)
 - [docs/evidence-graph.md](docs/evidence-graph.md)
 - [docs/operator-queue.md](docs/operator-queue.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)

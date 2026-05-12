@@ -128,6 +128,7 @@ SDIST_REQUIRED_SUFFIXES = (
     "docs/v16-operator-flow-audit.md",
     "docs/v16-release-gate.md",
     "docs/v16-dogfooding-summary.md",
+    "docs/v16-release-candidate.md",
     "docs/tasks-v16.md",
     "docs/evidence-graph.md",
     "docs/operator-queue.md",

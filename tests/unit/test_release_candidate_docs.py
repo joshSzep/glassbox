@@ -1558,6 +1558,56 @@ def test_v15_release_candidate_guide_covers_repository_intelligence_model() -> N
     assert "v15-release-candidate.md" in docs_readme
 
 
+def test_v16_release_candidate_guide_covers_operator_flow_model() -> None:
+    content = (REPO_ROOT / "docs" / "v16-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "Decision: GO for v16 release candidate publication.",
+        ".glassbox/evals/20260512T054835Z/",
+        ".glassbox/releases/gbx-1682-v16-dogfooding/",
+        ".glassbox/releases/gbx-1682-v16-dogfooding/v16-gate-dry-run/",
+        "| V16 release gate dry run | passed |",
+        "| Package and installed smoke | passed |",
+        "37 selected",
+        "37/37 exact matches",
+        "54/54 covered",
+        "93 planned blocking deterministic stages",
+        "scripts/validate_v16_release_gate.py",
+        "scripts/validate_frontend_release_assets.py",
+        "docs/v16-dogfooding-summary.md",
+        "v16-flow-cockpit-evidence.md",
+        "operator-flow.queue-ranking",
+        "operator-flow.evidence-graph-support",
+        "operator-flow.verification-plan-lifecycle",
+        "operator-flow.skipped-check-posture",
+        "operator-flow.changeset-workup-preview",
+        "operator-flow.maintenance-cues",
+        "operator-flow.reviewer-safe-bundle",
+        "hosted review",
+        "PR automation",
+        "automatic publication",
+        "automatic command approval",
+        "browser/dashboard and accessibility-adjacent confidence is retained "
+        "as advisory evidence",
+        "No deterministic blocker remains open",
+        "not release-blocking unless a deterministic check",
+    ):
+        assert required_text in content
+
+    assert "docs/v16-release-candidate.md" in root_readme
+    assert "v16-release-candidate.md" in docs_readme
+
+
 def test_v14_release_candidate_guide_covers_maturity_model() -> None:
     content = (REPO_ROOT / "docs" / "v14-release-candidate.md").read_text(
         encoding="utf-8"
@@ -2479,6 +2529,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "operator-quickstart.md",
         REPO_ROOT / "docs" / "version-release-policy.md",
         REPO_ROOT / "docs" / "v15-release-candidate.md",
+        REPO_ROOT / "docs" / "v16-release-candidate.md",
     )
 
     for doc_path in doc_paths:

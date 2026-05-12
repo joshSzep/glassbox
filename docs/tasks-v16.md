@@ -1346,7 +1346,7 @@ Completed:
 
 ### GBX-1683: Publish V16 Operator Flow Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1682`
 - Goal: publish the operator guide for the supported v16 release-candidate
   operating model, evidence expectations, residual risks, and release decision
@@ -1371,6 +1371,17 @@ Completed:
 - Done when:
   - the repository has a clear v16 release-candidate story with evidence,
     residual-risk list, and explicit decision
+
+Completed in GBX-1683:
+
+- Added `docs/v16-release-candidate.md` with the supported operator-flow
+  operating model, validation path, advisory evidence expectations, residual
+  risks, deliberate non-goals, and explicit GO decision.
+- Linked the v16 guide from the root README and docs hub, and added package
+  guardrails so the guide ships with the wheel/sdist release surface.
+- Updated the v16 release gate advisory summary so manual release-candidate
+  evidence is recorded in the guide while remaining non-blocking beside
+  deterministic release authority.
 
 ## V16 Release-Candidate Readiness Checklist
 
