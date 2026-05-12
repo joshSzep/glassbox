@@ -4,15 +4,59 @@ import json
 import sqlite3
 from collections.abc import Callable
 from collections.abc import Mapping
+from datetime import UTC
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 
+from glassbox.core import ChangesetInventoryFreshness
+from glassbox.core import ChangesetInventoryRecord
+from glassbox.core import ChangesetRecord
+from glassbox.core import ChangesetRiskLevel
+from glassbox.core import ChangesetVerificationState
 from glassbox.core import EventEnvelope
+from glassbox.core import ManualEvidenceFreshness
+from glassbox.core import ManualEvidenceKind
+from glassbox.core import ManualEvidenceRecord
+from glassbox.core import ManualEvidenceRedactionStatus
+from glassbox.core import ManualEvidenceState
+from glassbox.core import ManualEvidenceTargetKind
+from glassbox.core import ReviewFeedbackDisposition
+from glassbox.core import ReviewFeedbackKind
+from glassbox.core import ReviewFeedbackProvenance
+from glassbox.core import ReviewFeedbackRecord
 from glassbox.core import SessionId
 from glassbox.core import SessionStarted
 from glassbox.core import UserMessageReceived
+from glassbox.core import VerificationCheckKind
+from glassbox.core import VerificationPlanSource
+from glassbox.core import new_artifact_id
+from glassbox.core import new_changeset_id
+from glassbox.core import new_manual_evidence_id
 from glassbox.core import new_message_id
+from glassbox.core import new_review_feedback_id
 from glassbox.core import new_session_id
+from glassbox.runtime.changeset_models import ChangesetCommandEvidenceItem
+from glassbox.runtime.changeset_models import ChangesetCommandEvidenceSummary
+from glassbox.runtime.changeset_models import ChangesetDetailView
+from glassbox.runtime.changeset_models import ChangesetInventoryStatus
+from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
+from glassbox.runtime.changeset_models import ChangesetVerificationReviewLoopSummary
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationReadiness,
+)
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationRequirement,
+)
+from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
+from glassbox.runtime.eval_recommendation_models import EvalTestTargetRecommendation
+from glassbox.runtime.evidence_graph import MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE
+from glassbox.runtime.evidence_graph import MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE
+from glassbox.runtime.evidence_graph import MAX_CHANGESET_GRAPH_REQUIREMENTS
+from glassbox.runtime.evidence_graph import MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK
+from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.performance_budgets import PAYLOAD_SIZE_BUDGETS
 from glassbox.runtime.performance_budgets import PERFORMANCE_BUDGETS
 from glassbox.runtime.repository_index import build_repository_index
@@ -24,9 +68,12 @@ from glassbox.runtime.repository_intelligence_queries import (
 from glassbox.runtime.repository_intelligence_queries import (
     search_repository_intelligence_entries,
 )
+from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.session_queries import OPERATOR_SORT_PRIORITY
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import WorkspaceRuntimeSummaryView
+from glassbox.runtime.verification_plan_builder import MAX_VERIFICATION_PLAN_ENTRIES
+from glassbox.runtime.verification_plan_builder import build_verification_plan_entries
 from glassbox.store.repositories import FilesystemArtifactRepository
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import append_events
@@ -44,6 +91,7 @@ _LARGE_SESSION_EVENT_COUNT = 600
 _SESSION_INDEX_COUNT = 120
 _AGGREGATE_SESSION_COUNT = 60
 _LARGE_REPOSITORY_SOURCE_COUNT = MAX_INDEXED_FILES + 50
+_DENSE_CHANGESET_ROW_COUNT = 80
 
 
 def test_large_event_stream_append_stays_within_budget(tmp_path: Path) -> None:
@@ -124,6 +172,118 @@ def test_operator_console_aggregate_stays_within_budget(tmp_path: Path) -> None:
 
         _assert_within_budget("operator console aggregate", elapsed_ms)
         assert len(build_console_payload().sessions) == 25
+    finally:
+        connection.close()
+
+
+def test_v16_queue_graph_and_plan_surfaces_stay_bounded(
+    tmp_path: Path,
+) -> None:
+    connection = open_initialized_database(tmp_path)
+    try:
+        _append_small_sessions(connection, tmp_path, count=_AGGREGATE_SESSION_COUNT)
+        query_service = SessionQueryService(
+            SQLiteSessionRepository(connection),
+            FilesystemArtifactRepository(connection, tmp_path),
+        )
+        runtime = WorkspaceRuntimeSummaryView(
+            workspace_root=str(tmp_path),
+            state="stopped",
+            health=None,
+        )
+        aggregate = query_service.get_session_aggregate(
+            runtime=runtime,
+            sort=OPERATOR_SORT_PRIORITY,
+            limit=25,
+        )
+
+        elapsed_ms = _measure_ms(
+            lambda: (
+                query_service.get_session_aggregate(
+                    runtime=runtime,
+                    sort=OPERATOR_SORT_PRIORITY,
+                    limit=25,
+                ).operator_queue
+            )
+        )
+        _assert_within_budget("operator queue aggregation", elapsed_ms)
+
+        detail = _dense_changeset_detail(row_count=_DENSE_CHANGESET_ROW_COUNT)
+        plan = _dense_changeset_plan(
+            detail,
+            row_count=_DENSE_CHANGESET_ROW_COUNT,
+        )
+        graph = _measure_value_with_budget(
+            "evidence graph derivation",
+            lambda: build_changeset_evidence_graph(
+                detail,
+                verification_plan=plan,
+            ),
+        )
+        neighborhood = _measure_value_with_budget(
+            "evidence graph neighborhood",
+            lambda: evidence_neighborhood(
+                graph,
+                graph.claims[0].claim_id,
+                depth=2,
+            ),
+        )
+        entries, skipped = _measure_value_with_budget(
+            "verification plan generation",
+            lambda: build_verification_plan_entries(
+                changed_paths=_dense_changed_paths(_DENSE_CHANGESET_ROW_COUNT),
+                recommendation=_dense_recommendation(
+                    tmp_path,
+                    row_count=_DENSE_CHANGESET_ROW_COUNT,
+                ),
+            ),
+        )
+
+        assert len(entries) == MAX_VERIFICATION_PLAN_ENTRIES
+        assert any(item.reason == "plan-entry-limit" for item in skipped)
+        assert (
+            len(
+                [
+                    node
+                    for node in graph.nodes
+                    if node.kind.value == "verification_check"
+                ]
+            )
+            == MAX_CHANGESET_GRAPH_REQUIREMENTS
+        )
+        assert (
+            len([node for node in graph.nodes if node.kind.value == "manual_evidence"])
+            == MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE
+        )
+        assert (
+            len([node for node in graph.nodes if node.kind.value == "review_feedback"])
+            == MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK
+        )
+        assert len([node for node in graph.nodes if node.kind.value == "command"]) == (
+            MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE
+        )
+        assert graph.limitations
+        assert neighborhood.nodes
+
+        _assert_payloads_within_budget(
+            {
+                "operator queue payload": _json_size_bytes(
+                    [item.model_dump(mode="json") for item in aggregate.operator_queue]
+                ),
+                "evidence graph summary payload": _json_size_bytes(
+                    summarize_evidence_graph(graph).model_dump(mode="json")
+                ),
+                "evidence graph neighborhood payload": _json_size_bytes(
+                    neighborhood.model_dump(mode="json")
+                ),
+                "verification plan preview payload": _json_size_bytes(
+                    {
+                        "entries": [entry.model_dump(mode="json") for entry in entries],
+                        "skipped": [item.model_dump(mode="json") for item in skipped],
+                    }
+                ),
+            }
+        )
     finally:
         connection.close()
 
@@ -255,6 +415,197 @@ def _append_small_sessions(
                 ),
             ],
         )
+
+
+def _dense_changeset_detail(*, row_count: int) -> ChangesetDetailView:
+    now = datetime.now(UTC)
+    session_id = new_session_id()
+    changeset_id = new_changeset_id()
+    changeset = ChangesetRecord(
+        session_id=session_id,
+        changeset_id=changeset_id,
+        objective="Review dense local changes",
+        summary="Review dense local changes",
+        status="open",
+        created_by="operator",
+        risk_level=ChangesetRiskLevel.MEDIUM,
+        created_at=now,
+        updated_at=now,
+        last_sequence=1,
+    )
+    inventory = ChangesetInventoryRecord(
+        session_id=session_id,
+        changeset_id=changeset_id,
+        artifact_id=new_artifact_id(),
+        artifact_schema_version=1,
+        freshness=ChangesetInventoryFreshness.FRESH,
+        changed_path_count=row_count,
+        refreshed_by="operator",
+        risk_level=ChangesetRiskLevel.MEDIUM,
+        updated_at=now,
+        last_sequence=2,
+    )
+    return ChangesetDetailView(
+        changeset=changeset,
+        inventory=inventory,
+        inventory_status=ChangesetInventoryStatus(
+            freshness=ChangesetInventoryFreshness.FRESH,
+            stale=False,
+            safe_next_actions=["glassbox changeset show CHANGESET --cwd ."],
+        ),
+        review_response_summary=ChangesetReviewResponseSummary(
+            changeset_id=changeset_id,
+            total_feedback_count=row_count,
+            open_count=0,
+            responded_count=row_count,
+            unresolved_count=0,
+            stale_response_count=0,
+            accepted_risk_count=0,
+            blocked_count=0,
+            items=[],
+        ),
+        manual_evidence=[
+            _manual_evidence(session_id, changeset_id, index)
+            for index in range(row_count)
+        ],
+        review_feedback=[
+            _review_feedback(session_id, changeset_id, index)
+            for index in range(row_count)
+        ],
+        readiness=[],
+        command_evidence=ChangesetCommandEvidenceSummary(
+            total_count=row_count,
+            verification_count=row_count,
+            items=[
+                ChangesetCommandEvidenceItem(
+                    tool_attempt_id=f"attempt-{index}",
+                    turn_id=f"turn-{index}",
+                    tool_name="command",
+                    status="completed",
+                    purpose="verification",
+                    review_relevance="supports local review",
+                    supports_verification=True,
+                    summary=f"Command {index} passed.",
+                )
+                for index in range(row_count)
+            ],
+        ),
+        limitations=[],
+        safe_next_actions=["glassbox changeset show CHANGESET --cwd ."],
+    )
+
+
+def _dense_changeset_plan(
+    detail: ChangesetDetailView,
+    *,
+    row_count: int,
+) -> ChangesetVerificationPlanPreview:
+    requirements = [
+        ChangesetVerificationRequirement(
+            requirement_id=f"check-{index}",
+            state=ChangesetVerificationState.PASSED,
+            check_name=f"focused check {index}",
+            reason=f"focused check {index} is retained",
+            source=VerificationPlanSource.CHANGED_PATHS,
+            kind=VerificationCheckKind.TEST,
+            blocking=True,
+        )
+        for index in range(row_count)
+    ]
+    readiness = ChangesetVerificationReadiness(
+        state=ChangesetVerificationState.PASSED,
+        summary="dense verification is retained",
+        requirements=requirements,
+    )
+    return ChangesetVerificationPlanPreview(
+        changeset_id=detail.changeset.changeset_id,
+        session_id=detail.changeset.session_id,
+        inventory_freshness=ChangesetInventoryFreshness.FRESH,
+        changed_paths=_dense_changed_paths(row_count),
+        review_loop_summary=ChangesetVerificationReviewLoopSummary(
+            retained_verification_state=ChangesetVerificationState.PASSED
+        ),
+        readiness=readiness,
+    )
+
+
+def _manual_evidence(
+    session_id: SessionId,
+    changeset_id,
+    index: int,
+) -> ManualEvidenceRecord:
+    now = datetime.now(UTC)
+    return ManualEvidenceRecord(
+        session_id=session_id,
+        evidence_id=new_manual_evidence_id(),
+        evidence_kind=ManualEvidenceKind.EXTERNAL_CHECK,
+        state=ManualEvidenceState.ATTACHED,
+        target_kind=ManualEvidenceTargetKind.CHANGESET,
+        target_id=str(changeset_id),
+        changeset_id=changeset_id,
+        artifact_id=new_artifact_id(),
+        artifact_schema_version=1,
+        summary=f"Manual check {index} was inspected.",
+        source_label=f"manual-{index}",
+        created_by="operator",
+        local_only=False,
+        redaction_status=ManualEvidenceRedactionStatus.PASSED,
+        freshness=ManualEvidenceFreshness.CURRENT,
+        created_at=now,
+        updated_at=now,
+        last_sequence=3 + index,
+    )
+
+
+def _review_feedback(
+    session_id: SessionId, changeset_id, index: int
+) -> ReviewFeedbackRecord:
+    now = datetime.now(UTC)
+    return ReviewFeedbackRecord(
+        session_id=session_id,
+        feedback_id=new_review_feedback_id(),
+        changeset_id=changeset_id,
+        feedback_kind=ReviewFeedbackKind.REQUESTED_CHANGE,
+        provenance=ReviewFeedbackProvenance.REVIEWER,
+        disposition=ReviewFeedbackDisposition.RESPONDED,
+        summary=f"Review feedback {index} was handled.",
+        body=None,
+        source_label="local-review",
+        reviewer_label="reviewer",
+        created_by="operator",
+        updated_by="operator",
+        created_at=now,
+        updated_at=now,
+        last_sequence=100 + index,
+    )
+
+
+def _dense_recommendation(
+    workspace_root: Path,
+    *,
+    row_count: int,
+) -> EvalRecommendationReport:
+    changed_paths = _dense_changed_paths(row_count)
+    return EvalRecommendationReport(
+        workspace_root=workspace_root,
+        touched_paths=changed_paths,
+        test_targets=[
+            EvalTestTargetRecommendation(
+                target_id=f"target-{index}",
+                title=f"Focused target {index}",
+                confidence="direct",
+                source="topology",
+                matched_paths=[changed_paths[index]],
+                command=f"uv run pytest tests/unit/test_dense_{index}.py",
+                reasons=[f"Changed path {index} maps to a focused test."],
+            )
+            for index in range(row_count)
+        ],
+    )
+
+
+def _dense_changed_paths(row_count: int) -> list[str]:
+    return [f"src/pkg/module_{index:04d}.py" for index in range(row_count)]
 
 
 def _measure_ms(operation: Callable[[], object]) -> float:

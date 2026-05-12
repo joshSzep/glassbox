@@ -34,6 +34,14 @@ from glassbox.runtime.changeset_models import ChangesetVerificationPlanPreview
 from glassbox.runtime.next_actions import next_actions_from_summaries
 from glassbox.runtime.session_query_models import SessionSnapshotView
 
+MAX_CHANGESET_GRAPH_REQUIREMENTS = 50
+MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE = 50
+MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK = 50
+MAX_CHANGESET_GRAPH_RESPONSE_PLAN_ENTRIES = 20
+MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE = 50
+MAX_CHANGESET_GRAPH_SAFE_NEXT_ACTIONS = 50
+MAX_EVIDENCE_NEIGHBORHOOD_NODES = 100
+
 
 class EvidenceGraphSummary(BaseModel):
     """Compact count summary for a derived evidence graph."""
@@ -167,7 +175,15 @@ def build_changeset_evidence_graph(
             )
         )
     else:
-        for requirement in verification_plan.readiness.requirements[:50]:
+        _add_truncation_limitation(
+            graph,
+            label="verification requirement",
+            total=len(verification_plan.readiness.requirements),
+            limit=MAX_CHANGESET_GRAPH_REQUIREMENTS,
+        )
+        for requirement in verification_plan.readiness.requirements[
+            :MAX_CHANGESET_GRAPH_REQUIREMENTS
+        ]:
             node_id = f"verification:{requirement.requirement_id}"
             freshness = _requirement_freshness(requirement.state.value)
             if freshness == EvidenceGraphFreshness.STALE:
@@ -214,7 +230,13 @@ def build_changeset_evidence_graph(
             else:
                 supporting_edge_ids.append(edge_id)
 
-    for item in detail.manual_evidence[:50]:
+    _add_truncation_limitation(
+        graph,
+        label="manual evidence row",
+        total=len(detail.manual_evidence),
+        limit=MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE,
+    )
+    for item in detail.manual_evidence[:MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE]:
         node_id = f"manual-evidence:{item.evidence_id}"
         freshness = _manual_freshness(item.freshness)
         if freshness == EvidenceGraphFreshness.STALE:
@@ -257,7 +279,13 @@ def build_changeset_evidence_graph(
     response_status_by_feedback = {
         str(item.feedback_id): item for item in detail.review_response_summary.items
     }
-    for item in detail.review_feedback[:50]:
+    _add_truncation_limitation(
+        graph,
+        label="review feedback row",
+        total=len(detail.review_feedback),
+        limit=MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK,
+    )
+    for item in detail.review_feedback[:MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK]:
         node_id = f"review-feedback:{item.feedback_id}"
         graph.add_node(
             EvidenceGraphNode(
@@ -353,7 +381,15 @@ def build_changeset_evidence_graph(
                 "fixup inventory was recorded for this feedback item",
                 confidence=EvidenceGraphConfidence.MEDIUM,
             )
-        for plan_entry in response_status.verification_plan_entries[:20]:
+        _add_truncation_limitation(
+            graph,
+            label=f"verification plan link for feedback {item.feedback_id}",
+            total=len(response_status.verification_plan_entries),
+            limit=MAX_CHANGESET_GRAPH_RESPONSE_PLAN_ENTRIES,
+        )
+        for plan_entry in response_status.verification_plan_entries[
+            :MAX_CHANGESET_GRAPH_RESPONSE_PLAN_ENTRIES
+        ]:
             verification_node_id = f"verification:{plan_entry.verification_id}"
             freshness = _response_plan_entry_freshness(plan_entry.relationship)
             if freshness == EvidenceGraphFreshness.STALE:
@@ -405,7 +441,13 @@ def build_changeset_evidence_graph(
             else:
                 supporting_edge_ids.append(response_edge_id)
 
-    for item in detail.command_evidence.items[:50]:
+    _add_truncation_limitation(
+        graph,
+        label="command evidence row",
+        total=len(detail.command_evidence.items),
+        limit=MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE,
+    )
+    for item in detail.command_evidence.items[:MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE]:
         node_id = f"command:{item.tool_attempt_id}"
         graph.add_node(
             EvidenceGraphNode(
@@ -447,7 +489,16 @@ def build_changeset_evidence_graph(
             )
         )
 
-    for action in _actions_from_strings(detail.safe_next_actions, changeset_id):
+    _add_truncation_limitation(
+        graph,
+        label="safe next action",
+        total=len(detail.safe_next_actions),
+        limit=MAX_CHANGESET_GRAPH_SAFE_NEXT_ACTIONS,
+    )
+    for action in _actions_from_strings(
+        detail.safe_next_actions[:MAX_CHANGESET_GRAPH_SAFE_NEXT_ACTIONS],
+        changeset_id,
+    ):
         node_id = f"next-action:{action.action_id}"
         graph.add_node(
             EvidenceGraphNode(
@@ -701,11 +752,14 @@ def evidence_neighborhood(
     node_id: str,
     *,
     depth: int = 1,
+    max_nodes: int = MAX_EVIDENCE_NEIGHBORHOOD_NODES,
 ) -> EvidenceGraph:
     """Return a bounded undirected graph neighborhood around one node."""
 
     if depth < 0:
         raise ValueError("depth must be non-negative")
+    if max_nodes < 1:
+        raise ValueError("max_nodes must be positive")
     node_ids = {node.node_id for node in graph.nodes}
     if node_id not in node_ids:
         return graph.model_copy(update={"nodes": [], "edges": [], "claims": []})
@@ -717,12 +771,16 @@ def evidence_neighborhood(
 
     selected = {node_id}
     queue: deque[tuple[str, int]] = deque([(node_id, 0)])
+    truncated = False
     while queue:
         current, current_depth = queue.popleft()
         if current_depth >= depth:
             continue
         for neighbor in adjacency.get(current, set()):
             if neighbor in selected:
+                continue
+            if len(selected) >= max_nodes:
+                truncated = True
                 continue
             selected.add(neighbor)
             queue.append((neighbor, current_depth + 1))
@@ -745,6 +803,15 @@ def evidence_neighborhood(
             "nodes": [node for node in graph.nodes if node.node_id in selected],
             "edges": edges,
             "claims": claims,
+            "limitations": _with_limitation(
+                graph.limitations,
+                (
+                    f"Evidence neighborhood truncated to {max_nodes} node(s); "
+                    "inspect a narrower node or depth for additional relationships."
+                ),
+            )
+            if truncated
+            else graph.limitations,
         }
     )
 
@@ -825,6 +892,7 @@ class _GraphBuilder:
         self._nodes: list[EvidenceGraphNode] = []
         self._edges: list[EvidenceGraphEdge] = []
         self._claims: list[ClaimSupport] = []
+        self._limitations: list[str] = []
         self._edge_counter = 0
 
     def add_node(self, node: EvidenceGraphNode) -> None:
@@ -856,6 +924,9 @@ class _GraphBuilder:
     def add_claim(self, claim: ClaimSupport) -> None:
         self._claims.append(claim)
 
+    def add_limitation(self, limitation: str) -> None:
+        self._limitations = _with_limitation(self._limitations, limitation)
+
     def build(self) -> EvidenceGraph:
         return EvidenceGraph(
             graph_id=self._graph_id,
@@ -864,6 +935,7 @@ class _GraphBuilder:
             nodes=self._nodes,
             edges=self._edges,
             claims=self._claims,
+            limitations=self._limitations,
         )
 
 
@@ -1031,6 +1103,23 @@ def _count_claims(graph: EvidenceGraph, state: ClaimSupportState) -> int:
     return sum(1 for claim in graph.claims if claim.state == state)
 
 
+def _add_truncation_limitation(
+    graph: _GraphBuilder,
+    *,
+    label: str,
+    total: int,
+    limit: int,
+) -> None:
+    if total > limit:
+        graph.add_limitation(
+            f"{label.title()} evidence truncated to {limit} of {total} item(s)."
+        )
+
+
+def _with_limitation(limitations: list[str], limitation: str) -> list[str]:
+    return list(dict.fromkeys([*limitations, limitation]))[:20]
+
+
 __all__ = [
     "EvidenceGraphSummary",
     "build_changeset_evidence_graph",
@@ -1039,4 +1128,11 @@ __all__ = [
     "evidence_neighborhood",
     "reviewer_safe_graph_slice",
     "summarize_evidence_graph",
+    "MAX_CHANGESET_GRAPH_COMMAND_EVIDENCE",
+    "MAX_CHANGESET_GRAPH_MANUAL_EVIDENCE",
+    "MAX_CHANGESET_GRAPH_REQUIREMENTS",
+    "MAX_CHANGESET_GRAPH_RESPONSE_PLAN_ENTRIES",
+    "MAX_CHANGESET_GRAPH_REVIEW_FEEDBACK",
+    "MAX_CHANGESET_GRAPH_SAFE_NEXT_ACTIONS",
+    "MAX_EVIDENCE_NEIGHBORHOOD_NODES",
 ]

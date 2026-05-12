@@ -63,6 +63,49 @@ PERFORMANCE_BUDGETS: tuple[PerformanceBudget, ...] = (
         ),
     ),
     PerformanceBudget(
+        surface="operator queue aggregation",
+        scenario="derive and sort the unified v16 operator queue",
+        fixture_size="60 sessions plus workspace maintenance cues",
+        budget_ms=1_000,
+        guidance=(
+            "If this regresses, keep queue producers summary-first, dedupe before "
+            "transport, and move expensive evidence expansion behind detail routes."
+        ),
+    ),
+    PerformanceBudget(
+        surface="evidence graph derivation",
+        scenario="derive a bounded graph for one dense changeset",
+        fixture_size=(
+            "80 verification requirements, 80 manual evidence rows, "
+            "80 review feedback rows, and 80 command evidence rows"
+        ),
+        budget_ms=1_000,
+        guidance=(
+            "If this regresses, preserve bounded graph construction and expose "
+            "truncation limitations instead of expanding raw artifacts inline."
+        ),
+    ),
+    PerformanceBudget(
+        surface="evidence graph neighborhood",
+        scenario="derive one bounded evidence graph neighborhood",
+        fixture_size="dense changeset graph capped to reviewer/operator summaries",
+        budget_ms=250,
+        guidance=(
+            "If this regresses, keep neighborhood reads capped by node count and "
+            "serve raw evidence through explicit detail inspection routes."
+        ),
+    ),
+    PerformanceBudget(
+        surface="verification plan generation",
+        scenario="build a bounded plan from many changed paths and recommendations",
+        fixture_size="80 changed paths and 160 recommendation rows",
+        budget_ms=1_000,
+        guidance=(
+            "If this regresses, cap generated plan entries, surface skipped "
+            "recommendations, and keep command execution outside preview paths."
+        ),
+    ),
+    PerformanceBudget(
         surface="session snapshot build",
         scenario="build a full snapshot for a mixed larger session",
         fixture_size="120 turns, 80 tool calls, 40 artifacts",
@@ -154,6 +197,46 @@ PAYLOAD_SIZE_BUDGETS: tuple[PayloadSizeBudget, ...] = (
         guidance=(
             "If this regresses, reduce aggregate row width or require paginated "
             "queue reads before adding browser-side-only filtering."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="operator queue payload",
+        scenario="serialize the unified v16 queue inside the workspace aggregate",
+        fixture_size="60 sessions plus workspace maintenance cues",
+        budget_bytes=120_000,
+        guidance=(
+            "If this regresses, reduce queue item evidence width and link to "
+            "evidence graph detail routes instead of embedding expanded support."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="evidence graph summary payload",
+        scenario="serialize a dense changeset evidence graph summary",
+        fixture_size="bounded summary counts and graph limitations",
+        budget_bytes=20_000,
+        guidance=(
+            "If this regresses, keep summary responses count-based and avoid "
+            "returning node or artifact detail from summary endpoints."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="evidence graph neighborhood payload",
+        scenario="serialize one bounded graph neighborhood for dashboard inspection",
+        fixture_size="dense changeset graph neighborhood capped to 100 nodes",
+        budget_bytes=250_000,
+        guidance=(
+            "If this regresses, lower neighborhood node caps or move additional "
+            "relationships behind explicit pagination."
+        ),
+    ),
+    PayloadSizeBudget(
+        surface="verification plan preview payload",
+        scenario="serialize a bounded verification plan preview",
+        fixture_size="80 changed paths and capped generated plan entries",
+        budget_bytes=250_000,
+        guidance=(
+            "If this regresses, cap preview entries more aggressively and keep "
+            "large recommendation rationale behind detail inspection."
         ),
     ),
     PayloadSizeBudget(

@@ -27,6 +27,9 @@ from glassbox.runtime.eval_recommendation_models import (
 )
 from glassbox.runtime.eval_recommendation_models import PathVerificationFreshness
 
+MAX_VERIFICATION_PLAN_ENTRIES = 50
+MAX_VERIFICATION_PLAN_SKIPPED_CHECKS = 50
+
 
 def build_verification_plan_entries(
     *,
@@ -39,13 +42,38 @@ def build_verification_plan_entries(
     entries: list[VerificationPlanEntry] = []
     skipped: list[ChangesetVerificationSkippedCheckPreview] = []
     seen: set[str] = set()
+    entry_limit_recorded = False
+    skipped_limit_recorded = False
 
     def add(entry: VerificationPlanEntry) -> None:
+        nonlocal entry_limit_recorded
         key = _entry_key(entry)
         if key in seen:
             return
+        if len(entries) >= MAX_VERIFICATION_PLAN_ENTRIES:
+            if not entry_limit_recorded:
+                add_skipped(
+                    _plan_entry_limit_skipped(
+                        changed_paths,
+                        limit=MAX_VERIFICATION_PLAN_ENTRIES,
+                    )
+                )
+                entry_limit_recorded = True
+            return
         seen.add(key)
         entries.append(entry)
+
+    def add_skipped(item: ChangesetVerificationSkippedCheckPreview) -> None:
+        nonlocal skipped_limit_recorded
+        if len(skipped) >= MAX_VERIFICATION_PLAN_SKIPPED_CHECKS:
+            if not skipped_limit_recorded and skipped:
+                skipped[-1] = _skipped_limit_skipped(
+                    changed_paths,
+                    limit=MAX_VERIFICATION_PLAN_SKIPPED_CHECKS,
+                )
+                skipped_limit_recorded = True
+            return
+        skipped.append(item)
 
     if recommendation is not None:
         for target in recommendation.test_targets:
@@ -75,7 +103,7 @@ def build_verification_plan_entries(
         for recipe in recommendation.recipes:
             for command in recipe.commands:
                 if not is_safe_verification_command(command):
-                    skipped.append(
+                    add_skipped(
                         _skipped(
                             target_id=recipe.recipe_id,
                             target_kind="command-recipe",
@@ -97,7 +125,7 @@ def build_verification_plan_entries(
                 )
         for profile in recommendation.profiles:
             if profile.track != "deterministic":
-                skipped.append(
+                add_skipped(
                     _skipped(
                         target_id=profile.profile_id,
                         target_kind="eval-profile",
@@ -436,6 +464,40 @@ def _skipped(
     )
 
 
+def _plan_entry_limit_skipped(
+    matched_paths: list[str],
+    *,
+    limit: int,
+) -> ChangesetVerificationSkippedCheckPreview:
+    return _skipped(
+        target_id="verification-plan-entry-limit",
+        target_kind="plan-limit",
+        reason="plan-entry-limit",
+        explanation=(
+            f"Verification plan preview is capped at {limit} entry summaries; "
+            "inspect repository recommendations for additional candidate checks."
+        ),
+        matched_paths=matched_paths[:100],
+    )
+
+
+def _skipped_limit_skipped(
+    matched_paths: list[str],
+    *,
+    limit: int,
+) -> ChangesetVerificationSkippedCheckPreview:
+    return _skipped(
+        target_id="verification-skipped-check-limit",
+        target_kind="plan-limit",
+        reason="skipped-check-limit",
+        explanation=(
+            f"Skipped-check preview is capped at {limit} rows; inspect repository "
+            "recommendations for additional skipped advisory checks."
+        ),
+        matched_paths=matched_paths[:100],
+    )
+
+
 def _source_for_test_target(source: str) -> VerificationPlanSource:
     if source in {"repository-intelligence", "topology", "recipe"}:
         return VerificationPlanSource.REPOSITORY_INTELLIGENCE
@@ -516,4 +578,8 @@ def _has_ui_path(paths: list[str]) -> bool:
     )
 
 
-__all__ = ["build_verification_plan_entries"]
+__all__ = [
+    "MAX_VERIFICATION_PLAN_ENTRIES",
+    "MAX_VERIFICATION_PLAN_SKIPPED_CHECKS",
+    "build_verification_plan_entries",
+]

@@ -1120,7 +1120,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1670: Add Queue And Evidence Graph Performance Budgets
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1621`, `GBX-1612`
 - Goal: prevent unified queue and evidence graph queries from slowing large
   workspaces, long sessions, or dense changesets
@@ -1141,6 +1141,19 @@ uv run python scripts/validate_v16_release_gate.py
 - Done when:
   - v16 surfaces remain responsive under large local evidence sets and degrade
     explicitly under limits
+- Completed:
+  - Added repository-owned v16 performance and payload budgets for operator
+    queue aggregation, evidence graph derivation, graph neighborhoods,
+    verification plan generation, queue payloads, graph summaries,
+    neighborhood payloads, and verification plan previews.
+  - Made dense changeset evidence graphs and verification plan previews bounded
+    with visible truncation limitations or skipped-check rows instead of
+    silently expanding raw evidence into aggregate/dashboard paths.
+  - Added dense v16 performance coverage in
+    `tests/integration/test_performance_budgets.py` and documented scale
+    behavior in [operator-queue.md](./operator-queue.md),
+    [evidence-graph.md](./evidence-graph.md), and
+    [verification-orchestrator.md](./verification-orchestrator.md).
 
 ### GBX-1671: Harden Compatibility And Migration Paths
 

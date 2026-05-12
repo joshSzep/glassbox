@@ -122,6 +122,20 @@ Aggregators dedupe by `dedupe_key.key` and keep the strongest item according to
 that same ordering. This lets several projections point at the same problem
 without multiplying rows or erasing the domain-specific owner label.
 
+## Scale Behavior
+
+Queue aggregation is summary-first. The workspace aggregate should return the
+ranked queue and counts without expanding raw evidence graphs, artifacts,
+transcripts, command logs, or repository intelligence entries. Queue item
+evidence should name bounded support, stale or missing evidence, limitation
+counts, and safe inspection commands; deeper support belongs behind evidence
+graph and domain detail routes.
+
+`glassbox performance budgets` includes v16 queue aggregation and queue payload
+budgets for the dashboard-critical path. If a large workspace exceeds those
+budgets, prefer narrower producer queries, dedupe before serialization, or
+explicit paginated detail endpoints over browser-only filtering.
+
 ## CLI And API Surfaces
 
 `glassbox queue list --cwd .` prints the ranked queue for the current workspace.

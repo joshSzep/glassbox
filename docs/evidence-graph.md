@@ -238,3 +238,24 @@ or artifact payloads.
 If an older session or changeset has no derived graph, the dashboard keeps the
 panel visible with a sparse-state explanation and continues to show the
 existing event, command, verification, and artifact summaries.
+
+## Scale Behavior
+
+Evidence graph derivation is bounded by default. Changeset graphs summarize at
+most 50 verification requirements, 50 manual evidence rows, 50 review feedback
+rows, 50 command evidence rows, and 50 safe next actions; response-linked
+feedback verification links are capped at 20 per feedback item. When more local
+evidence exists, the graph adds a limitation that names the truncated evidence
+family and the retained count.
+
+Neighborhood queries are capped to 100 nodes by default. A truncated
+neighborhood remains useful for dashboard inspection, but it must carry a
+limitation instead of pretending the visible relationships are exhaustive.
+Operators should narrow the node or depth before relying on a dense graph for
+review copy.
+
+The repository-owned `glassbox performance budgets` output includes v16 budget
+rows for evidence graph derivation, neighborhood queries, summary payloads, and
+dashboard neighborhood payloads. Budget failures should be fixed by keeping
+summaries bounded, linking to explicit detail routes, or adding rebuildable
+derived projections only after measured evidence shows they are needed.

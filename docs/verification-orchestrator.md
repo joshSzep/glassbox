@@ -82,6 +82,25 @@ passed, or approve any command. Persisted changeset previews remain the
 reviewable route when retained inventory, review feedback, manual evidence, and
 handoff posture matter.
 
+## Scale Behavior
+
+Verification plan previews cap generated entry summaries to 50 rows. When more
+candidate checks are available, the preview records a skipped-check row with
+reason `plan-entry-limit` so the operator can see that the plan is truncated
+instead of mistaking it for exhaustive evidence. Skipped advisory checks are
+also bounded; if that list exceeds the retained preview rows, Glassbox records
+`skipped-check-limit`.
+
+The cap applies to preview and dashboard payloads only. It does not approve,
+run, pass, fail, or discard underlying commands. Operators can inspect
+repository recommendations or use narrower changed-path scopes when they need
+to review additional candidate checks.
+
+The repository-owned `glassbox performance budgets` output includes a v16
+verification plan generation row and a verification plan preview payload row.
+Budget failures should be addressed by keeping preview entries bounded and
+moving expanded recommendation detail behind explicit inspection commands.
+
 ## Local Dispositions
 
 Once a changeset preview names a `verification_id`, operators can persist local
