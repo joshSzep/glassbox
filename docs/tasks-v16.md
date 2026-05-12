@@ -855,7 +855,7 @@ uv run python scripts/validate_v16_release_gate.py
 
 ### GBX-1643: Add Reviewer-Safe Compressed Evidence Bundles
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1613`, `GBX-1634`, `GBX-1642`
 - Goal: produce compact evidence bundles that explain one local change without
   leaking raw local state or forcing reviewers through the full dashboard

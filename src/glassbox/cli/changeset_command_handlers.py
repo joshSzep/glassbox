@@ -16,6 +16,7 @@ from glassbox.cli.changeset_command_lifecycle import _changeset_brief_command
 from glassbox.cli.changeset_command_lifecycle import _changeset_create_command
 from glassbox.cli.changeset_command_lifecycle import _changeset_evidence_graph_command
 from glassbox.cli.changeset_command_lifecycle import _changeset_export_command
+from glassbox.cli.changeset_command_lifecycle import _changeset_export_inspect_command
 from glassbox.cli.changeset_command_lifecycle import _changeset_list_command
 from glassbox.cli.changeset_command_lifecycle import (
     _changeset_record_verification_command,
@@ -62,6 +63,7 @@ __all__ = [
     "_changeset_evidence_command",
     "_changeset_evidence_graph_command",
     "_changeset_export_command",
+    "_changeset_export_inspect_command",
     "_changeset_feedback_command",
     "_changeset_handoff_readiness_command",
     "_changeset_list_command",

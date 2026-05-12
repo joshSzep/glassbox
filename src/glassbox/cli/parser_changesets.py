@@ -3,6 +3,7 @@
 import argparse
 
 from glassbox.cli.parser_changeset_evidence import _add_changeset_evidence_parsers
+from glassbox.cli.parser_changeset_export import _add_changeset_export_parsers
 from glassbox.cli.parser_changeset_feedback import _add_changeset_feedback_parsers
 from glassbox.cli.parser_changeset_review import _add_changeset_review_parsers
 from glassbox.cli.parser_changeset_workup import _add_changeset_workup_parser
@@ -179,19 +180,7 @@ def _add_changeset_parsers(
     refresh_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(refresh_parser)
 
-    export_parser = changeset_subparsers.add_parser(
-        "export",
-        help="write a reviewer-safe changeset evidence package",
-        description=(
-            "Write a changeset-centered evidence package with redacted summaries, "
-            "artifact references, verification posture, and non-claims."
-        ),
-    )
-    export_parser.add_argument("changeset_id", type=_parse_uuid)
-    export_parser.add_argument("output_path")
-    export_parser.add_argument("--json", action="store_true")
-    _add_runtime_location_arguments(export_parser)
-
+    _add_changeset_export_parsers(changeset_subparsers)
     _add_changeset_review_parsers(changeset_subparsers)
     _add_changeset_evidence_parsers(changeset_subparsers)
     _add_changeset_feedback_parsers(changeset_subparsers)

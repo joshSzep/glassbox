@@ -19,7 +19,7 @@ redacted by design:
 | --- | --- | --- | --- |
 | Handoff export | `uv run glassbox session export SESSION_ID handoff.json --cwd .` | Session story, latest objective, checkpoint and compaction posture, verification state, accepted risks, branch lineage, knowledge posture, and safe inspection commands. | Transcript text, operator note, branch labels, and accepted-risk wording. |
 | Handoff readiness | `uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .` | Final local posture for one reviewed changeset, including unresolved feedback, stale verification, stale inventory, lifecycle brief freshness, local-only evidence, accepted risks, commit-prep posture, and safe next commands. | State wording, accepted-risk summaries, local-only limitations, and any command listed as safe next action. |
-| Changeset export | `uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .` | Change-centered objective, inventory summary, provenance, verification readiness, latest lifecycle brief metadata, feedback summaries, response summaries, manual evidence summaries, browser/accessibility summaries, artifact references, redaction report, and non-claims. | Objective text, feedback summaries, response wording, risk summaries, source reasons, artifact IDs, local-only evidence limitations, and advisory live-evidence claims. |
+| Changeset export | `uv run glassbox changeset export CHANGESET_ID changeset-review.json --markdown-output changeset-review.md --cwd .` | Change-centered objective, inventory summary, provenance, verification readiness, reviewer-safe evidence graph slice, handoff posture, latest lifecycle brief metadata, feedback summaries, response summaries, manual evidence summaries, browser/accessibility summaries, artifact references, redaction report, and non-claims. | Objective text, feedback summaries, response wording, risk summaries, source reasons, artifact IDs, local-only evidence limitations, and advisory live-evidence claims. |
 | Eval report | `uv run glassbox eval report commit-smoke --cwd .` | Deterministic profile pass/fail evidence and retained `summary.json` paths. | Changed path names, case notes, and failure summaries. |
 | Eval audit | `uv run glassbox eval audit --cwd .` | Coverage gaps and profile manifest health. | Repository path names and local output paths. |
 | Replay bundle | `uv run glassbox replay bundle export SESSION_ID bundle.json --cwd .` | Portable deterministic replay fixture when the behavior should become regression evidence. | Prompt text, transcript summaries, bundle notes, and artifact references. |
@@ -92,7 +92,10 @@ For a normal code-review handoff, provide:
 
 ```bash
 uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
-uv run glassbox changeset export CHANGESET_ID changeset-review.json --cwd .
+uv run glassbox changeset export CHANGESET_ID changeset-review.json \
+  --markdown-output changeset-review.md \
+  --cwd .
+uv run glassbox changeset export-inspect changeset-review.json --json
 uv run glassbox session export SESSION_ID handoff.json --cwd .
 uv run glassbox eval recommend PATH --cwd .
 uv run glassbox eval audit --cwd .
@@ -101,8 +104,12 @@ uv run glassbox eval audit --cwd .
 The changeset export is the preferred review-centered bundle when a changeset
 exists. It includes lifecycle brief metadata, review feedback summaries,
 response posture, manual evidence summaries, live browser/dashboard/accessibility
-summaries, verification posture, command evidence references, a redaction
-report, and non-claims. It does not include raw `.glassbox` database state, raw
+summaries, verification posture, reviewer-safe evidence graph summary and slice,
+repository-intelligence limitations, handoff readiness posture, command evidence
+references, a redaction report, and non-claims. The optional Markdown output is a
+compact summary for humans; it is not a PR description or publication artifact.
+`export-inspect` reads the bundle without importing it or reading raw local
+artifacts. The bundle does not include raw `.glassbox` database state, raw
 command output, provider transcripts, raw diffs, file contents, raw screenshots,
 browser traces, accessibility transcripts, or raw manual logs. The handoff
 export gives the reviewer the broader session story and safe inspection

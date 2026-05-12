@@ -15,6 +15,7 @@ from glassbox.cli.changeset_command_handlers import _changeset_create_command
 from glassbox.cli.changeset_command_handlers import _changeset_evidence_command
 from glassbox.cli.changeset_command_handlers import _changeset_evidence_graph_command
 from glassbox.cli.changeset_command_handlers import _changeset_export_command
+from glassbox.cli.changeset_command_handlers import _changeset_export_inspect_command
 from glassbox.cli.changeset_command_handlers import _changeset_feedback_command
 from glassbox.cli.changeset_command_handlers import _changeset_handoff_readiness_command
 from glassbox.cli.changeset_command_handlers import _changeset_list_command
@@ -75,6 +76,8 @@ def _changeset_command(args: argparse.Namespace) -> int:
         return _changeset_brief_command(args)
     if command == "export":
         return _changeset_export_command(args)
+    if command == "export-inspect":
+        return _changeset_export_inspect_command(args)
     if command == "commit-message":
         return _changeset_commit_message_command(args)
     if command == "record-precommit":

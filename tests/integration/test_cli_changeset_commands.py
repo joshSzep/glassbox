@@ -542,6 +542,7 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     graph_neighborhood = json.loads(capsys.readouterr().out)
+    export_markdown_path = tmp_path / "changeset-export.md"
     export_path = tmp_path / "changeset-export.json"
     export_exit = main(
         [
@@ -549,6 +550,8 @@ def test_changeset_create_list_show_refresh_and_archive(
             "export",
             changeset_id,
             str(export_path),
+            "--markdown-output",
+            str(export_markdown_path),
             "--cwd",
             str(tmp_path),
             "--db-path",
@@ -558,6 +561,16 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     exported = json.loads(capsys.readouterr().out)
     export_payload = json.loads(export_path.read_text(encoding="utf-8"))
+    export_markdown = export_markdown_path.read_text(encoding="utf-8")
+    export_inspect_exit = main(
+        [
+            "changeset",
+            "export-inspect",
+            str(export_path),
+            "--json",
+        ]
+    )
+    export_inspection = json.loads(capsys.readouterr().out)
     (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
     stale_show_exit = main(
@@ -781,8 +794,18 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     assert export_exit == 0
     assert exported["status"] == "exported"
+    assert exported["markdown_output_path"] == str(export_markdown_path.resolve())
     assert export_payload["export_kind"] == "changeset_review_export"
     assert export_payload["changeset"]["changeset_id"] == changeset_id
+    assert export_payload["evidence_graph"]["summary"]["target_id"] == changeset_id
+    assert export_payload["evidence_graph"]["summary"]["claim_count"] == 1
+    assert all(
+        node["visibility"] == "reviewer_safe"
+        for node in export_payload["evidence_graph"]["reviewer_safe_graph"]["nodes"]
+    )
+    assert export_payload["handoff_readiness"]["readiness_kind"] == "handoff"
+    assert export_payload["handoff_readiness"]["state"] == handoff["state"]
+    assert isinstance(export_payload["repository_intelligence_limitations"], list)
     assert export_payload["review_brief"]["artifact_id"] == brief["artifact_id"]
     assert export_payload["review_brief"]["schema_version"] == 2
     assert export_payload["review_brief"]["limitation_summary"] is None
@@ -806,6 +829,12 @@ def test_changeset_create_list_show_refresh_and_archive(
     }
     assert "manual_evidence" in artifact_kinds
     assert export_payload["artifact_references"][0]["local_only"] is True
+    assert "# Changeset Evidence Bundle" in export_markdown
+    assert "## Redaction" in export_markdown
+    assert export_inspect_exit == 0
+    assert export_inspection["changeset_id"] == changeset_id
+    assert export_inspection["evidence_graph_claim_count"] == 1
+    assert export_inspection["handoff_state"] == handoff["state"]
     assert stale_show_exit == 0
     assert stale_detail["inventory"]["freshness"] == "stale"
     assert stale_detail["verification_posture"]["state"] == "passed"

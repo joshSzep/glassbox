@@ -26,6 +26,7 @@ from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRepository
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionService
 from glassbox.runtime.changeset_export import export_changeset_package
+from glassbox.runtime.changeset_export import inspect_changeset_export_package
 from glassbox.runtime.changesets import ChangesetActionService
 from glassbox.runtime.changesets import ChangesetDerivationResult
 from glassbox.runtime.changesets import ChangesetDerivationService
@@ -734,6 +735,11 @@ def _changeset_archive_command(args: argparse.Namespace) -> int:
 def _changeset_export_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     output_path = Path(args.output_path)
+    markdown_output_path = (
+        Path(args.markdown_output_path)
+        if getattr(args, "markdown_output_path", None)
+        else None
+    )
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         resolved_output = export_changeset_package(
             args.changeset_id,
@@ -741,11 +747,17 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
             repository=cast(ChangesetRepository, runtime_context.repositories.sessions),
             artifact_repository=runtime_context.repositories.artifacts,
             workspace_root=cwd,
+            markdown_output_path=markdown_output_path,
         )
 
     payload = {
         "changeset_id": str(args.changeset_id),
         "output_path": str(resolved_output),
+        "markdown_output_path": (
+            str(markdown_output_path.resolve())
+            if markdown_output_path is not None
+            else None
+        ),
         "status": "exported",
     }
     if args.json:
@@ -753,6 +765,38 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
     else:
         print(f"Exported changeset package for {args.changeset_id}")
         print(f"Output: {resolved_output}")
+        if markdown_output_path is not None:
+            print(f"Markdown: {markdown_output_path.resolve()}")
+    return 0
+
+
+def _changeset_export_inspect_command(args: argparse.Namespace) -> int:
+    summary = inspect_changeset_export_package(Path(args.bundle_path))
+    if args.json:
+        print_json_output(summary)
+    else:
+        print(f"Changeset export bundle: {summary['bundle_path']}")
+        print(
+            f"Bundle: {summary['export_kind']} v{summary['schema_version']} "
+            f"for {summary['changeset_id']}"
+        )
+        print(f"Status: {summary['status']}")
+        print(f"Verification: {summary['verification_state']}")
+        print(f"Handoff: {summary['handoff_state']}")
+        print(
+            "Evidence graph: "
+            f"{summary['evidence_graph_node_count']} node(s), "
+            f"{summary['evidence_graph_claim_count']} claim(s)"
+        )
+        print(f"Feedback: {summary['feedback_count']}")
+        print(f"Manual evidence: {summary['manual_evidence_count']}")
+        print(f"Redaction rows: {summary['redaction_report_count']}")
+        print("Safe inspection commands:")
+        for command in summary["safe_inspection_commands"][:5]:
+            print(f"  - {command}")
+        print("Non-claims:")
+        for claim in summary["non_claims"][:5]:
+            print(f"  - {claim}")
     return 0
 
 

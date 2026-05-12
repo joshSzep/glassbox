@@ -24,6 +24,11 @@ from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.changesets import ChangesetVerificationPlanPreview
 from glassbox.runtime.changesets import ChangesetVerificationService
+from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
+from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
+from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
 from glassbox.runtime.skipped_evidence import skipped_evidence_reason
 from glassbox.runtime.skipped_evidence import skipped_evidence_state
@@ -56,7 +61,10 @@ class ChangesetExportPayload(BaseModel):
     changeset: dict[str, Any]
     sources: list[dict[str, Any]]
     inventory: dict[str, Any] | None = None
+    evidence_graph: dict[str, Any]
     verification: dict[str, Any]
+    repository_intelligence_limitations: list[str] = Field(default_factory=list)
+    handoff_readiness: dict[str, Any]
     review_brief: dict[str, Any] | None = None
     review_feedback: dict[str, Any]
     review_responses: dict[str, Any]
@@ -78,6 +86,7 @@ def export_changeset_package(
     repository: ChangesetRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    markdown_output_path: Path | None = None,
 ) -> Path:
     """Write one reviewer-safe changeset export package."""
 
@@ -98,6 +107,13 @@ def export_changeset_package(
         + "\n",
         encoding="utf-8",
     )
+    if markdown_output_path is not None:
+        resolved_markdown_output = markdown_output_path.resolve()
+        resolved_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        resolved_markdown_output.write_text(
+            build_changeset_export_markdown(payload),
+            encoding="utf-8",
+        )
     return resolved_output
 
 
@@ -118,13 +134,27 @@ def build_changeset_export_payload(
         repository,
         artifact_repository,
     ).preview_plan(changeset_id, workspace_root)
+    evidence_graph = reviewer_safe_graph_slice(
+        build_changeset_evidence_graph(detail, verification_plan=verification_plan)
+    )
+    handoff_readiness = _handoff_readiness_summary_for_export(
+        changeset_id,
+        repository=repository,
+        artifact_repository=artifact_repository,
+        workspace_root=workspace_root,
+    )
     latest_brief = detail.review_briefs[0] if detail.review_briefs else None
     return ChangesetExportPayload(
         exported_at=datetime.now(UTC),
         changeset=_changeset_summary(detail.changeset),
         sources=[_source_summary(source) for source in detail.sources],
         inventory=_inventory_summary(detail),
+        evidence_graph=_evidence_graph_summary(evidence_graph),
         verification=_verification_summary(detail, verification_plan),
+        repository_intelligence_limitations=_repository_intelligence_limitations(
+            verification_plan
+        ),
+        handoff_readiness=handoff_readiness,
         review_brief=_review_brief_summary(
             latest_brief,
             detail.changeset.session_id,
@@ -163,6 +193,82 @@ def build_changeset_export_payload(
         ],
         safe_inspection_commands=detail.safe_next_actions,
     )
+
+
+def inspect_changeset_export_package(bundle_path: Path) -> dict[str, Any]:
+    """Return an inspect-only summary for a changeset export package."""
+
+    payload = ChangesetExportPayload.model_validate_json(
+        bundle_path.read_text(encoding="utf-8")
+    )
+    return changeset_export_inspection_summary(payload, bundle_path=bundle_path)
+
+
+def changeset_export_inspection_summary(
+    payload: ChangesetExportPayload,
+    *,
+    bundle_path: Path | None = None,
+) -> dict[str, Any]:
+    """Build a compact inspection summary without importing local state."""
+
+    evidence_graph = payload.evidence_graph.get("summary", {})
+    return {
+        "bundle_path": str(bundle_path.resolve()) if bundle_path is not None else None,
+        "export_kind": payload.export_kind,
+        "schema_version": payload.schema_version,
+        "changeset_id": payload.changeset["changeset_id"],
+        "status": payload.changeset["status"],
+        "verification_state": payload.verification["readiness"]["state"],
+        "handoff_state": payload.handoff_readiness["state"],
+        "feedback_count": payload.review_feedback["total_count"],
+        "manual_evidence_count": payload.manual_evidence["total_count"],
+        "evidence_graph_node_count": evidence_graph.get("node_count", 0),
+        "evidence_graph_claim_count": evidence_graph.get("claim_count", 0),
+        "redaction_report_count": len(payload.redaction_report),
+        "non_claims": payload.non_claims,
+        "safe_inspection_commands": payload.safe_inspection_commands,
+    }
+
+
+def build_changeset_export_markdown(payload: ChangesetExportPayload) -> str:
+    """Render a compact reviewer-safe Markdown summary."""
+
+    graph_summary = payload.evidence_graph["summary"]
+    lines = [
+        "# Changeset Evidence Bundle",
+        "",
+        f"- Changeset: `{payload.changeset['changeset_id']}`",
+        f"- Status: `{payload.changeset['status']}`",
+        f"- Risk: `{payload.changeset['risk_level']}`",
+        f"- Verification: `{payload.verification['readiness']['state']}`",
+        f"- Handoff: `{payload.handoff_readiness['state']}`",
+        (
+            f"- Evidence graph: {graph_summary['node_count']} node(s), "
+            f"{graph_summary['claim_count']} claim(s)"
+        ),
+        (
+            f"- Review feedback: {payload.review_feedback['total_count']} item(s), "
+            f"{payload.review_responses['accepted_risk_count']} accepted risk"
+        ),
+        (
+            f"- Manual evidence: {payload.manual_evidence['total_count']} item(s), "
+            f"{payload.manual_evidence['local_only_count']} local-only"
+        ),
+        "",
+        "## Redaction",
+        "",
+        *[f"- {item}" for item in payload.redaction_report],
+        "",
+        "## Safe Inspection",
+        "",
+        *[f"- `{command}`" for command in payload.safe_inspection_commands[:10]],
+        "",
+        "## Non-Claims",
+        "",
+        *[f"- {claim}" for claim in payload.non_claims],
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def _changeset_summary(changeset: ChangesetRecord) -> dict[str, Any]:
@@ -285,6 +391,103 @@ def _verification_summary(
         ],
         "non_claims": verification_plan.non_claims,
     }
+
+
+def _evidence_graph_summary(graph) -> dict[str, Any]:
+    return {
+        "summary": summarize_evidence_graph(graph).model_dump(mode="json"),
+        "reviewer_safe_graph": graph.model_dump(mode="json", exclude_none=True),
+        "non_claims": [
+            "evidence graph is a derived view, not a second source of truth",
+            "reviewer-safe graph slices omit operator-only and local-only nodes",
+            "graph edges explain evidence relationships but do not approve changes",
+        ],
+    }
+
+
+def _repository_intelligence_limitations(
+    verification_plan: ChangesetVerificationPlanPreview,
+) -> list[str]:
+    limitations = [
+        limitation
+        for limitation in verification_plan.limitations
+        if _mentions_repository_intelligence(limitation)
+    ]
+    for recipe in verification_plan.recipes:
+        limitations.extend(
+            limitation
+            for limitation in recipe.limitations
+            if _mentions_repository_intelligence(limitation)
+        )
+    return list(dict.fromkeys(limitations))
+
+
+def _mentions_repository_intelligence(value: str) -> bool:
+    lowered = value.lower()
+    return (
+        "repository intelligence" in lowered
+        or "repository index" in lowered
+        or "topology" in lowered
+        or "recipe" in lowered
+    )
+
+
+def _handoff_readiness_summary(handoff) -> dict[str, Any]:
+    return {
+        "readiness_kind": handoff.readiness_kind,
+        "state": handoff.state,
+        "reason": handoff.reason,
+        "blockers": handoff.blockers,
+        "limitations": handoff.limitations,
+        "safe_next_actions": handoff.safe_next_actions,
+        "verification_plan_summary": handoff.verification_plan_summary.model_dump(
+            mode="json"
+        ),
+        "evidence": handoff.evidence.model_dump(mode="json"),
+        "non_claims": handoff.non_claims,
+    }
+
+
+def _handoff_readiness_summary_for_export(
+    changeset_id: ChangesetId,
+    *,
+    repository: ChangesetRepository,
+    artifact_repository: ArtifactRepository,
+    workspace_root: Path,
+) -> dict[str, Any]:
+    try:
+        return _handoff_readiness_summary(
+            preview_handoff_readiness(
+                ChangesetHandoffReadinessService(repository, artifact_repository),
+                changeset_id,
+                workspace_root,
+            )
+        )
+    except Exception as exc:
+        reason = _bounded_text(f"handoff readiness could not be derived: {exc}")
+        return {
+            "readiness_kind": "handoff",
+            "state": "blocked",
+            "reason": reason,
+            "blockers": [reason],
+            "limitations": [
+                "handoff readiness is unavailable in this export; inspect locally"
+            ],
+            "safe_next_actions": [
+                f"glassbox changeset handoff-readiness {changeset_id} --cwd ."
+            ],
+            "verification_plan_summary": None,
+            "evidence": None,
+            "non_claims": [
+                "handoff readiness fallback is local export posture, not publication"
+            ],
+        }
+
+
+def _bounded_text(value: str, *, limit: int = 1000) -> str:
+    if len(value) <= limit:
+        return value
+    return value[: limit - 3] + "..."
 
 
 def _review_brief_summary(
@@ -518,6 +721,9 @@ __all__ = [
     "CHANGESET_EXPORT_VERSION",
     "ChangesetExportArtifactReference",
     "ChangesetExportPayload",
+    "build_changeset_export_markdown",
     "build_changeset_export_payload",
+    "changeset_export_inspection_summary",
     "export_changeset_package",
+    "inspect_changeset_export_package",
 ]
