@@ -874,7 +874,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R853: Split Dashboard Evidence Graph Panel Components
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R810, GBX-R851
 - Target files:
   - `frontend/components/console/evidence-graph-panel.tsx`
