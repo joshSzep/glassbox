@@ -7,11 +7,10 @@ import {
   handoffActionMessage,
   inspectFirstActionMessage,
   manualEvidenceActionMessage,
-  recordVerificationActionMessage,
   refreshChangesetActionMessage,
   reviewBriefActionMessage,
-  verificationPreviewActionMessage,
 } from "@/stores/changeset-store-action-messages";
+import { createChangesetStoreVerificationActions } from "@/stores/changeset-store-verification-actions";
 import {
   loadBranchSearchForChangeset,
   loadRepositoryIntelligenceForChangeset,
@@ -47,6 +46,7 @@ export function createChangesetStoreReviewActions({
   | "recordVerification"
   | "refreshChangeset"
 > {
+  const verificationActions = createChangesetStoreVerificationActions({ apiClient, get, set });
   return {
     attachManualEvidence: async (input) => {
       const selectedChangesetId = requireSelectedChangesetId(get().detail);
@@ -174,33 +174,7 @@ export function createChangesetStoreReviewActions({
         set({ action: createFailedActionStatus("inspect-handoff", error) });
       }
     },
-    previewVerification: async (changesetId) => {
-      const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
-      set({ action: createPendingActionStatus("preview-verification") });
-      try {
-        const verificationPlan = await apiClient.getChangesetVerificationPlan(selectedChangesetId);
-        const repositoryIntelligence = await loadRepositoryIntelligenceForChangeset(
-          apiClient,
-          verificationPlan,
-        );
-        set((state) => ({
-          detail: {
-            ...state.detail,
-            error: null,
-            lastActionMessage: verificationPreviewActionMessage(
-              verificationPlan.recommended_commands.length,
-            ),
-            loadState: "loaded",
-            repositoryIntelligence,
-            selectedChangesetId,
-            verificationPlan,
-          },
-        }));
-        set({ action: createSucceededActionStatus("preview-verification") });
-      } catch (error) {
-        set({ action: createFailedActionStatus("preview-verification", error) });
-      }
-    },
+    previewVerification: verificationActions.previewVerification,
     recordFeedbackFixupInventory: async (feedbackId) => {
       const currentDetail = get().detail.detail;
       const selectedChangesetId = requireSelectedChangesetId(get().detail);
@@ -238,24 +212,7 @@ export function createChangesetStoreReviewActions({
         }
       }
     },
-    recordVerification: async (input) => {
-      const selectedChangesetId = requireSelectedChangesetId(get().detail);
-      set({ action: createPendingActionStatus("record-verification") });
-      try {
-        const response = await apiClient.recordChangesetVerification({
-          changesetId: selectedChangesetId,
-          taskId: input.taskId,
-          verificationId: input.verificationId,
-        });
-        await reloadSelectedChangeset(apiClient, selectedChangesetId, set, {
-          lastActionMessage: recordVerificationActionMessage(response),
-        });
-        set({ action: createSucceededActionStatus("record-verification") });
-        await get().loadChangesetPage();
-      } catch (error) {
-        set({ action: createFailedActionStatus("record-verification", error) });
-      }
-    },
+    recordVerification: verificationActions.recordVerification,
     refreshChangeset: async (changesetId) => {
       const selectedChangesetId = changesetId ?? requireSelectedChangesetId(get().detail);
       set({ action: createPendingActionStatus("refresh-changeset") });

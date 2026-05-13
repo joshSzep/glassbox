@@ -901,7 +901,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R854: Split Dashboard Verification Plan Workflow Components And Store Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R820, GBX-R851
 - Target files:
   - `frontend/components/console/changeset/verification.tsx`
