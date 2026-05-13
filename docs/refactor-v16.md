@@ -956,7 +956,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R861: Centralize V16 Advisory Evidence Summary Rows
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R860
 - Target files:
   - `scripts/v16_release_gate_advisory.py`

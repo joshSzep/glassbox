@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts import v11_release_gate_helpers as gate_helpers
+from scripts import v16_release_gate_advisory as advisory_helpers
 from scripts import validate_v15_release_gate as v15_gate
 from scripts.validate_v6_release_gate import DEFAULT_EVIDENCE_ROOT
 from scripts.validate_v6_release_gate import GateStage
@@ -21,18 +22,13 @@ def print_dry_run(
     print("V16 release gate dry run")
     for stage in stages:
         print(f"- {stage.label}: {gate_helpers.format_command(stage.command)}")
-    if include_provider_canaries:
-        print(
-            "- v16 advisory provider evidence: "
-            "uv run glassbox provider canary run --cwd . "
-            "--output-dir <evidence>/provider-canary --json"
+    print(
+        advisory_helpers.provider_dry_run_line(
+            include_provider_canaries=include_provider_canaries,
         )
-    else:
-        print("- v16 advisory provider evidence: skipped by default")
-    print("- v16 advisory dashboard browser evidence: recorded from retained summary")
-    print("- v16 advisory accessibility evidence: recorded from retained summary")
-    print("- v16 dogfooding evidence: recorded GBX-1682 advisory summary")
-    print("- v16 manual release evidence: recorded v16 release-candidate guide")
+    )
+    for line in advisory_helpers.advisory_dry_run_lines():
+        print(line)
     print("- installed wheel smoke: latest dist/glassbox-*.whl")
 
 
