@@ -739,7 +739,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R841: Extract Core Next-Action And Queue Models Behind Compatibility Re-Exports
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R840, GBX-R830
 - Target files:
   - `src/glassbox/core/models.py`

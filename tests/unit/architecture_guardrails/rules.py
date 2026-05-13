@@ -3038,6 +3038,30 @@ V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         ),
         "post-v16 operator_queue facade should delegate to queue owner modules",
     ),
+    (
+        SRC_ROOT / "core" / "models.py",
+        ("glassbox.core.models_operator_flow",),
+        (
+            "post-v16 core model facade should re-export next-action and "
+            "operator queue models from the operator-flow owner"
+        ),
+    ),
+    (
+        SRC_ROOT / "core" / "types.py",
+        ("glassbox.core.types_operator_flow",),
+        (
+            "post-v16 core type facade should re-export next-action and "
+            "operator queue enums from the operator-flow owner"
+        ),
+    ),
+    (
+        SRC_ROOT / "core" / "__init__.py",
+        (
+            "glassbox.core.models_operator_flow",
+            "glassbox.core.types_operator_flow",
+        ),
+        "post-v16 core package facade should delegate operator-flow exports",
+    ),
 )
 
 V14_PYTHON_FACADE_RULES: tuple[

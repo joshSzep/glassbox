@@ -93,6 +93,18 @@ def test_session_config_round_trip() -> None:
     assert restored.dashboard_url is None
 
 
+def test_operator_flow_models_and_types_keep_core_compatibility_exports() -> None:
+    from glassbox.core.models import NextAction as models_next_action
+    from glassbox.core.models_operator_flow import NextAction as owner_next_action
+    from glassbox.core.types import NextActionPriority as types_priority
+    from glassbox.core.types_operator_flow import NextActionPriority as owner_priority
+
+    assert NextAction is owner_next_action
+    assert models_next_action is owner_next_action
+    assert NextActionPriority is owner_priority
+    assert types_priority is owner_priority
+
+
 def test_session_config_round_trip_preserves_dashboard_url() -> None:
     config = SessionConfig(
         model_name="openai:gpt-5.4",

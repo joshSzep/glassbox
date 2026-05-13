@@ -208,13 +208,6 @@ from glassbox.core.models import LongRunStatusRecord
 from glassbox.core.models import MaintenanceCue
 from glassbox.core.models import ManualEvidenceRecord
 from glassbox.core.models import MessagePart
-from glassbox.core.models import NextAction
-from glassbox.core.models import NextActionCommandRecipe
-from glassbox.core.models import NextActionEvidenceRef
-from glassbox.core.models import NextActionTarget
-from glassbox.core.models import OperatorQueueDedupeKey
-from glassbox.core.models import OperatorQueueEvidenceSummary
-from glassbox.core.models import OperatorQueueItem
 from glassbox.core.models import PolicyDecision
 from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import ProjectionHealth
@@ -258,6 +251,13 @@ from glassbox.core.models import VerificationPlan
 from glassbox.core.models import VerificationPlanEntry
 from glassbox.core.models import WorkspaceMemoryEntry
 from glassbox.core.models import WorkspaceMemoryProvenance
+from glassbox.core.models_operator_flow import NextAction
+from glassbox.core.models_operator_flow import NextActionCommandRecipe
+from glassbox.core.models_operator_flow import NextActionEvidenceRef
+from glassbox.core.models_operator_flow import NextActionTarget
+from glassbox.core.models_operator_flow import OperatorQueueDedupeKey
+from glassbox.core.models_operator_flow import OperatorQueueEvidenceSummary
+from glassbox.core.models_operator_flow import OperatorQueueItem
 from glassbox.core.types import ApprovalDecision
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
@@ -296,17 +296,6 @@ from glassbox.core.types import ManualEvidenceKind
 from glassbox.core.types import ManualEvidenceRedactionStatus
 from glassbox.core.types import ManualEvidenceState
 from glassbox.core.types import ManualEvidenceTargetKind
-from glassbox.core.types import NextActionEvidenceKind
-from glassbox.core.types import NextActionKind
-from glassbox.core.types import NextActionPriority
-from glassbox.core.types import NextActionSafetyClass
-from glassbox.core.types import NextActionSeverity
-from glassbox.core.types import NextActionSurface
-from glassbox.core.types import NextActionTargetKind
-from glassbox.core.types import OperatorQueueDedupeScope
-from glassbox.core.types import OperatorQueueDismissalPolicy
-from glassbox.core.types import OperatorQueueFamily
-from glassbox.core.types import OperatorQueueState
 from glassbox.core.types import PauseWindowPolicy
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
@@ -345,6 +334,17 @@ from glassbox.core.types import WorkspaceMemorySourceType
 from glassbox.core.types import WorkspaceMemoryState
 from glassbox.core.types import WorktreeSourceKind
 from glassbox.core.types import WorktreeState
+from glassbox.core.types_operator_flow import NextActionEvidenceKind
+from glassbox.core.types_operator_flow import NextActionKind
+from glassbox.core.types_operator_flow import NextActionPriority
+from glassbox.core.types_operator_flow import NextActionSafetyClass
+from glassbox.core.types_operator_flow import NextActionSeverity
+from glassbox.core.types_operator_flow import NextActionSurface
+from glassbox.core.types_operator_flow import NextActionTargetKind
+from glassbox.core.types_operator_flow import OperatorQueueDedupeScope
+from glassbox.core.types_operator_flow import OperatorQueueDismissalPolicy
+from glassbox.core.types_operator_flow import OperatorQueueFamily
+from glassbox.core.types_operator_flow import OperatorQueueState
 
 __all__ = [
     "ApprovalMode",
