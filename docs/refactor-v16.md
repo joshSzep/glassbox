@@ -352,7 +352,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R801: Characterize Current Operator Flow Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R800
 - Target files:
   - `tests/unit/test_evidence_graph.py`
@@ -1049,6 +1049,21 @@ Each phase below corresponds to one concrete refactor milestone.
   - `pnpm --dir frontend test`
   - `pnpm --dir frontend build`
   - `uv run python scripts/validate_v16_release_gate.py --dry-run`
+
+## Accepted Behavior Gaps Recorded During GBX-R801
+
+These are current behavior observations captured before moving code. They are
+not product changes by themselves, and later tasks may deliberately narrow them
+when the task text explicitly says so:
+
+- verification plan previews can currently show separate rows when the same
+  command is recommended by repository-intelligence recipes and changeset
+  readiness; GBX-R820 owns the follow-up coalescing decision for direct recipe
+  plus readiness duplicates
+- workspace operator queue coverage is still session, runtime, and maintenance
+  oriented; GBX-R833 owns the later decision to keep changeset queue gaps as
+  accepted refactor-only gaps or move existing aggregate inputs into a changeset
+  item helper
 
 ## Accepted Product Follow-Up Candidates
 

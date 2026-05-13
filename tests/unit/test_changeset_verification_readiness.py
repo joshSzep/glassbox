@@ -16,6 +16,12 @@ from glassbox.core import new_task_verification_id
 from glassbox.runtime.change_inventory import ChangeInventoryArtifact
 from glassbox.runtime.change_inventory import change_inventory_from_diff_summary
 from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationReadiness,
+)
+from glassbox.runtime.changeset_verification_readiness import (
+    ChangesetVerificationRequirement,
+)
+from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
 from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
@@ -361,6 +367,66 @@ def test_verification_plan_builder_proposes_entries_and_keeps_advisory_separate(
     assert manual_entries
     assert skipped[0].target_id == "live-provider-canary"
     assert "explicitly selects" in skipped[0].explanation
+
+
+def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates() -> (
+    None
+):
+    changed_paths = ["src/glassbox/runtime/verification_plan_builder.py"]
+    command_parts = [
+        "uv",
+        "run",
+        "pytest",
+        "tests/unit/test_changeset_verification_readiness.py",
+        "-q",
+    ]
+    command = " ".join(command_parts)
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=changed_paths,
+        recipes=[
+            EvalVerificationRecipeRecommendation(
+                recipe_id="verification-plan-builder",
+                title="Verification plan builder",
+                source="repository-intelligence",
+                matched_paths=changed_paths,
+                commands=[command],
+            )
+        ],
+    )
+    readiness = ChangesetVerificationReadiness(
+        state=ChangesetVerificationState.MISSING,
+        summary="verification readiness is missing",
+        requirements=[
+            ChangesetVerificationRequirement(
+                requirement_id="readiness:verification-plan-builder",
+                state=ChangesetVerificationState.MISSING,
+                check_name="Verification plan builder readiness",
+                reason="readiness still asks for the same focused command",
+                source=VerificationPlanSource.CHANGED_PATHS,
+                kind=VerificationCheckKind.TEST,
+                command=command_parts,
+                changed_paths=changed_paths,
+                verification_id=new_task_verification_id(),
+            )
+        ],
+        missing_count=1,
+    )
+
+    entries, skipped = build_verification_plan_entries(
+        changed_paths=changed_paths,
+        readiness=readiness,
+        recommendation=recommendation,
+    )
+
+    command_entries = [entry for entry in entries if entry.command == command_parts]
+    assert skipped == []
+    assert len(command_entries) == 2
+    assert {entry.source for entry in command_entries} == {
+        VerificationPlanSource.REPOSITORY_INTELLIGENCE,
+        VerificationPlanSource.CHANGED_PATHS,
+    }
+    assert command_entries[0].verification_id != command_entries[1].verification_id
 
 
 def _inventory(path: str) -> ChangeInventoryArtifact:

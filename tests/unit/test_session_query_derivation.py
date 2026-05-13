@@ -2,6 +2,7 @@
 
 from datetime import UTC
 from datetime import datetime
+from typing import Literal
 
 import pytest
 
@@ -193,6 +194,59 @@ def test_runtime_operator_queue_projects_maintenance_cues_after_active_work() ->
     )
 
 
+def test_runtime_operator_queue_characterizes_question_long_run_and_active_rows() -> (
+    None
+):
+    question = build_operator_session_summary(
+        _session_summary(pending_question_id="question-1")
+    )
+    stale_long_run = build_operator_session_summary(
+        _session_summary(
+            active=True,
+            long_run_state="stale",
+            long_run_summary="Tool output has not advanced recently.",
+        )
+    )
+    active = build_operator_session_summary(_session_summary(active=True))
+    runtime = WorkspaceRuntimeSummaryView(
+        workspace_root="/tmp/glassbox",
+        state="running",
+    )
+
+    queue = build_operator_queue([active, stale_long_run, question], runtime=runtime)
+
+    assert [(item.owner_label, item.family, item.state) for item in queue] == [
+        (
+            "Pending question",
+            OperatorQueueFamily.WORK_BLOCKING,
+            OperatorQueueState.ACTION_NEEDED,
+        ),
+        (
+            "Long-running session",
+            OperatorQueueFamily.WORK_BLOCKING,
+            OperatorQueueState.STALE,
+        ),
+        (
+            "Active turn",
+            OperatorQueueFamily.INFORMATIONAL,
+            OperatorQueueState.ACTIVE,
+        ),
+        (
+            "Active turn",
+            OperatorQueueFamily.INFORMATIONAL,
+            OperatorQueueState.ACTIVE,
+        ),
+    ]
+    assert queue[0].safe_next_action.kind == NextActionKind.ANSWER
+    assert queue[0].dismissal_policy == (
+        OperatorQueueDismissalPolicy.CANONICAL_DECISION_REQUIRED
+    )
+    assert queue[1].stale is True
+    assert queue[1].blocking is True
+    assert queue[1].evidence_summary.stale_evidence[0].freshness == "stale"
+    assert all(item.action_needed is False for item in queue[2:])
+
+
 def test_runtime_operator_queue_dedupes_by_key_and_keeps_stronger_item() -> None:
     weak = _queue_item(
         priority=NextActionPriority.RECOMMENDED,
@@ -281,6 +335,15 @@ def _session_summary(
     pending_question_id: str | None = None,
     failure: str | None = None,
     active: bool = False,
+    long_run_state: Literal[
+        "healthy",
+        "idle",
+        "paused",
+        "stale",
+        "stuck",
+        "completed",
+    ] = "healthy",
+    long_run_summary: str = "healthy",
 ) -> SessionSummaryView:
     session_id = new_session_id()
     now = datetime(2026, 5, 11, tzinfo=UTC)
@@ -305,9 +368,9 @@ def _session_summary(
         session_failure_message=failure,
         session_failure_retryable=None if failure is None else False,
         long_run_status=LongRunStatusRecord(
-            state="healthy",
+            state=long_run_state,
             elapsed_seconds=5,
-            progress_summary="healthy",
+            progress_summary=long_run_summary,
         ),
         latest_message_summary=None,
         projection_health=ProjectionHealth(
