@@ -394,6 +394,7 @@ def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates
             )
         ],
     )
+    readiness_verification_id = new_task_verification_id()
     readiness = ChangesetVerificationReadiness(
         state=ChangesetVerificationState.MISSING,
         summary="verification readiness is missing",
@@ -407,7 +408,7 @@ def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates
                 kind=VerificationCheckKind.TEST,
                 command=command_parts,
                 changed_paths=changed_paths,
-                verification_id=new_task_verification_id(),
+                verification_id=readiness_verification_id,
             )
         ],
         missing_count=1,
@@ -421,12 +422,17 @@ def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates
 
     command_entries = [entry for entry in entries if entry.command == command_parts]
     assert skipped == []
-    assert len(command_entries) == 2
-    assert {entry.source for entry in command_entries} == {
-        VerificationPlanSource.REPOSITORY_INTELLIGENCE,
-        VerificationPlanSource.CHANGED_PATHS,
+    assert len(command_entries) == 1
+    assert command_entries[0].source == VerificationPlanSource.CHANGED_PATHS
+    assert command_entries[0].verification_id == readiness_verification_id
+    assert {ref.kind.value for ref in command_entries[0].evidence_references} == {
+        "repository_intelligence",
+        "verification",
     }
-    assert command_entries[0].verification_id != command_entries[1].verification_id
+    assert any(
+        "Verification recipe verification-plan-builder" in ref.summary
+        for ref in command_entries[0].evidence_references
+    )
 
 
 def _inventory(path: str) -> ChangeInventoryArtifact:

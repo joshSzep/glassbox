@@ -520,7 +520,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R820: Extract Verification Plan Entry Identity And Coalescing
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R801
 - Target files:
   - `src/glassbox/runtime/verification_plan_builder.py`

@@ -2,8 +2,6 @@
 
 from collections.abc import Iterable
 from pathlib import Path
-from uuid import NAMESPACE_URL
-from uuid import uuid5
 
 from glassbox.core import NextActionCommandRecipe
 from glassbox.core import NextActionEvidenceKind
@@ -26,6 +24,8 @@ from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
 )
 from glassbox.runtime.eval_recommendation_models import PathVerificationFreshness
+from glassbox.runtime.verification_plan_identity import VerificationPlanEntryCoalescer
+from glassbox.runtime.verification_plan_identity import stable_verification_id
 
 MAX_VERIFICATION_PLAN_ENTRIES = 50
 MAX_VERIFICATION_PLAN_SKIPPED_CHECKS = 50
@@ -41,16 +41,16 @@ def build_verification_plan_entries(
 
     entries: list[VerificationPlanEntry] = []
     skipped: list[ChangesetVerificationSkippedCheckPreview] = []
-    seen: set[str] = set()
+    coalescer = VerificationPlanEntryCoalescer(entries)
     entry_limit_recorded = False
     skipped_limit_recorded = False
 
     def add(entry: VerificationPlanEntry) -> None:
         nonlocal entry_limit_recorded
-        key = _entry_key(entry)
-        if key in seen:
-            return
-        if len(entries) >= MAX_VERIFICATION_PLAN_ENTRIES:
+        if (
+            coalescer.requires_new_entry(entry)
+            and len(entries) >= MAX_VERIFICATION_PLAN_ENTRIES
+        ):
             if not entry_limit_recorded:
                 add_skipped(
                     _plan_entry_limit_skipped(
@@ -60,8 +60,7 @@ def build_verification_plan_entries(
                 )
                 entry_limit_recorded = True
             return
-        seen.add(key)
-        entries.append(entry)
+        coalescer.add(entry)
 
     def add_skipped(item: ChangesetVerificationSkippedCheckPreview) -> None:
         nonlocal skipped_limit_recorded
@@ -287,7 +286,7 @@ def _entry(
         else None
     )
     return VerificationPlanEntry(
-        verification_id=verification_id or _stable_verification_id(seed),
+        verification_id=verification_id or stable_verification_id(seed),
         check_name=check_name,
         kind=kind,
         lifecycle_state=lifecycle_state,
@@ -356,7 +355,7 @@ def _manual_only_entry_for_profile(
     changed_paths: list[str],
 ) -> VerificationPlanEntry:
     return VerificationPlanEntry(
-        verification_id=_stable_verification_id(f"manual-profile:{profile.profile_id}"),
+        verification_id=stable_verification_id(f"manual-profile:{profile.profile_id}"),
         check_name=f"Advisory profile {profile.profile_id}",
         kind=VerificationCheckKind.CUSTOM,
         lifecycle_state=VerificationPlanLifecycleState.MANUAL_ONLY,
@@ -426,7 +425,7 @@ def _manual_entry(
     changed_paths: list[str],
 ) -> VerificationPlanEntry:
     return VerificationPlanEntry(
-        verification_id=_stable_verification_id(seed + ":" + "|".join(changed_paths)),
+        verification_id=stable_verification_id(seed + ":" + "|".join(changed_paths)),
         check_name=check_name,
         kind=VerificationCheckKind.CUSTOM,
         lifecycle_state=VerificationPlanLifecycleState.MANUAL_ONLY,
@@ -537,16 +536,6 @@ def _join_reasons(reasons: Iterable[str], *, fallback: str) -> str:
 
 def _command_parts(command: str) -> list[str]:
     return command.split()
-
-
-def _stable_verification_id(seed: str) -> TaskVerificationId:
-    return uuid5(NAMESPACE_URL, f"glassbox:v16-verification-plan:{seed}")
-
-
-def _entry_key(entry: VerificationPlanEntry) -> str:
-    command = " ".join(entry.command)
-    target_id = entry.target.target_id if entry.target is not None else ""
-    return f"{entry.kind.value}:{target_id}:{command}:{entry.check_name}"
 
 
 def _requirement_evidence_refs(requirement) -> list[NextActionEvidenceRef]:
