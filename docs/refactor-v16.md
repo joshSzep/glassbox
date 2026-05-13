@@ -618,7 +618,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R830: Split Session Queue Item Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R801
 - Target files:
   - `src/glassbox/runtime/operator_queue.py`
