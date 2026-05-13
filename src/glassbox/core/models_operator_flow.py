@@ -8,8 +8,9 @@ from pydantic import Field
 from pydantic import field_validator
 from pydantic import model_validator
 
-from glassbox.core.types import ClaimSupportState
 from glassbox.core.types import RepositoryIntelligenceConfidence
+from glassbox.core.types_evidence_graph import ClaimSupportState
+from glassbox.core.types_operator_flow import MaintenanceCueKind
 from glassbox.core.types_operator_flow import NextActionEvidenceKind
 from glassbox.core.types_operator_flow import NextActionKind
 from glassbox.core.types_operator_flow import NextActionPriority
@@ -228,7 +229,60 @@ class OperatorQueueItem(BaseModel):
         return self
 
 
+class MaintenanceCue(BaseModel):
+    """Typed maintenance or recovery cue surfaced beside active work."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    cue_id: str = Field(min_length=1, max_length=300)
+    kind: MaintenanceCueKind
+    title: str = Field(min_length=1, max_length=300)
+    summary: str = Field(min_length=1, max_length=2000)
+    priority: NextActionPriority
+    severity: NextActionSeverity = NextActionSeverity.INFO
+    target: NextActionTarget
+    safe_next_actions: list[NextAction] = Field(default_factory=list, max_length=10)
+    supporting_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    missing_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    stale_evidence: list[NextActionEvidenceRef] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    limitations: list[str] = Field(default_factory=list, max_length=20)
+    destructive_remediation_available: bool = False
+    destructive_remediation_note: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=500,
+    )
+
+    @model_validator(mode="after")
+    def validate_cue_actions(self) -> MaintenanceCue:
+        for action in self.safe_next_actions:
+            if action.target.kind != self.target.kind:
+                raise ValueError("maintenance cue action target kind must match cue")
+            if (
+                self.target.target_id is not None
+                and action.target.target_id is not None
+                and action.target.target_id != self.target.target_id
+            ):
+                raise ValueError("maintenance cue action target id must match cue")
+        if (
+            self.destructive_remediation_available
+            and self.destructive_remediation_note is None
+        ):
+            raise ValueError("destructive remediation cues must include a note")
+        return self
+
+
 __all__ = [
+    "MaintenanceCue",
     "NextAction",
     "NextActionCommandRecipe",
     "NextActionEvidenceRef",

@@ -3,6 +3,20 @@
 from enum import StrEnum
 
 
+class MaintenanceCueKind(StrEnum):
+    """Workspace maintenance and recovery cue families."""
+
+    PROJECTION_DRIFT = "projection_drift"
+    STALE_DAEMON_OWNER = "stale_daemon_owner"
+    FAILED_BACKGROUND_JOBS = "failed_background_jobs"
+    ARTIFACT_PRESSURE = "artifact_pressure"
+    BACKUP_POSTURE = "backup_posture"
+    STALE_REPOSITORY_INTELLIGENCE = "stale_repository_intelligence"
+    PROVIDER_CONFIG_ISSUES = "provider_config_issues"
+    PACKAGE_ASSET_STALENESS = "package_asset_staleness"
+    EVAL_BASELINE_DRIFT = "eval_baseline_drift"
+
+
 class NextActionPriority(StrEnum):
     """Shared operator priority vocabulary for advisory next actions."""
 
@@ -146,6 +160,7 @@ class OperatorQueueDedupeScope(StrEnum):
 
 
 __all__ = [
+    "MaintenanceCueKind",
     "NextActionEvidenceKind",
     "NextActionKind",
     "NextActionPriority",

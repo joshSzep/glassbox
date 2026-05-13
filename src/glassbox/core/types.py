@@ -2,6 +2,26 @@
 
 from enum import StrEnum
 
+from glassbox.core.types_evidence_graph import ClaimSupportState as ClaimSupportState
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphConfidence as EvidenceGraphConfidence,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphEdgeKind as EvidenceGraphEdgeKind,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphFreshness as EvidenceGraphFreshness,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphNodeKind as EvidenceGraphNodeKind,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphRedactionStatus as EvidenceGraphRedactionStatus,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphVisibility as EvidenceGraphVisibility,
+)
+from glassbox.core.types_operator_flow import MaintenanceCueKind as MaintenanceCueKind
 from glassbox.core.types_operator_flow import (
     NextActionEvidenceKind as NextActionEvidenceKind,
 )
@@ -23,6 +43,18 @@ from glassbox.core.types_operator_flow import (
 )
 from glassbox.core.types_operator_flow import OperatorQueueFamily as OperatorQueueFamily
 from glassbox.core.types_operator_flow import OperatorQueueState as OperatorQueueState
+from glassbox.core.types_verification_plan import (
+    VerificationCheckKind as VerificationCheckKind,
+)
+from glassbox.core.types_verification_plan import (
+    VerificationFailureCategory as VerificationFailureCategory,
+)
+from glassbox.core.types_verification_plan import (
+    VerificationPlanLifecycleState as VerificationPlanLifecycleState,
+)
+from glassbox.core.types_verification_plan import (
+    VerificationPlanSource as VerificationPlanSource,
+)
 
 
 class SessionStatus(StrEnum):
@@ -134,104 +166,6 @@ class AutonomyEscalationReason(StrEnum):
     AMBIGUOUS_PLAN = "ambiguous_plan"
 
 
-class MaintenanceCueKind(StrEnum):
-    """Workspace maintenance and recovery cue families."""
-
-    PROJECTION_DRIFT = "projection_drift"
-    STALE_DAEMON_OWNER = "stale_daemon_owner"
-    FAILED_BACKGROUND_JOBS = "failed_background_jobs"
-    ARTIFACT_PRESSURE = "artifact_pressure"
-    BACKUP_POSTURE = "backup_posture"
-    STALE_REPOSITORY_INTELLIGENCE = "stale_repository_intelligence"
-    PROVIDER_CONFIG_ISSUES = "provider_config_issues"
-    PACKAGE_ASSET_STALENESS = "package_asset_staleness"
-    EVAL_BASELINE_DRIFT = "eval_baseline_drift"
-
-
-class EvidenceGraphNodeKind(StrEnum):
-    """Local evidence node families used in derived evidence graphs."""
-
-    EVENT = "event"
-    ARTIFACT = "artifact"
-    COMMAND = "command"
-    TOOL_ATTEMPT = "tool_attempt"
-    VERIFICATION_CHECK = "verification_check"
-    REVIEW_FEEDBACK = "review_feedback"
-    MANUAL_EVIDENCE = "manual_evidence"
-    MEMORY_ENTRY = "memory_entry"
-    REPOSITORY_INTELLIGENCE_SOURCE = "repository_intelligence_source"
-    EVAL_CASE = "eval_case"
-    BACKGROUND_JOB = "background_job"
-    RELEASE_GATE_ROW = "release_gate_row"
-    PROJECTION = "projection"
-    NEXT_ACTION = "next_action"
-    CLAIM = "claim"
-
-
-class EvidenceGraphEdgeKind(StrEnum):
-    """Relationship kinds between evidence graph nodes."""
-
-    SUPPORTS = "supports"
-    CONTRADICTS = "contradicts"
-    SUPERSEDES = "supersedes"
-    MAKES_STALE = "makes-stale"
-    VERIFIES = "verifies"
-    SKIPPED_BY = "skipped-by"
-    ACCEPTED_RISK_FOR = "accepted-risk-for"
-    DERIVED_FROM = "derived-from"
-    SAFE_NEXT_ACTION_FOR = "safe-next-action-for"
-
-
-class EvidenceGraphConfidence(StrEnum):
-    """Confidence posture for evidence graph nodes, edges, and claims."""
-
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-    UNKNOWN = "unknown"
-
-
-class EvidenceGraphFreshness(StrEnum):
-    """Freshness posture for evidence referenced by a graph."""
-
-    FRESH = "fresh"
-    STALE = "stale"
-    MISSING = "missing"
-    SUPERSEDED = "superseded"
-    MANUAL_ONLY = "manual-only"
-    UNKNOWN = "unknown"
-
-
-class EvidenceGraphRedactionStatus(StrEnum):
-    """Whether graph evidence can be shown in reviewer-safe contexts."""
-
-    SAFE_SUMMARY = "safe_summary"
-    LOCAL_ONLY = "local_only"
-    REDACTED = "redacted"
-    BLOCKED = "blocked"
-    UNKNOWN = "unknown"
-
-
-class EvidenceGraphVisibility(StrEnum):
-    """Visibility class for evidence graph material."""
-
-    OPERATOR_ONLY = "operator_only"
-    REVIEWER_SAFE = "reviewer_safe"
-    RELEASE_SAFE = "release_safe"
-
-
-class ClaimSupportState(StrEnum):
-    """How well local evidence supports a graph claim."""
-
-    SUPPORTED = "supported"
-    MISSING = "missing"
-    STALE = "stale"
-    CONTRADICTED = "contradicted"
-    MANUAL_ONLY = "manual-only"
-    ACCEPTED_WITH_RISK = "accepted_with_risk"
-    UNSUPPORTED = "unsupported"
-
-
 class TaskPlanStatus(StrEnum):
     """Lifecycle states for a durable task plan."""
 
@@ -266,65 +200,6 @@ class TaskVerificationStatus(StrEnum):
     CANCELLED = "cancelled"
     RETRIED = "retried"
     ACCEPTED_WITH_RISK = "accepted_with_risk"
-
-
-class VerificationCheckKind(StrEnum):
-    """Supported verification check families."""
-
-    COMMAND = "command"
-    TEST = "test"
-    EVAL = "eval"
-    LINT = "lint"
-    TYPECHECK = "typecheck"
-    PACKAGE = "package"
-    CUSTOM = "custom"
-
-
-class VerificationPlanSource(StrEnum):
-    """Signals used to select a verification plan entry."""
-
-    CHANGESET_INVENTORY = "changeset_inventory"
-    COMMAND_RECIPE = "command_recipe"
-    EVAL_RECOMMENDATION = "eval_recommendation"
-    MANUAL_EVIDENCE = "manual_evidence"
-    RELEASE_GATE = "release_gate"
-    REPOSITORY_INTELLIGENCE = "repository_intelligence"
-    WORKSPACE_PROFILE = "workspace_profile"
-    CHANGED_PATHS = "changed_paths"
-    TASK_TYPE = "task_type"
-    POLICY_BUDGET = "policy_budget"
-    OPERATOR = "operator"
-
-
-class VerificationPlanLifecycleState(StrEnum):
-    """Reviewable lifecycle states for planned verification checks."""
-
-    PROPOSED = "proposed"
-    SELECTED = "selected"
-    RUNNING = "running"
-    PASSED = "passed"
-    FAILED = "failed"
-    SKIPPED = "skipped"
-    STALE = "stale"
-    SUPERSEDED = "superseded"
-    ACCEPTED_RISK = "accepted-risk"
-    MANUAL_ONLY = "manual-only"
-    BLOCKED = "blocked"
-
-
-class VerificationFailureCategory(StrEnum):
-    """Evidence-based categories for verification failure output."""
-
-    ASSERTION = "assertion"
-    LINT = "lint"
-    TYPECHECK = "typecheck"
-    PACKAGE = "package"
-    POLICY = "policy"
-    BUDGET = "budget"
-    TIMEOUT = "timeout"
-    INFRASTRUCTURE = "infrastructure"
-    FLAKY = "flaky"
-    UNKNOWN = "unknown"
 
 
 class ChangesetSourceKind(StrEnum):

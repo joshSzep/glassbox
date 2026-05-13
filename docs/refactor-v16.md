@@ -765,7 +765,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R842: Extract Core Evidence Graph, Maintenance, And Verification Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R840, GBX-R810, GBX-R820
 - Target files:
   - `src/glassbox/core/models.py`

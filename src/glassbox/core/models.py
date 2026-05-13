@@ -31,6 +31,17 @@ from glassbox.core.ids import ToolAttemptId
 from glassbox.core.ids import ToolCallId
 from glassbox.core.ids import TurnId
 from glassbox.core.ids import WorkspaceMemoryId
+from glassbox.core.models_evidence_graph import ClaimSupport as ClaimSupport
+from glassbox.core.models_evidence_graph import EvidenceGraph as EvidenceGraph
+from glassbox.core.models_evidence_graph import EvidenceGraphEdge as EvidenceGraphEdge
+from glassbox.core.models_evidence_graph import (
+    EvidenceGraphMissingEvidence as EvidenceGraphMissingEvidence,
+)
+from glassbox.core.models_evidence_graph import EvidenceGraphNode as EvidenceGraphNode
+from glassbox.core.models_evidence_graph import (
+    EvidenceGraphProvenance as EvidenceGraphProvenance,
+)
+from glassbox.core.models_operator_flow import MaintenanceCue as MaintenanceCue
 from glassbox.core.models_operator_flow import NextAction as NextAction
 from glassbox.core.models_operator_flow import (
     NextActionCommandRecipe as NextActionCommandRecipe,
@@ -46,6 +57,13 @@ from glassbox.core.models_operator_flow import (
     OperatorQueueEvidenceSummary as OperatorQueueEvidenceSummary,
 )
 from glassbox.core.models_operator_flow import OperatorQueueItem as OperatorQueueItem
+from glassbox.core.models_verification_plan import (
+    VerificationFailureDigest as VerificationFailureDigest,
+)
+from glassbox.core.models_verification_plan import VerificationPlan as VerificationPlan
+from glassbox.core.models_verification_plan import (
+    VerificationPlanEntry as VerificationPlanEntry,
+)
 from glassbox.core.types import ApprovalMode
 from glassbox.core.types import ApprovalStatus
 from glassbox.core.types import AutonomyEscalationReason
@@ -64,26 +82,16 @@ from glassbox.core.types import ChangesetRiskLevel
 from glassbox.core.types import ChangesetSourceKind
 from glassbox.core.types import ChangesetVerificationState
 from glassbox.core.types import CheckpointAbsenceReason
-from glassbox.core.types import ClaimSupportState
 from glassbox.core.types import CommandPurpose
 from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
-from glassbox.core.types import EvidenceGraphConfidence
-from glassbox.core.types import EvidenceGraphEdgeKind
-from glassbox.core.types import EvidenceGraphFreshness
-from glassbox.core.types import EvidenceGraphNodeKind
-from glassbox.core.types import EvidenceGraphRedactionStatus
-from glassbox.core.types import EvidenceGraphVisibility
 from glassbox.core.types import LongRunPhase
-from glassbox.core.types import MaintenanceCueKind
 from glassbox.core.types import ManualEvidenceFreshness
 from glassbox.core.types import ManualEvidenceKind
 from glassbox.core.types import ManualEvidenceRedactionStatus
 from glassbox.core.types import ManualEvidenceState
 from glassbox.core.types import ManualEvidenceTargetKind
-from glassbox.core.types import NextActionPriority
-from glassbox.core.types import NextActionSeverity
 from glassbox.core.types import ProviderRecoveryAction
 from glassbox.core.types import ProviderRecoveryKind
 from glassbox.core.types import RepositoryIndexEntityKind
@@ -110,7 +118,6 @@ from glassbox.core.types import ToolExecutionStatus
 from glassbox.core.types import TurnRecoveryState
 from glassbox.core.types import VerificationCheckKind
 from glassbox.core.types import VerificationFailureCategory
-from glassbox.core.types import VerificationPlanLifecycleState
 from glassbox.core.types import VerificationPlanSource
 from glassbox.core.types import WorkspaceMemoryKind
 from glassbox.core.types import WorkspaceMemorySourceType
@@ -218,195 +225,6 @@ class AutonomySelection(BaseModel):
             AutonomyEscalationReason.AMBIGUOUS_PLAN,
         ]
     )
-
-
-class MaintenanceCue(BaseModel):
-    """Typed maintenance or recovery cue surfaced beside active work."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    cue_id: str = Field(min_length=1, max_length=300)
-    kind: MaintenanceCueKind
-    title: str = Field(min_length=1, max_length=300)
-    summary: str = Field(min_length=1, max_length=2000)
-    priority: NextActionPriority
-    severity: NextActionSeverity = NextActionSeverity.INFO
-    target: NextActionTarget
-    safe_next_actions: list[NextAction] = Field(default_factory=list, max_length=10)
-    supporting_evidence: list[NextActionEvidenceRef] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    missing_evidence: list[NextActionEvidenceRef] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    stale_evidence: list[NextActionEvidenceRef] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    limitations: list[str] = Field(default_factory=list, max_length=20)
-    destructive_remediation_available: bool = False
-    destructive_remediation_note: str | None = Field(
-        default=None,
-        min_length=1,
-        max_length=500,
-    )
-
-    @model_validator(mode="after")
-    def validate_cue_actions(self) -> MaintenanceCue:
-        for action in self.safe_next_actions:
-            if action.target.kind != self.target.kind:
-                raise ValueError("maintenance cue action target kind must match cue")
-            if (
-                self.target.target_id is not None
-                and action.target.target_id is not None
-                and action.target.target_id != self.target.target_id
-            ):
-                raise ValueError("maintenance cue action target id must match cue")
-        if (
-            self.destructive_remediation_available
-            and self.destructive_remediation_note is None
-        ):
-            raise ValueError("destructive remediation cues must include a note")
-        return self
-
-
-class EvidenceGraphProvenance(BaseModel):
-    """Summary provenance for one evidence graph item."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    source_kind: str = Field(min_length=1, max_length=120)
-    source_id: str | None = Field(default=None, min_length=1, max_length=300)
-    source_path: str | None = Field(default=None, min_length=1, max_length=500)
-    source_sequence: int | None = Field(default=None, ge=0)
-    summary: str = Field(min_length=1, max_length=1000)
-
-
-class EvidenceGraphNode(BaseModel):
-    """One local evidence node in a derived graph."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    node_id: str = Field(min_length=1, max_length=300)
-    kind: EvidenceGraphNodeKind
-    title: str = Field(min_length=1, max_length=300)
-    summary: str = Field(min_length=1, max_length=2000)
-    provenance: list[EvidenceGraphProvenance] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    freshness: EvidenceGraphFreshness = EvidenceGraphFreshness.UNKNOWN
-    confidence: EvidenceGraphConfidence = EvidenceGraphConfidence.UNKNOWN
-    redaction_status: EvidenceGraphRedactionStatus = (
-        EvidenceGraphRedactionStatus.UNKNOWN
-    )
-    visibility: EvidenceGraphVisibility = EvidenceGraphVisibility.OPERATOR_ONLY
-    limitations: list[str] = Field(default_factory=list, max_length=20)
-
-
-class EvidenceGraphEdge(BaseModel):
-    """One typed relationship between local evidence graph nodes."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    edge_id: str = Field(min_length=1, max_length=300)
-    kind: EvidenceGraphEdgeKind
-    from_node_id: str = Field(min_length=1, max_length=300)
-    to_node_id: str = Field(min_length=1, max_length=300)
-    summary: str = Field(min_length=1, max_length=1000)
-    confidence: EvidenceGraphConfidence = EvidenceGraphConfidence.UNKNOWN
-    limitations: list[str] = Field(default_factory=list, max_length=20)
-
-
-class EvidenceGraphMissingEvidence(BaseModel):
-    """A missing support item that has no local evidence node yet."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    missing_id: str = Field(min_length=1, max_length=300)
-    kind: EvidenceGraphNodeKind
-    summary: str = Field(min_length=1, max_length=1000)
-    safe_next_actions: list[NextAction] = Field(default_factory=list, max_length=10)
-
-
-class ClaimSupport(BaseModel):
-    """Evidence support posture for one local claim or recommendation."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    claim_id: str = Field(min_length=1, max_length=300)
-    title: str = Field(min_length=1, max_length=300)
-    summary: str = Field(min_length=1, max_length=2000)
-    state: ClaimSupportState
-    confidence: EvidenceGraphConfidence = EvidenceGraphConfidence.UNKNOWN
-    supporting_edge_ids: list[str] = Field(default_factory=list, max_length=100)
-    contradicting_edge_ids: list[str] = Field(default_factory=list, max_length=100)
-    stale_node_ids: list[str] = Field(default_factory=list, max_length=100)
-    missing_evidence: list[EvidenceGraphMissingEvidence] = Field(
-        default_factory=list,
-        max_length=50,
-    )
-    accepted_risk_node_ids: list[str] = Field(default_factory=list, max_length=100)
-    limitations: list[str] = Field(default_factory=list, max_length=20)
-    visibility: EvidenceGraphVisibility = EvidenceGraphVisibility.OPERATOR_ONLY
-
-
-class EvidenceGraph(BaseModel):
-    """Bounded derived graph for explaining claim support."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    graph_id: str = Field(min_length=1, max_length=300)
-    target: NextActionTarget
-    generated_at: datetime
-    nodes: list[EvidenceGraphNode] = Field(default_factory=list, max_length=500)
-    edges: list[EvidenceGraphEdge] = Field(default_factory=list, max_length=1000)
-    claims: list[ClaimSupport] = Field(default_factory=list, max_length=200)
-    limitations: list[str] = Field(default_factory=list, max_length=20)
-
-    @model_validator(mode="after")
-    def validate_graph_references(self) -> EvidenceGraph:
-        node_ids = [node.node_id for node in self.nodes]
-        if len(node_ids) != len(set(node_ids)):
-            raise ValueError("evidence graph node_id values must be unique")
-
-        edge_ids = [edge.edge_id for edge in self.edges]
-        if len(edge_ids) != len(set(edge_ids)):
-            raise ValueError("evidence graph edge_id values must be unique")
-
-        node_id_set = set(node_ids)
-        for edge in self.edges:
-            if (
-                edge.from_node_id not in node_id_set
-                or edge.to_node_id not in node_id_set
-            ):
-                raise ValueError("evidence graph edges must reference existing nodes")
-
-        edge_id_set = set(edge_ids)
-        for claim in self.claims:
-            unknown_edges = [
-                edge_id
-                for edge_id in [
-                    *claim.supporting_edge_ids,
-                    *claim.contradicting_edge_ids,
-                ]
-                if edge_id not in edge_id_set
-            ]
-            if unknown_edges:
-                raise ValueError("claim support edge ids must exist in graph edges")
-            unknown_nodes = [
-                node_id
-                for node_id in [
-                    *claim.stale_node_ids,
-                    *claim.accepted_risk_node_ids,
-                ]
-                if node_id not in node_id_set
-            ]
-            if unknown_nodes:
-                raise ValueError("claim support node ids must exist in graph nodes")
-        return self
 
 
 class AutonomyBudgetUsage(BaseModel):
@@ -1883,122 +1701,6 @@ class ManualEvidenceRecord(BaseModel):
     created_at: datetime
     updated_at: datetime
     last_sequence: int = Field(ge=0)
-
-
-class VerificationPlanEntry(BaseModel):
-    """One explicit local verification check selected or proposed for a task."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    verification_id: TaskVerificationId
-    check_name: str = Field(min_length=1, max_length=200)
-    kind: VerificationCheckKind
-    lifecycle_state: VerificationPlanLifecycleState = (
-        VerificationPlanLifecycleState.SELECTED
-    )
-    target: NextActionTarget | None = None
-    command: list[str] = Field(default_factory=list, max_length=64)
-    command_recipe: NextActionCommandRecipe | None = None
-    source: VerificationPlanSource
-    rationale: str = Field(min_length=1, max_length=2000)
-    selection_rationale: str | None = Field(default=None, min_length=1, max_length=2000)
-    blocking: bool = True
-    timeout_seconds: int = Field(default=300, ge=1, le=7200)
-    expected_exit_codes: list[int] = Field(default_factory=lambda: [0], min_length=1)
-    changed_paths: list[Path] = Field(default_factory=list, max_length=100)
-    eval_case_id: str | None = Field(default=None, min_length=1, max_length=200)
-    eval_profile_id: str | None = Field(default=None, min_length=1, max_length=200)
-    release_surfaces: list[str] = Field(default_factory=list, max_length=20)
-    evidence_references: list[NextActionEvidenceRef] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    stale_reasons: list[str] = Field(default_factory=list, max_length=20)
-    manual_evidence_required: bool = False
-    execution_requires_approval: bool = True
-    superseded_by_verification_id: TaskVerificationId | None = None
-
-    @field_validator("expected_exit_codes")
-    @classmethod
-    def normalize_expected_exit_codes(cls, value: list[int]) -> list[int]:
-        normalized = list(dict.fromkeys(value))
-        if not normalized:
-            raise ValueError("expected_exit_codes must not be empty")
-        for exit_code in normalized:
-            if exit_code < 0 or exit_code > 255:
-                raise ValueError("expected_exit_codes must be between 0 and 255")
-        return normalized
-
-    @model_validator(mode="after")
-    def validate_verification_contract(self) -> VerificationPlanEntry:
-        if self.kind == VerificationCheckKind.EVAL and (
-            self.eval_case_id is None and self.eval_profile_id is None
-        ):
-            raise ValueError(
-                "eval verification requires eval_case_id or eval_profile_id"
-            )
-        executable_states = {
-            VerificationPlanLifecycleState.PROPOSED,
-            VerificationPlanLifecycleState.SELECTED,
-            VerificationPlanLifecycleState.RUNNING,
-            VerificationPlanLifecycleState.PASSED,
-            VerificationPlanLifecycleState.FAILED,
-            VerificationPlanLifecycleState.STALE,
-        }
-        if (
-            self.lifecycle_state in executable_states
-            and not self.command
-            and self.command_recipe is None
-        ):
-            raise ValueError(
-                "executable verification entries require command or command_recipe"
-            )
-        if (
-            self.lifecycle_state == VerificationPlanLifecycleState.MANUAL_ONLY
-            and not self.manual_evidence_required
-        ):
-            raise ValueError("manual-only verification requires manual evidence")
-        if (
-            self.lifecycle_state == VerificationPlanLifecycleState.SUPERSEDED
-            and self.superseded_by_verification_id is None
-        ):
-            raise ValueError("superseded verification requires replacement id")
-        return self
-
-
-class VerificationPlan(BaseModel):
-    """A bounded collection of verification checks for one task."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    task_id: TaskId
-    entries: list[VerificationPlanEntry] = Field(min_length=1, max_length=20)
-    max_repair_attempts: int = Field(default=0, ge=0, le=10)
-    selection_sources: list[VerificationPlanSource] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-    residual_risk_policy: str | None = Field(default=None, max_length=2000)
-
-    @model_validator(mode="after")
-    def validate_unique_verification_ids(self) -> VerificationPlan:
-        verification_ids = [entry.verification_id for entry in self.entries]
-        if len(verification_ids) != len(set(verification_ids)):
-            raise ValueError("verification plan entries require unique verification_id")
-        return self
-
-
-class VerificationFailureDigest(BaseModel):
-    """Compact failure evidence suitable for event payloads and artifacts."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    category: VerificationFailureCategory
-    summary: str = Field(min_length=1, max_length=4000)
-    exit_code: int | None = Field(default=None, ge=0)
-    timed_out: bool = False
-    artifact_id: ArtifactId | None = None
-    first_relevant_line: str | None = Field(default=None, max_length=1000)
 
 
 class PolicyActivitySummary(BaseModel):

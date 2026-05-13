@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+import glassbox.core.models as core_models
+import glassbox.core.types as core_types
 from glassbox.core import AutonomyBudget
 from glassbox.core import ClaimSupport
 from glassbox.core import ClaimSupportState
@@ -76,6 +78,20 @@ from glassbox.core import new_task_verification_id
 from glassbox.core import new_tool_call_id
 from glassbox.core import new_turn_id
 from glassbox.core import new_workspace_memory_id
+from glassbox.core.models_evidence_graph import EvidenceGraph as OwnerEvidenceGraph
+from glassbox.core.models_operator_flow import MaintenanceCue as OwnerMaintenanceCue
+from glassbox.core.models_verification_plan import (
+    VerificationPlanEntry as OwnerVerificationPlanEntry,
+)
+from glassbox.core.types_evidence_graph import (
+    EvidenceGraphFreshness as OwnerEvidenceGraphFreshness,
+)
+from glassbox.core.types_operator_flow import (
+    MaintenanceCueKind as OwnerMaintenanceCueKind,
+)
+from glassbox.core.types_verification_plan import (
+    VerificationPlanSource as OwnerVerificationPlanSource,
+)
 from glassbox.runtime.next_actions import next_actions_from_summaries
 
 
@@ -91,6 +107,15 @@ def test_session_config_round_trip() -> None:
     assert restored == config
     assert restored.approval_mode == "confirm"
     assert restored.dashboard_url is None
+
+
+def test_operator_flow_core_facades_reexport_owner_contracts() -> None:
+    assert core_models.EvidenceGraph is OwnerEvidenceGraph
+    assert core_models.MaintenanceCue is OwnerMaintenanceCue
+    assert core_models.VerificationPlanEntry is OwnerVerificationPlanEntry
+    assert core_types.EvidenceGraphFreshness is OwnerEvidenceGraphFreshness
+    assert core_types.MaintenanceCueKind is OwnerMaintenanceCueKind
+    assert core_types.VerificationPlanSource is OwnerVerificationPlanSource
 
 
 def test_operator_flow_models_and_types_keep_core_compatibility_exports() -> None:

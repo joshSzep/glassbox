@@ -3040,27 +3040,39 @@ V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
     (
         SRC_ROOT / "core" / "models.py",
-        ("glassbox.core.models_operator_flow",),
         (
-            "post-v16 core model facade should re-export next-action and "
-            "operator queue models from the operator-flow owner"
+            "glassbox.core.models_evidence_graph",
+            "glassbox.core.models_operator_flow",
+            "glassbox.core.models_verification_plan",
+        ),
+        (
+            "post-v16 core model facade should re-export operator-flow, "
+            "evidence graph, and verification plan models from owner modules"
         ),
     ),
     (
         SRC_ROOT / "core" / "types.py",
-        ("glassbox.core.types_operator_flow",),
         (
-            "post-v16 core type facade should re-export next-action and "
-            "operator queue enums from the operator-flow owner"
+            "glassbox.core.types_evidence_graph",
+            "glassbox.core.types_operator_flow",
+            "glassbox.core.types_verification_plan",
+        ),
+        (
+            "post-v16 core type facade should re-export operator-flow, "
+            "evidence graph, and verification plan enums from owner modules"
         ),
     ),
     (
         SRC_ROOT / "core" / "__init__.py",
         (
+            "glassbox.core.models_evidence_graph",
             "glassbox.core.models_operator_flow",
+            "glassbox.core.models_verification_plan",
+            "glassbox.core.types_evidence_graph",
             "glassbox.core.types_operator_flow",
+            "glassbox.core.types_verification_plan",
         ),
-        "post-v16 core package facade should delegate operator-flow exports",
+        "post-v16 core package facade should delegate extracted core exports",
     ),
 )
 
