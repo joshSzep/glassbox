@@ -410,6 +410,48 @@ def test_post_v15_repository_intelligence_core_domain_strategy_is_documented() -
         assert required_text in architecture_doc
 
 
+def test_post_v16_operator_flow_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "The post-v16 operator-flow boundary map starts",
+        "#### Post-V16 Operator-Flow Runtime Sub-Boundaries",
+        "`evidence_graph_models.py`",
+        "`verification_plan_identity.py`",
+        "`operator_queue_session_items.py`",
+        "#### Post-V16 Operator-Flow Web Sub-Boundaries",
+        "`changeset_api_builders_verification.py`",
+        "#### Post-V16 Dashboard Cockpit Sub-Boundaries",
+        "`operator-queue-row.tsx`",
+        "`evidence-graph/summary.tsx`",
+        "`changeset-store-verification-actions.ts`",
+        "#### Post-V16 Release-Gate And Guardrail Strategy",
+        "`v16_release_gate_stages.py`",
+        "### Post-V16 Accepted Compatibility Shims",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "## Current Post-v16 Operator-Flow Refactor Shape",
+        "`runtime/evidence_graph.py` remains the evidence graph facade",
+        "`runtime/verification_plan_builder.py` remains the verification plan",
+        "`runtime/operator_queue.py` remains the queue aggregator",
+        "### Runtime Operator-Flow Boundaries",
+        "### Core Operator-Flow Domain Strategy",
+        "[v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md)",
+        "[operator-queue.md](./operator-queue.md)",
+        "[evidence-graph.md](./evidence-graph.md)",
+        "[verification-orchestrator.md](./verification-orchestrator.md)",
+        "[maintenance-cues.md](./maintenance-cues.md)",
+    ):
+        assert required_text in architecture_doc
+
+
 def test_v10_core_domain_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"

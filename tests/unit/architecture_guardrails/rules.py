@@ -2827,6 +2827,118 @@ V14_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
 )
 
+V16_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "evidence_graph.py",
+        1159,
+        (
+            "post-v16 evidence_graph should move graph models, builder "
+            "utilities, changeset/session derivation, and query helpers into "
+            "focused evidence_graph modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "verification_plan_builder.py",
+        585,
+        (
+            "post-v16 verification_plan_builder should move identity, "
+            "recommendation, readiness, manual-only, and skipped-check behavior "
+            "into focused verification_plan helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "operator_queue.py",
+        504,
+        (
+            "post-v16 operator_queue should move session, runtime, "
+            "maintenance, changeset, sorting, and count behavior into focused "
+            "operator_queue helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "session_api_aggregate.py",
+        101,
+        (
+            "post-v16 session aggregate API should move queue response models "
+            "and builders into focused web helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api_builders_detail.py",
+        584,
+        (
+            "post-v16 changeset detail builders should move verification and "
+            "evidence graph response shaping into focused web builders"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "session_route_queries.py",
+        369,
+        (
+            "post-v16 session route queries should consume aggregate and graph "
+            "helpers without owning queue or graph internals"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changeset_route_actions.py",
+        520,
+        (
+            "post-v16 changeset route actions should move verification, "
+            "workup, evidence graph, feedback, and readiness helpers behind "
+            "route-local boundaries"
+        ),
+    ),
+    (
+        REPO_ROOT / "scripts" / "validate_v16_release_gate.py",
+        554,
+        (
+            "post-v16 release gate should move stage assembly, advisory rows, "
+            "package evidence, dogfooding expectations, and summary metadata "
+            "into focused v16 helper modules"
+        ),
+    ),
+)
+
+V16_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT
+        / "components"
+        / "console"
+        / "workspace-overview"
+        / "operator-queue-lanes.tsx",
+        486,
+        (
+            "post-v16 operator queue lanes should move lane descriptors, "
+            "rows, links, and formatting into focused cockpit helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "evidence-graph-panel.tsx",
+        345,
+        (
+            "post-v16 evidence graph panel should move summary, claims, "
+            "nodes, relationships, limitations, and formatting into focused "
+            "graph components"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "components" / "console" / "changeset" / "verification.tsx",
+        493,
+        (
+            "post-v16 changeset verification panel should move table, action, "
+            "and formatting behavior into focused verification components"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "changeset-store-review-actions.ts",
+        301,
+        (
+            "post-v16 changeset review store actions should move verification "
+            "transport helpers into store-owned action modules"
+        ),
+    ),
+)
+
 V14_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

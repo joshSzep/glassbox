@@ -251,6 +251,60 @@ from confirmed active memory; prompt use remains inspectable and replay-aware;
 and release-gate authority remains deterministic rather than dashboard,
 provider, memory, or advisory repository signals.
 
+## Current Post-v16 Operator-Flow Refactor Shape
+
+The v16 operator-flow implementation adds typed next actions, a unified
+operator queue, evidence graph claim support, verification-plan lifecycle
+entries, changeset workup previews, maintenance cues, recovery playbooks,
+dashboard cockpit panels, reviewer-safe evidence bundles, and deterministic
+v16 release-gate coverage. These additions preserve the same local-first
+authority model: canonical events, managed artifacts, typed API responses,
+projection rows, local source files, and deterministic eval fixtures remain
+the source of truth, while queue items, evidence graph summaries, verification
+plans, maintenance cues, dashboard state, and release-gate summaries are
+derived views.
+
+The post-v16 refactor preserves current behavior and public entrypoints while
+preparing the operator-flow surfaces for focused helper ownership:
+
+- `runtime/evidence_graph.py` remains the evidence graph facade while graph
+    models, builder utilities, changeset derivation families, session
+    derivation, and lookup/neighborhood helpers move into `evidence_graph_*`
+    modules
+- `runtime/verification_plan_builder.py` remains the verification plan
+    builder while identity/coalescing, recommendation-source, readiness,
+    manual-only, and skipped-check behavior move into `verification_plan_*`
+    helpers
+- `runtime/operator_queue.py` remains the queue aggregator while session,
+    runtime, maintenance, changeset, sorting, dedupe, and count helpers own
+    item derivation and stable ordering
+- core operator-flow contracts currently remain in broad public
+    `core/models.py`, `core/types.py`, and `core/events.py` surfaces until a
+    domain extraction can preserve compatibility re-exports and deterministic
+    event registration
+- `web/session_api_aggregate.py` and changeset web builders remain transport
+    facades while queue, verification-plan, and evidence graph response
+    shaping moves into web-owned builders without leaking HTTP models into
+    runtime helpers
+- dashboard operator queue, evidence graph, and verification panels remain
+    entrypoints while row, link, format, graph-section, table, action-control,
+    and store action helpers own presentation and transport responsibilities
+- `scripts/validate_v16_release_gate.py` remains the operator command while
+    v16 stage assembly, advisory rows, package/static checks, dogfooding
+    expectations, dry-run output, and summary metadata move into release-gate
+    helper modules
+
+These splits must preserve the v16 non-claims described in
+[v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md),
+[operator-queue.md](./operator-queue.md), [evidence-graph.md](./evidence-graph.md),
+[verification-orchestrator.md](./verification-orchestrator.md), and
+[maintenance-cues.md](./maintenance-cues.md): next actions and repository
+guidance are advisory; evidence graphs explain local support and gaps rather
+than reviewer approval, verification success, or publication readiness;
+skipped/manual-only evidence remains visible; and release-gate authority
+remains deterministic rather than dashboard, provider, browser, accessibility,
+memory, or advisory maintenance signals.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per
@@ -410,6 +464,44 @@ helpers can say what was inspected locally, what remains stale or missing, and
 what safe command could be run next; they must not turn manual evidence, browser
 evidence, accessibility evidence, dashboard evidence, provider canaries, or
 dogfooding notes into publication approval.
+
+### Runtime Operator-Flow Boundaries
+
+Operator-flow services are runtime-owned, transport-agnostic, and derived from
+canonical events, managed artifacts, repository read models, typed API
+responses, projection rows, eval fixtures, and explicit service inputs.
+Runtime helpers may derive queue items, evidence graph nodes and claims,
+verification plan entries, maintenance cue rows, recovery playbook summaries,
+changeset workup previews, and safe next actions, but they must not import CLI
+formatting, FastAPI response models, dashboard components, generated frontend
+types, or raw projection SQL.
+
+Evidence graph helpers should keep graph construction, changeset source
+families, session source families, and query/neighborhood traversal separate.
+Verification plan helpers should keep stable identity and duplicate
+suppression distinct from recommendation-source, readiness, manual-only, and
+skipped-check row construction. Queue helpers should keep session, runtime,
+maintenance, and changeset item derivation separate from sorting, dedupe, and
+counts.
+
+Operator-flow guidance remains advisory unless an existing readiness contract
+already marks a state as blocking. Runtime helpers can recommend, rank,
+explain, cite evidence, and surface stale/missing/manual-only/skipped posture;
+they must not claim reviewer approval, verification success, publication
+readiness, command approval, merge readiness, release authority, or hosted
+review state.
+
+### Core Operator-Flow Domain Strategy
+
+Next-action, operator queue, evidence graph, maintenance cue, verification
+plan, and recovery-playbook contracts currently remain in the broad public
+core model/type/event surfaces. Future extraction into modules such as
+`core/models_operator_flow.py`, `core/types_operator_flow.py`,
+`core/models_evidence_graph.py`, and `core/models_verification_plan.py` should
+happen only when the domain boundary is clear and compatibility re-exports can
+preserve runtime, store, CLI, web, replay, eval, OpenAPI, and test imports.
+Event payload registration must remain explicit and deterministic in
+`core/events.py`.
 
 ### Tool Runtime
 

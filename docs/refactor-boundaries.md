@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md), and the post-v15 repository-intelligence roadmap in [refactor-v15.md](./refactor-v15.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md), the post-v15 repository-intelligence roadmap in [refactor-v15.md](./refactor-v15.md), and the post-v16 operator-flow roadmap in [refactor-v16.md](./refactor-v16.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), [refactor-v14.md](./refactor-v14.md), and [refactor-v15.md](./refactor-v15.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), [refactor-v14.md](./refactor-v14.md), [refactor-v15.md](./refactor-v15.md), and [refactor-v16.md](./refactor-v16.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -433,6 +433,64 @@ and public model-heavy core surfaces as stable contract surfaces. Repository
 intelligence remains local, rebuildable, freshness-aware, provenance-backed,
 and advisory by default.
 
+The post-v16 operator-flow boundary map starts from the completed v16
+operator-flow compression milestone and the new roadmap in
+[refactor-v16.md](./refactor-v16.md). The next split should keep operator queue
+ranking, evidence graph support, verification plan construction, maintenance
+cues, recovery playbooks, changeset workup previews, dashboard cockpit panels,
+and v16 release-gate evidence assembly independently reviewable without
+changing shipped advisory contracts.
+
+The post-v16 pressure points are operator-flow surfaces that grew while next
+actions became more explicit across runtime, web, CLI, dashboard, eval, and
+release-gate paths:
+
+- `src/glassbox/runtime/evidence_graph.py` mixes graph models, builder
+  utilities, changeset derivation, session derivation, claim support,
+  truncation, summaries, lookups, and neighborhood traversal. It should become
+  a stable facade over graph models, builder utilities, changeset graph
+  helpers, session graph helpers, and query helpers.
+- `src/glassbox/runtime/verification_plan_builder.py` mixes entry identity,
+  duplicate suppression, recommendation recipe entries, eval entries,
+  readiness requirements, manual-only rows, skipped checks, unsafe-command
+  rows, and limit handling. It should delegate identity/coalescing,
+  recommendation-source, readiness, manual-only, and skipped-row behavior to
+  focused helpers.
+- `src/glassbox/runtime/operator_queue.py` mixes session rows, runtime rows,
+  maintenance rows, evidence summaries, sorting, dedupe, and counts. It should
+  stay the queue aggregator while item-source helpers and sorting/count helpers
+  own derivation details.
+- Core operator-flow model families in `src/glassbox/core/models.py`,
+  `src/glassbox/core/types.py`, and `src/glassbox/core/events.py` are broad
+  public contract surfaces. They should split by next-action, queue, evidence
+  graph, maintenance, verification, or recovery-playbook domain only when
+  ownership and compatibility needs justify extraction.
+- `src/glassbox/web/session_api_aggregate.py`,
+  `src/glassbox/web/changeset_api_builders_detail.py`,
+  `src/glassbox/web/routes/session_route_queries.py`, and
+  `src/glassbox/web/routes/changeset_route_actions.py` should keep route and
+  response shapes stable while session aggregate, changeset verification, and
+  evidence graph response shaping move into web-owned builders.
+- `frontend/components/console/workspace-overview/operator-queue-lanes.tsx`,
+  `frontend/components/console/evidence-graph-panel.tsx`,
+  `frontend/components/console/changeset/verification.tsx`, and
+  `frontend/stores/changeset-store-review-actions.ts` should keep dashboard
+  entrypoints and store transport ownership while row, link, format, graph, and
+  verification action helpers own local derivation and presentation.
+- `scripts/validate_v16_release_gate.py` should remain the operator entrypoint
+  while v16 stage assembly, advisory evidence rows, package/static checks,
+  dogfooding expectations, dry-run planning, and summary metadata move into
+  release-gate helper modules.
+
+The post-v16 split should continue to treat canonical events, managed
+artifacts, typed API responses, projection rows, deterministic eval fixtures,
+generated API types, and public model-heavy core surfaces as stable contract
+surfaces. Operator-flow guidance remains advisory unless an existing readiness
+contract marks a state as blocking. Evidence graph support explains local
+support and gaps; it is not reviewer approval, verification success, release
+authority, publication readiness, command approval, merge readiness, or hosted
+review state.
+
 ## Target Boundary Map
 
 ### Runtime
@@ -834,6 +892,121 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   compatibility re-exports during any future extraction so runtime, store, CLI,
   web, replay, eval, API schema, and test imports migrate deliberately rather
   than as a hidden side effect.
+
+#### Post-V16 Operator-Flow Runtime Sub-Boundaries
+
+- `evidence_graph.py` should remain the public runtime facade for
+  `build_changeset_evidence_graph`, `build_session_evidence_graph`, summaries,
+  claim/node lookup, and neighborhood traversal. `evidence_graph_models.py`
+  should own graph-local summary/helper types, `evidence_graph_builder.py`
+  should own `_GraphBuilder`, node/edge construction, caps, and summary
+  helpers, changeset helpers should split inventory, verification, and review
+  evidence families, `evidence_graph_session.py` should own session graph
+  derivation, and `evidence_graph_queries.py` should own lookup and traversal.
+- `verification_plan_builder.py` should remain the public verification-plan
+  builder while `verification_plan_identity.py` owns stable IDs, dedupe keys,
+  and coalescing; recommendation, recipe, eval, readiness, manual-only, and
+  skipped-check helpers own their source families. Skipped and manual-only
+  entries remain visible evidence posture, not proof of passing behavior.
+- `operator_queue.py` should remain the public queue aggregator while
+  `operator_queue_session_items.py`, `operator_queue_runtime_items.py`,
+  `operator_queue_maintenance_items.py`, `operator_queue_changeset_items.py`,
+  `operator_queue_sorting.py`, and `operator_queue_counts.py` own item
+  derivation, stable ordering, dedupe, and count summaries. Maintenance rows
+  stay advisory unless existing cue semantics say action is required.
+
+#### Post-V16 Operator-Flow Web Sub-Boundaries
+
+- `web/session_api_aggregate.py` should stay a transport facade over aggregate
+  response models and builders. Route helpers should consume queue summaries
+  through runtime facades and web builders, not duplicate queue sorting,
+  evidence summary, or target-link derivation.
+- `web/changeset_api_builders_detail.py` should keep detail response
+  compatibility while verification-plan response shaping moves to
+  `changeset_api_builders_verification.py` and evidence graph response shaping
+  moves to `changeset_api_builders_evidence_graph.py` or a route-local graph
+  query helper.
+- Web builders may adapt runtime contracts into stable HTTP payloads and
+  OpenAPI schemas, but runtime queue, graph, verification, and maintenance
+  helpers must not import FastAPI response models.
+
+#### Post-V16 Dashboard Cockpit Sub-Boundaries
+
+- `operator-queue-lanes.tsx` should remain the workspace overview entrypoint
+  while `operator-queue-models.ts`, `operator-queue-row.tsx`,
+  `operator-queue-links.ts`, and `operator-queue-format.ts` own lane
+  descriptors, row rendering, target/evidence links, and display copy.
+- `evidence-graph-panel.tsx` should remain the graph panel entrypoint while
+  `evidence-graph/summary.tsx`, `claims.tsx`, `nodes.tsx`,
+  `relationships.tsx`, and `format.ts` own graph summary filters, claims,
+  nodes, relationships, limitations, anchors, labels, and badge variants.
+- `changeset/verification.tsx` should remain the changeset verification
+  entrypoint while table, action-control, and formatting helpers own rendering
+  and local form state. API calls stay in store action helpers such as
+  `changeset-store-verification-actions.ts`.
+
+#### Post-V16 Release-Gate And Guardrail Strategy
+
+- `scripts/validate_v16_release_gate.py` should remain the operator command
+  while `v16_release_gate_stages.py`, `v16_release_gate_advisory.py`,
+  `v16_release_gate_summary.py`, and shared helper modules own deterministic
+  stage assembly, advisory evidence rows, dry-run output, package/static
+  evidence, dogfooding expectations, and summary metadata.
+- post-v16 guardrails start with pre-extraction pressure-point caps for the
+  runtime, web, frontend, and release-gate files named above. After
+  `evidence_graph_*`, `verification_plan_*`, `operator_queue_*`, web builder,
+  dashboard cockpit, and v16 release-gate helpers exist, guardrails should add
+  facade line-count and import-prefix expectations that require delegation to
+  those owner modules.
+- Guardrails should not freeze generated OpenAPI, generated frontend API
+  types, deterministic eval fixtures, release evidence artifacts, broad
+  model-heavy core surfaces, or compatibility facades that are already thin.
+
+#### Post-V16 Operator-Flow Core Domain Strategy
+
+- Next-action, operator queue, evidence graph, maintenance cue, verification
+  plan, and recovery-playbook model families currently remain in broad public
+  core modules unless a roadmap task explicitly extracts them. A future
+  extraction should use cohesive domain modules such as
+  `core/models_operator_flow.py`, `core/types_operator_flow.py`,
+  `core/models_evidence_graph.py`, and `core/models_verification_plan.py`
+  only when validator ownership, enum/event review, or compatibility review
+  becomes materially easier.
+- `glassbox.core.models`, `glassbox.core.types`, `glassbox.core.events`, and
+  `glassbox.core` must preserve public imports through compatibility
+  re-exports during any operator-flow extraction. Event payload registration
+  must stay explicit, deterministic, and free of runtime, store, CLI, web, or
+  frontend imports.
+- Do not split model-heavy code for line count alone. New operator-flow
+  contracts should move only when the domain boundary is clear and the runtime,
+  web, CLI, dashboard, replay, eval, OpenAPI, and tests can migrate
+  deliberately.
+
+### Post-V16 Accepted Compatibility Shims
+
+- `src/glassbox/runtime/evidence_graph.py`: evidence graph public facade.
+- `src/glassbox/runtime/verification_plan_builder.py`: verification plan
+  public builder.
+- `src/glassbox/runtime/operator_queue.py`: operator queue public aggregator.
+- `src/glassbox/core/models.py`, `src/glassbox/core/types.py`, and
+  `src/glassbox/core/events.py`: broad public core compatibility surfaces.
+- `src/glassbox/web/session_api_aggregate.py`: session aggregate API facade.
+- `src/glassbox/web/changeset_api_builders_detail.py`: changeset detail
+  builder facade.
+- `src/glassbox/web/routes/session_route_queries.py`: session route query
+  helper facade.
+- `src/glassbox/web/routes/changeset_route_actions.py`: changeset action
+  helper facade.
+- `frontend/components/console/workspace-overview/operator-queue-lanes.tsx`:
+  dashboard operator queue entrypoint.
+- `frontend/components/console/evidence-graph-panel.tsx`: dashboard evidence
+  graph entrypoint.
+- `frontend/components/console/changeset/verification.tsx`: dashboard
+  verification plan entrypoint.
+- `frontend/stores/changeset-store-review-actions.ts`: compatibility store
+  action surface.
+- `scripts/validate_v16_release_gate.py`: v16 release-gate operator
+  entrypoint.
 
 ### Post-V15 Accepted Compatibility Shims
 
