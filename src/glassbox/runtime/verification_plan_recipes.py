@@ -15,6 +15,7 @@ from glassbox.runtime.verification_plan_entries import build_verification_entry
 from glassbox.runtime.verification_plan_entries import command_parts
 from glassbox.runtime.verification_plan_entries import lifecycle_for_freshness
 from glassbox.runtime.verification_plan_entries import stale_reasons
+from glassbox.runtime.verification_plan_skips import unsafe_command_skipped_row
 
 
 def build_recipe_verification_entries(
@@ -30,14 +31,8 @@ def build_recipe_verification_entries(
         for command in recipe.commands:
             if not is_safe_verification_command(command):
                 skipped.append(
-                    ChangesetVerificationSkippedCheckPreview(
+                    unsafe_command_skipped_row(
                         target_id=recipe.recipe_id,
-                        target_kind="command-recipe",
-                        reason="unsafe-command",
-                        explanation=(
-                            "verification planning filters publication, upload, "
-                            "push, deploy, release, and destructive commands"
-                        ),
                         matched_paths=recipe.matched_paths,
                     )
                 )

@@ -32,6 +32,10 @@ from glassbox.runtime.eval_recommendation_models import EvalTestTargetRecommenda
 from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
 )
+from glassbox.runtime.verification_plan_builder import MAX_VERIFICATION_PLAN_ENTRIES
+from glassbox.runtime.verification_plan_builder import (
+    MAX_VERIFICATION_PLAN_SKIPPED_CHECKS,
+)
 from glassbox.runtime.verification_plan_builder import build_verification_plan_entries
 from glassbox.runtime.workspace_profile import WorkspaceProfile
 from glassbox.runtime.workspace_profile import WorkspaceVerificationDefaults
@@ -441,6 +445,65 @@ def test_verification_plan_builder_keeps_recommendation_source_entries() -> None
     assert release_entry.kind == VerificationCheckKind.PACKAGE
     assert release_entry.source == VerificationPlanSource.RELEASE_GATE
     assert release_entry.release_surfaces == ["release-candidate"]
+
+
+def test_verification_plan_builder_skips_unsafe_recipes_and_caps_skipped_rows() -> None:
+    changed_paths = ["src/glassbox/runtime/verification_plan_builder.py"]
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=changed_paths,
+        recipes=[
+            EvalVerificationRecipeRecommendation(
+                recipe_id=f"unsafe-{index}",
+                title=f"Unsafe recipe {index}",
+                matched_paths=changed_paths,
+                commands=[f"git push origin unsafe-{index}"],
+            )
+            for index in range(MAX_VERIFICATION_PLAN_SKIPPED_CHECKS + 5)
+        ],
+    )
+
+    entries, skipped = build_verification_plan_entries(
+        changed_paths=changed_paths,
+        recommendation=recommendation,
+    )
+
+    assert all(not entry.command for entry in entries)
+    assert len(skipped) == MAX_VERIFICATION_PLAN_SKIPPED_CHECKS
+    assert skipped[0].reason == "unsafe-command"
+    assert skipped[-1].reason == "skipped-check-limit"
+    assert "capped" in skipped[-1].explanation
+
+
+def test_verification_plan_builder_adds_plan_entry_limit_row() -> None:
+    changed_paths = ["src/glassbox/runtime/verification_plan_builder.py"]
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=changed_paths,
+        test_targets=[
+            EvalTestTargetRecommendation(
+                target_id=f"target-{index}",
+                title=f"Target {index}",
+                confidence="direct",
+                source="repository-intelligence",
+                matched_paths=changed_paths,
+                command=(
+                    "uv run pytest tests/unit/test_changeset_verification_readiness.py "
+                    f"-q --target-{index}"
+                ),
+            )
+            for index in range(MAX_VERIFICATION_PLAN_ENTRIES + 5)
+        ],
+    )
+
+    entries, skipped = build_verification_plan_entries(
+        changed_paths=changed_paths,
+        recommendation=recommendation,
+    )
+
+    assert len(entries) == MAX_VERIFICATION_PLAN_ENTRIES
+    assert skipped[-1].reason == "plan-entry-limit"
+    assert "entry summaries" in skipped[-1].explanation
 
 
 def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates() -> (

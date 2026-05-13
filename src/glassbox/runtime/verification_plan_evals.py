@@ -10,6 +10,9 @@ from glassbox.runtime.verification_plan_entries import build_verification_entry
 from glassbox.runtime.verification_plan_entries import command_parts
 from glassbox.runtime.verification_plan_entries import join_reasons
 from glassbox.runtime.verification_plan_manual import build_manual_only_profile_entry
+from glassbox.runtime.verification_plan_skips import (
+    operator_selection_required_skipped_row,
+)
 
 
 def build_eval_verification_entries(
@@ -24,14 +27,9 @@ def build_eval_verification_entries(
     for profile in recommendation.profiles:
         if profile.track != "deterministic":
             skipped.append(
-                ChangesetVerificationSkippedCheckPreview(
+                operator_selection_required_skipped_row(
                     target_id=profile.profile_id,
-                    target_kind="eval-profile",
-                    reason="operator-selection-required",
-                    explanation=(
-                        f"{profile.track} profiles remain advisory until the "
-                        "operator explicitly selects them"
-                    ),
+                    track=profile.track,
                     matched_paths=profile.matched_paths,
                     safe_next_actions=profile.safe_next_commands,
                 )

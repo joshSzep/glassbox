@@ -16,9 +16,13 @@ from glassbox.runtime.verification_plan_recipes import build_recipe_verification
 from glassbox.runtime.verification_plan_recommendations import (
     build_test_target_verification_entries,
 )
+from glassbox.runtime.verification_plan_skips import (
+    MAX_VERIFICATION_PLAN_SKIPPED_CHECKS,
+)
+from glassbox.runtime.verification_plan_skips import VerificationPlanSkippedCollector
+from glassbox.runtime.verification_plan_skips import plan_entry_limit_row
 
 MAX_VERIFICATION_PLAN_ENTRIES = 50
-MAX_VERIFICATION_PLAN_SKIPPED_CHECKS = 50
 
 
 def build_verification_plan_entries(
@@ -32,8 +36,11 @@ def build_verification_plan_entries(
     entries: list[VerificationPlanEntry] = []
     skipped: list[ChangesetVerificationSkippedCheckPreview] = []
     coalescer = VerificationPlanEntryCoalescer(entries)
+    skipped_collector = VerificationPlanSkippedCollector(
+        skipped,
+        changed_paths=changed_paths,
+    )
     entry_limit_recorded = False
-    skipped_limit_recorded = False
 
     def add(entry: VerificationPlanEntry) -> None:
         nonlocal entry_limit_recorded
@@ -43,7 +50,7 @@ def build_verification_plan_entries(
         ):
             if not entry_limit_recorded:
                 add_skipped(
-                    _plan_entry_limit_skipped(
+                    plan_entry_limit_row(
                         changed_paths,
                         limit=MAX_VERIFICATION_PLAN_ENTRIES,
                     )
@@ -53,16 +60,7 @@ def build_verification_plan_entries(
         coalescer.add(entry)
 
     def add_skipped(item: ChangesetVerificationSkippedCheckPreview) -> None:
-        nonlocal skipped_limit_recorded
-        if len(skipped) >= MAX_VERIFICATION_PLAN_SKIPPED_CHECKS:
-            if not skipped_limit_recorded and skipped:
-                skipped[-1] = _skipped_limit_skipped(
-                    changed_paths,
-                    limit=MAX_VERIFICATION_PLAN_SKIPPED_CHECKS,
-                )
-                skipped_limit_recorded = True
-            return
-        skipped.append(item)
+        skipped_collector.add(item)
 
     if recommendation is not None:
         for entry in build_test_target_verification_entries(
@@ -98,59 +96,6 @@ def build_verification_plan_entries(
         add(entry)
 
     return entries, skipped
-
-
-def _skipped(
-    *,
-    target_id: str,
-    target_kind: str,
-    reason: str,
-    explanation: str,
-    matched_paths: list[str],
-    safe_next_actions: list[str] | None = None,
-) -> ChangesetVerificationSkippedCheckPreview:
-    return ChangesetVerificationSkippedCheckPreview(
-        target_id=target_id,
-        target_kind=target_kind,
-        reason=reason,
-        explanation=explanation,
-        matched_paths=matched_paths,
-        safe_next_actions=safe_next_actions or [],
-    )
-
-
-def _plan_entry_limit_skipped(
-    matched_paths: list[str],
-    *,
-    limit: int,
-) -> ChangesetVerificationSkippedCheckPreview:
-    return _skipped(
-        target_id="verification-plan-entry-limit",
-        target_kind="plan-limit",
-        reason="plan-entry-limit",
-        explanation=(
-            f"Verification plan preview is capped at {limit} entry summaries; "
-            "inspect repository recommendations for additional candidate checks."
-        ),
-        matched_paths=matched_paths[:100],
-    )
-
-
-def _skipped_limit_skipped(
-    matched_paths: list[str],
-    *,
-    limit: int,
-) -> ChangesetVerificationSkippedCheckPreview:
-    return _skipped(
-        target_id="verification-skipped-check-limit",
-        target_kind="plan-limit",
-        reason="skipped-check-limit",
-        explanation=(
-            f"Skipped-check preview is capped at {limit} rows; inspect repository "
-            "recommendations for additional skipped advisory checks."
-        ),
-        matched_paths=matched_paths[:100],
-    )
 
 
 __all__ = [

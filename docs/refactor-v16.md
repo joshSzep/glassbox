@@ -592,7 +592,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R823: Split Verification Plan Skipped-Check And Limit Handling
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R821, GBX-R822
 - Target files:
   - `src/glassbox/runtime/verification_plan_builder.py`
