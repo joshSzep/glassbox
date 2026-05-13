@@ -418,7 +418,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R810: Split Evidence Graph Models And Builder Utilities
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R801
 - Target files:
   - `src/glassbox/runtime/evidence_graph.py`
