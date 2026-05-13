@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 import subprocess
 import sys
 from collections.abc import Sequence
-from datetime import UTC
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -17,184 +14,19 @@ if str(SCRIPT_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPT_REPO_ROOT))
 
 from scripts import v11_release_gate_helpers as gate_helpers  # noqa: E402
-from scripts import v14_release_gate_helpers as v14_helpers  # noqa: E402
-from scripts import validate_v15_release_gate as v15_gate  # noqa: E402
-from scripts.validate_v6_release_gate import DEFAULT_EVIDENCE_ROOT  # noqa: E402
+from scripts import v16_release_gate_helpers as v16_helpers  # noqa: E402
 from scripts.validate_v6_release_gate import REPO_ROOT  # noqa: E402
 from scripts.validate_v6_release_gate import GateStage  # noqa: E402
 from scripts.validate_v6_release_gate import _latest_glassbox_wheel  # noqa: E402
 from scripts.validate_v6_release_gate import _run_installed_wheel_smoke  # noqa: E402
 
-V16_OPERATOR_FLOW_CASES = (
-    "operator-flow.queue-ranking",
-    "operator-flow.evidence-graph-support",
-    "operator-flow.verification-plan-lifecycle",
-    "operator-flow.skipped-check-posture",
-    "operator-flow.changeset-workup-preview",
-    "operator-flow.maintenance-cues",
-    "operator-flow.reviewer-safe-bundle",
-)
+V16_OPERATOR_FLOW_CASES = v16_helpers.V16_OPERATOR_FLOW_CASES
 
 
 def build_gate_stages(evidence_dir: Path | None = None) -> list[GateStage]:
     """Return the deterministic blocking stages for the v16 gate."""
 
-    resolved_evidence_dir = evidence_dir or Path(".glassbox/releases/v16-gate")
-    eval_output_dir = v14_helpers.eval_evidence_dir(resolved_evidence_dir)
-    return [
-        *v15_gate.build_gate_stages(resolved_evidence_dir),
-        GateStage(
-            "v16 deterministic eval release report",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "eval",
-                "report",
-                "commit-smoke",
-                "push-confirmation",
-                "release-candidate",
-                "--output-dir",
-                str(eval_output_dir / "v16-release-signoff"),
-                "--cwd",
-                ".",
-            ),
-        ),
-        GateStage(
-            "v16 operator flow release profile",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "eval",
-                "run",
-                "--profile",
-                "release-candidate",
-                "--output-dir",
-                str(eval_output_dir / "v16-operator-flow-release"),
-                "--refresh-output-dir",
-                "--cwd",
-                ".",
-            ),
-        ),
-        GateStage(
-            "v16 operator flow eval smoke",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "eval",
-                "run",
-                *V16_OPERATOR_FLOW_CASES,
-                "--output-dir",
-                str(eval_output_dir / "v16-operator-flow-smoke"),
-                "--refresh-output-dir",
-                "--cwd",
-                ".",
-            ),
-        ),
-        GateStage(
-            "v16 operator queue smoke",
-            ("uv", "run", "glassbox", "queue", "list", "--json", "--cwd", "."),
-        ),
-        GateStage(
-            "v16 evidence graph smoke",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "changeset",
-                "evidence-graph",
-                "--help",
-            ),
-        ),
-        GateStage(
-            "v16 verification plan smoke",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "changeset",
-                "verification-plan",
-                "--path",
-                "docs/tasks-v16.md",
-                "--json",
-                "--cwd",
-                ".",
-            ),
-        ),
-        GateStage(
-            "v16 operator flow runtime coverage",
-            (
-                "uv",
-                "run",
-                "pytest",
-                "tests/unit/test_session_query_derivation.py",
-                "tests/unit/test_evidence_graph.py",
-                "tests/unit/test_changeset_workup.py",
-                "tests/unit/test_changeset_verification_readiness.py",
-                "tests/integration/test_performance_budgets.py",
-                "tests/unit/test_runtime_eval_coverage.py",
-                "-q",
-            ),
-        ),
-        GateStage(
-            "v16 operator flow CLI API coverage",
-            (
-                "uv",
-                "run",
-                "pytest",
-                "tests/integration/test_cli_changeset_commands.py",
-                "tests/integration/test_cli_session_commands.py",
-                "tests/integration/test_web_changeset_routes.py",
-                "tests/integration/test_openapi_schema.py",
-                "-q",
-            ),
-        ),
-        GateStage(
-            "v16 operator flow frontend smoke",
-            (
-                "pnpm",
-                "--dir",
-                "frontend",
-                "test",
-                "--",
-                "--maxWorkers=1",
-                "workspace-overview.test.ts",
-                "changeset-console.test.tsx",
-                "session-inspector.test.ts",
-                "generated-api-types.test.ts",
-            ),
-        ),
-        GateStage(
-            "v16 package contents validation",
-            ("uv", "run", "python", "scripts/validate_package_contents.py"),
-        ),
-        GateStage(
-            "v16 release docs",
-            (
-                "uv",
-                "run",
-                "pytest",
-                "tests/unit/test_release_candidate_docs.py",
-                "-q",
-            ),
-        ),
-        GateStage(
-            "v16 eval coverage audit",
-            (
-                "uv",
-                "run",
-                "glassbox",
-                "eval",
-                "audit",
-                "--profile",
-                "release-candidate",
-                "--cwd",
-                ".",
-            ),
-        ),
-    ]
+    return v16_helpers.build_gate_stages(evidence_dir)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -292,70 +124,19 @@ def _record_v16_provider_evidence(
     include: bool,
     dry_run: bool,
 ) -> None:
-    v15_gate._record_v15_provider_evidence(  # noqa: SLF001
+    v16_helpers.record_provider_evidence(
         summary,
         evidence_dir,
         include=include,
         dry_run=dry_run,
     )
-    if summary["advisory"]:
-        latest = summary["advisory"][-1]
-        if latest.get("label") == "v15 advisory provider evidence":
-            latest["label"] = "v16 advisory provider evidence"
 
 
 def _record_v16_advisory_evidence(
     summary: dict[str, Any],
     evidence_dir: Path,
 ) -> None:
-    advisory_entries = [
-        (
-            "v16 advisory dashboard browser evidence",
-            "operator-flow cockpit browser evidence remains advisory and is not "
-            "deterministic release authority",
-            "browser",
-            "docs/v16-flow-cockpit-evidence.md",
-            "recorded",
-        ),
-        (
-            "v16 advisory accessibility evidence",
-            "keyboard, focus, responsive, and accessibility-adjacent notes remain "
-            "advisory beside fixture-backed checks",
-            "accessibility",
-            "docs/v16-flow-cockpit-evidence.md",
-            "recorded",
-        ),
-        (
-            "v16 dogfooding evidence",
-            "operator-flow dogfooding is recorded by GBX-1682 and remains advisory "
-            "beside deterministic gate evidence",
-            "dogfooding",
-            "docs/v16-dogfooding-summary.md",
-            "recorded",
-        ),
-        (
-            "v16 manual release evidence",
-            "manual release-candidate evidence is recorded in the v16 guide "
-            "and remains non-blocking beside deterministic gate evidence",
-            "manual",
-            "docs/v16-release-candidate.md",
-            "recorded",
-        ),
-    ]
-    for label, reason, directory_name, docs_path, latest_status in advisory_entries:
-        summary["advisory"].append(
-            {
-                "label": label,
-                "status": latest_status,
-                "reason": reason,
-                "blocking": False,
-                "freshness_status": latest_status,
-                "latest_status": latest_status,
-                "evidence_dir": str(evidence_dir / directory_name),
-                "docs": docs_path,
-                "required_for_release": False,
-            }
-        )
+    v16_helpers.record_advisory_evidence(summary, evidence_dir)
 
 
 def _run_stage(summary: dict[str, Any], stage: GateStage) -> int:
@@ -382,33 +163,21 @@ def _print_dry_run(
     *,
     include_provider_canaries: bool,
 ) -> None:
-    print("V16 release gate dry run")
-    for stage in stages:
-        print(f"- {stage.label}: {gate_helpers.format_command(stage.command)}")
-    if include_provider_canaries:
-        print(
-            "- v16 advisory provider evidence: "
-            "uv run glassbox provider canary run --cwd . "
-            "--output-dir <evidence>/provider-canary --json"
-        )
-    else:
-        print("- v16 advisory provider evidence: skipped by default")
-    print("- v16 advisory dashboard browser evidence: recorded from retained summary")
-    print("- v16 advisory accessibility evidence: recorded from retained summary")
-    print("- v16 dogfooding evidence: recorded GBX-1682 advisory summary")
-    print("- v16 manual release evidence: recorded v16 release-candidate guide")
-    print("- installed wheel smoke: latest dist/glassbox-*.whl")
+    v16_helpers.print_dry_run(
+        stages,
+        include_provider_canaries=include_provider_canaries,
+    )
 
 
 def _record_planned_stages(
     summary: dict[str, Any],
     stages: Sequence[GateStage],
 ) -> None:
-    v15_gate._record_planned_stages(summary, stages)  # noqa: SLF001
+    v16_helpers.record_planned_stages(summary, stages)
 
 
 def _record_installed_wheel_plan(summary: dict[str, Any]) -> None:
-    v15_gate._record_installed_wheel_plan(summary)  # noqa: SLF001
+    v16_helpers.record_installed_wheel_plan(summary)
 
 
 def _record_stage_result(
@@ -433,9 +202,7 @@ def _record_stage_result(
 
 
 def _resolve_evidence_dir(requested: Path | None) -> Path:
-    if requested is not None:
-        return requested
-    return DEFAULT_EVIDENCE_ROOT / f"{_now_stamp()}-v16-gate"
+    return v16_helpers.resolve_evidence_dir(requested)
 
 
 def _new_evidence_summary(
@@ -444,110 +211,31 @@ def _new_evidence_summary(
     include_provider_canaries: bool,
     dry_run: bool,
 ) -> dict[str, Any]:
-    summary = v15_gate._new_evidence_summary(  # noqa: SLF001
+    return v16_helpers.new_evidence_summary(
         evidence_dir,
         include_provider_canaries=include_provider_canaries,
         dry_run=dry_run,
     )
-    summary["gate"] = "v16-release"
-    summary["artifacts"].update(
-        {
-            "v16_task_graph": "docs/tasks-v16.md",
-            "v16_operator_flow_contract": (
-                "docs/v16-operator-flow-compression-contract.md"
-            ),
-            "v16_operator_flow_audit": "docs/v16-operator-flow-audit.md",
-            "v16_flow_cockpit_evidence": "docs/v16-flow-cockpit-evidence.md",
-            "v16_release_gate": "docs/v16-release-gate.md",
-            "v16_eval_cases": "evals/README.md",
-            "v16_replay_evals": "docs/replay-evals.md",
-        }
-    )
-    summary["release_authority"]["blocking_evidence"].extend(
-        [
-            "inherited v15 deterministic release stages",
-            "v16 deterministic eval release report",
-            "v16 operator flow release profile",
-            "v16 operator flow eval smoke",
-            "v16 operator queue smoke",
-            "v16 evidence graph smoke",
-            "v16 verification plan smoke",
-            "v16 operator flow runtime coverage",
-            "v16 operator flow CLI API coverage",
-            "v16 operator flow frontend smoke",
-            "v16 package contents validation",
-            "v16 release docs",
-            "v16 eval coverage audit",
-        ]
-    )
-    summary["release_authority"].setdefault("advisory_evidence", []).extend(
-        [
-            "v16 advisory provider evidence",
-            "v16 advisory dashboard browser evidence",
-            "v16 advisory accessibility evidence",
-            "v16 dogfooding evidence",
-            "v16 manual release evidence",
-        ]
-    )
-    return summary
 
 
 def _finish_summary(summary: dict[str, Any], status: str) -> None:
-    gate_helpers.finish_summary(summary, status)
-    if status == "passed":
-        summary["next_actions"][-1] = (
-            "attach v16 dogfooding, advisory cockpit, residual-risk, and release "
-            "candidate evidence before RC signoff"
-        )
-    else:
-        summary["next_actions"] = [
-            action.replace("v11", "v16").replace("v14", "v16").replace("v15", "v16")
-            for action in summary["next_actions"]
-        ]
+    v16_helpers.finish_summary(summary, status)
 
 
 def _write_evidence_summary(evidence_dir: Path, summary: dict[str, Any]) -> Path:
-    evidence_dir.mkdir(parents=True, exist_ok=True)
-    summary_path = evidence_dir / "summary.json"
-    summary_path.write_text(
-        json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    print(f"\nV16 release evidence written to {summary_path}")
-    return summary_path
+    return v16_helpers.write_evidence_summary(evidence_dir, summary)
 
 
 def _print_summary(summary: dict[str, Any]) -> None:
-    stage_counts = gate_helpers.count_statuses(summary["stages"])
-    advisory_counts = gate_helpers.count_statuses(summary["advisory"])
-    print("\nV16 release gate summary")
-    print(f"Status: {summary['status']}")
-    print(f"Evidence: {summary['evidence_dir']}")
-    print(
-        "Stages: "
-        + ", ".join(f"{status}={count}" for status, count in stage_counts.items())
-    )
-    if advisory_counts:
-        print(
-            "Advisory: "
-            + ", ".join(
-                f"{status}={count}" for status, count in advisory_counts.items()
-            )
-        )
-    print(
-        "Release authority: "
-        + ", ".join(summary["release_authority"]["blocking_evidence"])
-    )
-    for action in summary["next_actions"]:
-        print(f"Next: {action}")
+    v16_helpers.print_summary(summary)
 
 
 def _now_iso() -> str:
-    return datetime.now(UTC).isoformat()
+    return v16_helpers.now_iso()
 
 
 def _now_stamp() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return v16_helpers.now_stamp()
 
 
 if __name__ == "__main__":

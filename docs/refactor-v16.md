@@ -933,7 +933,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R860: Split V16 Release-Gate Stage Assembly By Evidence Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R801
 - Target files:
   - `scripts/validate_v16_release_gate.py`
