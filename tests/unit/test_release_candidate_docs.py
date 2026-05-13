@@ -961,6 +961,28 @@ def test_v13_review_loop_audit_covers_current_boundaries() -> None:
     assert "v13-review-loop-audit.md" in docs_readme
 
 
+def test_post_v16_core_operator_flow_strategy_is_explicit() -> None:
+    content = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "#### Post-V16 Operator-Flow Core Domain Strategy",
+        "`NextAction*`, `OperatorQueue*`, and their enum families should move",
+        "`core/models_operator_flow.py` plus `core/types_operator_flow.py`",
+        "Runtime graph summaries and builder-only",
+        "helper types should stay in `runtime/evidence_graph_models.py`",
+        "Recovery playbook models currently remain runtime observability models",
+        "Verification plan models and `VerificationPlan*` enum families should move",
+        "`TaskVerificationPlanned` and `ChangesetWorkupPrepared` must continue to use",
+        "explicitly registered payload classes and manually maintained payload unions",
+        "`glassbox.core.models`, `glassbox.core.types`, `glassbox.core.events`, and",
+        "Event payload registration",
+        "must stay explicit, deterministic",
+    ):
+        assert required_text in content
+
+
 def test_v13_review_loop_ux_audit_chooses_review_command_shape() -> None:
     content = (REPO_ROOT / "docs" / "v13-review-loop-ux-audit.md").read_text(
         encoding="utf-8"

@@ -714,7 +714,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R840: Define Core Operator-Flow Model Domain Strategy
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R800
 - Target files:
   - [refactor-boundaries.md](./refactor-boundaries.md)

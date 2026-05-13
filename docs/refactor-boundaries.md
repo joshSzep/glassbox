@@ -978,6 +978,28 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   `core/models_evidence_graph.py`, and `core/models_verification_plan.py`
   only when validator ownership, enum/event review, or compatibility review
   becomes materially easier.
+- `NextAction*`, `OperatorQueue*`, and their enum families should move
+  together if queue ranking, safe-action validation, or transport adapters add
+  enough fields that reviewing them inside `core/models.py` and
+  `core/types.py` obscures the advisory contract. The extraction target is
+  `core/models_operator_flow.py` plus `core/types_operator_flow.py`, with
+  `glassbox.core.models`, `glassbox.core.types`, and `glassbox.core`
+  preserving compatibility re-exports.
+- Evidence graph contracts should move as one graph family only if node, edge,
+  claim-support, freshness, visibility, and redaction validators grow beyond
+  the current shared public contract. Runtime graph summaries and builder-only
+  helper types should stay in `runtime/evidence_graph_models.py`; they should
+  not be promoted to core just because they are useful to one runtime facade.
+- Maintenance cue models should stay with the next-action/queue family unless
+  cue-specific semantics grow independent validator or event ownership.
+  Recovery playbook models currently remain runtime observability models; they
+  should move to core only if canonical events, API contracts, or CLI/web
+  import surfaces need the same persisted playbook schema.
+- Verification plan models and `VerificationPlan*` enum families should move
+  together only when task verification events, changeset readiness, web
+  responses, and runtime planners need a narrower shared owner. If extracted,
+  `TaskVerificationPlanned` and `ChangesetWorkupPrepared` must continue to use
+  explicitly registered payload classes and manually maintained payload unions.
 - `glassbox.core.models`, `glassbox.core.types`, `glassbox.core.events`, and
   `glassbox.core` must preserve public imports through compatibility
   re-exports during any operator-flow extraction. Event payload registration
