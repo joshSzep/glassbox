@@ -10,6 +10,7 @@ from glassbox.runtime.evidence_graph import EvidenceGraphSummary
 from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import evidence_node
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.web.changeset_api import AccessibilityEvidenceAttachRequest
@@ -185,9 +186,8 @@ def get_changeset_evidence_graph_node(
         context=context,
         reviewer_safe=reviewer_safe,
     )
-    for node in graph.nodes:
-        if node.node_id == node_id:
-            return node
+    if (node := evidence_node(graph, node_id)) is not None:
+        return node
     raise_not_found_from_value_error(
         ValueError(f"unknown evidence graph node: {node_id}")
     )

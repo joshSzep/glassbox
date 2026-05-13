@@ -495,7 +495,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R813: Split Evidence Graph Query And Neighborhood Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R811, GBX-R812
 - Target files:
   - `src/glassbox/runtime/evidence_graph.py`

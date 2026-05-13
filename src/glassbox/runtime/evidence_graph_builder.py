@@ -11,7 +11,6 @@ from glassbox.core import EvidenceGraphEdgeKind
 from glassbox.core import EvidenceGraphMissingEvidence
 from glassbox.core import EvidenceGraphNode
 from glassbox.core import NextActionTarget
-from glassbox.runtime.evidence_graph_models import EvidenceGraphSummary
 
 
 class _GraphBuilder:
@@ -77,28 +76,6 @@ class _GraphBuilder:
         )
 
 
-def summarize_evidence_graph(graph: EvidenceGraph) -> EvidenceGraphSummary:
-    """Return compact counts for queue/API callers."""
-
-    return EvidenceGraphSummary(
-        graph_id=graph.graph_id,
-        target_kind=graph.target.kind,
-        target_id=graph.target.target_id,
-        node_count=len(graph.nodes),
-        edge_count=len(graph.edges),
-        claim_count=len(graph.claims),
-        stale_claim_count=_count_claims(graph, ClaimSupportState.STALE),
-        missing_claim_count=_count_claims(graph, ClaimSupportState.MISSING),
-        contradicted_claim_count=_count_claims(graph, ClaimSupportState.CONTRADICTED),
-        manual_only_claim_count=_count_claims(graph, ClaimSupportState.MANUAL_ONLY),
-        accepted_risk_claim_count=_count_claims(
-            graph,
-            ClaimSupportState.ACCEPTED_WITH_RISK,
-        ),
-        limitation_count=len(graph.limitations),
-    )
-
-
 def _add_truncation_limitation(
     graph: _GraphBuilder,
     *,
@@ -114,10 +91,6 @@ def _add_truncation_limitation(
 
 def _with_limitation(limitations: list[str], limitation: str) -> list[str]:
     return list(dict.fromkeys([*limitations, limitation]))[:20]
-
-
-def _count_claims(graph: EvidenceGraph, state: ClaimSupportState) -> int:
-    return sum(1 for claim in graph.claims if claim.state == state)
 
 
 def _claim_state(
@@ -178,5 +151,4 @@ __all__ = [
     "_claim_state",
     "_claim_summary",
     "_with_limitation",
-    "summarize_evidence_graph",
 ]

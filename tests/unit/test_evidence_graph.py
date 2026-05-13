@@ -51,6 +51,7 @@ from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
+from glassbox.runtime.evidence_graph import evidence_node
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
@@ -75,6 +76,7 @@ def test_changeset_evidence_graph_derives_supported_claim() -> None:
     assert summary.claim_count == 1
     assert summary.stale_claim_count == 0
     assert claim_support(graph, claim.claim_id) == claim
+    assert evidence_node(graph, claim.claim_id) == graph.nodes[0]
 
 
 def test_changeset_evidence_graph_marks_stale_evidence() -> None:
