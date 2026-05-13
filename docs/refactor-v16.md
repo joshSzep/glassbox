@@ -471,7 +471,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R812: Split Session Evidence Graph Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R810
 - Target files:
   - `src/glassbox/runtime/evidence_graph.py`

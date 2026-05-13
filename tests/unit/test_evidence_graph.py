@@ -12,12 +12,14 @@ from glassbox.core import ChangesetVerificationState
 from glassbox.core import ClaimSupportState
 from glassbox.core import EvidenceGraphFreshness
 from glassbox.core import EvidenceGraphVisibility
+from glassbox.core import LongRunStatusRecord
 from glassbox.core import ManualEvidenceFreshness
 from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ManualEvidenceRedactionStatus
 from glassbox.core import ManualEvidenceState
 from glassbox.core import ManualEvidenceTargetKind
+from glassbox.core import ProjectionHealth
 from glassbox.core import ReviewFeedbackDisposition
 from glassbox.core import ReviewFeedbackKind
 from glassbox.core import ReviewFeedbackProvenance
@@ -43,7 +45,10 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.changeset_verification_readiness import (
     ChangesetVerificationRequirement,
 )
+from glassbox.runtime.context_models import RepositoryContextSnapshot
+from glassbox.runtime.context_models import RuntimeContextSnapshot
 from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
+from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
@@ -51,6 +56,7 @@ from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.review_responses import ChangesetReviewResponseSummary
 from glassbox.runtime.review_responses import ReviewFeedbackResponseStatus
 from glassbox.runtime.review_responses import ReviewFeedbackVerificationPlanEntryStatus
+from glassbox.runtime.session_query_models import SessionSnapshotView
 
 
 def test_changeset_evidence_graph_derives_supported_claim() -> None:
@@ -204,6 +210,46 @@ def test_evidence_graph_neighborhood_and_reviewer_safe_slice() -> None:
     )
 
 
+def test_session_evidence_graph_exposes_sparse_pending_decisions() -> None:
+    snapshot = _session_snapshot(
+        last_sequence=0,
+        pending_approval_id="approval-1",
+        pending_question_id="question-1",
+    )
+
+    graph = build_session_evidence_graph(snapshot, generated_at=_now())
+    claim = graph.claims[0]
+
+    assert claim.state == ClaimSupportState.MISSING
+    assert {item.missing_id for item in claim.missing_evidence} == {
+        "missing:approval:approval-1",
+        "missing:question:question-1",
+    }
+    assert any("sparse startup evidence" in item for item in graph.limitations)
+
+
+def test_session_evidence_graph_preserves_failed_degraded_posture() -> None:
+    snapshot = _session_snapshot(
+        status="failed",
+        projection_health=ProjectionHealth(
+            state="unavailable",
+            canonical_last_sequence=5,
+            projected_last_sequence=None,
+            lag=5,
+            degraded=True,
+            detail="projection read failed",
+        ),
+    )
+
+    graph = build_session_evidence_graph(snapshot, generated_at=_now())
+    claim = graph.claims[0]
+
+    assert claim.state == ClaimSupportState.CONTRADICTED
+    assert claim.contradicting_edge_ids
+    assert claim.stale_node_ids == [f"projection:session:{snapshot.session_id}"]
+    assert any("projections are unavailable" in item for item in graph.limitations)
+
+
 def _detail(
     *,
     inventory: bool = True,
@@ -292,6 +338,44 @@ def _detail(
         command_evidence=ChangesetCommandEvidenceSummary(),
         limitations=["detail limitation"] if inventory_stale else [],
         safe_next_actions=["glassbox changeset show CHANGESET --cwd ."],
+    )
+
+
+def _session_snapshot(
+    *,
+    status: str = "running",
+    last_sequence: int = 1,
+    pending_approval_id: str | None = None,
+    pending_question_id: str | None = None,
+    projection_health: ProjectionHealth | None = None,
+) -> SessionSnapshotView:
+    now = _now()
+    return SessionSnapshotView(
+        session_id=new_session_id(),
+        status=status,
+        model_name="gpt-test",
+        cwd=".",
+        approval_mode="manual",
+        can_fork=True,
+        created_at=now,
+        updated_at=now,
+        last_sequence=last_sequence,
+        pending_approval_id=pending_approval_id,
+        pending_question_id=pending_question_id,
+        long_run_status=LongRunStatusRecord(
+            state="healthy",
+            elapsed_seconds=0,
+            progress_summary="session is healthy",
+        ),
+        runtime_context=RuntimeContextSnapshot(
+            repository_context=RepositoryContextSnapshot(workspace_name="glassbox")
+        ),
+        projection_health=projection_health
+        or ProjectionHealth(
+            state="ok",
+            canonical_last_sequence=last_sequence,
+            projected_last_sequence=last_sequence,
+        ),
     )
 
 
