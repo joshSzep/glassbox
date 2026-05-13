@@ -905,9 +905,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   derivation, and `evidence_graph_queries.py` should own lookup and traversal.
 - `verification_plan_builder.py` should remain the public verification-plan
   builder while `verification_plan_identity.py` owns stable IDs, dedupe keys,
-  and coalescing; recommendation, recipe, eval, readiness, manual-only, and
-  skipped-check helpers own their source families. Skipped and manual-only
-  entries remain visible evidence posture, not proof of passing behavior.
+  and coalescing; `verification_plan_entries.py` owns shared entry construction;
+  recommendation, recipe, eval, readiness, manual-only, and skipped-check helpers
+  own their source families. Skipped and manual-only entries remain visible
+  evidence posture, not proof of passing behavior.
 - `operator_queue.py` should remain the public queue aggregator while
   `operator_queue_session_items.py`, `operator_queue_runtime_items.py`,
   `operator_queue_maintenance_items.py`, `operator_queue_changeset_items.py`,

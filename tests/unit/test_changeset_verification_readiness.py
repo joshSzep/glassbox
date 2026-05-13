@@ -24,8 +24,11 @@ from glassbox.runtime.changeset_verification_readiness import (
 from glassbox.runtime.changeset_verification_readiness import (
     derive_changeset_verification_readiness,
 )
+from glassbox.runtime.eval_recommendation_models import EvalCaseRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
+from glassbox.runtime.eval_recommendation_models import EvalReleaseSurfaceRecommendation
+from glassbox.runtime.eval_recommendation_models import EvalTestTargetRecommendation
 from glassbox.runtime.eval_recommendation_models import (
     EvalVerificationRecipeRecommendation,
 )
@@ -367,6 +370,77 @@ def test_verification_plan_builder_proposes_entries_and_keeps_advisory_separate(
     assert manual_entries
     assert skipped[0].target_id == "live-provider-canary"
     assert "explicitly selects" in skipped[0].explanation
+
+
+def test_verification_plan_builder_keeps_recommendation_source_entries() -> None:
+    changed_paths = ["src/glassbox/runtime/model_loop.py"]
+    test_command = "uv run pytest tests/unit/test_runtime_transport.py -q"
+    profile_command = "uv run glassbox eval run --profile commit-smoke --cwd ."
+    case_command = "uv run glassbox eval run smoke.hello --cwd ."
+    release_command = "uv run pytest tests/unit/test_release_candidate_docs.py -q"
+    recommendation = EvalRecommendationReport(
+        workspace_root=Path("."),
+        touched_paths=changed_paths,
+        test_targets=[
+            EvalTestTargetRecommendation(
+                target_id="runtime-transport-tests",
+                title="Runtime transport tests",
+                confidence="direct",
+                source="repository-intelligence",
+                matched_paths=changed_paths,
+                command=test_command,
+                reasons=["runtime path maps to transport coverage"],
+            )
+        ],
+        profiles=[
+            EvalProfileRecommendation(
+                profile_id="commit-smoke",
+                title="Commit smoke",
+                confidence="direct",
+                verification_stage="commit-time",
+                track="deterministic",
+                blocking=True,
+                matched_paths=changed_paths,
+                safe_next_commands=[profile_command],
+            )
+        ],
+        cases=[
+            EvalCaseRecommendation(
+                case_id="smoke.hello",
+                title="Smoke hello",
+                confidence="direct",
+                matched_paths=changed_paths,
+            )
+        ],
+        release_surfaces=[
+            EvalReleaseSurfaceRecommendation(
+                verification_stage="release-candidate",
+                impacted=True,
+                release_gate_commands=[release_command],
+            )
+        ],
+    )
+
+    entries, skipped = build_verification_plan_entries(
+        changed_paths=changed_paths,
+        recommendation=recommendation,
+    )
+
+    assert skipped == []
+    by_command = {tuple(entry.command): entry for entry in entries if entry.command}
+    test_entry = by_command[tuple(test_command.split())]
+    assert test_entry.kind == VerificationCheckKind.TEST
+    assert test_entry.source == VerificationPlanSource.REPOSITORY_INTELLIGENCE
+    assert "runtime path maps" in test_entry.rationale
+    profile_entry = by_command[tuple(profile_command.split())]
+    assert profile_entry.eval_profile_id == "commit-smoke"
+    assert profile_entry.release_surfaces == ["commit-time"]
+    case_entry = by_command[tuple(case_command.split())]
+    assert case_entry.eval_case_id == "smoke.hello"
+    release_entry = by_command[tuple(release_command.split())]
+    assert release_entry.kind == VerificationCheckKind.PACKAGE
+    assert release_entry.source == VerificationPlanSource.RELEASE_GATE
+    assert release_entry.release_surfaces == ["release-candidate"]
 
 
 def test_verification_plan_builder_characterizes_recipe_and_readiness_duplicates() -> (
