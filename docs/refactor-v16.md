@@ -570,7 +570,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R822: Split Readiness And Manual-Only Entry Builders
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R820
 - Target files:
   - `src/glassbox/runtime/verification_plan_builder.py`

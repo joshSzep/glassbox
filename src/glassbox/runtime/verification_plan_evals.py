@@ -1,21 +1,15 @@
 """Verification-plan entries derived from eval and release recommendations."""
 
-from pathlib import Path
-
-from glassbox.core import NextActionTarget
-from glassbox.core import NextActionTargetKind
 from glassbox.core import VerificationCheckKind
 from glassbox.core import VerificationPlanEntry
-from glassbox.core import VerificationPlanLifecycleState
 from glassbox.core import VerificationPlanSource
 from glassbox.runtime.changeset_models import ChangesetVerificationSkippedCheckPreview
 from glassbox.runtime.changeset_verification_preview import is_safe_verification_command
-from glassbox.runtime.eval_recommendation_models import EvalProfileRecommendation
 from glassbox.runtime.eval_recommendation_models import EvalRecommendationReport
 from glassbox.runtime.verification_plan_entries import build_verification_entry
 from glassbox.runtime.verification_plan_entries import command_parts
 from glassbox.runtime.verification_plan_entries import join_reasons
-from glassbox.runtime.verification_plan_identity import stable_verification_id
+from glassbox.runtime.verification_plan_manual import build_manual_only_profile_entry
 
 
 def build_eval_verification_entries(
@@ -43,7 +37,7 @@ def build_eval_verification_entries(
                 )
             )
             entries.append(
-                _manual_only_entry_for_profile(profile, changed_paths=changed_paths)
+                build_manual_only_profile_entry(profile, changed_paths=changed_paths)
             )
             continue
         command = (
@@ -118,34 +112,6 @@ def build_eval_verification_entries(
                 )
             )
     return entries, skipped
-
-
-def _manual_only_entry_for_profile(
-    profile: EvalProfileRecommendation,
-    *,
-    changed_paths: list[str],
-) -> VerificationPlanEntry:
-    return VerificationPlanEntry(
-        verification_id=stable_verification_id(f"manual-profile:{profile.profile_id}"),
-        check_name=f"Advisory profile {profile.profile_id}",
-        kind=VerificationCheckKind.CUSTOM,
-        lifecycle_state=VerificationPlanLifecycleState.MANUAL_ONLY,
-        target=NextActionTarget(
-            kind=NextActionTargetKind.VERIFICATION,
-            target_id=profile.profile_id,
-            label=profile.title,
-        ),
-        source=VerificationPlanSource.MANUAL_EVIDENCE,
-        rationale=(
-            f"{profile.track} evidence is advisory and requires explicit operator "
-            "selection before it can shape verification posture."
-        ),
-        selection_rationale="advisory evidence stays separate from command checks",
-        blocking=False,
-        changed_paths=[Path(path) for path in profile.matched_paths or changed_paths],
-        manual_evidence_required=True,
-        execution_requires_approval=True,
-    )
 
 
 __all__ = ["build_eval_verification_entries"]
