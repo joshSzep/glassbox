@@ -1026,7 +1026,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R871: Run Post-V16 Refactor Confidence Sweep
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R870
 - Target files:
   - tests, docs, scripts, frontend as needed
@@ -1039,6 +1039,13 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - validation summary sufficient for post-v16 refactor closeout
   - updated task statuses when the roadmap is complete
+- Validation summary:
+  - 2026-05-13: `uv run ruff format --check .`, `uv run ruff check .`,
+    `uv run ty check`, `uv run pytest -n auto --dist loadfile`,
+    `pnpm --dir frontend lint`, `pnpm --dir frontend typecheck`,
+    `pnpm --dir frontend test`, `pnpm --dir frontend build`, and
+    `uv run python scripts/validate_v16_release_gate.py --dry-run` passed
+  - No accepted validation gaps were recorded for the closeout sweep
 - Validation:
   - `uv run ruff format --check .`
   - `uv run ruff check .`
