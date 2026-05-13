@@ -2906,7 +2906,7 @@ V16_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
         / "console"
         / "workspace-overview"
         / "operator-queue-lanes.tsx",
-        486,
+        120,
         (
             "post-v16 operator queue lanes should move lane descriptors, "
             "rows, links, and formatting into focused cockpit helpers"

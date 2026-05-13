@@ -1040,6 +1040,14 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   helper facade.
 - `frontend/components/console/workspace-overview/operator-queue-lanes.tsx`:
   dashboard operator queue entrypoint.
+- `frontend/components/console/workspace-overview/operator-queue-models.ts`:
+  operator queue lane descriptor and count owner.
+- `frontend/components/console/workspace-overview/operator-queue-row.tsx`:
+  operator queue row rendering owner.
+- `frontend/components/console/workspace-overview/operator-queue-links.ts`:
+  operator queue target and evidence deep-link owner.
+- `frontend/components/console/workspace-overview/operator-queue-format.ts`:
+  operator queue display formatting owner.
 - `frontend/components/console/evidence-graph-panel.tsx`: dashboard evidence
   graph entrypoint.
 - `frontend/components/console/changeset/verification.tsx`: dashboard

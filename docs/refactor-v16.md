@@ -847,7 +847,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R852: Split Dashboard Operator Queue Lane Components
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R830, GBX-R850
 - Target files:
   - `frontend/components/console/workspace-overview/operator-queue-lanes.tsx`
