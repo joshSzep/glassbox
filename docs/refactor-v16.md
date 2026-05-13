@@ -797,7 +797,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R850: Split Session Aggregate Queue API Builders
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R830
 - Target files:
   - `src/glassbox/web/session_api_aggregate.py`

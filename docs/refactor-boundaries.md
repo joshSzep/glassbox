@@ -924,7 +924,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 #### Post-V16 Operator-Flow Web Sub-Boundaries
 
 - `web/session_api_aggregate.py` should stay a transport facade over aggregate
-  response models and builders. Route helpers should consume queue summaries
+  response models and builders. Aggregate response models live in
+  `web/session_api_aggregate_models.py`; aggregate serialization helpers live
+  in `web/session_api_aggregate_builders.py` and are re-exported through the
+  broader session builder facade. Route helpers should consume queue summaries
   through runtime facades and web builders, not duplicate queue sorting,
   evidence summary, or target-link derivation.
 - `web/changeset_api_builders_detail.py` should keep detail response
@@ -1019,6 +1022,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `src/glassbox/core/models.py`, `src/glassbox/core/types.py`, and
   `src/glassbox/core/events.py`: broad public core compatibility surfaces.
 - `src/glassbox/web/session_api_aggregate.py`: session aggregate API facade.
+- `src/glassbox/web/session_api_aggregate_models.py`: session aggregate
+  response model owner.
+- `src/glassbox/web/session_api_aggregate_builders.py`: session aggregate
+  response builder owner.
 - `src/glassbox/web/changeset_api_builders_detail.py`: changeset detail
   builder facade.
 - `src/glassbox/web/routes/session_route_queries.py`: session route query

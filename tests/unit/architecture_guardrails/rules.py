@@ -2998,6 +2998,15 @@ V16_PYTHON_FACADE_RULES: tuple[
             "source, sorting, and count helpers"
         ),
     ),
+    (
+        SRC_ROOT / "web" / "session_api_aggregate.py",
+        ("glassbox.web.session_api_aggregate_models",),
+        40,
+        (
+            "post-v16 session_api_aggregate facade should stay bounded over "
+            "aggregate response model helpers"
+        ),
+    ),
 )
 
 V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
@@ -3037,6 +3046,16 @@ V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
             "glassbox.runtime.operator_queue_counts",
         ),
         "post-v16 operator_queue facade should delegate to queue owner modules",
+    ),
+    (
+        SRC_ROOT / "web" / "session_api_aggregate.py",
+        ("glassbox.web.session_api_aggregate_models",),
+        "post-v16 session_api_aggregate facade should delegate aggregate models",
+    ),
+    (
+        SRC_ROOT / "web" / "session_api_builders.py",
+        ("glassbox.web.session_api_aggregate_builders",),
+        "post-v16 session_api_builders facade should delegate aggregate builders",
     ),
     (
         SRC_ROOT / "core" / "models.py",
