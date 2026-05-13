@@ -164,6 +164,10 @@ operator authority explicit.
   shared next-action models, evidence graph foundation, unified operator
   queue, verification orchestration, compressed changeset workup, dashboard and
   TUI cockpit surfaces, maintenance flow, evals, and release signoff
+- [refactor-v16.md](./refactor-v16.md): post-v16 operator-flow refactor
+  roadmap and closeout notes for evidence graph, verification plan, operator
+  queue, core domain modules, web builders, frontend cockpit helpers,
+  release-gate helpers, package guardrails, compatibility shims, and validation
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction

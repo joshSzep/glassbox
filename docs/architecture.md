@@ -265,34 +265,34 @@ plans, maintenance cues, dashboard state, and release-gate summaries are
 derived views.
 
 The post-v16 refactor preserves current behavior and public entrypoints while
-preparing the operator-flow surfaces for focused helper ownership:
+keeping the operator-flow surfaces in focused helper-owner families:
 
 - `runtime/evidence_graph.py` remains the evidence graph facade while graph
     models, builder utilities, changeset derivation families, session
-    derivation, and lookup/neighborhood helpers move into `evidence_graph_*`
+    derivation, and lookup/neighborhood helpers live in `evidence_graph_*`
     modules
 - `runtime/verification_plan_builder.py` remains the verification plan
     builder while identity/coalescing, recommendation-source, readiness,
-    manual-only, and skipped-check behavior move into `verification_plan_*`
+    manual-only, and skipped-check behavior live in `verification_plan_*`
     helpers
 - `runtime/operator_queue.py` remains the queue aggregator while session,
     runtime, maintenance, changeset, sorting, dedupe, and count helpers own
     item derivation and stable ordering
-- core operator-flow contracts currently remain in broad public
-    `core/models.py`, `core/types.py`, and `core/events.py` surfaces until a
-    domain extraction can preserve compatibility re-exports and deterministic
-    event registration
+- core operator-flow contracts now use domain modules for next actions,
+    queues, evidence graph, maintenance, and verification plan models/types
+    behind the stable `glassbox.core` compatibility exports
 - `web/session_api_aggregate.py` and changeset web builders remain transport
     facades while queue, verification-plan, and evidence graph response
-    shaping moves into web-owned builders without leaking HTTP models into
+    shaping lives in web-owned builders without leaking HTTP models into
     runtime helpers
 - dashboard operator queue, evidence graph, and verification panels remain
     entrypoints while row, link, format, graph-section, table, action-control,
     and store action helpers own presentation and transport responsibilities
 - `scripts/validate_v16_release_gate.py` remains the operator command while
-    v16 stage assembly, advisory rows, package/static checks, dogfooding
-    expectations, dry-run output, and summary metadata move into release-gate
-    helper modules
+    v16 stage assembly, advisory rows, dry-run output, evidence-dir
+    resolution, and summary metadata live in `scripts/v16_release_gate_*`
+    helper modules; package guardrails require those helper modules in the
+    source distribution
 
 These splits must preserve the v16 non-claims described in
 [v16-operator-flow-compression-contract.md](./v16-operator-flow-compression-contract.md),

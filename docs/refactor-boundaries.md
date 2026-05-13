@@ -71,6 +71,13 @@ response building, frontend repository panels, knowledge-store repository
 loading, and architecture guardrails independently reviewable without changing
 the shipped v15 advisory contracts.
 
+The post-v16 operator-flow boundary map is implemented through Phase 116 of
+[refactor-v16.md](./refactor-v16.md). Evidence graph, verification plan,
+operator queue, core operator-flow contracts, web builders, frontend queue and
+verification cockpit components, evidence graph panels, v16 release-gate
+helpers, and package guardrails now follow the focused boundaries described
+below while preserving the shipped v16 advisory contracts.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.
@@ -1561,6 +1568,15 @@ Its internal ownership should stay explicit:
   metadata move into focused helpers under
   `scripts/v14_release_gate_helpers.py` or adjacent release-gate helper
   modules.
+- The v16 release-gate helper split keeps
+  `scripts/validate_v16_release_gate.py` as the operator entrypoint while
+  `scripts/v16_release_gate_stages.py` owns deterministic stage assembly,
+  `scripts/v16_release_gate_advisory.py` owns provider, browser,
+  accessibility, dogfooding, and manual advisory row shaping plus skipped
+  provider-canary copy, and `scripts/v16_release_gate_summary.py` owns dry-run
+  output, evidence-dir resolution, summary writing, and terminal summary
+  rendering. The helper facade `scripts/v16_release_gate_helpers.py` preserves
+  stable imports for the operator entrypoint and tests.
 
 The replay and eval stack should not maintain a bespoke copy of live model-loop behavior when a shared execution boundary can serve both paths.
 
@@ -1780,6 +1796,12 @@ The guardrails are intentionally narrow:
   route-local changeset actions, web builder families, frontend endpoint
   groups, changeset store action helpers, and v14 release-gate stage,
   advisory, and summary helper families.
+- the completed post-v16 extraction slices now have narrow ownership
+  expectations for runtime evidence graph, verification plan, and queue helper
+  families; core operator-flow domain modules; session and changeset web
+  builder helpers; frontend queue, evidence graph, verification table, action,
+  format, and store helpers; and v16 release-gate stage, advisory, summary,
+  and package guardrail helper families.
 
 If a guardrail fails, the default repair should be to move new behavior into the owning split module or add one focused neighbor module, not to widen a facade or cross a subsystem boundary.
 
@@ -1858,6 +1880,16 @@ shape:
   status, fixup artifacts, readiness signals, terminal review guidance,
   transport action patterns, endpoint groups, store action families, and
   release-gate summary shaping move into focused helpers
+- post-v16 compatibility facades may include `runtime/evidence_graph.py`,
+  `runtime/verification_plan_builder.py`, `runtime/operator_queue.py`,
+  `core/models.py`, `core/types.py`, `core/events.py`,
+  `web/session_api_aggregate.py`, `web/changeset_api_builders_detail.py`,
+  `frontend/components/console/evidence-graph-panel.tsx`,
+  `frontend/components/console/changeset/verification.tsx`,
+  `frontend/stores/changeset-store-review-actions.ts`, and
+  `scripts/validate_v16_release_gate.py` while public imports, generated API
+  consumers, component entrypoints, store callers, and release-gate
+  invocations transition through the focused helper modules
 
 These facades are acceptable only while they stay thin, reviewable, and oriented
 around stable public imports. New behavior should move into the owning domain
@@ -2007,6 +2039,10 @@ intended owners:
   evidence-dir resolution, and summary metadata split into separately testable
   helper families under `v14_release_gate_stages.py`,
   `v14_release_gate_advisory.py`, and `v14_release_gate_summary.py`.
+- `scripts/validate_v16_release_gate.py`: v16 gate operator entrypoint; stage
+  assembly, advisory evidence shaping, dry-run copy, evidence-dir resolution,
+  summary metadata, and package helper coverage belong in the
+  `v16_release_gate_*` helper family.
 
 For completed post-v14 extraction slices, guardrails now assert that:
 
@@ -2025,6 +2061,10 @@ For completed post-v14 extraction slices, guardrails now assert that:
 - `scripts/v14_release_gate_helpers.py` delegates deterministic stage
   construction, advisory evidence shaping, dry-run copy, evidence-dir
   resolution, and summary metadata to v14 release-gate helper families.
+- `scripts/validate_v16_release_gate.py` delegates deterministic stage
+  construction, advisory evidence shaping, dry-run copy, evidence-dir
+  resolution, and summary metadata to v16 release-gate helper families while
+  preserving `V16_OPERATOR_FLOW_CASES` as a compatibility export.
 
 ## Patterns That Must Not Become Permanent
 

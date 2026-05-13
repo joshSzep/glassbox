@@ -147,6 +147,8 @@ release-candidate guide in
 [evidence graph](docs/evidence-graph.md) and
 [operator queue](docs/operator-queue.md) contracts, and the task graph in
 [docs/tasks-v16.md](docs/tasks-v16.md).
+The post-v16 behavior-preserving helper-owner roadmap and closeout notes live
+in [docs/refactor-v16.md](docs/refactor-v16.md).
 
 ## Documentation
 
@@ -186,6 +188,7 @@ Start here based on what you need:
 - [docs/evidence-graph.md](docs/evidence-graph.md)
 - [docs/operator-queue.md](docs/operator-queue.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)
+- [docs/refactor-v16.md](docs/refactor-v16.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
