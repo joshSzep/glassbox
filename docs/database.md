@@ -90,8 +90,15 @@ mutating or truncating parent events.
 The persistence contract above is stable even though the store implementation is
 now decomposed internally.
 
-- `src/glassbox/store/sqlite.py` is the public compatibility facade for schema bootstrap, append/read helpers, rebuild entrypoints, and list-style query helpers
-- `src/glassbox/store/sqlite_schema.py` owns schema bootstrap and the explicit ordered migration registry, while projection-family DDL and migration helpers live in focused `sqlite_schema_*` modules for sessions, tasks, verification ledger, checkpoints, compactions, tool attempts, background jobs, branch search, workspace memory, provider recovery, and long-run correlations
+- `src/glassbox/store/sqlite.py` is the public compatibility facade for schema
+    bootstrap, append/read helpers, rebuild entrypoints, and list-style query
+    helpers
+- `src/glassbox/store/sqlite_schema.py` owns schema bootstrap and the explicit
+    ordered migration registry, while projection-family DDL and migration
+    helpers live in focused `sqlite_schema_*` modules for sessions, tasks,
+    verification ledger, checkpoints, compactions, tool attempts, background
+    jobs, branch search, workspace memory, provider recovery, changesets, review
+    feedback, manual evidence, and long-run correlations
 - `src/glassbox/store/sqlite_sessions.py`, `sqlite_events.py`,
   `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the
   other broad internal storage concerns separately; `sqlite_projection_tasks.py`
@@ -99,13 +106,16 @@ now decomposed internally.
   event-family helpers without changing projection table shape
 - `src/glassbox/store/sqlite_queries.py` remains a thin read-model facade over
     focused `sqlite_query_*` modules for transcript, runtime notes, tools and
-    approvals, turn metrics, autonomy budgets, task projections, checkpoint
-    projections, and branch-search projections
+    approvals, turn metrics, autonomy budgets, tasks, checkpoint history,
+    compactions, provider recovery, changesets, review feedback, manual
+    evidence, and branch-search projections
 - `src/glassbox/store/repositories.py` owns the concrete repository adapter
     surface while session, event/fork, projection-read, background-job,
     workspace-memory, task, checkpoint history, branch-search, and artifact
     behavior live in focused `repository_*` delegates
-- `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads while returning the shared `StoredArtifact` contract type from `services/contracts.py`
+- `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads
+    while returning the shared `StoredArtifact` contract type from
+    `services/contracts.py`
 
 This refactor changed internal ownership, not the operator-visible storage model.
 Schema bootstrap, append ordering, projection rebuild semantics, and artifact
@@ -116,10 +126,11 @@ shape deterministic projection records, but runtime query services, CLI
 formatters, and web serializers own operator-facing summaries and response
 models.
 
-The schema upgrade story now starts with an explicit v3 baseline and applies
-ordered migrations to the current schema version during runtime bootstrap. The
-remaining recovery work is projection-health and rebuild observability as
-described in [tasks-v2.md](./tasks-v2.md).
+The schema upgrade story starts with an explicit v3 baseline and applies ordered
+migrations to the current schema version during runtime bootstrap. Projection
+health and rebuild observability are implemented operator surfaces: they report
+canonical sequence, projected sequence, lag, degradation state, and repair
+guidance without making derived tables authoritative.
 
 ## Schema Migrations
 
@@ -148,6 +159,11 @@ The current migration sequence is:
 - `16`: context compaction projection table
 - `17`: tool attempt projection table
 - `18`: task verification ledger projection table
+- `19`: provider recovery projection table
+- `20`: changeset projection tables
+- `21`: review feedback projection tables
+- `22`: review feedback fixup inventory tables
+- `23`: manual evidence projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations
@@ -246,6 +262,11 @@ create table events (
     message_id text,
     tool_call_id text,
     approval_id text,
+    task_id text,
+    checkpoint_id text,
+    compaction_id text,
+    tool_attempt_id text,
+    recovery_decision_id text,
     actor text,
     payload_json text not null,
     primary key (session_id, sequence),
@@ -270,6 +291,21 @@ create index idx_events_tool_call
 
 create index idx_events_approval
     on events (session_id, approval_id, sequence);
+
+create index idx_events_task
+    on events (session_id, task_id, sequence);
+
+create index idx_events_checkpoint
+    on events (session_id, checkpoint_id, sequence);
+
+create index idx_events_compaction
+    on events (session_id, compaction_id, sequence);
+
+create index idx_events_tool_attempt
+    on events (session_id, tool_attempt_id, sequence);
+
+create index idx_events_recovery_decision
+    on events (session_id, recovery_decision_id, sequence);
 ```
 
 ### Why These Extra Columns Exist
@@ -280,6 +316,9 @@ These columns are denormalized from event payloads for queryability.
 - `message_id` supports transcript assembly and streaming message updates
 - `tool_call_id` supports command and tool execution traces
 - `approval_id` supports pending approval lookups and resolution
+- `task_id`, `checkpoint_id`, `compaction_id`, `tool_attempt_id`, and
+  `recovery_decision_id` support long-running task, recovery, and verification
+  inspections without JSON extraction
 - `actor` helps distinguish user, assistant, runtime, and operator actions when useful
 
 The full event payload still lives in `payload_json`. The extra columns are
@@ -673,16 +712,11 @@ Use these rules:
 
 Projection tables can be migrated more aggressively because they are derived.
 
-For the current baseline, note the distinction between what already exists and
-what v2 still needs:
-
-- today: schema bootstrap can create the current schema, stamp the current
-    schema version, and apply a limited amount of ad hoc upgrade logic during
-    initialization
-- today: projection rebuild is available from canonical events
-- still needed for v2: explicit ordered migrations, upgrade metadata the
-    operator can reason about, and projection-health or lag reporting beyond
-    manual rebuild paths
+For the current baseline, schema bootstrap can create or migrate the current
+schema, record ordered migration metadata, refuse databases from newer Glassbox
+builds, and rebuild projection tables from canonical events. Projection-health
+inspection reports lag and degradation separately from event-log integrity, so
+operators can repair derived state without treating it as canonical data loss.
 
 ## Tradeoffs
 
@@ -707,20 +741,18 @@ Glassbox is not just an append-only logger. It is an interactive CLI plus a live
 
 Using only a raw JSON event log keeps the model pure, but it shifts too much complexity into ad hoc query logic and dashboard reconstruction. The hybrid design keeps the architecture honest while making the product usable.
 
-## Recommended Initial Scope
+## Current Baseline Scope
 
-The current baseline schema includes:
+The current schema includes the canonical `sessions` and `events` tables plus
+projection families for session state, transcript, tools, approvals, runtime
+notes, turn metrics, task plans and verification, autonomy budgets, background
+jobs, workspace memory, branch search, provider recovery, long-run checkpoints,
+context compactions, changesets, review feedback, fixup inventory, and manual
+evidence.
 
-- `sessions`
-- `events`
-- `session_state`
-- `transcript_messages`
-- `tool_calls`
-- `approvals`
-- `runtime_notes`
-- `turn_metrics`
-
-Add metrics projections and more specialized tables only when the dashboard proves they are needed.
+New projection tables should still be added only when they serve a repeated
+operator, dashboard, API, replay, or release-evidence query that would otherwise
+force repeated raw event replay or fragile JSON extraction.
 
 ## Recommendation
 
