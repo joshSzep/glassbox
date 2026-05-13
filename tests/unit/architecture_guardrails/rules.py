@@ -2939,6 +2939,101 @@ V16_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
 )
 
+V16_PYTHON_FACADE_RULES: tuple[
+    tuple[Path, tuple[str, ...], int, str],
+    ...,
+] = (
+    (
+        SRC_ROOT / "runtime" / "evidence_graph.py",
+        (
+            "glassbox.runtime.evidence_graph_changeset",
+            "glassbox.runtime.evidence_graph_models",
+            "glassbox.runtime.evidence_graph_queries",
+            "glassbox.runtime.evidence_graph_session",
+        ),
+        60,
+        (
+            "post-v16 evidence_graph facade should stay bounded over graph "
+            "derivation, model, and query helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "verification_plan_builder.py",
+        (
+            "glassbox.core",
+            "glassbox.runtime.changeset_models",
+            "glassbox.runtime.changeset_verification_readiness",
+            "glassbox.runtime.eval_recommendation_models",
+            "glassbox.runtime.verification_plan_evals",
+            "glassbox.runtime.verification_plan_identity",
+            "glassbox.runtime.verification_plan_manual",
+            "glassbox.runtime.verification_plan_readiness",
+            "glassbox.runtime.verification_plan_recipes",
+            "glassbox.runtime.verification_plan_recommendations",
+            "glassbox.runtime.verification_plan_skips",
+        ),
+        130,
+        (
+            "post-v16 verification_plan_builder facade should stay bounded "
+            "over identity, source-family, readiness, manual, and skip helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "operator_queue.py",
+        (
+            "collections.abc",
+            "datetime",
+            "glassbox.core",
+            "glassbox.runtime.operator_queue_maintenance_items",
+            "glassbox.runtime.operator_queue_runtime_items",
+            "glassbox.runtime.operator_queue_session_items",
+            "glassbox.runtime.session_query_models",
+        ),
+        160,
+        (
+            "post-v16 operator_queue facade should stay bounded over item "
+            "source helpers until sorting and count helpers are extracted"
+        ),
+    ),
+)
+
+V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "evidence_graph.py",
+        (
+            "glassbox.runtime.evidence_graph_changeset",
+            "glassbox.runtime.evidence_graph_queries",
+            "glassbox.runtime.evidence_graph_session",
+        ),
+        "post-v16 evidence_graph facade should delegate to graph owner modules",
+    ),
+    (
+        SRC_ROOT / "runtime" / "verification_plan_builder.py",
+        (
+            "glassbox.runtime.verification_plan_evals",
+            "glassbox.runtime.verification_plan_identity",
+            "glassbox.runtime.verification_plan_manual",
+            "glassbox.runtime.verification_plan_readiness",
+            "glassbox.runtime.verification_plan_recipes",
+            "glassbox.runtime.verification_plan_recommendations",
+            "glassbox.runtime.verification_plan_skips",
+        ),
+        (
+            "post-v16 verification_plan_builder facade should delegate to "
+            "verification plan owner modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "operator_queue.py",
+        (
+            "glassbox.runtime.operator_queue_maintenance_items",
+            "glassbox.runtime.operator_queue_runtime_items",
+            "glassbox.runtime.operator_queue_session_items",
+        ),
+        "post-v16 operator_queue facade should delegate to queue item sources",
+    ),
+)
+
 V14_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

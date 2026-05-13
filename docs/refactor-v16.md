@@ -392,7 +392,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R802: Add Post-V16 Guardrails After First Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R810, GBX-R820, GBX-R830
 - Target files:
   - `tests/unit/architecture_guardrails/rules.py`

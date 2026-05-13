@@ -916,6 +916,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   `operator_queue_sorting.py`, and `operator_queue_counts.py` own item
   derivation, stable ordering, dedupe, and count summaries. Maintenance rows
   stay advisory unless existing cue semantics say action is required.
+- Architecture guardrails now assert that the extracted post-v16 runtime
+  facades stay bounded and delegate to their current owner modules. Web,
+  frontend, and release-gate facades remain pressure-point-only until their
+  focused helper modules exist.
 
 #### Post-V16 Operator-Flow Web Sub-Boundaries
 
