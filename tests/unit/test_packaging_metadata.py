@@ -325,6 +325,16 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: scripts/validate_v16_release_gate.py" in problems
     )
     assert (
+        "sdist missing required file: scripts/v16_release_gate_helpers.py" in problems
+    )
+    assert "sdist missing required file: scripts/v16_release_gate_stages.py" in problems
+    assert (
+        "sdist missing required file: scripts/v16_release_gate_advisory.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/v16_release_gate_summary.py" in problems
+    )
+    assert (
         "sdist missing required file: scripts/validate_v11_release_gate.py" in problems
     )
     assert (
@@ -717,6 +727,10 @@ def _write_sdist(
                 "scripts/validate_v14_release_gate.py",
                 "scripts/validate_v15_release_gate.py",
                 "scripts/validate_v16_release_gate.py",
+                "scripts/v16_release_gate_helpers.py",
+                "scripts/v16_release_gate_stages.py",
+                "scripts/v16_release_gate_advisory.py",
+                "scripts/v16_release_gate_summary.py",
                 "scripts/v14_release_gate_helpers.py",
                 "scripts/v14_release_gate_stages.py",
                 "scripts/v14_release_gate_advisory.py",

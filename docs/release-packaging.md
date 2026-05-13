@@ -22,7 +22,10 @@ contracts: `evals/**`, `docs/v15-repository-intelligence-*.md`,
 `docs/tasks-v15.md`, `docs/v16-operator-flow-*.md`, `docs/tasks-v16.md`,
 `docs/evidence-graph.md`, `docs/operator-queue.md`,
 `docs/verification-orchestrator.md`, `frontend/generated/openapi.json`, and
-`frontend/generated/api-types.ts`.
+`frontend/generated/api-types.ts`. It also packages the v16 release-gate
+entrypoint and helper modules under `scripts/v16_release_gate_*.py` so
+source-distribution release checks retain the same stage and advisory evidence
+ownership as the checkout.
 Refresh the generated API files before building whenever FastAPI routes or
 response schemas change.
 

@@ -978,7 +978,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R862: Refresh Package And Installed-Smoke Refactor Guardrails
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R860
 - Target files:
   - `scripts/validate_package_contents.py`
