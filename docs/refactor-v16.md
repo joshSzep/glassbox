@@ -665,7 +665,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R832: Split Queue Sorting, Dedupe, And Counts
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R830, GBX-R831
 - Target files:
   - `src/glassbox/runtime/operator_queue.py`

@@ -2984,15 +2984,17 @@ V16_PYTHON_FACADE_RULES: tuple[
             "collections.abc",
             "datetime",
             "glassbox.core",
+            "glassbox.runtime.operator_queue_counts",
             "glassbox.runtime.operator_queue_maintenance_items",
             "glassbox.runtime.operator_queue_runtime_items",
             "glassbox.runtime.operator_queue_session_items",
+            "glassbox.runtime.operator_queue_sorting",
             "glassbox.runtime.session_query_models",
         ),
-        160,
+        80,
         (
             "post-v16 operator_queue facade should stay bounded over item "
-            "source helpers until sorting and count helpers are extracted"
+            "source, sorting, and count helpers"
         ),
     ),
 )
@@ -3029,8 +3031,10 @@ V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
             "glassbox.runtime.operator_queue_maintenance_items",
             "glassbox.runtime.operator_queue_runtime_items",
             "glassbox.runtime.operator_queue_session_items",
+            "glassbox.runtime.operator_queue_sorting",
+            "glassbox.runtime.operator_queue_counts",
         ),
-        "post-v16 operator_queue facade should delegate to queue item sources",
+        "post-v16 operator_queue facade should delegate to queue owner modules",
     ),
 )
 
