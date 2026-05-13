@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from glassbox.runtime.changeset_workup import ChangesetWorkupPreviewService
+from glassbox.runtime.operator_queue_changeset_items import build_changeset_queue_items
 
 
 def test_changeset_workup_preview_is_non_mutating_action_map(tmp_path: Path) -> None:
@@ -31,6 +32,10 @@ def test_changeset_workup_preview_is_non_mutating_action_map(tmp_path: Path) -> 
         candidate.source == "changed-docs" for candidate in preview.memory_candidates
     )
     assert "no changeset was created" in preview.non_claims
+
+
+def test_changeset_queue_source_is_an_explicit_refactor_gap() -> None:
+    assert build_changeset_queue_items() == []
 
 
 def _init_git_repo(tmp_path: Path) -> None:

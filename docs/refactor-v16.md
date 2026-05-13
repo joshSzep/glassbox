@@ -687,7 +687,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R833: Add Queue Source Coverage For Changesets And Verification Gaps
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R832
 - Target files:
   - `src/glassbox/runtime/operator_queue.py`
@@ -1060,10 +1060,11 @@ when the task text explicitly says so:
   command is recommended by repository-intelligence recipes and changeset
   readiness; GBX-R820 owns the follow-up coalescing decision for direct recipe
   plus readiness duplicates
-- workspace operator queue coverage is still session, runtime, and maintenance
-  oriented; GBX-R833 owns the later decision to keep changeset queue gaps as
-  accepted refactor-only gaps or move existing aggregate inputs into a changeset
-  item helper
+- workspace operator queue coverage remains session, runtime, and maintenance
+  oriented; GBX-R833 confirmed that the current aggregate does not load
+  changeset detail, verification, inventory, unresolved feedback, or handoff
+  inputs, so `operator_queue_changeset_items.py` is an explicit empty boundary
+  and changeset-level queue rows remain a product follow-up
 
 ## Accepted Product Follow-Up Candidates
 

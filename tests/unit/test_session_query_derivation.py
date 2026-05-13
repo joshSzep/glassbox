@@ -34,6 +34,7 @@ from glassbox.runtime.operator_queue import build_operator_queue
 from glassbox.runtime.operator_queue import dedupe_operator_queue_items
 from glassbox.runtime.operator_queue import operator_queue_counts
 from glassbox.runtime.operator_queue import sort_operator_queue_items
+from glassbox.runtime.operator_queue_changeset_items import build_changeset_queue_items
 from glassbox.runtime.operator_session_queries import build_operator_session_summary
 from glassbox.runtime.session_query_models import SessionSummaryView
 from glassbox.runtime.session_query_models import WorkspaceRuntimeSummaryView
@@ -263,6 +264,18 @@ def test_runtime_operator_queue_dedupes_by_key_and_keeps_stronger_item() -> None
 
     assert deduped == [strong]
     assert sort_operator_queue_items([weak, strong])[0] == strong
+
+
+def test_operator_queue_keeps_changeset_source_gap_explicit() -> None:
+    runtime = WorkspaceRuntimeSummaryView(
+        workspace_root="/tmp/glassbox",
+        state="running",
+    )
+
+    queue = build_operator_queue([], runtime=runtime)
+
+    assert build_changeset_queue_items() == []
+    assert all(item.target.kind != NextActionTargetKind.CHANGESET for item in queue)
 
 
 def _queue_item(

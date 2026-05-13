@@ -3,6 +3,7 @@
 from collections.abc import Sequence
 
 from glassbox.core import OperatorQueueItem
+from glassbox.runtime.operator_queue_changeset_items import build_changeset_queue_items
 from glassbox.runtime.operator_queue_counts import operator_queue_counts
 from glassbox.runtime.operator_queue_maintenance_items import (
     build_maintenance_queue_items,
@@ -34,6 +35,7 @@ def build_operator_queue(
         [
             *(item for row in rows for item in build_session_queue_items(row)),
             *_runtime_queue_items(runtime),
+            *build_changeset_queue_items(),
         ]
     )
     sorted_items = sort_operator_queue_items(items)
