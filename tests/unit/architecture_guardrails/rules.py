@@ -3058,6 +3058,21 @@ V16_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
         "post-v16 session_api_builders facade should delegate aggregate builders",
     ),
     (
+        SRC_ROOT / "web" / "changeset_api_builders_detail.py",
+        ("glassbox.web.changeset_api_builders_verification",),
+        "post-v16 changeset detail builders should delegate verification builders",
+    ),
+    (
+        SRC_ROOT / "web" / "changeset_api_builders.py",
+        ("glassbox.web.changeset_api_builders_verification",),
+        "post-v16 changeset builder facade should delegate verification builders",
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "changeset_route_evidence_graph.py",
+        ("glassbox.web.routes.changeset_route_evidence_graph_queries",),
+        "post-v16 changeset evidence graph routes should delegate query helpers",
+    ),
+    (
         SRC_ROOT / "core" / "models.py",
         (
             "glassbox.core.models_evidence_graph",

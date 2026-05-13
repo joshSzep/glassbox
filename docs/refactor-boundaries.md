@@ -933,8 +933,8 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `web/changeset_api_builders_detail.py` should keep detail response
   compatibility while verification-plan response shaping moves to
   `changeset_api_builders_verification.py` and evidence graph response shaping
-  moves to `changeset_api_builders_evidence_graph.py` or a route-local graph
-  query helper.
+  moves to `changeset_api_builders_evidence_graph.py` plus the route-local
+  `routes/changeset_route_evidence_graph_queries.py` helper.
 - Web builders may adapt runtime contracts into stable HTTP payloads and
   OpenAPI schemas, but runtime queue, graph, verification, and maintenance
   helpers must not import FastAPI response models.
@@ -1028,8 +1028,14 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   response builder owner.
 - `src/glassbox/web/changeset_api_builders_detail.py`: changeset detail
   builder facade.
+- `src/glassbox/web/changeset_api_builders_verification.py`: changeset
+  verification response builder owner.
+- `src/glassbox/web/changeset_api_builders_evidence_graph.py`: changeset
+  evidence graph response builder owner.
 - `src/glassbox/web/routes/session_route_queries.py`: session route query
   helper facade.
+- `src/glassbox/web/routes/changeset_route_evidence_graph_queries.py`:
+  changeset route-local evidence graph query helper.
 - `src/glassbox/web/routes/changeset_route_actions.py`: changeset action
   helper facade.
 - `frontend/components/console/workspace-overview/operator-queue-lanes.tsx`:

@@ -11,17 +11,19 @@ from glassbox.web.changeset_api import ClaimSupport
 from glassbox.web.changeset_api import EvidenceGraph
 from glassbox.web.changeset_api import EvidenceGraphNode
 from glassbox.web.changeset_api import EvidenceGraphSummary
-from glassbox.web.routes.changeset_route_actions import get_changeset_evidence_graph
-from glassbox.web.routes.changeset_route_actions import (
+from glassbox.web.routes.changeset_route_evidence_graph_queries import (
+    get_changeset_evidence_graph,
+)
+from glassbox.web.routes.changeset_route_evidence_graph_queries import (
     get_changeset_evidence_graph_claim,
 )
-from glassbox.web.routes.changeset_route_actions import (
+from glassbox.web.routes.changeset_route_evidence_graph_queries import (
     get_changeset_evidence_graph_neighborhood,
 )
-from glassbox.web.routes.changeset_route_actions import (
+from glassbox.web.routes.changeset_route_evidence_graph_queries import (
     get_changeset_evidence_graph_node,
 )
-from glassbox.web.routes.changeset_route_actions import (
+from glassbox.web.routes.changeset_route_evidence_graph_queries import (
     get_changeset_evidence_graph_summary,
 )
 from glassbox.web.session_api import ErrorDetailResponse

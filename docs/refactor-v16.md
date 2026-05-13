@@ -822,7 +822,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R851: Split Changeset Verification And Evidence Graph API Builders
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R810, GBX-R820
 - Target files:
   - `src/glassbox/web/changeset_api_builders_detail.py`
