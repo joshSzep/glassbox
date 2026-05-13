@@ -444,7 +444,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R811: Split Changeset Evidence Graph Derivation By Node Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R810
 - Target files:
   - `src/glassbox/runtime/evidence_graph.py`

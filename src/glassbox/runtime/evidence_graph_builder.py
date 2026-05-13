@@ -8,6 +8,7 @@ from glassbox.core import EvidenceGraph
 from glassbox.core import EvidenceGraphConfidence
 from glassbox.core import EvidenceGraphEdge
 from glassbox.core import EvidenceGraphEdgeKind
+from glassbox.core import EvidenceGraphMissingEvidence
 from glassbox.core import EvidenceGraphNode
 from glassbox.core import NextActionTarget
 from glassbox.runtime.evidence_graph_models import EvidenceGraphSummary
@@ -119,9 +120,63 @@ def _count_claims(graph: EvidenceGraph, state: ClaimSupportState) -> int:
     return sum(1 for claim in graph.claims if claim.state == state)
 
 
+def _claim_state(
+    *,
+    missing: list[EvidenceGraphMissingEvidence],
+    stale_node_ids: list[str],
+    contradicting_edge_ids: list[str],
+    accepted_risk_count: int,
+    manual_evidence_count: int,
+    manual_only_node_count: int,
+    deterministic_support_count: int,
+) -> ClaimSupportState:
+    if contradicting_edge_ids:
+        return ClaimSupportState.CONTRADICTED
+    if accepted_risk_count:
+        return ClaimSupportState.ACCEPTED_WITH_RISK
+    if stale_node_ids:
+        return ClaimSupportState.STALE
+    if missing:
+        return ClaimSupportState.MISSING
+    if manual_only_node_count or (
+        manual_evidence_count and deterministic_support_count == 0
+    ):
+        return ClaimSupportState.MANUAL_ONLY
+    return ClaimSupportState.SUPPORTED
+
+
+def _claim_confidence(state: ClaimSupportState) -> EvidenceGraphConfidence:
+    if state == ClaimSupportState.SUPPORTED:
+        return EvidenceGraphConfidence.HIGH
+    if state in {ClaimSupportState.STALE, ClaimSupportState.ACCEPTED_WITH_RISK}:
+        return EvidenceGraphConfidence.MEDIUM
+    if state in {ClaimSupportState.MANUAL_ONLY, ClaimSupportState.MISSING}:
+        return EvidenceGraphConfidence.LOW
+    return EvidenceGraphConfidence.UNKNOWN
+
+
+def _claim_summary(state: ClaimSupportState) -> str:
+    if state == ClaimSupportState.SUPPORTED:
+        return "Local evidence supports the current changeset review posture."
+    if state == ClaimSupportState.STALE:
+        return "Some local evidence is stale and should be refreshed before trust."
+    if state == ClaimSupportState.MISSING:
+        return "Expected local evidence is missing for this changeset."
+    if state == ClaimSupportState.CONTRADICTED:
+        return "Local evidence contradicts the current review posture."
+    if state == ClaimSupportState.MANUAL_ONLY:
+        return "Support depends on manual or advisory evidence."
+    if state == ClaimSupportState.ACCEPTED_WITH_RISK:
+        return "The posture includes explicitly accepted residual risk."
+    return "Local evidence does not support the current claim."
+
+
 __all__ = [
     "_GraphBuilder",
     "_add_truncation_limitation",
+    "_claim_confidence",
+    "_claim_state",
+    "_claim_summary",
     "_with_limitation",
     "summarize_evidence_graph",
 ]
