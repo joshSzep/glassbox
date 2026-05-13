@@ -641,7 +641,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R831: Split Runtime And Maintenance Queue Item Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R830
 - Target files:
   - `src/glassbox/runtime/operator_queue.py`
