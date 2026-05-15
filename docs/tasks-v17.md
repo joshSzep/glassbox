@@ -317,7 +317,7 @@ large to review safely.
 
 ### GBX-1701: Audit Current Handoff, Export, Import, And Review Bundle Surfaces
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1700`
 - Goal: source-link existing handoff behavior and identify v17 gaps before
   implementation
