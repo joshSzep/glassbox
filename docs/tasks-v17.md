@@ -478,7 +478,7 @@ large to review safely.
 
 ### GBX-1721: Add Task Handoff Readiness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1720`
 - Goal: explain whether a durable task plan is ready for another operator or
   future self

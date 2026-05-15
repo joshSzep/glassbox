@@ -57,6 +57,27 @@ def _add_task_parsers(
     )
     _add_runtime_location_arguments(show_parser)
 
+    handoff_readiness_parser = task_subparsers.add_parser(
+        "handoff-readiness",
+        help="inspect task handoff readiness",
+        description=(
+            "Explain whether a durable task plan is ready for a declared local "
+            "handoff intent without continuing, approving, or mutating work."
+        ),
+    )
+    handoff_readiness_parser.add_argument("task_id", type=_parse_uuid)
+    handoff_readiness_parser.add_argument(
+        "--intent",
+        default="continue-work",
+        help="recipient intent to evaluate",
+    )
+    handoff_readiness_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print task handoff readiness as JSON",
+    )
+    _add_runtime_location_arguments(handoff_readiness_parser)
+
     events_parser = task_subparsers.add_parser(
         "events",
         help="list task events",

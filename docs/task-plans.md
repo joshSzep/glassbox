@@ -32,10 +32,20 @@ Phase 82 exposes task plans through read-only CLI commands:
 uv run glassbox task list --cwd .
 uv run glassbox task list --session SESSION_ID --cwd .
 uv run glassbox task show TASK_ID --cwd .
+uv run glassbox task handoff-readiness TASK_ID --intent continue-work --cwd .
 uv run glassbox task events TASK_ID --cwd .
 ```
 
 Use `--json` on these commands for scriptable output. These commands inspect projected task state and canonical task events; they do not approve, resume, continue, or mutate task execution.
+
+`glassbox task handoff-readiness` uses the shared v17 handoff vocabulary for
+durable task plans. It summarizes the task objective, plan status, step
+posture, verification ledger, verify-repair state, last-known-good checkpoint,
+accepted risks, stale verification evidence, and local-only evidence pointers,
+then starts with safe inspection commands for task detail, task events, session
+status, background jobs, and eval audit. The command may recommend follow-up
+inspection, verification, fork, or continuation, but it does not perform any of
+those actions.
 
 ## HTTP Inspection
 

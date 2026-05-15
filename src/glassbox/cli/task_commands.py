@@ -10,10 +10,12 @@ from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_task import print_task_detail
 from glassbox.cli.status_task import print_task_events
 from glassbox.cli.status_task import print_task_summaries
+from glassbox.cli.status_task_handoff import print_task_handoff_readiness
 from glassbox.cli.status_task_next_actions import task_next_action_record_payloads
 from glassbox.core.events import EventEnvelope
 from glassbox.core.types import BackgroundJobKind
 from glassbox.core.types import PauseWindowPolicy
+from glassbox.core.types_handoff import HandoffIntent
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
@@ -21,6 +23,7 @@ from glassbox.runtime.continuation_windows import active_continuation_window_job
 from glassbox.runtime.continuation_windows import approve_continuation_window
 from glassbox.runtime.pause_windows import cancel_pause_window
 from glassbox.runtime.pause_windows import schedule_pause_window
+from glassbox.runtime.task_handoff_readiness import TaskHandoffReadinessService
 from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.runtime.task_queries import TaskQueryService
 
@@ -31,6 +34,8 @@ def _task_command(args: argparse.Namespace) -> int:
         return _task_list_command(args)
     if task_command == "show":
         return _task_show_command(args)
+    if task_command == "handoff-readiness":
+        return _task_handoff_readiness_command(args)
     if task_command == "events":
         return _task_events_command(args)
     if task_command == "continue":
@@ -93,6 +98,25 @@ def _task_show_command(args: argparse.Namespace) -> int:
             print("Related changesets:")
             for changeset in related_changesets:
                 print(f"  {changeset.changeset_id}  {changeset.status}")
+    return 0
+
+
+def _task_handoff_readiness_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        query_service = TaskQueryService(
+            cast(TaskPlanRepository, runtime_context.repositories.sessions),
+            workspace_root=cwd,
+        )
+        readiness = TaskHandoffReadinessService(query_service).preview(
+            args.task_id,
+            intent=HandoffIntent(args.intent),
+        )
+
+    if args.json:
+        print_json_output(readiness.model_dump(mode="json"))
+    else:
+        print_task_handoff_readiness(readiness)
     return 0
 
 

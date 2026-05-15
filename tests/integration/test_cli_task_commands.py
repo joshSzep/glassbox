@@ -109,6 +109,45 @@ def test_task_list_show_and_events_commands(tmp_path: Path, capsys) -> None:
     ]
 
 
+def test_task_handoff_readiness_json_reports_safe_inspection(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
+    session_id = new_session_id()
+    task_id = new_task_id()
+    step_id = new_task_step_id()
+    _seed_task(db_path, tmp_path, session_id, task_id, step_id)
+
+    exit_code = main(
+        [
+            "task",
+            "handoff-readiness",
+            str(task_id),
+            "--intent",
+            "continue-work",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["source"]["kind"] == "task"
+    assert payload["source"]["primary_id"] == str(task_id)
+    assert payload["source"]["identifiers"]["session_id"] == str(session_id)
+    assert payload["intent"] == "continue-work"
+    assert payload["state"] == "needs-context"
+    assert payload["missing_evidence"][0]["summary"].startswith(
+        "Task has no retained verification"
+    )
+    assert payload["safe_first_commands"][0]["display"].startswith("glassbox task show")
+    assert "does not continue" in payload["non_claims"][1]
+
+
 def test_task_show_reports_unknown_task(tmp_path: Path, capsys) -> None:
     db_path = tmp_path / ".glassbox" / "glassbox.sqlite3"
     task_id = new_task_id()

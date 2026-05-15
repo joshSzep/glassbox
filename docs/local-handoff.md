@@ -132,3 +132,22 @@ Current handoff artifacts and planned v17 handoff packages do not claim:
 For runtime-owner and custody vocabulary, see
 [team-workflows.md](./team-workflows.md). For reviewer-safe sharing rules, see
 [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md).
+
+## Task Handoff Readiness
+
+Use task handoff readiness when a durable plan needs to move to another
+operator or future self without reconstructing the plan from raw session
+history:
+
+```bash
+uv run glassbox task handoff-readiness TASK_ID --intent continue-work --cwd .
+uv run glassbox task handoff-readiness TASK_ID --intent future-self --json --cwd .
+```
+
+The readiness output uses the same v17 handoff states as session readiness. It
+keeps paused, blocked, failed, abandoned, and completed task states distinct;
+surfaces missing or stale verification evidence; keeps accepted risk visible;
+and links back to safe task, session, job, and eval inspection commands before
+any continuation command is considered. The command is read-only and does not
+approve, answer, continue, stage, commit, push, publish, or open a pull
+request.
