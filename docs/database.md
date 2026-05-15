@@ -98,7 +98,8 @@ now decomposed internally.
     helpers live in focused `sqlite_schema_*` modules for sessions, tasks,
     verification ledger, checkpoints, compactions, tool attempts, background
     jobs, branch search, workspace memory, provider recovery, changesets, review
-    feedback, manual evidence, and long-run correlations
+    feedback, manual evidence, handoff workflow state, and long-run
+    correlations
 - `src/glassbox/store/sqlite_sessions.py`, `sqlite_events.py`,
   `sqlite_projections.py`, `sqlite_queries.py`, and `sqlite_fork.py` own the
   other broad internal storage concerns separately; `sqlite_projection_tasks.py`
@@ -108,11 +109,11 @@ now decomposed internally.
     focused `sqlite_query_*` modules for transcript, runtime notes, tools and
     approvals, turn metrics, autonomy budgets, tasks, checkpoint history,
     compactions, provider recovery, changesets, review feedback, manual
-    evidence, and branch-search projections
+    evidence, handoff workflow state, and branch-search projections
 - `src/glassbox/store/repositories.py` owns the concrete repository adapter
     surface while session, event/fork, projection-read, background-job,
-    workspace-memory, task, checkpoint history, branch-search, and artifact
-    behavior live in focused `repository_*` delegates
+    workspace-memory, task, checkpoint history, branch-search, handoff, and
+    artifact behavior live in focused `repository_*` delegates
 - `src/glassbox/store/artifacts.py` owns filesystem artifact writes and reads
     while returning the shared `StoredArtifact` contract type from
     `services/contracts.py`
@@ -164,6 +165,7 @@ The current migration sequence is:
 - `21`: review feedback projection tables
 - `22`: review feedback fixup inventory tables
 - `23`: manual evidence projection table
+- `24`: handoff workflow projection table
 
 Glassbox refuses to open a database with a schema version newer than the running
 build supports. Schema upgrade is distinct from projection rebuild: migrations

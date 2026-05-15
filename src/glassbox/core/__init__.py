@@ -53,6 +53,13 @@ from glassbox.core.events import ErrorRecorded
 from glassbox.core.events import EventEnvelope
 from glassbox.core.events import EventPayload
 from glassbox.core.events import EventPayloadType
+from glassbox.core.events import HandoffArchived
+from glassbox.core.events import HandoffCustodyAccepted
+from glassbox.core.events import HandoffCustodyProposed
+from glassbox.core.events import HandoffCustodyRejected
+from glassbox.core.events import HandoffPackageCreated
+from glassbox.core.events import ImportedHandoffAcceptedForFollowUp
+from glassbox.core.events import ImportedHandoffInspected
 from glassbox.core.events import LongRunPhaseChanged
 from glassbox.core.events import ManualEvidenceArchived
 from glassbox.core.events import ManualEvidenceAttached
@@ -253,6 +260,7 @@ from glassbox.core.models_handoff import HandoffLabel
 from glassbox.core.models_handoff import HandoffLocalOnlySummary
 from glassbox.core.models_handoff import HandoffPackageManifest
 from glassbox.core.models_handoff import HandoffPackageV2
+from glassbox.core.models_handoff import HandoffProjectionRecord
 from glassbox.core.models_handoff import HandoffReadiness
 from glassbox.core.models_handoff import HandoffReadinessReason
 from glassbox.core.models_handoff import HandoffRedactionSummary
@@ -341,6 +349,7 @@ from glassbox.core.types_evidence_graph import EvidenceGraphNodeKind
 from glassbox.core.types_evidence_graph import EvidenceGraphRedactionStatus
 from glassbox.core.types_evidence_graph import EvidenceGraphVisibility
 from glassbox.core.types_handoff import HandoffCompatibilityState
+from glassbox.core.types_handoff import HandoffCustodyState
 from glassbox.core.types_handoff import HandoffEvidenceFreshness
 from glassbox.core.types_handoff import HandoffIntent
 from glassbox.core.types_handoff import HandoffLabelMetadataPosture
@@ -487,6 +496,11 @@ __all__ = [
     "ForkedSession",
     "HandoffCompatibilityState",
     "HandoffCompatibilitySummary",
+    "HandoffCustodyState",
+    "HandoffArchived",
+    "HandoffCustodyAccepted",
+    "HandoffCustodyProposed",
+    "HandoffCustodyRejected",
     "HandoffDigestSummary",
     "HandoffEvidenceFreshness",
     "HandoffIntent",
@@ -495,8 +509,10 @@ __all__ = [
     "HandoffLabelSource",
     "HandoffLocalOnlySummary",
     "HandoffPackageKind",
+    "HandoffPackageCreated",
     "HandoffPackageManifest",
     "HandoffPackageV2",
+    "HandoffProjectionRecord",
     "HandoffReadiness",
     "HandoffReadinessReason",
     "HandoffReadinessReasonKind",
@@ -507,6 +523,8 @@ __all__ = [
     "HandoffSourceKind",
     "HandoffSourceRef",
     "InheritedTranscriptMessage",
+    "ImportedHandoffAcceptedForFollowUp",
+    "ImportedHandoffInspected",
     "LongRunPhase",
     "LongRunPhaseChanged",
     "LongRunPhaseState",

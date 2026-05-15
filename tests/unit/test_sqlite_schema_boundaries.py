@@ -27,6 +27,7 @@ MIGRATION_OWNERS: Mapping[int, str] = {
     21: "glassbox.store.sqlite_schema_review_loop",
     22: "glassbox.store.sqlite_schema_review_loop",
     23: "glassbox.store.sqlite_schema_review_loop",
+    24: "glassbox.store.sqlite_schema_handoff",
 }
 
 

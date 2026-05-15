@@ -124,8 +124,21 @@ class HandoffCompatibilityState(StrEnum):
     INVALID = "invalid"
 
 
+class HandoffCustodyState(StrEnum):
+    """Local workflow state for a handoff package or imported handoff."""
+
+    CREATED = "created"
+    PROPOSED = "proposed"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    IMPORTED_INSPECTED = "imported-inspected"
+    ACCEPTED_FOR_FOLLOW_UP = "accepted-for-follow-up"
+    ARCHIVED = "archived"
+
+
 __all__ = [
     "HandoffCompatibilityState",
+    "HandoffCustodyState",
     "HandoffEvidenceFreshness",
     "HandoffIntent",
     "HandoffLabelMetadataPosture",

@@ -64,6 +64,7 @@ def _expected_migration_versions() -> list[int]:
         20,
         21,
         22,
+        23,
         SCHEMA_VERSION,
     ]
 
@@ -91,6 +92,7 @@ def _expected_migration_names() -> list[str]:
         "add review feedback projection tables",
         "add review feedback fixup inventory tables",
         "add manual evidence projection table",
+        "add handoff projection table",
     ]
 
 
@@ -555,5 +557,6 @@ def test_migrations_are_ordered_to_current_schema_version() -> None:
         20,
         21,
         22,
+        23,
         SCHEMA_VERSION,
     ]

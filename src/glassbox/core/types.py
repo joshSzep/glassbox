@@ -24,6 +24,7 @@ from glassbox.core.types_evidence_graph import (
 from glassbox.core.types_handoff import (
     HandoffCompatibilityState as HandoffCompatibilityState,
 )
+from glassbox.core.types_handoff import HandoffCustodyState as HandoffCustodyState
 from glassbox.core.types_handoff import (
     HandoffEvidenceFreshness as HandoffEvidenceFreshness,
 )

@@ -71,6 +71,11 @@ from glassbox.core.types import CommandPurpose
 from glassbox.core.types import CommandReviewRelevance
 from glassbox.core.types import ContextCompactionFreshness
 from glassbox.core.types import ContextCompactionScope
+from glassbox.core.types import HandoffCompatibilityState
+from glassbox.core.types import HandoffIntent
+from glassbox.core.types import HandoffPackageKind
+from glassbox.core.types import HandoffRedactionPosture
+from glassbox.core.types import HandoffSourceKind
 from glassbox.core.types import LongRunPhase
 from glassbox.core.types import LongRunPhaseState
 from glassbox.core.types import ManualEvidenceFreshness
@@ -1146,6 +1151,98 @@ class ChangesetArchived(EventPayload):
     replacement_changeset_id: ChangesetId | None = None
 
 
+class HandoffPackageCreated(EventPayload):
+    event_type: Literal["HandoffPackageCreated"] = "HandoffPackageCreated"
+    package_id: str = Field(min_length=1, max_length=300)
+    source_kind: HandoffSourceKind
+    source_id: str | None = Field(default=None, min_length=1, max_length=300)
+    package_kind: HandoffPackageKind
+    intent: HandoffIntent
+    artifact_id: ArtifactId | None = None
+    package_digest: str | None = Field(default=None, min_length=1, max_length=256)
+    compatibility_state: HandoffCompatibilityState = HandoffCompatibilityState.SUPPORTED
+    redaction_posture: HandoffRedactionPosture = HandoffRedactionPosture.UNKNOWN
+    local_only_count: int = Field(default=0, ge=0)
+    expected_custodian: str | None = Field(default=None, max_length=200)
+    exported_by: str = Field(default="operator", min_length=1, max_length=200)
+    note: str | None = Field(default=None, max_length=2000)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class HandoffCustodyProposed(EventPayload):
+    event_type: Literal["HandoffCustodyProposed"] = "HandoffCustodyProposed"
+    package_id: str = Field(min_length=1, max_length=300)
+    source_kind: HandoffSourceKind
+    intent: HandoffIntent
+    proposed_custodian: str = Field(min_length=1, max_length=200)
+    proposed_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class HandoffCustodyAccepted(EventPayload):
+    event_type: Literal["HandoffCustodyAccepted"] = "HandoffCustodyAccepted"
+    package_id: str = Field(min_length=1, max_length=300)
+    accepted_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str | None = Field(default=None, max_length=2000)
+    follow_up_intent: HandoffIntent | None = None
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class HandoffCustodyRejected(EventPayload):
+    event_type: Literal["HandoffCustodyRejected"] = "HandoffCustodyRejected"
+    package_id: str = Field(min_length=1, max_length=300)
+    rejected_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class ImportedHandoffInspected(EventPayload):
+    event_type: Literal["ImportedHandoffInspected"] = "ImportedHandoffInspected"
+    package_id: str = Field(min_length=1, max_length=300)
+    source_kind: HandoffSourceKind
+    source_id: str | None = Field(default=None, min_length=1, max_length=300)
+    package_kind: HandoffPackageKind | None = None
+    intent: HandoffIntent | None = None
+    package_digest: str | None = Field(default=None, min_length=1, max_length=256)
+    compatibility_state: HandoffCompatibilityState
+    redaction_posture: HandoffRedactionPosture = HandoffRedactionPosture.UNKNOWN
+    local_only_count: int = Field(default=0, ge=0)
+    inspected_by: str = Field(default="operator", min_length=1, max_length=200)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    note: str | None = Field(default=None, max_length=2000)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class ImportedHandoffAcceptedForFollowUp(EventPayload):
+    event_type: Literal["ImportedHandoffAcceptedForFollowUp"] = (
+        "ImportedHandoffAcceptedForFollowUp"
+    )
+    package_id: str = Field(min_length=1, max_length=300)
+    accepted_by: str = Field(default="operator", min_length=1, max_length=200)
+    follow_up_intent: HandoffIntent
+    reason: str | None = Field(default=None, max_length=2000)
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
+class HandoffArchived(EventPayload):
+    event_type: Literal["HandoffArchived"] = "HandoffArchived"
+    package_id: str = Field(min_length=1, max_length=300)
+    archived_by: str = Field(default="operator", min_length=1, max_length=200)
+    reason: str = Field(min_length=1, max_length=2000)
+    task_id: TaskId | None = None
+    changeset_id: ChangesetId | None = None
+
+
 class ReviewFeedbackCreated(EventPayload):
     event_type: Literal["ReviewFeedbackCreated"] = "ReviewFeedbackCreated"
     feedback_id: ReviewFeedbackId
@@ -1582,6 +1679,13 @@ EventPayloadType = Annotated[
     | ChangesetReadinessDecided
     | ChangesetCandidateAdopted
     | ChangesetArchived
+    | HandoffPackageCreated
+    | HandoffCustodyProposed
+    | HandoffCustodyAccepted
+    | HandoffCustodyRejected
+    | ImportedHandoffInspected
+    | ImportedHandoffAcceptedForFollowUp
+    | HandoffArchived
     | ReviewFeedbackCreated
     | ReviewFeedbackScopeAttached
     | ReviewFeedbackDispositionUpdated

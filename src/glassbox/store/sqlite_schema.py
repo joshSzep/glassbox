@@ -24,6 +24,7 @@ from glassbox.store.sqlite_schema_checkpoints import (
 from glassbox.store.sqlite_schema_compactions import (
     ensure_context_compaction_projection_schema,
 )
+from glassbox.store.sqlite_schema_handoff import ensure_handoff_projection_schema
 from glassbox.store.sqlite_schema_helpers import column_names
 from glassbox.store.sqlite_schema_long_run import ensure_long_run_event_schema
 from glassbox.store.sqlite_schema_provider_recovery import (
@@ -45,7 +46,7 @@ from glassbox.store.sqlite_schema_workspace_memory import (
     ensure_workspace_memory_projection_schema,
 )
 
-SCHEMA_VERSION = 23
+SCHEMA_VERSION = 24
 BASELINE_SCHEMA_VERSION = 3
 BASELINE_MIGRATION_NAME = "baseline event store and projections"
 
@@ -159,6 +160,11 @@ MIGRATIONS = (
         version=23,
         name="add manual evidence projection table",
         apply=ensure_review_loop_projection_schema,
+    ),
+    SchemaMigration(
+        version=24,
+        name="add handoff projection table",
+        apply=ensure_handoff_projection_schema,
     ),
 )
 

@@ -422,7 +422,7 @@ large to review safely.
 
 ### GBX-1712: Add Handoff Event And Projection Boundaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1710`, `GBX-1711`
 - Goal: make handoff workflow decisions durable and queryable
 - Deliverables:

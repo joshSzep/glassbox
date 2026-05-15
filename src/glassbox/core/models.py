@@ -53,6 +53,9 @@ from glassbox.core.models_handoff import (
     HandoffPackageManifest as HandoffPackageManifest,
 )
 from glassbox.core.models_handoff import HandoffPackageV2 as HandoffPackageV2
+from glassbox.core.models_handoff import (
+    HandoffProjectionRecord as HandoffProjectionRecord,
+)
 from glassbox.core.models_handoff import HandoffReadiness as HandoffReadiness
 from glassbox.core.models_handoff import (
     HandoffReadinessReason as HandoffReadinessReason,

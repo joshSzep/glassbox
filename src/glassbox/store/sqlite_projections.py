@@ -19,6 +19,7 @@ from glassbox.store.sqlite_projection_checkpoints import (
 from glassbox.store.sqlite_projection_compactions import (
     _apply_context_compaction_projection,
 )
+from glassbox.store.sqlite_projection_handoff import _apply_handoff_projection
 from glassbox.store.sqlite_projection_long_run import _apply_long_run_projection
 from glassbox.store.sqlite_projection_provider_recovery import (
     _apply_provider_recovery_projection,
@@ -76,6 +77,7 @@ _PROJECTION_TABLES = (
     "changeset_inventories",
     "changeset_sources",
     "changesets",
+    "handoffs",
 )
 
 
@@ -102,6 +104,7 @@ def _apply_projection_event(
     _apply_context_compaction_projection(connection, event)
     _apply_changeset_projection(connection, event)
     _apply_review_loop_projection(connection, event)
+    _apply_handoff_projection(connection, event)
 
 
 def _clear_session_projections(

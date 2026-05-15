@@ -10,6 +10,7 @@ from pydantic import model_validator
 from glassbox.core.models_operator_flow import NextActionEvidenceRef
 from glassbox.core.types import RepositoryIntelligenceConfidence
 from glassbox.core.types_handoff import HandoffCompatibilityState
+from glassbox.core.types_handoff import HandoffCustodyState
 from glassbox.core.types_handoff import HandoffEvidenceFreshness
 from glassbox.core.types_handoff import HandoffIntent
 from glassbox.core.types_handoff import HandoffLabelMetadataPosture
@@ -310,6 +311,41 @@ class HandoffPackageV2(BaseModel):
         return self
 
 
+class HandoffProjectionRecord(BaseModel):
+    """Latest local workflow posture for one handoff package."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: str = Field(min_length=1, max_length=80)
+    package_id: str = Field(min_length=1, max_length=300)
+    source_kind: HandoffSourceKind
+    source_id: str | None = Field(default=None, min_length=1, max_length=300)
+    task_id: str | None = Field(default=None, min_length=1, max_length=80)
+    changeset_id: str | None = Field(default=None, min_length=1, max_length=80)
+    package_kind: HandoffPackageKind | None = None
+    intent: HandoffIntent | None = None
+    artifact_id: str | None = Field(default=None, min_length=1, max_length=80)
+    package_digest: str | None = Field(default=None, min_length=1, max_length=256)
+    compatibility_state: HandoffCompatibilityState | None = None
+    redaction_posture: HandoffRedactionPosture | None = None
+    local_only_count: int = Field(default=0, ge=0)
+    custody_state: HandoffCustodyState
+    expected_custodian: str | None = Field(default=None, min_length=1, max_length=200)
+    current_custodian: str | None = Field(default=None, min_length=1, max_length=200)
+    exported_by: str | None = Field(default=None, min_length=1, max_length=200)
+    decision_by: str | None = Field(default=None, min_length=1, max_length=200)
+    decision_reason: str | None = Field(default=None, min_length=1, max_length=2000)
+    follow_up_intent: HandoffIntent | None = None
+    safe_next_actions: list[str] = Field(default_factory=list, max_length=20)
+    note: str | None = Field(default=None, min_length=1, max_length=2000)
+    imported: bool = False
+    archived: bool = False
+    created_at: datetime
+    updated_at: datetime
+    last_event_type: str = Field(min_length=1, max_length=120)
+    last_sequence: int = Field(ge=0)
+
+
 __all__ = [
     "HANDOFF_DEFAULT_NON_CLAIMS",
     "HANDOFF_MANIFEST_SCHEMA_VERSION",
@@ -321,6 +357,7 @@ __all__ = [
     "HandoffLocalOnlySummary",
     "HandoffPackageManifest",
     "HandoffPackageV2",
+    "HandoffProjectionRecord",
     "HandoffReadiness",
     "HandoffReadinessReason",
     "HandoffRedactionSummary",
