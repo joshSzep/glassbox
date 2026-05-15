@@ -289,7 +289,7 @@ large to review safely.
 
 ### GBX-1700: Define The v17 Local Handoff Contract
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: none
 - Goal: publish the operator and contributor contract for v17 local handoff
 - Deliverables:
