@@ -21,6 +21,26 @@ from glassbox.core.types_evidence_graph import (
 from glassbox.core.types_evidence_graph import (
     EvidenceGraphVisibility as EvidenceGraphVisibility,
 )
+from glassbox.core.types_handoff import (
+    HandoffCompatibilityState as HandoffCompatibilityState,
+)
+from glassbox.core.types_handoff import (
+    HandoffEvidenceFreshness as HandoffEvidenceFreshness,
+)
+from glassbox.core.types_handoff import HandoffIntent as HandoffIntent
+from glassbox.core.types_handoff import (
+    HandoffLabelMetadataPosture as HandoffLabelMetadataPosture,
+)
+from glassbox.core.types_handoff import HandoffLabelSource as HandoffLabelSource
+from glassbox.core.types_handoff import HandoffPackageKind as HandoffPackageKind
+from glassbox.core.types_handoff import (
+    HandoffReadinessReasonKind as HandoffReadinessReasonKind,
+)
+from glassbox.core.types_handoff import HandoffReadinessState as HandoffReadinessState
+from glassbox.core.types_handoff import (
+    HandoffRedactionPosture as HandoffRedactionPosture,
+)
+from glassbox.core.types_handoff import HandoffSourceKind as HandoffSourceKind
 from glassbox.core.types_operator_flow import MaintenanceCueKind as MaintenanceCueKind
 from glassbox.core.types_operator_flow import (
     NextActionEvidenceKind as NextActionEvidenceKind,

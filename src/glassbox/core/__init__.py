@@ -247,6 +247,16 @@ from glassbox.core.models_evidence_graph import EvidenceGraphEdge
 from glassbox.core.models_evidence_graph import EvidenceGraphMissingEvidence
 from glassbox.core.models_evidence_graph import EvidenceGraphNode
 from glassbox.core.models_evidence_graph import EvidenceGraphProvenance
+from glassbox.core.models_handoff import HandoffCompatibilitySummary
+from glassbox.core.models_handoff import HandoffDigestSummary
+from glassbox.core.models_handoff import HandoffLabel
+from glassbox.core.models_handoff import HandoffLocalOnlySummary
+from glassbox.core.models_handoff import HandoffPackageManifest
+from glassbox.core.models_handoff import HandoffReadiness
+from glassbox.core.models_handoff import HandoffReadinessReason
+from glassbox.core.models_handoff import HandoffRedactionSummary
+from glassbox.core.models_handoff import HandoffSafeCommand
+from glassbox.core.models_handoff import HandoffSourceRef
 from glassbox.core.models_operator_flow import MaintenanceCue
 from glassbox.core.models_operator_flow import NextAction
 from glassbox.core.models_operator_flow import NextActionCommandRecipe
@@ -329,6 +339,16 @@ from glassbox.core.types_evidence_graph import EvidenceGraphFreshness
 from glassbox.core.types_evidence_graph import EvidenceGraphNodeKind
 from glassbox.core.types_evidence_graph import EvidenceGraphRedactionStatus
 from glassbox.core.types_evidence_graph import EvidenceGraphVisibility
+from glassbox.core.types_handoff import HandoffCompatibilityState
+from glassbox.core.types_handoff import HandoffEvidenceFreshness
+from glassbox.core.types_handoff import HandoffIntent
+from glassbox.core.types_handoff import HandoffLabelMetadataPosture
+from glassbox.core.types_handoff import HandoffLabelSource
+from glassbox.core.types_handoff import HandoffPackageKind
+from glassbox.core.types_handoff import HandoffReadinessReasonKind
+from glassbox.core.types_handoff import HandoffReadinessState
+from glassbox.core.types_handoff import HandoffRedactionPosture
+from glassbox.core.types_handoff import HandoffSourceKind
 from glassbox.core.types_operator_flow import MaintenanceCueKind
 from glassbox.core.types_operator_flow import NextActionEvidenceKind
 from glassbox.core.types_operator_flow import NextActionKind
@@ -464,6 +484,26 @@ __all__ = [
     "EvidenceGraphRedactionStatus",
     "EvidenceGraphVisibility",
     "ForkedSession",
+    "HandoffCompatibilityState",
+    "HandoffCompatibilitySummary",
+    "HandoffDigestSummary",
+    "HandoffEvidenceFreshness",
+    "HandoffIntent",
+    "HandoffLabel",
+    "HandoffLabelMetadataPosture",
+    "HandoffLabelSource",
+    "HandoffLocalOnlySummary",
+    "HandoffPackageKind",
+    "HandoffPackageManifest",
+    "HandoffReadiness",
+    "HandoffReadinessReason",
+    "HandoffReadinessReasonKind",
+    "HandoffReadinessState",
+    "HandoffRedactionPosture",
+    "HandoffRedactionSummary",
+    "HandoffSafeCommand",
+    "HandoffSourceKind",
+    "HandoffSourceRef",
     "InheritedTranscriptMessage",
     "LongRunPhase",
     "LongRunPhaseChanged",

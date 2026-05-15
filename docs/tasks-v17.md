@@ -367,7 +367,7 @@ large to review safely.
 
 ### GBX-1710: Define Handoff Intent, Recipient, Custody, And Package Models
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1700`
 - Goal: add typed core models for local handoff without introducing remote
   collaboration authority

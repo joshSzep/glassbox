@@ -41,6 +41,26 @@ from glassbox.core.models_evidence_graph import EvidenceGraphNode as EvidenceGra
 from glassbox.core.models_evidence_graph import (
     EvidenceGraphProvenance as EvidenceGraphProvenance,
 )
+from glassbox.core.models_handoff import (
+    HandoffCompatibilitySummary as HandoffCompatibilitySummary,
+)
+from glassbox.core.models_handoff import HandoffDigestSummary as HandoffDigestSummary
+from glassbox.core.models_handoff import HandoffLabel as HandoffLabel
+from glassbox.core.models_handoff import (
+    HandoffLocalOnlySummary as HandoffLocalOnlySummary,
+)
+from glassbox.core.models_handoff import (
+    HandoffPackageManifest as HandoffPackageManifest,
+)
+from glassbox.core.models_handoff import HandoffReadiness as HandoffReadiness
+from glassbox.core.models_handoff import (
+    HandoffReadinessReason as HandoffReadinessReason,
+)
+from glassbox.core.models_handoff import (
+    HandoffRedactionSummary as HandoffRedactionSummary,
+)
+from glassbox.core.models_handoff import HandoffSafeCommand as HandoffSafeCommand
+from glassbox.core.models_handoff import HandoffSourceRef as HandoffSourceRef
 from glassbox.core.models_operator_flow import MaintenanceCue as MaintenanceCue
 from glassbox.core.models_operator_flow import NextAction as NextAction
 from glassbox.core.models_operator_flow import (
