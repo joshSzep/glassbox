@@ -7,6 +7,8 @@ from uuid import UUID
 import pytest
 
 from glassbox.cli import main
+from glassbox.core import HandoffCompatibilityState
+from glassbox.runtime.handoff_package import inspect_handoff_package_path
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
 from tests.integration.cli_test_support import _completed_turn_ids
@@ -210,6 +212,29 @@ def test_cli_session_import_rejects_unsupported_package_version(
 
     assert exit_code == 1
     assert "unsupported session export version: 999" in captured.err
+
+
+def test_exported_session_package_inspects_as_legacy_handoff(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source_root = tmp_path / "source"
+    source_root.mkdir()
+    package_path, _source_session_id = _export_session_package(
+        source_root,
+        tmp_path / "handoff.json",
+        capsys,
+    )
+
+    inspection = inspect_handoff_package_path(package_path)
+
+    assert (
+        inspection.compatibility.state
+        == HandoffCompatibilityState.LEGACY_INSPECTION_ONLY
+    )
+    assert inspection.package_format == "glassbox_session_export"
+    assert inspection.source_kind == "session"
+    assert "metadata" in inspection.included_sections
 
 
 @pytest.mark.parametrize(

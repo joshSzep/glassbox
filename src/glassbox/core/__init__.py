@@ -252,6 +252,7 @@ from glassbox.core.models_handoff import HandoffDigestSummary
 from glassbox.core.models_handoff import HandoffLabel
 from glassbox.core.models_handoff import HandoffLocalOnlySummary
 from glassbox.core.models_handoff import HandoffPackageManifest
+from glassbox.core.models_handoff import HandoffPackageV2
 from glassbox.core.models_handoff import HandoffReadiness
 from glassbox.core.models_handoff import HandoffReadinessReason
 from glassbox.core.models_handoff import HandoffRedactionSummary
@@ -495,6 +496,7 @@ __all__ = [
     "HandoffLocalOnlySummary",
     "HandoffPackageKind",
     "HandoffPackageManifest",
+    "HandoffPackageV2",
     "HandoffReadiness",
     "HandoffReadinessReason",
     "HandoffReadinessReasonKind",

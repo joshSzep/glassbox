@@ -108,6 +108,11 @@ sections. It must not copy raw `.glassbox` databases, credentials, secrets, raw
 provider transcripts, raw command logs, raw diffs, screenshots, or unreviewed
 artifacts by default.
 
+The shared implementation package wrapper is `glassbox_handoff_package` with
+schema version `2`. Its manifest schema is identified as
+`glassbox-handoff-package.v2`; current v1 session exports remain legacy
+inspection-only inputs rather than custody-aware v17 packages.
+
 Every package manifest should carry:
 
 - schema version and package kind
@@ -128,6 +133,11 @@ Package digests prove package integrity, not source workspace completeness or
 truth. A package can prove that its JSON was not changed after generation, but
 it cannot prove that omitted local-only evidence, stale repository state, or
 manual observations were complete.
+
+Compatibility inspection must report supported, unsupported, missing optional,
+future-version, invalid, and legacy inspection-only package states before import
+or custody actions. Digest validation is package integrity evidence only, not a
+claim that the source workspace or omitted local-only evidence was complete.
 
 ## Redaction And Local-Only Evidence
 

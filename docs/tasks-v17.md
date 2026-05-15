@@ -394,7 +394,7 @@ large to review safely.
 
 ### GBX-1711: Add Handoff Package Schema v2 And Compatibility Inspection
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1710`
 - Goal: define the portable package contract that session and changeset exports
   can converge on

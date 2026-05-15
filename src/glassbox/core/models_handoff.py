@@ -20,7 +20,9 @@ from glassbox.core.types_handoff import HandoffReadinessState
 from glassbox.core.types_handoff import HandoffRedactionPosture
 from glassbox.core.types_handoff import HandoffSourceKind
 
-HANDOFF_MANIFEST_SCHEMA_VERSION = "glassbox-handoff-manifest.v1"
+HANDOFF_MANIFEST_SCHEMA_VERSION = "glassbox-handoff-package.v2"
+HANDOFF_PACKAGE_FORMAT = "glassbox_handoff_package"
+HANDOFF_PACKAGE_SCHEMA_VERSION = 2
 HANDOFF_DEFAULT_NON_CLAIMS = [
     "handoff does not grant continuation authority",
     "handoff does not approve review, verification, release, or publication",
@@ -285,14 +287,40 @@ class HandoffPackageManifest(BaseModel):
         return self
 
 
+class HandoffPackageV2(BaseModel):
+    """Portable v2 handoff package wrapper."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    package_format: str = Field(
+        default=HANDOFF_PACKAGE_FORMAT,
+        min_length=1,
+        max_length=80,
+    )
+    schema_version: int = Field(default=HANDOFF_PACKAGE_SCHEMA_VERSION, ge=2)
+    manifest: HandoffPackageManifest
+    payload_sections: dict[str, object] = Field(default_factory=dict, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_package_version(self) -> HandoffPackageV2:
+        if self.package_format != HANDOFF_PACKAGE_FORMAT:
+            raise ValueError("unsupported handoff package format")
+        if self.schema_version != HANDOFF_PACKAGE_SCHEMA_VERSION:
+            raise ValueError("unsupported handoff package schema version")
+        return self
+
+
 __all__ = [
     "HANDOFF_DEFAULT_NON_CLAIMS",
     "HANDOFF_MANIFEST_SCHEMA_VERSION",
+    "HANDOFF_PACKAGE_FORMAT",
+    "HANDOFF_PACKAGE_SCHEMA_VERSION",
     "HandoffCompatibilitySummary",
     "HandoffDigestSummary",
     "HandoffLabel",
     "HandoffLocalOnlySummary",
     "HandoffPackageManifest",
+    "HandoffPackageV2",
     "HandoffReadiness",
     "HandoffReadinessReason",
     "HandoffRedactionSummary",

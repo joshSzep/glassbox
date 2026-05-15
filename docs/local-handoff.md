@@ -93,7 +93,9 @@ recipient the same ability to verify from the package alone.
 
 The v17 local handoff track is planning a shared handoff workflow across
 sessions, tasks, changesets, workspaces, release evidence, and future-self
-continuity. Start with:
+continuity. The foundational shared handoff models and v2 package compatibility
+inspector now exist in code, while operator-facing v17 commands and cockpit
+surfaces remain planned until later tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and
@@ -105,11 +107,11 @@ continuity. Start with:
   local handoff
 
 Planned v17 capabilities include recipient-oriented export profiles, redaction
-preview, local-only evidence inventory, package compatibility inspection, import
-triage before mutation, custody accept/reject/archive decisions, queue rows, API
-routes, TUI entry points, dashboard cockpit surfaces, deterministic evals, and a
-v17 release gate. Until those tasks land, use the supported commands above and
-label any v17-only behavior as planned.
+preview, local-only evidence inventory, import triage before mutation, custody
+accept/reject/archive decisions, queue rows, API routes, TUI entry points,
+dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
+Until those tasks land, use the supported commands above and label any v17-only
+operator workflow as planned.
 
 ## Non-Claims
 

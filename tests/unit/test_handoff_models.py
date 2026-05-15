@@ -17,6 +17,7 @@ from glassbox.core import HandoffLabelMetadataPosture
 from glassbox.core import HandoffLocalOnlySummary
 from glassbox.core import HandoffPackageKind
 from glassbox.core import HandoffPackageManifest
+from glassbox.core import HandoffPackageV2
 from glassbox.core import HandoffReadiness
 from glassbox.core import HandoffReadinessReason
 from glassbox.core import HandoffReadinessReasonKind
@@ -50,6 +51,7 @@ def _safe_command() -> HandoffSafeCommand:
 def test_handoff_models_and_types_keep_core_compatibility_exports() -> None:
     assert HandoffPackageManifest is OwnerManifest
     assert core_models.HandoffPackageManifest is OwnerManifest
+    assert core_models.HandoffPackageV2 is HandoffPackageV2
     assert HandoffIntent is OwnerIntent
     assert core_types.HandoffIntent is OwnerIntent
 
@@ -81,7 +83,7 @@ def test_handoff_package_manifest_serializes_default_non_claims() -> None:
     restored = HandoffPackageManifest.model_validate(manifest.model_dump(mode="python"))
 
     assert restored == manifest
-    assert restored.schema_version == "glassbox-handoff-manifest.v1"
+    assert restored.schema_version == "glassbox-handoff-package.v2"
     assert "handoff does not grant continuation authority" in restored.non_claims
     assert restored.redaction.raw_logs_included is False
 
