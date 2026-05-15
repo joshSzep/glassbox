@@ -324,6 +324,10 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert (
         "sdist missing required file: scripts/validate_v16_release_gate.py" in problems
     )
+    assert "sdist missing required file: docs/local-handoff.md" in problems
+    assert "sdist missing required file: docs/v17-local-handoff-contract.md" in problems
+    assert "sdist missing required file: docs/v17-local-handoff-audit.md" in problems
+    assert "sdist missing required file: docs/tasks-v17.md" in problems
     assert (
         "sdist missing required file: scripts/v16_release_gate_helpers.py" in problems
     )
@@ -551,6 +555,10 @@ def _write_sdist(
                 "docs/v16-dogfooding-summary.md",
                 "docs/v16-release-candidate.md",
                 "docs/tasks-v16.md",
+                "docs/local-handoff.md",
+                "docs/v17-local-handoff-contract.md",
+                "docs/v17-local-handoff-audit.md",
+                "docs/tasks-v17.md",
                 "docs/evidence-graph.md",
                 "docs/operator-queue.md",
                 "docs/verification-orchestrator.md",

@@ -18,6 +18,9 @@ authority. The v16 planning track now covers operator flow compression:
 unified next actions, evidence graph claim support, verification
 orchestration, one operator queue, and maintenance-aware guidance while keeping
 operator authority explicit.
+The v17 local handoff planning track is now open for making sessions, tasks,
+changesets, workspaces, release evidence, and future-self continuity portable
+without treating handoff as hosted collaboration, approval, or publication.
 
 ## Start Here
 
@@ -168,6 +171,21 @@ operator authority explicit.
   roadmap and closeout notes for evidence graph, verification plan, operator
   queue, core domain modules, web builders, frontend cockpit helpers,
   release-gate helpers, package guardrails, compatibility shims, and validation
+- [local-handoff.md](./local-handoff.md): current local handoff guide plus the
+  v17 planning path for recipient intent, safe inspection, redaction,
+  local-only evidence, import triage, and custody non-claims
+- [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): v17
+  planning contract for local handoff intent, readiness, package portability,
+  redaction, local-only evidence, custody, import triage, surface vocabulary,
+  and non-goals
+- [v17-local-handoff-audit.md](./v17-local-handoff-audit.md): source-linked
+  audit of current session export/import, changeset export, handoff readiness,
+  reviewer-safe bundles, queue, API, frontend, eval, release, docs, and
+  dogfooding gaps before v17 implementation
+- [tasks-v17.md](./tasks-v17.md): v17 local handoff task graph for shared
+  models, package schema, readiness, redaction preview, import triage, custody,
+  CLI/API/TUI/dashboard cockpit surfaces, evals, packaging, dogfooding, and
+  release-candidate guidance
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction
@@ -352,6 +370,9 @@ operator authority explicit.
 - [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md): prepare
   local handoff, eval, replay, release, and manual evidence for reviewers
   without committing raw `.glassbox` state
+- [local-handoff.md](./local-handoff.md): use the supported session and
+  changeset handoff commands today, and follow the v17 planning track without
+  implying unreleased behavior
 - [review-briefs.md](./review-briefs.md): understand the v12 reviewer-safe
   changeset brief generation command/API, artifact shape, redaction policy,
   render targets, readiness posture, and non-claims
@@ -453,6 +474,29 @@ operator authority explicit.
 - [interactive-workflows.md](./interactive-workflows.md): current terminal
   workflow vocabulary that later v16 TUI and plain interactive entry points
   should keep coherent
+
+## Local Handoff Planning Map
+
+- [local-handoff.md](./local-handoff.md): start here for today's supported
+  session export/import and changeset review handoff commands, plus the v17
+  planning path
+- [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): use the
+  shared v17 vocabulary for recipient intent, readiness states, package
+  manifests, redaction, local-only evidence, custody, import triage,
+  non-claims, and surface alignment
+- [v17-local-handoff-audit.md](./v17-local-handoff-audit.md): use the
+  source-linked baseline before changing current export, import, readiness,
+  review bundle, queue, API, dashboard, eval, release, or docs behavior
+- [tasks-v17.md](./tasks-v17.md): follow the dependency-ordered graph for
+  turning the v17 contract and audit into shared models, package schema,
+  readiness services, redaction preview, local-only inventory, import triage,
+  custody decisions, CLI/API/TUI/dashboard surfaces, evals, and release
+  evidence
+- [team-workflows.md](./team-workflows.md): keep runtime ownership and custody
+  separate while v17 expands handoff decisions
+- [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md): keep
+  reviewer-safe evidence, redaction, local-only retention, and non-claims
+  aligned with handoff packages
 
 ## Reference
 
@@ -565,6 +609,12 @@ operator authority explicit.
 - [evidence-graph.md](./evidence-graph.md): v16 evidence graph vocabulary for
   claim support, evidence relationships, freshness, confidence, redaction, and
   visibility
+- [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): v17 local
+  handoff planning contract for package portability, import triage, custody,
+  recipient intent, and non-claim boundaries
+- [v17-local-handoff-audit.md](./v17-local-handoff-audit.md): source-linked
+  v17 audit of current handoff, export, import, review bundle, readiness,
+  redaction, queue, API, and frontend surfaces before implementation
 - [v10-release-candidate.md](./v10-release-candidate.md): release-candidate
   narrative tying the v10 contract, gate, dogfooding, package, provider, and
   residual-risk evidence together

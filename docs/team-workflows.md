@@ -7,6 +7,12 @@ inspect, act on, and hand off persisted sessions without losing auditability.
 
 This document is the `GBX-350` contract for ownership, identity, and handoff. It
 is the baseline for portable session export/import and workspace defaults work.
+The v17 local handoff planning track expands this vocabulary across sessions,
+tasks, changesets, workspaces, release evidence, and future-self continuity in
+[local-handoff.md](./local-handoff.md) and
+[v17-local-handoff-contract.md](./v17-local-handoff-contract.md). Those v17
+docs are planning docs until a release-candidate guide marks the behavior as
+released.
 
 ## Vocabulary
 
@@ -186,6 +192,12 @@ the handoff export with the guidance in
 [reviewer-evidence-bundles.md](./reviewer-evidence-bundles.md) so raw
 `.glassbox` state, screenshots, provider output, and unreviewed logs stay local
 unless they have been explicitly sanitized.
+
+For the broader v17 planning direction, use
+[local-handoff.md](./local-handoff.md) as the operator guide and
+[v17-local-handoff-audit.md](./v17-local-handoff-audit.md) as the
+source-linked baseline. V17 keeps custody as workflow metadata rather than
+authorization, and planned import triage remains inspection-first.
 
 ## Daily Team Workflow
 

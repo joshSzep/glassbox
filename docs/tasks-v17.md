@@ -343,7 +343,7 @@ large to review safely.
 
 ### GBX-1702: Update Documentation Discovery For v17
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1700`, `GBX-1701`
 - Goal: make v17 planning discoverable without implying it is already released
 - Deliverables:

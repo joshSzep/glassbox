@@ -101,6 +101,10 @@ and subordinate to deterministic release evidence. The v16 release candidate
 adds operator flow compression: unified next-action language, evidence graph
 claim support, verification orchestration, operator queueing, and
 maintenance-aware guidance without hidden automation.
+V17 local handoff planning has started. It is not the released baseline yet; it
+defines how sessions, tasks, changesets, workspaces, release evidence, and
+future-self continuity should become portable without adding hosted
+collaboration, remote custody authority, or automatic publication.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -149,6 +153,12 @@ release-candidate guide in
 [docs/tasks-v16.md](docs/tasks-v16.md).
 The post-v16 behavior-preserving helper-owner roadmap and closeout notes live
 in [docs/refactor-v16.md](docs/refactor-v16.md).
+V17 local handoff planning starts with the operator guide in
+[docs/local-handoff.md](docs/local-handoff.md), the contract in
+[docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md), the
+source-linked audit in
+[docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md), and the
+task graph in [docs/tasks-v17.md](docs/tasks-v17.md).
 
 ## Documentation
 
@@ -189,6 +199,10 @@ Start here based on what you need:
 - [docs/operator-queue.md](docs/operator-queue.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)
 - [docs/refactor-v16.md](docs/refactor-v16.md)
+- [docs/local-handoff.md](docs/local-handoff.md)
+- [docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md)
+- [docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md)
+- [docs/tasks-v17.md](docs/tasks-v17.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
@@ -232,6 +246,7 @@ Release evidence and milestone history remain available when you need them:
 - [docs/v2-release-candidate.md](docs/v2-release-candidate.md)
 - [docs/tasks-v13.md](docs/tasks-v13.md)
 - [docs/tasks-v16.md](docs/tasks-v16.md)
+- [docs/tasks-v17.md](docs/tasks-v17.md)
 - [docs/tasks-v15.md](docs/tasks-v15.md)
 - [docs/tasks-v14.md](docs/tasks-v14.md)
 - [docs/tasks-v12.md](docs/tasks-v12.md)

@@ -4,6 +4,12 @@ For the docs hub and workflow guides, start at [README.md](./README.md). Pair
 this guide with [team-workflows.md](./team-workflows.md),
 [replay-evals.md](./replay-evals.md), [dogfooding.md](./dogfooding.md), and the
 current release-gate guide.
+For the v17 local handoff planning track, pair this guide with
+[local-handoff.md](./local-handoff.md),
+[v17-local-handoff-contract.md](./v17-local-handoff-contract.md), and the
+source-linked [v17 local handoff audit](./v17-local-handoff-audit.md). Those
+documents are planning docs until a v17 release-candidate guide marks the
+behavior as released.
 
 Glassbox evidence is local workspace state by default. A reviewer bundle is a
 small, explicit set of summaries and portable artifacts that lets another
@@ -30,6 +36,13 @@ Do not hand over the workspace SQLite database, `.env`, provider transcripts,
 raw command logs, full `.glassbox/` directories, screenshots, or browser traces
 unless the recipient is supposed to have the same local custody and the files
 have been reviewed for private content.
+
+The v17 planning track will make recipient intent, redaction preview,
+local-only evidence inventory, package compatibility inspection, import triage,
+and custody decisions first-class handoff surfaces. Until that work lands, use
+the supported session and changeset commands in
+[local-handoff.md](./local-handoff.md) and keep local-only evidence limitations
+visible in the reviewer-safe summary.
 
 ## Redaction Rules
 

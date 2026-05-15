@@ -1630,6 +1630,79 @@ def test_v16_release_candidate_guide_covers_operator_flow_model() -> None:
     assert "v16-release-candidate.md" in docs_readme
 
 
+def test_v17_local_handoff_planning_is_discoverable_without_release_claims() -> None:
+    contract = (REPO_ROOT / "docs" / "v17-local-handoff-contract.md").read_text(
+        encoding="utf-8"
+    )
+    audit = (REPO_ROOT / "docs" / "v17-local-handoff-audit.md").read_text(
+        encoding="utf-8"
+    )
+    guide = (REPO_ROOT / "docs" / "local-handoff.md").read_text(encoding="utf-8")
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    team_workflows = (REPO_ROOT / "docs" / "team-workflows.md").read_text(
+        encoding="utf-8"
+    )
+    reviewer_bundles = (REPO_ROOT / "docs" / "reviewer-evidence-bundles.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "## Handoff Intent Vocabulary",
+        "## Package Contract",
+        "## Import Triage",
+        "## Custody And Decisions",
+        "## Non-Claims",
+        "hosted collaboration",
+        "tasks-v17.md",
+    ):
+        assert required_text in contract
+
+    for required_text in (
+        "## Source-Linked Inventory",
+        "## Gap List By Subsystem",
+        "## Risk Register",
+        "session export",
+        "changeset export",
+        "handoff-readiness",
+        "import triage",
+    ):
+        assert required_text in audit
+
+    for required_text in (
+        "## Current Supported Flow",
+        "## Safe Inspection First",
+        "## V17 Planning Track",
+        "uv run glassbox session export SESSION_ID handoff.json --cwd .",
+        "uv run glassbox changeset export CHANGESET_ID changeset-review.json",
+        "Until those tasks land",
+        "reviewer approval",
+        "release approval",
+    ):
+        assert required_text in guide
+
+    for doc_name in (
+        "docs/local-handoff.md",
+        "docs/v17-local-handoff-contract.md",
+        "docs/v17-local-handoff-audit.md",
+        "docs/tasks-v17.md",
+    ):
+        assert doc_name in root_readme
+
+    for doc_name in (
+        "local-handoff.md",
+        "v17-local-handoff-contract.md",
+        "v17-local-handoff-audit.md",
+        "tasks-v17.md",
+    ):
+        assert doc_name in docs_readme
+
+    assert "v17-local-handoff-contract.md" in team_workflows
+    assert "v17-local-handoff-contract.md" in reviewer_bundles
+    assert "planning docs until" in team_workflows
+    assert "planning docs until" in reviewer_bundles
+
+
 def test_v14_release_candidate_guide_covers_maturity_model() -> None:
     content = (REPO_ROOT / "docs" / "v14-release-candidate.md").read_text(
         encoding="utf-8"
