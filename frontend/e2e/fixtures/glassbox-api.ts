@@ -1603,6 +1603,46 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     verification_plan_summary: makeVerificationPlanSummary(changesetId),
     safe_next_actions: [`glassbox changeset show ${changesetId} --cwd .`],
     session_id: defaultSessionId,
+    shared_readiness: {
+      accepted_risks: [
+        {
+          affected_claim_ids: [],
+          evidence: [],
+          kind: "accepted-risk",
+          limitation: null,
+          portable: true,
+          summary: "1 accepted risk must be visible in handoff",
+        },
+      ],
+      confidence: "medium",
+      expected_custodian: null,
+      freshness: "fresh",
+      intent: "review-only",
+      limitations: ["local-only evidence can support local handoff context"],
+      local_only_evidence: [],
+      missing_evidence: [],
+      non_claims: ["handoff readiness is advisory local posture, not publication"],
+      reasons: [],
+      recipient: null,
+      safe_first_commands: [
+        {
+          command: ["glassbox", "changeset", "show", changesetId, "--cwd", "."],
+          display: `glassbox changeset show ${changesetId} --cwd .`,
+          purpose: "Inspect changeset handoff posture before mutation.",
+          read_only: true,
+          requires_policy_approval: false,
+        },
+      ],
+      source: {
+        identifiers: { session_id: defaultSessionId },
+        kind: "changeset",
+        label: "Review session evidence",
+        primary_id: changesetId,
+      },
+      stale_evidence: [],
+      state: "accepted-with-risk",
+      supporting_evidence: [],
+    },
     signals: [
       {
         blocking: false,

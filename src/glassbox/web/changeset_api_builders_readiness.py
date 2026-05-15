@@ -163,6 +163,7 @@ def build_handoff_readiness_response(
             )
             for signal in readiness.signals
         ],
+        shared_readiness=readiness.shared_readiness,
         non_claims=readiness.non_claims,
     )
 

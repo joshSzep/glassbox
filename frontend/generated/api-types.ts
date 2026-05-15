@@ -4508,6 +4508,91 @@ export interface components {
       /** Detail */
       detail?: components["schemas"]["ValidationError"][];
     };
+    /**
+     * HandoffEvidenceFreshness
+     * @description Freshness posture for portable handoff evidence.
+     * @enum {string}
+     */
+    HandoffEvidenceFreshness: "fresh" | "stale" | "missing" | "degraded" | "unknown";
+    /**
+     * HandoffIntent
+     * @description Recipient intent for a local handoff package or readiness result.
+     * @enum {string}
+     */
+    HandoffIntent:
+      | "review-only"
+      | "continue-work"
+      | "verification-needed"
+      | "failure-triage"
+      | "release-signoff"
+      | "future-self"
+      | "fork-recommended";
+    /**
+     * HandoffLabel
+     * @description Recipient, custodian, exporter, or actor label for local coordination.
+     */
+    HandoffLabel: {
+      /** Display Name */
+      display_name?: string | null;
+      /** Label */
+      label: string;
+      /**
+       * Local Only Metadata
+       * @default false
+       */
+      local_only_metadata: boolean;
+      /** @default portable */
+      metadata_posture: components["schemas"]["HandoffLabelMetadataPosture"];
+      /** Note */
+      note?: string | null;
+      /** @default operator */
+      source: components["schemas"]["HandoffLabelSource"];
+    };
+    /**
+     * HandoffLabelMetadataPosture
+     * @description Portability posture for label metadata.
+     * @enum {string}
+     */
+    HandoffLabelMetadataPosture: "portable" | "local-only" | "redacted" | "unknown";
+    /**
+     * HandoffLabelSource
+     * @description Where recipient, custodian, or exporter label metadata came from.
+     * @enum {string}
+     */
+    HandoffLabelSource: "operator" | "package" | "import" | "runtime" | "config" | "unknown";
+    /**
+     * HandoffReadiness
+     * @description Shared handoff readiness contract for sessions, tasks, and changesets.
+     */
+    HandoffReadiness: {
+      /** Accepted Risks */
+      accepted_risks?: components["schemas"]["HandoffReadinessReason"][];
+      /** @default unknown */
+      confidence: components["schemas"]["RepositoryIntelligenceConfidence"];
+      expected_custodian?: components["schemas"]["HandoffLabel"] | null;
+      /** @default unknown */
+      freshness: components["schemas"]["HandoffEvidenceFreshness"];
+      intent: components["schemas"]["HandoffIntent"];
+      /** Limitations */
+      limitations?: string[];
+      /** Local Only Evidence */
+      local_only_evidence?: components["schemas"]["HandoffReadinessReason"][];
+      /** Missing Evidence */
+      missing_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      /** Non Claims */
+      non_claims?: string[];
+      /** Reasons */
+      reasons?: components["schemas"]["HandoffReadinessReason"][];
+      recipient?: components["schemas"]["HandoffLabel"] | null;
+      /** Safe First Commands */
+      safe_first_commands?: components["schemas"]["HandoffSafeCommand"][];
+      source: components["schemas"]["HandoffSourceRef"];
+      /** Stale Evidence */
+      stale_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      state: components["schemas"]["HandoffReadinessState"];
+      /** Supporting Evidence */
+      supporting_evidence?: components["schemas"]["NextActionEvidenceRef"][];
+    };
     /** HandoffReadinessEvidenceSummaryResponse */
     HandoffReadinessEvidenceSummaryResponse: {
       /** Accepted Risk Count */
@@ -4539,6 +4624,45 @@ export interface components {
       /** Unresolved Feedback Count */
       unresolved_feedback_count: number;
     };
+    /**
+     * HandoffReadinessReason
+     * @description One bounded reason supporting or limiting handoff readiness.
+     */
+    HandoffReadinessReason: {
+      /** Affected Claim Ids */
+      affected_claim_ids?: string[];
+      /** Evidence */
+      evidence?: components["schemas"]["NextActionEvidenceRef"][];
+      kind: components["schemas"]["HandoffReadinessReasonKind"];
+      /** Limitation */
+      limitation?: string | null;
+      /**
+       * Portable
+       * @default true
+       */
+      portable: boolean;
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * HandoffReadinessReasonKind
+     * @description Reason buckets explaining a handoff readiness state.
+     * @enum {string}
+     */
+    HandoffReadinessReasonKind:
+      | "supporting-evidence"
+      | "missing-evidence"
+      | "stale-evidence"
+      | "redacted-evidence"
+      | "local-only-evidence"
+      | "manual-only-evidence"
+      | "skipped-evidence"
+      | "unsupported-evidence"
+      | "accepted-risk"
+      | "compatibility-warning"
+      | "policy-blocker"
+      | "runtime-owner-blocker"
+      | "package-limitation";
     /** HandoffReadinessResponse */
     HandoffReadinessResponse: {
       /** Blockers */
@@ -4565,6 +4689,7 @@ export interface components {
       safe_next_actions: string[];
       /** Session Id */
       session_id: string;
+      shared_readiness: components["schemas"]["HandoffReadiness"];
       /** Signals */
       signals: components["schemas"]["HandoffReadinessSignalResponse"][];
       /** State */
@@ -4585,6 +4710,73 @@ export interface components {
       state: string;
       /** Summary */
       summary: string;
+    };
+    /**
+     * HandoffReadinessState
+     * @description Shared readiness states for handoff sources.
+     * @enum {string}
+     */
+    HandoffReadinessState:
+      | "ready"
+      | "historical-only"
+      | "awaiting-approval"
+      | "awaiting-answer"
+      | "needs-context"
+      | "needs-verification"
+      | "failed-needs-triage"
+      | "local-only-evidence"
+      | "stale-evidence"
+      | "blocked"
+      | "accepted-with-risk";
+    /**
+     * HandoffSafeCommand
+     * @description Safe inspection command shown before any handoff mutation.
+     */
+    HandoffSafeCommand: {
+      /** Command */
+      command: string[];
+      /** Display */
+      display: string;
+      /** Purpose */
+      purpose: string;
+      /**
+       * Read Only
+       * @default true
+       */
+      read_only: boolean;
+      /**
+       * Requires Policy Approval
+       * @default false
+       */
+      requires_policy_approval: boolean;
+    };
+    /**
+     * HandoffSourceKind
+     * @description Supported source contexts for local handoff.
+     * @enum {string}
+     */
+    HandoffSourceKind:
+      | "session"
+      | "task"
+      | "changeset"
+      | "workspace"
+      | "release"
+      | "future-self"
+      | "imported-package";
+    /**
+     * HandoffSourceRef
+     * @description Stable source reference for a handoff package or readiness result.
+     */
+    HandoffSourceRef: {
+      /** Identifiers */
+      identifiers?: {
+        [key: string]: string;
+      };
+      kind: components["schemas"]["HandoffSourceKind"];
+      /** Label */
+      label?: string | null;
+      /** Primary Id */
+      primary_id?: string | null;
     };
     /** HealthResponse */
     HealthResponse: {

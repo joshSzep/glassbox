@@ -1698,6 +1698,7 @@ type ChangesetDetail = components["schemas"]["ChangesetDetailResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
+type SharedHandoffReadiness = HandoffReadiness["shared_readiness"];
 type ChangesetVerificationPlan = components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
 type ChangesetVerificationPlanSummary =
   components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
@@ -2177,6 +2178,7 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     verification_plan_summary: makeVerificationPlanSummary(changesetId),
     safe_next_actions: [`glassbox changeset verification-plan ${changesetId} --cwd .`],
     session_id: "session-1",
+    shared_readiness: makeSharedHandoffReadiness(changesetId),
     signals: [
       {
         blocking: true,
@@ -2188,6 +2190,59 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "needs_verification",
     verification_id: null,
+  };
+}
+
+function makeSharedHandoffReadiness(changesetId: string): SharedHandoffReadiness {
+  return {
+    accepted_risks: [],
+    confidence: "unknown",
+    expected_custodian: null,
+    freshness: "missing",
+    intent: "review-only",
+    limitations: [],
+    local_only_evidence: [],
+    missing_evidence: [
+      {
+        freshness: "missing",
+        kind: "cli_output",
+        ref_id: "verification-not-passed",
+        redaction: null,
+        reviewer_safe: true,
+        source_path: null,
+        summary: "verification readiness is missing",
+      },
+    ],
+    non_claims: ["handoff readiness is advisory local posture, not publication"],
+    reasons: [
+      {
+        affected_claim_ids: [],
+        evidence: [],
+        kind: "missing-evidence",
+        limitation: null,
+        portable: true,
+        summary: "verification readiness is missing",
+      },
+    ],
+    recipient: null,
+    safe_first_commands: [
+      {
+        command: ["glassbox", "changeset", "verification-plan", changesetId, "--cwd", "."],
+        display: `glassbox changeset verification-plan ${changesetId} --cwd .`,
+        purpose: "Inspect changeset handoff posture before mutation.",
+        read_only: true,
+        requires_policy_approval: false,
+      },
+    ],
+    source: {
+      identifiers: { session_id: "session-1" },
+      kind: "changeset",
+      label: "Review session evidence",
+      primary_id: changesetId,
+    },
+    stale_evidence: [],
+    state: "needs-verification",
+    supporting_evidence: [],
   };
 }
 

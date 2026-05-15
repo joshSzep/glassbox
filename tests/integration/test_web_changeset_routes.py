@@ -521,6 +521,10 @@ def test_changeset_routes_create_list_show_refresh_and_archive(tmp_path: Path) -
             assert handoff_readiness_response.json()["readiness_kind"] == "handoff"
             assert handoff_readiness_response.json()["state"] == "unresolved_risk"
             assert (
+                handoff_readiness_response.json()["shared_readiness"]["source"]["kind"]
+                == "changeset"
+            )
+            assert (
                 handoff_readiness_response.json()["evidence"]["manual_evidence_count"]
                 == 3
             )

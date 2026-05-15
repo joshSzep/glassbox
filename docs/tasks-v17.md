@@ -504,7 +504,7 @@ large to review safely.
 
 ### GBX-1722: Align Changeset Handoff Readiness With v17 Handoff Vocabulary
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1710`, `GBX-1720`
 - Goal: make existing changeset handoff readiness use the shared v17 handoff
   model without regressing current review-loop behavior

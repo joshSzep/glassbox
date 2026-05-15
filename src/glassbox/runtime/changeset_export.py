@@ -444,6 +444,7 @@ def _handoff_readiness_summary(handoff) -> dict[str, Any]:
             mode="json"
         ),
         "evidence": handoff.evidence.model_dump(mode="json"),
+        "shared_readiness": handoff.shared_readiness.model_dump(mode="json"),
         "non_claims": handoff.non_claims,
     }
 
@@ -478,6 +479,7 @@ def _handoff_readiness_summary_for_export(
             ],
             "verification_plan_summary": None,
             "evidence": None,
+            "shared_readiness": None,
             "non_claims": [
                 "handoff readiness fallback is local export posture, not publication"
             ],

@@ -7142,6 +7142,210 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffEvidenceFreshness": {
+        "description": "Freshness posture for portable handoff evidence.",
+        "enum": ["fresh", "stale", "missing", "degraded", "unknown"],
+        "title": "HandoffEvidenceFreshness",
+        "type": "string"
+      },
+      "HandoffIntent": {
+        "description": "Recipient intent for a local handoff package or readiness result.",
+        "enum": [
+          "review-only",
+          "continue-work",
+          "verification-needed",
+          "failure-triage",
+          "release-signoff",
+          "future-self",
+          "fork-recommended"
+        ],
+        "title": "HandoffIntent",
+        "type": "string"
+      },
+      "HandoffLabel": {
+        "additionalProperties": false,
+        "description": "Recipient, custodian, exporter, or actor label for local coordination.",
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "label": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "local_only_metadata": {
+            "default": false,
+            "title": "Local Only Metadata",
+            "type": "boolean"
+          },
+          "metadata_posture": {
+            "$ref": "#/components/schemas/HandoffLabelMetadataPosture",
+            "default": "portable"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffLabelSource",
+            "default": "operator"
+          }
+        },
+        "required": ["label"],
+        "title": "HandoffLabel",
+        "type": "object"
+      },
+      "HandoffLabelMetadataPosture": {
+        "description": "Portability posture for label metadata.",
+        "enum": ["portable", "local-only", "redacted", "unknown"],
+        "title": "HandoffLabelMetadataPosture",
+        "type": "string"
+      },
+      "HandoffLabelSource": {
+        "description": "Where recipient, custodian, or exporter label metadata came from.",
+        "enum": ["operator", "package", "import", "runtime", "config", "unknown"],
+        "title": "HandoffLabelSource",
+        "type": "string"
+      },
+      "HandoffReadiness": {
+        "additionalProperties": false,
+        "description": "Shared handoff readiness contract for sessions, tasks, and changesets.",
+        "properties": {
+          "accepted_risks": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffReadinessReason"
+            },
+            "maxItems": 50,
+            "title": "Accepted Risks",
+            "type": "array"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/RepositoryIntelligenceConfidence",
+            "default": "unknown"
+          },
+          "expected_custodian": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffLabel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "freshness": {
+            "$ref": "#/components/schemas/HandoffEvidenceFreshness",
+            "default": "unknown"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/HandoffIntent"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "local_only_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffReadinessReason"
+            },
+            "maxItems": 50,
+            "title": "Local Only Evidence",
+            "type": "array"
+          },
+          "missing_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 50,
+            "title": "Missing Evidence",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffReadinessReason"
+            },
+            "maxItems": 50,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffLabel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "safe_first_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe First Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffSourceRef"
+          },
+          "stale_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 50,
+            "title": "Stale Evidence",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/HandoffReadinessState"
+          },
+          "supporting_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 50,
+            "title": "Supporting Evidence",
+            "type": "array"
+          }
+        },
+        "required": ["source", "intent", "state"],
+        "title": "HandoffReadiness",
+        "type": "object"
+      },
       "HandoffReadinessEvidenceSummaryResponse": {
         "properties": {
           "accepted_risk_count": {
@@ -7219,6 +7423,78 @@
         ],
         "title": "HandoffReadinessEvidenceSummaryResponse",
         "type": "object"
+      },
+      "HandoffReadinessReason": {
+        "additionalProperties": false,
+        "description": "One bounded reason supporting or limiting handoff readiness.",
+        "properties": {
+          "affected_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Affected Claim Ids",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/NextActionEvidenceRef"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/HandoffReadinessReasonKind"
+          },
+          "limitation": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limitation"
+          },
+          "portable": {
+            "default": true,
+            "title": "Portable",
+            "type": "boolean"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "summary"],
+        "title": "HandoffReadinessReason",
+        "type": "object"
+      },
+      "HandoffReadinessReasonKind": {
+        "description": "Reason buckets explaining a handoff readiness state.",
+        "enum": [
+          "supporting-evidence",
+          "missing-evidence",
+          "stale-evidence",
+          "redacted-evidence",
+          "local-only-evidence",
+          "manual-only-evidence",
+          "skipped-evidence",
+          "unsupported-evidence",
+          "accepted-risk",
+          "compatibility-warning",
+          "policy-blocker",
+          "runtime-owner-blocker",
+          "package-limitation"
+        ],
+        "title": "HandoffReadinessReasonKind",
+        "type": "string"
       },
       "HandoffReadinessResponse": {
         "properties": {
@@ -7298,6 +7574,9 @@
             "title": "Session Id",
             "type": "string"
           },
+          "shared_readiness": {
+            "$ref": "#/components/schemas/HandoffReadiness"
+          },
           "signals": {
             "items": {
               "$ref": "#/components/schemas/HandoffReadinessSignalResponse"
@@ -7338,6 +7617,7 @@
           "evidence",
           "git",
           "signals",
+          "shared_readiness",
           "non_claims"
         ],
         "title": "HandoffReadinessResponse",
@@ -7371,6 +7651,124 @@
         },
         "required": ["signal_id", "state", "summary", "blocking", "paths"],
         "title": "HandoffReadinessSignalResponse",
+        "type": "object"
+      },
+      "HandoffReadinessState": {
+        "description": "Shared readiness states for handoff sources.",
+        "enum": [
+          "ready",
+          "historical-only",
+          "awaiting-approval",
+          "awaiting-answer",
+          "needs-context",
+          "needs-verification",
+          "failed-needs-triage",
+          "local-only-evidence",
+          "stale-evidence",
+          "blocked",
+          "accepted-with-risk"
+        ],
+        "title": "HandoffReadinessState",
+        "type": "string"
+      },
+      "HandoffSafeCommand": {
+        "additionalProperties": false,
+        "description": "Safe inspection command shown before any handoff mutation.",
+        "properties": {
+          "command": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "minItems": 1,
+            "title": "Command",
+            "type": "array"
+          },
+          "display": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Display",
+            "type": "string"
+          },
+          "purpose": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Purpose",
+            "type": "string"
+          },
+          "read_only": {
+            "default": true,
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "requires_policy_approval": {
+            "default": false,
+            "title": "Requires Policy Approval",
+            "type": "boolean"
+          }
+        },
+        "required": ["command", "display", "purpose"],
+        "title": "HandoffSafeCommand",
+        "type": "object"
+      },
+      "HandoffSourceKind": {
+        "description": "Supported source contexts for local handoff.",
+        "enum": [
+          "session",
+          "task",
+          "changeset",
+          "workspace",
+          "release",
+          "future-self",
+          "imported-package"
+        ],
+        "title": "HandoffSourceKind",
+        "type": "string"
+      },
+      "HandoffSourceRef": {
+        "additionalProperties": false,
+        "description": "Stable source reference for a handoff package or readiness result.",
+        "properties": {
+          "identifiers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 20,
+            "title": "Identifiers",
+            "type": "object"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/HandoffSourceKind"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "primary_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Id"
+          }
+        },
+        "required": ["kind"],
+        "title": "HandoffSourceRef",
         "type": "object"
       },
       "HealthResponse": {

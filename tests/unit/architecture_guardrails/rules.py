@@ -3162,6 +3162,7 @@ V14_PYTHON_FACADE_RULES: tuple[
             "glassbox.runtime.commit_readiness",
             "glassbox.runtime.handoff_readiness_evidence",
             "glassbox.runtime.handoff_readiness_signals",
+            "glassbox.runtime.handoff_readiness_shared",
             "glassbox.runtime.review_readiness_signals",
             "glassbox.runtime.review_responses",
             "glassbox.services",

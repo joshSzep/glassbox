@@ -16,6 +16,7 @@ from glassbox.core import ChangesetReadinessRecord
 from glassbox.core import ChangesetReadinessState
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
+from glassbox.core import HandoffReadiness
 from glassbox.core import ManualEvidenceRecord
 from glassbox.core import SessionId
 from glassbox.core import TaskVerificationId
@@ -30,6 +31,9 @@ from glassbox.runtime.commit_readiness import CommitReadinessAssessment
 from glassbox.runtime.commit_readiness import CommitReadinessGitSummary
 from glassbox.runtime.handoff_readiness_evidence import HandoffReadinessEvidenceSummary
 from glassbox.runtime.handoff_readiness_evidence import build_handoff_evidence_summary
+from glassbox.runtime.handoff_readiness_shared import (
+    build_shared_changeset_handoff_readiness,
+)
 from glassbox.runtime.handoff_readiness_signals import HandoffReadinessSignal
 from glassbox.runtime.handoff_readiness_signals import HandoffReadinessState
 from glassbox.runtime.handoff_readiness_signals import aggregate_handoff_state
@@ -64,6 +68,7 @@ class HandoffReadinessAssessment(BaseModel):
     evidence: HandoffReadinessEvidenceSummary
     git: CommitReadinessGitSummary
     signals: list[HandoffReadinessSignal] = Field(default_factory=list)
+    shared_readiness: HandoffReadiness
     non_claims: list[str] = Field(default_factory=list, max_length=20)
 
 
@@ -155,11 +160,38 @@ def derive_handoff_readiness(
         response_actions=review_response_summary.safe_next_actions,
     )
     limitations = handoff_limitations(signals)
+    reason = _handoff_reason(state, blockers, limitations)
+    non_claims = [
+        "handoff readiness is advisory local posture, not publication",
+        (
+            "handoff-ready does not mean reviewed, approved, committed, "
+            "pushed, or merged"
+        ),
+        (
+            "manual, browser, dashboard, and accessibility evidence remains "
+            "bounded by its retained summary"
+        ),
+        "skipped live evidence is retained as a limitation, not a pass",
+        (
+            "Glassbox did not stage, commit, push, open a pull request, "
+            "merge, deploy, or publish"
+        ),
+    ]
+    shared_readiness = build_shared_changeset_handoff_readiness(
+        changeset=changeset,
+        state=state,
+        reason=reason,
+        blockers=blockers,
+        limitations=limitations,
+        safe_next_actions=safe_next_actions,
+        signals=signals,
+        non_claims=non_claims,
+    )
     return HandoffReadinessAssessment(
         changeset_id=changeset.changeset_id,
         session_id=changeset.session_id,
         state=state,
-        reason=_handoff_reason(state, blockers, limitations),
+        reason=reason,
         blockers=blockers[:20],
         limitations=limitations,
         safe_next_actions=safe_next_actions,
@@ -179,22 +211,8 @@ def derive_handoff_readiness(
         ),
         git=commit_readiness.git,
         signals=signals,
-        non_claims=[
-            "handoff readiness is advisory local posture, not publication",
-            (
-                "handoff-ready does not mean reviewed, approved, committed, "
-                "pushed, or merged"
-            ),
-            (
-                "manual, browser, dashboard, and accessibility evidence remains "
-                "bounded by its retained summary"
-            ),
-            "skipped live evidence is retained as a limitation, not a pass",
-            (
-                "Glassbox did not stage, commit, push, open a pull request, "
-                "merge, deploy, or publish"
-            ),
-        ],
+        shared_readiness=shared_readiness,
+        non_claims=non_claims,
     )
 
 

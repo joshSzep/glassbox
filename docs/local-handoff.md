@@ -58,6 +58,12 @@ It does not include raw `.glassbox` database state, raw command output, raw
 provider transcripts, raw diffs, file contents, raw screenshots, browser traces,
 or accessibility transcripts.
 
+Changeset handoff readiness preserves its existing review-loop state names for
+commit-preparation and publication-boundary compatibility, and also carries a
+shared v17 readiness block with `changeset` source kind, review-only intent,
+safe inspection commands, local-only evidence, accepted-risk, stale-evidence,
+and non-claim fields aligned with session and task handoff readiness.
+
 ## Safe Inspection First
 
 Before acting on a handoff, inspect what travelled and what stayed local:

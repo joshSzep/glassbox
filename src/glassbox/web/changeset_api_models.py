@@ -8,6 +8,7 @@ from pydantic import Field
 from glassbox.core import ClaimSupport as ClaimSupport
 from glassbox.core import EvidenceGraph as EvidenceGraph
 from glassbox.core import EvidenceGraphNode as EvidenceGraphNode
+from glassbox.core import HandoffReadiness
 from glassbox.runtime.evidence_graph import EvidenceGraphSummary as EvidenceGraphSummary
 from glassbox.web.review_loop_api import ChangesetReviewResponseSummaryResponse
 from glassbox.web.review_loop_api import ManualEvidenceResponse
@@ -589,6 +590,7 @@ class HandoffReadinessResponse(BaseModel):
     evidence: HandoffReadinessEvidenceSummaryResponse
     git: CommitReadinessGitSummaryResponse
     signals: list[HandoffReadinessSignalResponse]
+    shared_readiness: HandoffReadiness
     non_claims: list[str]
 
 

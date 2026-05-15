@@ -58,6 +58,9 @@ def test_handoff_readiness_commit_prep_ready_without_claiming_publication() -> N
     )
 
     assert assessment.state == "commit_prep_ready"
+    assert assessment.shared_readiness.source.kind == "changeset"
+    assert assessment.shared_readiness.intent == "review-only"
+    assert assessment.shared_readiness.state == "ready"
     assert assessment.blockers == []
     assert assessment.verification_plan_summary.passed_count == 1
     assert "not publication" in assessment.non_claims[0]
@@ -91,6 +94,8 @@ def test_handoff_readiness_blocks_unresolved_review_feedback() -> None:
     )
 
     assert assessment.state == "needs_review_response"
+    assert assessment.shared_readiness.state == "needs-context"
+    assert assessment.shared_readiness.missing_evidence
     assert assessment.blockers == ["1 review feedback item still need response"]
     assert any("feedback status" in action for action in assessment.safe_next_actions)
 
@@ -122,6 +127,8 @@ def test_handoff_readiness_prioritizes_stale_inventory() -> None:
     )
 
     assert assessment.state == "stale_inventory"
+    assert assessment.shared_readiness.state == "stale-evidence"
+    assert assessment.shared_readiness.stale_evidence
     assert assessment.reason.startswith("stale inventory: workspace diff changed")
     assert "git status --short" in assessment.safe_next_actions
 
@@ -145,6 +152,8 @@ def test_handoff_readiness_surfaces_local_only_accepted_risk() -> None:
     )
 
     assert assessment.state == "accepted_with_risk"
+    assert assessment.shared_readiness.state == "accepted-with-risk"
+    assert assessment.shared_readiness.accepted_risks
     assert assessment.evidence.accepted_risk_count == 2
     assert assessment.evidence.local_only_evidence_count == 1
     assert "local-only evidence" in assessment.limitations[0]

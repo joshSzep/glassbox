@@ -805,6 +805,14 @@ def test_changeset_create_list_show_refresh_and_archive(
     )
     assert export_payload["handoff_readiness"]["readiness_kind"] == "handoff"
     assert export_payload["handoff_readiness"]["state"] == handoff["state"]
+    assert (
+        export_payload["handoff_readiness"]["shared_readiness"]["source"]["kind"]
+        == "changeset"
+    )
+    assert (
+        export_payload["handoff_readiness"]["shared_readiness"]["intent"]
+        == "review-only"
+    )
     assert isinstance(export_payload["repository_intelligence_limitations"], list)
     assert export_payload["review_brief"]["artifact_id"] == brief["artifact_id"]
     assert export_payload["review_brief"]["schema_version"] == 2
