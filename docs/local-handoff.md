@@ -64,6 +64,7 @@ Before acting on a handoff, inspect what travelled and what stayed local:
 
 ```bash
 uv run glassbox session status SESSION_ID --cwd .
+uv run glassbox session handoff-readiness SESSION_ID --intent review-only --cwd .
 uv run glassbox session compactions SESSION_ID --cwd .
 uv run glassbox changeset show CHANGESET_ID --cwd .
 uv run glassbox changeset verification-plan CHANGESET_ID --cwd .
@@ -93,9 +94,10 @@ recipient the same ability to verify from the package alone.
 
 The v17 local handoff track is planning a shared handoff workflow across
 sessions, tasks, changesets, workspaces, release evidence, and future-self
-continuity. The foundational shared handoff models and v2 package compatibility
-inspector now exist in code, while operator-facing v17 commands and cockpit
-surfaces remain planned until later tasks land. Start with:
+continuity. The foundational shared handoff models, v2 package compatibility
+inspector, and session handoff-readiness command now exist in code, while broader
+operator-facing v17 commands and cockpit surfaces remain planned until later
+tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and

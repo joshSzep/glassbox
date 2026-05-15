@@ -8,6 +8,8 @@ from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_optional_output_path
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.cli.status_formatters import _print_session_status
+from glassbox.core import HandoffIntent
+from glassbox.core import HandoffReadiness
 from glassbox.core.models import ProjectionHealth
 from glassbox.core.models import SessionRecord
 from glassbox.core.types import ApprovalDecision
@@ -18,6 +20,7 @@ from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.session_export import export_session_package
+from glassbox.runtime.session_handoff_readiness import SessionHandoffReadinessService
 from glassbox.runtime.session_import import import_session_package
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import SessionSummaryView
@@ -167,6 +170,8 @@ def _session_command(args: argparse.Namespace) -> int:
         return _fork_command(args)
     if args.session_command == "status":
         return _status_command(args)
+    if args.session_command == "handoff-readiness":
+        return _session_handoff_readiness_command(args)
     if args.session_command == "evidence-graph":
         return _session_evidence_graph_command(args)
     if args.session_command == "compact":
@@ -245,6 +250,60 @@ def _session_export_command(args: argparse.Namespace) -> int:
             f"Exported session handoff package for {args.session_id}: {exported_path}"
         )
     return 0
+
+
+def _session_handoff_readiness_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        query_service = SessionQueryService(
+            runtime_context.repositories.sessions,
+            runtime_context.repositories.artifacts,
+        )
+        readiness = SessionHandoffReadinessService(query_service).preview(
+            args.session_id,
+            intent=HandoffIntent(args.intent),
+        )
+
+    if args.json:
+        print_json_output(readiness.model_dump(mode="json"))
+    else:
+        _print_session_handoff_readiness(readiness)
+    return 0
+
+
+def _print_session_handoff_readiness(readiness: HandoffReadiness) -> None:
+    print(f"Session handoff readiness: {readiness.source.primary_id}")
+    print(f"Intent: {readiness.intent.value}")
+    print(f"State: {readiness.state.value}")
+    print(f"Confidence: {readiness.confidence.value}")
+    print(f"Freshness: {readiness.freshness.value}")
+    if readiness.reasons:
+        print("Reasons:")
+        for reason in readiness.reasons:
+            print(f"  - {reason.kind.value}: {reason.summary}")
+    if readiness.limitations:
+        print("Limitations:")
+        for limitation in readiness.limitations:
+            print(f"  - {limitation}")
+    if readiness.missing_evidence:
+        print("Missing evidence:")
+        for item in readiness.missing_evidence:
+            print(f"  - {item.summary}")
+    if readiness.stale_evidence:
+        print("Stale evidence:")
+        for item in readiness.stale_evidence:
+            print(f"  - {item.summary}")
+    if readiness.local_only_evidence:
+        print("Local-only evidence:")
+        for item in readiness.local_only_evidence:
+            print(f"  - {item.summary}")
+    print("Safe first commands:")
+    for command in readiness.safe_first_commands:
+        print(f"  - {command.display}")
+    print("Non-claims:")
+    for non_claim in readiness.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _session_import_command(args: argparse.Namespace) -> int:

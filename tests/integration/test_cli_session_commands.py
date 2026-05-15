@@ -129,6 +129,7 @@ def test_cli_session_help_lists_session_subcommands(
     assert "evidence-graph" in captured.out
     assert "export" in captured.out
     assert "fork" in captured.out
+    assert "handoff-readiness" in captured.out
     assert "import" in captured.out
     assert "message" in captured.out
     assert "resume" in captured.out
@@ -274,6 +275,42 @@ def test_cli_session_list_reports_recent_sessions(
     )
     assert "running" in captured.out
     assert "Next:" in captured.out
+
+
+def test_cli_session_handoff_readiness_json_reports_safe_inspection(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _run_baseline_session(
+        tmp_path,
+        prompt="Prepare session handoff readiness",
+    )
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "session",
+            "handoff-readiness",
+            str(session_id),
+            "--intent",
+            "review-only",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert result["source"]["kind"] == "session"
+    assert result["intent"] == "review-only"
+    assert result["state"] in {"ready", "local-only-evidence"}
+    assert result["safe_first_commands"][0]["display"].startswith(
+        "glassbox session status"
+    )
+    assert "does not resume" in result["non_claims"][1]
 
 
 def test_cli_session_list_supports_json_and_limit(

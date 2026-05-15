@@ -407,6 +407,23 @@ def _add_session_workflow_parsers(
     status_parser.add_argument("session_id", type=_parse_uuid)
     _add_runtime_location_arguments(status_parser)
 
+    handoff_readiness_parser = session_subparsers.add_parser(
+        "handoff-readiness",
+        help="inspect session handoff readiness",
+        description=(
+            "Explain whether a session is ready for a declared local handoff "
+            "intent without resuming, approving, or mutating work."
+        ),
+    )
+    handoff_readiness_parser.add_argument("session_id", type=_parse_uuid)
+    handoff_readiness_parser.add_argument(
+        "--intent",
+        default="review-only",
+        help="recipient intent to evaluate",
+    )
+    handoff_readiness_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(handoff_readiness_parser)
+
     _add_session_evidence_graph_parser(session_subparsers)
 
     session_export_parser = session_subparsers.add_parser(

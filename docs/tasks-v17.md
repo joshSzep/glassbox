@@ -452,7 +452,7 @@ large to review safely.
 
 ### GBX-1720: Add Session Handoff Readiness
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1710`
 - Goal: explain whether a session is ready to hand off for a declared intent
 - Deliverables:
