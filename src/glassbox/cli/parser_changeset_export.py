@@ -24,6 +24,14 @@ def _add_changeset_export_parsers(
         dest="markdown_output_path",
         help="also write a compact reviewer-safe Markdown summary",
     )
+    export_parser.add_argument(
+        "--preview",
+        action="store_true",
+        help=(
+            "preview included, redacted, local-only, and omitted evidence without "
+            "writing the package"
+        ),
+    )
     export_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(export_parser)
 

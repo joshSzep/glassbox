@@ -561,7 +561,7 @@ large to review safely.
 
 ### GBX-1730: Add Handoff Redaction Preview
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1711`, `GBX-1720`
 - Goal: show operators what will travel before writing a handoff package
 - Deliverables:

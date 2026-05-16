@@ -95,6 +95,67 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
     assert "OPENAI_API_KEY=<redacted>" in raw_package
 
 
+def test_cli_session_export_preview_reports_redaction_without_writing_package(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    prompt = f"Preview {tmp_path} with OPENAI_API_KEY=sk-preview-secret"
+    db_path, session_id = _run_baseline_session(tmp_path, prompt=prompt)
+    output_path = tmp_path / "exports" / "preview-session.json"
+    _ = capsys.readouterr()
+
+    preview_exit = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--note",
+            f"preview from {tmp_path}",
+            "--preview",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    preview = json.loads(capsys.readouterr().out)
+
+    assert preview_exit == 0
+    assert not output_path.exists()
+    assert preview["source"]["kind"] == "session"
+    assert "transcript" in preview["included_sections"]
+    assert "artifact_references" in preview["included_sections"]
+    assert preview["redaction"]["redacted_field_count"] > 0
+    assert "workspace-path" in preview["redaction"]["redacted_categories"]
+    assert "secret-like-token" in preview["redaction"]["redacted_categories"]
+    assert "raw artifact contents" in preview["omitted_raw_categories"]
+
+    export_exit = main(
+        [
+            "session",
+            "export",
+            str(session_id),
+            str(output_path),
+            "--note",
+            f"preview from {tmp_path}",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    export_payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert export_exit == 0
+    assert set(preview["included_sections"]) == {
+        key
+        for key, value in export_payload.items()
+        if value is not None and value != [] and value != {}
+    }
+
+
 def test_cli_session_export_captures_paused_approval_handoff(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

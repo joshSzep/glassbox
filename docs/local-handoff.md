@@ -98,6 +98,20 @@ If a claim depends on evidence that did not travel, say so in the handoff note o
 review summary. Local-only evidence can support local confidence without giving a
 recipient the same ability to verify from the package alone.
 
+Use export preview before writing a package when shareability matters:
+
+```bash
+uv run glassbox session export SESSION_ID --preview --json --cwd .
+uv run glassbox changeset export CHANGESET_ID changeset-review.json \
+  --preview --json --cwd .
+```
+
+The preview uses the same in-memory payload builders and redaction paths as the
+eventual export, then reports included sections, redacted categories, local-only
+evidence counts, omitted raw categories, package limitations, and safe inspection
+commands. Preview does not write the package, Markdown summary, raw artifacts,
+raw logs, provider output, screenshots, or raw diffs.
+
 ## Workspace And Release Handoff Summaries
 
 Workspace and release-candidate handoff summaries are read-only readiness views

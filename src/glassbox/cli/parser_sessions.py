@@ -460,6 +460,7 @@ def _add_session_workflow_parsers(
         action="store_true",
         help="print the export command result as JSON",
     )
+    session_export_parser.add_argument("--preview", action="store_true")
     _add_runtime_location_arguments(session_export_parser)
 
     session_import_parser = session_subparsers.add_parser(

@@ -3,6 +3,7 @@
 import argparse
 from collections.abc import Sequence
 
+from glassbox.cli.handoff_preview_output import print_handoff_redaction_preview
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_optional_output_path
@@ -19,6 +20,7 @@ from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_redaction_preview import build_session_redaction_preview
 from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_handoff_readiness import SessionHandoffReadinessService
 from glassbox.runtime.session_import import import_session_package
@@ -227,6 +229,21 @@ def _session_export_command(args: argparse.Namespace) -> int:
     )
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        if args.preview:
+            preview = build_session_redaction_preview(
+                args.session_id,
+                session_repository=runtime_context.repositories.sessions,
+                artifact_repository=runtime_context.repositories.artifacts,
+                workspace_root=cwd,
+                exported_by=args.exported_by,
+                expected_custodian=args.expected_custodian,
+                note=args.note,
+            )
+            if args.json:
+                print_json_output(preview.model_dump(mode="json"))
+            else:
+                print_handoff_redaction_preview(preview)
+            return 0
         exported_path = export_session_package(
             args.session_id,
             output_path,

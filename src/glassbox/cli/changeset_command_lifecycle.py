@@ -20,6 +20,7 @@ from glassbox.cli.changeset_command_formatters import (
 )
 from glassbox.cli.changeset_command_payloads import _adoption_result_payload
 from glassbox.cli.changeset_command_payloads import _review_brief_payload
+from glassbox.cli.handoff_preview_output import print_handoff_redaction_preview
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
 from glassbox.runtime.bootstrap import open_runtime_context
@@ -42,6 +43,7 @@ from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
+from glassbox.runtime.handoff_redaction_preview import build_changeset_redaction_preview
 from glassbox.tools.workflow import DiffSummaryScope
 
 
@@ -741,6 +743,21 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
         else None
     )
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        if args.preview:
+            preview = build_changeset_redaction_preview(
+                args.changeset_id,
+                repository=cast(
+                    ChangesetRepository,
+                    runtime_context.repositories.sessions,
+                ),
+                artifact_repository=runtime_context.repositories.artifacts,
+                workspace_root=cwd,
+            )
+            if args.json:
+                print_json_output(preview.model_dump(mode="json"))
+            else:
+                print_handoff_redaction_preview(preview)
+            return 0
         resolved_output = export_changeset_package(
             args.changeset_id,
             output_path,

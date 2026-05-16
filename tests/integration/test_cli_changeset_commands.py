@@ -544,6 +544,22 @@ def test_changeset_create_list_show_refresh_and_archive(
     graph_neighborhood = json.loads(capsys.readouterr().out)
     export_markdown_path = tmp_path / "changeset-export.md"
     export_path = tmp_path / "changeset-export.json"
+    preview_path = tmp_path / "changeset-preview.json"
+    preview_exit = main(
+        [
+            "changeset",
+            "export",
+            changeset_id,
+            str(preview_path),
+            "--preview",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    preview_payload = json.loads(capsys.readouterr().out)
     export_exit = main(
         [
             "changeset",
@@ -791,6 +807,14 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert {node["node_id"] for node in graph_neighborhood["nodes"]} >= {claim_id}
     assert all(
         node["visibility"] == "reviewer_safe" for node in graph_neighborhood["nodes"]
+    )
+    assert preview_exit == 0
+    assert not preview_path.exists()
+    assert preview_payload["source"]["kind"] == "changeset"
+    assert "redaction_report" in preview_payload["included_sections"]
+    assert "raw diffs" in preview_payload["omitted_raw_categories"]
+    assert preview_payload["redaction"]["redacted_field_count"] >= len(
+        export_payload["redaction_report"]
     )
     assert export_exit == 0
     assert exported["status"] == "exported"
