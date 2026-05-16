@@ -531,7 +531,7 @@ large to review safely.
 
 ### GBX-1723: Add Workspace And Release Handoff Summaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1720`, `GBX-1721`, `GBX-1722`
 - Goal: summarize a workspace or release-candidate handoff without pretending
   it is a remote release decision

@@ -219,6 +219,69 @@ def test_observability_status_text_reports_next_actions(
     assert "glassbox eval run" in captured.out
 
 
+def test_observability_handoff_readiness_json_reports_workspace_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / "glassbox.sqlite3"
+    connection = open_initialized_database(tmp_path)
+    connection.close()
+
+    exit_code = main(
+        [
+            "observability",
+            "handoff-readiness",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+            "--json",
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["source"]["kind"] == "workspace"
+    assert payload["intent"] == "future-self"
+    assert payload["safe_first_commands"]
+    assert any(
+        command["display"] == "glassbox observability status --cwd ."
+        for command in payload["safe_first_commands"]
+    )
+    assert "does not approve" in payload["non_claims"][1]
+
+
+def test_observability_handoff_readiness_text_reports_release_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path = tmp_path / "glassbox.sqlite3"
+    connection = open_initialized_database(tmp_path)
+    connection.close()
+    _write_eval_summary(tmp_path, exit_code=1, failed_case_count=1)
+
+    exit_code = main(
+        [
+            "observability",
+            "handoff-readiness",
+            "--source",
+            "release",
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "Handoff source: release" in captured.out
+    assert "Intent: release-signoff" in captured.out
+    assert "Readiness: needs-verification" in captured.out
+    assert "glassbox eval audit --profile release-candidate --cwd ." in captured.out
+
+
 def test_observability_status_json_reports_v8_autonomy_recovery_posture(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

@@ -76,6 +76,8 @@ uv run glassbox changeset show CHANGESET_ID --cwd .
 uv run glassbox changeset verification-plan CHANGESET_ID --cwd .
 uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
 uv run glassbox observability status --cwd .
+uv run glassbox observability handoff-readiness --source workspace --cwd .
+uv run glassbox observability handoff-readiness --source release --cwd .
 uv run glassbox eval audit --cwd .
 ```
 
@@ -96,14 +98,33 @@ If a claim depends on evidence that did not travel, say so in the handoff note o
 review summary. Local-only evidence can support local confidence without giving a
 recipient the same ability to verify from the package alone.
 
+## Workspace And Release Handoff Summaries
+
+Workspace and release-candidate handoff summaries are read-only readiness views
+over existing observability evidence:
+
+```bash
+uv run glassbox observability handoff-readiness --source workspace --cwd .
+uv run glassbox observability handoff-readiness --source release --json --cwd .
+```
+
+The workspace summary pulls from runtime owner posture, projections, operator
+queue inputs, task autonomy, background jobs, repository intelligence, memory,
+artifacts, retained verification, provider-canary evidence, and maintenance
+cues. The release summary focuses on retained eval evidence, release-surface
+freshness, package/install smoke inspection paths, advisory provider evidence,
+local-only limitations, safe first commands, and explicit non-claims. Neither
+summary runs release gates, approves publication, transfers runtime ownership,
+or exports raw `.glassbox` evidence.
+
 ## V17 Planning Track
 
 The v17 local handoff track is planning a shared handoff workflow across
 sessions, tasks, changesets, workspaces, release evidence, and future-self
 continuity. The foundational shared handoff models, v2 package compatibility
-inspector, and session handoff-readiness command now exist in code, while broader
-operator-facing v17 commands and cockpit surfaces remain planned until later
-tasks land. Start with:
+inspector, session/task/changeset readiness alignment, and workspace/release
+handoff summaries now exist in code, while broader operator-facing v17 commands
+and cockpit surfaces remain planned until later tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and

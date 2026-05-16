@@ -201,6 +201,33 @@ def _add_operations_parsers(
     )
     _add_runtime_location_arguments(observability_status_parser)
 
+    handoff_readiness_parser = observability_subparsers.add_parser(
+        "handoff-readiness",
+        help="inspect workspace or release handoff readiness",
+        description=(
+            "Explain whether workspace or release-candidate evidence is ready "
+            "for a declared local handoff intent without running gates or "
+            "mutating repository state."
+        ),
+    )
+    handoff_readiness_parser.add_argument(
+        "--source",
+        choices=("workspace", "release"),
+        default="workspace",
+        help="handoff source summary to derive",
+    )
+    handoff_readiness_parser.add_argument(
+        "--intent",
+        default=None,
+        help="recipient intent to evaluate; defaults by source",
+    )
+    handoff_readiness_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print handoff readiness as JSON",
+    )
+    _add_runtime_location_arguments(handoff_readiness_parser)
+
     provider_parser = subparsers.add_parser(
         "provider",
         help="diagnose provider runtime configuration",
