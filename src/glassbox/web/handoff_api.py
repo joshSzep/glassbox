@@ -6,6 +6,7 @@ from pydantic import Field
 
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffProjectionRecord
+from glassbox.runtime.handoff_guidance import HandoffGuidance
 
 
 class HandoffRecordResponse(BaseModel):
@@ -63,10 +64,19 @@ class HandoffDecisionResponse(BaseModel):
     non_claims: list[str] = Field(default_factory=list, max_length=20)
 
 
+class HandoffGuidanceResponse(BaseModel):
+    """Dashboard/API fork-or-continue guidance."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    guidance: HandoffGuidance
+
+
 __all__ = [
     "HandoffAcceptRequest",
     "HandoffArchiveRequest",
     "HandoffDecisionResponse",
+    "HandoffGuidanceResponse",
     "HandoffListResponse",
     "HandoffRecordResponse",
     "HandoffRejectRequest",

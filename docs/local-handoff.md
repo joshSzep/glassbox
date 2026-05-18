@@ -57,6 +57,7 @@ block any policy-controlled operator path:
 ```bash
 uv run glassbox handoff list --cwd .
 uv run glassbox handoff show SESSION_ID PACKAGE_ID --cwd .
+uv run glassbox handoff guidance SESSION_ID PACKAGE_ID --cwd .
 uv run glassbox handoff accept SESSION_ID PACKAGE_ID \
   --accepted-by bob \
   --follow-up-intent verification-needed \
@@ -72,7 +73,10 @@ uv run glassbox handoff archive SESSION_ID PACKAGE_ID \
 Accept, reject, and archive actions append canonical local events and update the
 handoff projection. Rejection preserves a reason and safe inspection commands;
 archive hides the record from default handoff lists while keeping it available
-with `--include-archived`.
+with `--include-archived`. Guidance explains whether the recipient should keep
+inspecting, fork from imported history, continue in a new local session, run
+verification, refresh stale local state, or reject the handoff. Guidance does
+not resume imported sessions or execute provider/tool work.
 
 For changeset-centered review handoff, start with:
 

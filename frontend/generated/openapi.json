@@ -7215,6 +7215,43 @@
         "title": "HandoffCompatibilityState",
         "type": "string"
       },
+      "HandoffContinuationPath": {
+        "additionalProperties": false,
+        "description": "One possible recipient path after inspecting an imported handoff.",
+        "properties": {
+          "path_id": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Path Id",
+            "type": "string"
+          },
+          "recommended": {
+            "default": false,
+            "title": "Recommended",
+            "type": "boolean"
+          },
+          "requires_explicit_mutation": {
+            "default": false,
+            "title": "Requires Explicit Mutation",
+            "type": "boolean"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": ["path_id", "title", "summary"],
+        "title": "HandoffContinuationPath",
+        "type": "object"
+      },
       "HandoffCustodyState": {
         "description": "Local workflow state for a handoff package or imported handoff.",
         "enum": [
@@ -7259,6 +7296,119 @@
         "description": "Freshness posture for portable handoff evidence.",
         "enum": ["fresh", "stale", "missing", "degraded", "unknown"],
         "title": "HandoffEvidenceFreshness",
+        "type": "string"
+      },
+      "HandoffGuidance": {
+        "additionalProperties": false,
+        "description": "Recipient-facing fork-or-continue guidance.",
+        "properties": {
+          "blockers": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffGuidanceBlocker"
+            },
+            "maxItems": 20,
+            "title": "Blockers",
+            "type": "array"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "package_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Package Id",
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffContinuationPath"
+            },
+            "maxItems": 10,
+            "title": "Paths",
+            "type": "array"
+          },
+          "safe_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe Commands",
+            "type": "array"
+          },
+          "session_id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Session Id",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/HandoffGuidanceState"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["package_id", "session_id", "state", "summary"],
+        "title": "HandoffGuidance",
+        "type": "object"
+      },
+      "HandoffGuidanceBlocker": {
+        "additionalProperties": false,
+        "description": "One explicit reason that blocks or limits continuation.",
+        "properties": {
+          "kind": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "severity": {
+            "default": "medium",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Severity",
+            "type": "string"
+          },
+          "summary": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["kind", "summary"],
+        "title": "HandoffGuidanceBlocker",
+        "type": "object"
+      },
+      "HandoffGuidanceResponse": {
+        "additionalProperties": false,
+        "description": "Dashboard/API fork-or-continue guidance.",
+        "properties": {
+          "guidance": {
+            "$ref": "#/components/schemas/HandoffGuidance"
+          }
+        },
+        "required": ["guidance"],
+        "title": "HandoffGuidanceResponse",
+        "type": "object"
+      },
+      "HandoffGuidanceState": {
+        "enum": [
+          "inspect-only",
+          "fork-recommended",
+          "continue-new-session",
+          "run-verification",
+          "refresh-repository",
+          "reject-handoff"
+        ],
         "type": "string"
       },
       "HandoffIntent": {
@@ -21779,6 +21929,66 @@
           }
         },
         "summary": "Archive Handoff Record"
+      }
+    },
+    "/handoffs/{session_id}/{package_id}/guidance": {
+      "get": {
+        "description": "Return advisory fork-or-continue guidance for one imported handoff.",
+        "operationId": "get_handoff_guidance_handoffs__session_id___package_id__guidance_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffGuidanceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Handoff Guidance"
       }
     },
     "/handoffs/{session_id}/{package_id}/reject": {

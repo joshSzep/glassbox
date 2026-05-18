@@ -34,6 +34,9 @@ def test_handoff_routes_record_accept_reject_archive(tmp_path: Path) -> None:
                 base_url="http://testserver",
             ) as client:
                 list_response = await client.get("/handoffs")
+                guidance_response = await client.get(
+                    f"/handoffs/{session_id}/{package_id}/guidance"
+                )
                 accept_response = await client.post(
                     f"/handoffs/{session_id}/{package_id}/accept",
                     json={
@@ -59,6 +62,8 @@ def test_handoff_routes_record_accept_reject_archive(tmp_path: Path) -> None:
             assert list_response.json()["items"][0]["action_state"] == (
                 "awaiting-recipient"
             )
+            assert guidance_response.status_code == 200
+            assert guidance_response.json()["guidance"]["state"] == "inspect-only"
             assert accept_response.status_code == 200
             assert accept_response.json()["event_type"] == "HandoffCustodyAccepted"
             assert (

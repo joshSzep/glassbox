@@ -711,7 +711,7 @@ large to review safely.
 
 ### GBX-1742: Add Fork-Or-Continue Guidance For Imported Handoffs
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1740`, `GBX-1741`
 - Goal: help recipients choose a safe local continuation path
 - Deliverables:

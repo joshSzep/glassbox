@@ -16,6 +16,8 @@ from glassbox.runtime.handoff_decisions import archive_handoff
 from glassbox.runtime.handoff_decisions import custody_action_state
 from glassbox.runtime.handoff_decisions import reject_handoff_custody
 from glassbox.runtime.handoff_decisions import safe_next_actions_for_decision
+from glassbox.runtime.handoff_guidance import HandoffGuidance
+from glassbox.runtime.handoff_guidance import load_handoff_guidance
 
 
 def _handoff_command(args: argparse.Namespace) -> int:
@@ -23,6 +25,8 @@ def _handoff_command(args: argparse.Namespace) -> int:
         return _handoff_list_command(args)
     if args.handoff_command == "show":
         return _handoff_show_command(args)
+    if args.handoff_command == "guidance":
+        return _handoff_guidance_command(args)
     if args.handoff_command == "accept":
         return _handoff_accept_command(args)
     if args.handoff_command == "reject":
@@ -64,6 +68,22 @@ def _handoff_show_command(args: argparse.Namespace) -> int:
         print_json_output(_record_payload(record))
     else:
         _print_handoff_record(record)
+    return 0
+
+
+def _handoff_guidance_command(args: argparse.Namespace) -> int:
+    cwd, db_path = resolve_runtime_location(args)
+    with open_runtime_context(cwd, db_path=db_path) as runtime_context:
+        repository = cast(Any, runtime_context.repositories.sessions)
+        guidance = load_handoff_guidance(
+            repository,
+            args.session_id,
+            args.package_id,
+        )
+    if args.json:
+        print_json_output(guidance.model_dump(mode="json"))
+    else:
+        _print_handoff_guidance(guidance)
     return 0
 
 
@@ -192,6 +212,26 @@ def _print_handoff_record(record: HandoffProjectionRecord) -> None:
         print("  Safe next actions:")
         for action in record.safe_next_actions:
             print(f"    - {action}")
+
+
+def _print_handoff_guidance(guidance: HandoffGuidance) -> None:
+    print(f"Handoff guidance: {guidance.package_id}")
+    print(f"State: {guidance.state}")
+    print(f"Summary: {guidance.summary}")
+    if guidance.blockers:
+        print("Blockers:")
+        for blocker in guidance.blockers:
+            print(f"  - {blocker.kind}: {blocker.summary}")
+    print("Paths:")
+    for path in guidance.paths:
+        marker = "recommended" if path.recommended else "available"
+        print(f"  - {path.path_id} ({marker}): {path.summary}")
+    print("Safe commands:")
+    for command in guidance.safe_commands:
+        print(f"  - {command.display}")
+    print("Non-claims:")
+    for non_claim in guidance.non_claims:
+        print(f"  - {non_claim}")
 
 
 def _decision_payload(result: HandoffDecisionResult) -> dict[str, object]:

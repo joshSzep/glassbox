@@ -88,6 +88,14 @@ def _add_handoff_parsers(
     show_parser.add_argument("--json", action="store_true")
     _add_runtime_location_arguments(show_parser)
 
+    guidance_parser = handoff_subparsers.add_parser(
+        "guidance",
+        help="preview fork-or-continue guidance for an imported handoff",
+    )
+    _add_handoff_decision_target_arguments(guidance_parser)
+    guidance_parser.add_argument("--json", action="store_true")
+    _add_runtime_location_arguments(guidance_parser)
+
     accept_parser = handoff_subparsers.add_parser(
         "accept",
         help="accept local custody or imported follow-up",

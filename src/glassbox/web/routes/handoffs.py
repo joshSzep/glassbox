@@ -16,10 +16,12 @@ from glassbox.runtime.handoff_decisions import archive_handoff
 from glassbox.runtime.handoff_decisions import custody_action_state
 from glassbox.runtime.handoff_decisions import reject_handoff_custody
 from glassbox.runtime.handoff_decisions import safe_next_actions_for_decision
+from glassbox.runtime.handoff_guidance import load_handoff_guidance
 from glassbox.web.app import RuntimeContextDep
 from glassbox.web.handoff_api import HandoffAcceptRequest
 from glassbox.web.handoff_api import HandoffArchiveRequest
 from glassbox.web.handoff_api import HandoffDecisionResponse
+from glassbox.web.handoff_api import HandoffGuidanceResponse
 from glassbox.web.handoff_api import HandoffListResponse
 from glassbox.web.handoff_api import HandoffRecordResponse
 from glassbox.web.handoff_api import HandoffRejectRequest
@@ -61,6 +63,31 @@ async def get_handoff(
     """Return one projected handoff record."""
 
     return _record_response(_require_handoff(context, session_id, package_id))
+
+
+@router.get(
+    "/{session_id}/{package_id}/guidance",
+    response_model=HandoffGuidanceResponse,
+    responses={404: {"model": ErrorDetailResponse}},
+)
+async def get_handoff_guidance(
+    session_id: UUID,
+    package_id: str,
+    context: RuntimeContextDep,
+) -> HandoffGuidanceResponse:
+    """Return advisory fork-or-continue guidance for one imported handoff."""
+
+    repository = cast(Any, context.repositories.sessions)
+    try:
+        guidance = load_handoff_guidance(repository, session_id, package_id)
+    except ValueError as exc:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=404,
+            detail="handoff record not found",
+        ) from exc
+    return HandoffGuidanceResponse(guidance=guidance)
 
 
 @router.post(

@@ -728,6 +728,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/handoffs/{session_id}/{package_id}/guidance": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Handoff Guidance
+     * @description Return advisory fork-or-continue guidance for one imported handoff.
+     */
+    get: operations["get_handoff_guidance_handoffs__session_id___package_id__guidance_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/handoffs/{session_id}/{package_id}/reject": {
     parameters: {
       query?: never;
@@ -4648,6 +4668,28 @@ export interface components {
       | "future-version"
       | "invalid";
     /**
+     * HandoffContinuationPath
+     * @description One possible recipient path after inspecting an imported handoff.
+     */
+    HandoffContinuationPath: {
+      /** Path Id */
+      path_id: string;
+      /**
+       * Recommended
+       * @default false
+       */
+      recommended: boolean;
+      /**
+       * Requires Explicit Mutation
+       * @default false
+       */
+      requires_explicit_mutation: boolean;
+      /** Summary */
+      summary: string;
+      /** Title */
+      title: string;
+    };
+    /**
      * HandoffCustodyState
      * @description Local workflow state for a handoff package or imported handoff.
      * @enum {string}
@@ -4677,6 +4719,57 @@ export interface components {
      * @enum {string}
      */
     HandoffEvidenceFreshness: "fresh" | "stale" | "missing" | "degraded" | "unknown";
+    /**
+     * HandoffGuidance
+     * @description Recipient-facing fork-or-continue guidance.
+     */
+    HandoffGuidance: {
+      /** Blockers */
+      blockers?: components["schemas"]["HandoffGuidanceBlocker"][];
+      /** Non Claims */
+      non_claims?: string[];
+      /** Package Id */
+      package_id: string;
+      /** Paths */
+      paths?: components["schemas"]["HandoffContinuationPath"][];
+      /** Safe Commands */
+      safe_commands?: components["schemas"]["HandoffSafeCommand"][];
+      /** Session Id */
+      session_id: string;
+      state: components["schemas"]["HandoffGuidanceState"];
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * HandoffGuidanceBlocker
+     * @description One explicit reason that blocks or limits continuation.
+     */
+    HandoffGuidanceBlocker: {
+      /** Kind */
+      kind: string;
+      /**
+       * Severity
+       * @default medium
+       */
+      severity: string;
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * HandoffGuidanceResponse
+     * @description Dashboard/API fork-or-continue guidance.
+     */
+    HandoffGuidanceResponse: {
+      guidance: components["schemas"]["HandoffGuidance"];
+    };
+    /** @enum {string} */
+    HandoffGuidanceState:
+      | "inspect-only"
+      | "fork-recommended"
+      | "continue-new-session"
+      | "run-verification"
+      | "refresh-repository"
+      | "reject-handoff";
     /**
      * HandoffIntent
      * @description Recipient intent for a local handoff package or readiness result.
@@ -10323,6 +10416,47 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HandoffDecisionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_handoff_guidance_handoffs__session_id___package_id__guidance_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        package_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffGuidanceResponse"];
         };
       };
       /** @description Not Found */
