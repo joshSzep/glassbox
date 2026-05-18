@@ -7202,6 +7202,132 @@
         "title": "HandoffArchiveRequest",
         "type": "object"
       },
+      "HandoffChangesetPackageSummary": {
+        "additionalProperties": false,
+        "description": "Reviewer-safe changeset package inspection summary.",
+        "properties": {
+          "bundle_path": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bundle Path"
+          },
+          "changeset_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Changeset Id",
+            "type": "string"
+          },
+          "evidence_graph_claim_count": {
+            "minimum": 0.0,
+            "title": "Evidence Graph Claim Count",
+            "type": "integer"
+          },
+          "evidence_graph_node_count": {
+            "minimum": 0.0,
+            "title": "Evidence Graph Node Count",
+            "type": "integer"
+          },
+          "export_kind": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Export Kind",
+            "type": "string"
+          },
+          "feedback_count": {
+            "minimum": 0.0,
+            "title": "Feedback Count",
+            "type": "integer"
+          },
+          "handoff_state": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Handoff State",
+            "type": "string"
+          },
+          "local_only_evidence_count": {
+            "minimum": 0.0,
+            "title": "Local Only Evidence Count",
+            "type": "integer"
+          },
+          "manual_evidence_count": {
+            "minimum": 0.0,
+            "title": "Manual Evidence Count",
+            "type": "integer"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "profile_id": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Id"
+          },
+          "redaction_report_count": {
+            "minimum": 0.0,
+            "title": "Redaction Report Count",
+            "type": "integer"
+          },
+          "safe_inspection_commands": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Safe Inspection Commands",
+            "type": "array"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "status": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Status",
+            "type": "string"
+          },
+          "verification_state": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Verification State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "export_kind",
+          "schema_version",
+          "changeset_id",
+          "status",
+          "verification_state",
+          "handoff_state",
+          "feedback_count",
+          "manual_evidence_count",
+          "local_only_evidence_count",
+          "evidence_graph_node_count",
+          "evidence_graph_claim_count",
+          "redaction_report_count"
+        ],
+        "title": "HandoffChangesetPackageSummary",
+        "type": "object"
+      },
       "HandoffCompatibilityState": {
         "description": "Compatibility status for a handoff package.",
         "enum": [
@@ -7214,6 +7340,58 @@
         ],
         "title": "HandoffCompatibilityState",
         "type": "string"
+      },
+      "HandoffCompatibilitySummary": {
+        "additionalProperties": false,
+        "description": "Compatibility posture for a package manifest.",
+        "properties": {
+          "missing_optional_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Missing Optional Sections",
+            "type": "array"
+          },
+          "state": {
+            "$ref": "#/components/schemas/HandoffCompatibilityState",
+            "default": "supported"
+          },
+          "supported_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Supported Sections",
+            "type": "array"
+          },
+          "unsupported_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Unsupported Sections",
+            "type": "array"
+          },
+          "unsupported_values": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Unsupported Values",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "title": "HandoffCompatibilitySummary",
+        "type": "object"
       },
       "HandoffContinuationPath": {
         "additionalProperties": false,
@@ -7292,11 +7470,309 @@
         "title": "HandoffDecisionResponse",
         "type": "object"
       },
+      "HandoffDigestSummary": {
+        "additionalProperties": false,
+        "description": "Package integrity digests, not proof of source workspace completeness.",
+        "properties": {
+          "algorithm": {
+            "default": "sha256",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Algorithm",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "manifest_digest": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manifest Digest"
+          },
+          "package_digest": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Digest"
+          },
+          "payload_digest": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload Digest"
+          },
+          "verified": {
+            "default": false,
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "title": "HandoffDigestSummary",
+        "type": "object"
+      },
       "HandoffEvidenceFreshness": {
         "description": "Freshness posture for portable handoff evidence.",
         "enum": ["fresh", "stale", "missing", "degraded", "unknown"],
         "title": "HandoffEvidenceFreshness",
         "type": "string"
+      },
+      "HandoffExportProfile": {
+        "additionalProperties": false,
+        "description": "Typed export profile chosen from the recipient's next intended action.",
+        "properties": {
+          "local_only_treatment": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Local Only Treatment",
+            "type": "string"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Non Claims",
+            "type": "array"
+          },
+          "optional_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Optional Sections",
+            "type": "array"
+          },
+          "output_format": {
+            "default": "json",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Output Format",
+            "type": "string"
+          },
+          "package_kind": {
+            "$ref": "#/components/schemas/HandoffPackageKind"
+          },
+          "profile_id": {
+            "$ref": "#/components/schemas/HandoffIntent"
+          },
+          "recipient_next_action": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Recipient Next Action",
+            "type": "string"
+          },
+          "required_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Required Sections",
+            "type": "array"
+          },
+          "safe_inspection_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe Inspection Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffSourceRef"
+          }
+        },
+        "required": [
+          "profile_id",
+          "source",
+          "package_kind",
+          "local_only_treatment",
+          "recipient_next_action"
+        ],
+        "title": "HandoffExportProfile",
+        "type": "object"
+      },
+      "HandoffExportRequest": {
+        "additionalProperties": false,
+        "description": "Write a handoff package through the API.",
+        "properties": {
+          "expected_custodian": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Custodian"
+          },
+          "exported_by": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported By"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/HandoffIntent",
+            "default": "review-only"
+          },
+          "markdown_output_path": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown Output Path"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "output_format": {
+            "default": "json",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Output Format",
+            "type": "string"
+          },
+          "output_path": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Path"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient"
+          },
+          "source_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": ["source_kind", "source_id"],
+        "title": "HandoffExportRequest",
+        "type": "object"
+      },
+      "HandoffExportResponse": {
+        "additionalProperties": false,
+        "description": "Result of writing a handoff package.",
+        "properties": {
+          "markdown_output_path": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markdown Output Path"
+          },
+          "output_path": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Output Path",
+            "type": "string"
+          },
+          "source_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "status": {
+            "default": "exported",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": ["source_kind", "source_id", "output_path"],
+        "title": "HandoffExportResponse",
+        "type": "object"
       },
       "HandoffGuidance": {
         "additionalProperties": false,
@@ -7411,6 +7887,221 @@
         ],
         "type": "string"
       },
+      "HandoffImportDisposition": {
+        "enum": [
+          "import-for-inspection",
+          "inspect-only",
+          "inspect-with-warnings",
+          "inspect-local-only-gaps",
+          "reject",
+          "use-newer-glassbox"
+        ],
+        "type": "string"
+      },
+      "HandoffImportResponse": {
+        "additionalProperties": false,
+        "description": "Response for importing a session handoff into inspection state.",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/SessionImportResult"
+          }
+        },
+        "required": ["result"],
+        "title": "HandoffImportResponse",
+        "type": "object"
+      },
+      "HandoffImportSourceSummary": {
+        "additionalProperties": false,
+        "description": "Recipient-safe source description for an import candidate.",
+        "properties": {
+          "package_format": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Format"
+          },
+          "package_kind": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Kind"
+          },
+          "schema_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Version"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_kind": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Kind"
+          }
+        },
+        "title": "HandoffImportSourceSummary",
+        "type": "object"
+      },
+      "HandoffImportTriage": {
+        "additionalProperties": false,
+        "description": "Read-only import triage result shown before local mutation.",
+        "properties": {
+          "can_import_for_inspection": {
+            "default": false,
+            "title": "Can Import For Inspection",
+            "type": "boolean"
+          },
+          "compatibility": {
+            "$ref": "#/components/schemas/HandoffCompatibilitySummary"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/HandoffDigestSummary"
+          },
+          "included_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Included Evidence",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "local_only_omissions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Local Only Omissions",
+            "type": "array"
+          },
+          "missing_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Missing Sections",
+            "type": "array"
+          },
+          "mutation_performed": {
+            "default": false,
+            "title": "Mutation Performed",
+            "type": "boolean"
+          },
+          "package_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Package Id",
+            "type": "string"
+          },
+          "package_path": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Package Path",
+            "type": "string"
+          },
+          "recipient_intent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffIntent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "recommended_disposition": {
+            "$ref": "#/components/schemas/HandoffImportDisposition"
+          },
+          "redaction": {
+            "$ref": "#/components/schemas/HandoffRedactionSummary"
+          },
+          "safe_first_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe First Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffImportSourceSummary"
+          },
+          "unsupported_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Unsupported Sections",
+            "type": "array"
+          }
+        },
+        "required": [
+          "package_id",
+          "package_path",
+          "source",
+          "compatibility",
+          "recommended_disposition"
+        ],
+        "title": "HandoffImportTriage",
+        "type": "object"
+      },
+      "HandoffImportTriageResponse": {
+        "additionalProperties": false,
+        "description": "Import triage response that performs no mutation.",
+        "properties": {
+          "triage": {
+            "$ref": "#/components/schemas/HandoffImportTriage"
+          }
+        },
+        "required": ["triage"],
+        "title": "HandoffImportTriageResponse",
+        "type": "object"
+      },
       "HandoffIntent": {
         "description": "Recipient intent for a local handoff package or readiness result.",
         "enum": [
@@ -7507,6 +8198,203 @@
         "title": "HandoffListResponse",
         "type": "object"
       },
+      "HandoffLocalOnlyEvidenceItem": {
+        "additionalProperties": false,
+        "description": "One local-only evidence bucket that should not expose raw contents.",
+        "properties": {
+          "affected_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Affected Claim Ids",
+            "type": "array"
+          },
+          "category": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Category",
+            "type": "string"
+          },
+          "count": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "portable": {
+            "default": false,
+            "title": "Portable",
+            "type": "boolean"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/HandoffReadinessReasonKind",
+            "default": "local-only-evidence"
+          },
+          "recipient_limitation": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Recipient Limitation",
+            "type": "string"
+          },
+          "safe_local_inspection_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 10,
+            "title": "Safe Local Inspection Commands",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["category", "summary", "recipient_limitation"],
+        "title": "HandoffLocalOnlyEvidenceItem",
+        "type": "object"
+      },
+      "HandoffLocalOnlyInventory": {
+        "additionalProperties": false,
+        "description": "Recipient-safe inventory of evidence that stayed in the source workspace.",
+        "properties": {
+          "category_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "maxProperties": 50,
+            "title": "Category Counts",
+            "type": "object"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/HandoffIntent"
+          },
+          "inventory_kind": {
+            "default": "handoff_local_only_inventory",
+            "title": "Inventory Kind",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffLocalOnlyEvidenceItem"
+            },
+            "maxItems": 100,
+            "title": "Items",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "safe_local_inspection_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe Local Inspection Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffSourceRef"
+          },
+          "total_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": ["source", "intent"],
+        "title": "HandoffLocalOnlyInventory",
+        "type": "object"
+      },
+      "HandoffLocalOnlySummary": {
+        "additionalProperties": false,
+        "description": "Summary of evidence that exists locally but did not travel.",
+        "properties": {
+          "affected_claim_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Affected Claim Ids",
+            "type": "array"
+          },
+          "category_counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "maxProperties": 50,
+            "title": "Category Counts",
+            "type": "object"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "safe_local_inspection_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe Local Inspection Commands",
+            "type": "array"
+          }
+        },
+        "title": "HandoffLocalOnlySummary",
+        "type": "object"
+      },
+      "HandoffPackageInspectResponse": {
+        "additionalProperties": false,
+        "description": "Inspection-first response for a local handoff package path.",
+        "properties": {
+          "changeset_summary": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffChangesetPackageSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "package_family": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Package Family",
+            "type": "string"
+          },
+          "package_path": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Package Path",
+            "type": "string"
+          },
+          "triage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffImportTriage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["package_path", "package_family"],
+        "title": "HandoffPackageInspectResponse",
+        "type": "object"
+      },
       "HandoffPackageKind": {
         "description": "Portable handoff package families.",
         "enum": [
@@ -7520,6 +8408,117 @@
         ],
         "title": "HandoffPackageKind",
         "type": "string"
+      },
+      "HandoffPackagePathRequest": {
+        "additionalProperties": false,
+        "description": "Request body for local package path inspection.",
+        "properties": {
+          "package_path": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Package Path",
+            "type": "string"
+          }
+        },
+        "required": ["package_path"],
+        "title": "HandoffPackagePathRequest",
+        "type": "object"
+      },
+      "HandoffPreparePreviewRequest": {
+        "additionalProperties": false,
+        "description": "Request a redaction and local-only preview before export.",
+        "properties": {
+          "expected_custodian": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Custodian"
+          },
+          "exported_by": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported By"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/HandoffIntent",
+            "default": "review-only"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "output_format": {
+            "default": "json",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Output Format",
+            "type": "string"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipient"
+          },
+          "source_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": ["source_kind", "source_id"],
+        "title": "HandoffPreparePreviewRequest",
+        "type": "object"
+      },
+      "HandoffPreparePreviewResponse": {
+        "additionalProperties": false,
+        "description": "Redaction and local-only preview for a prepared handoff.",
+        "properties": {
+          "preview": {
+            "$ref": "#/components/schemas/HandoffRedactionPreview"
+          }
+        },
+        "required": ["preview"],
+        "title": "HandoffPreparePreviewResponse",
+        "type": "object"
       },
       "HandoffProjectionRecord": {
         "additionalProperties": false,
@@ -8238,6 +9237,18 @@
         "title": "HandoffReadinessState",
         "type": "string"
       },
+      "HandoffReadinessUnifiedResponse": {
+        "additionalProperties": false,
+        "description": "Shared v17 handoff readiness response for local sources.",
+        "properties": {
+          "readiness": {
+            "$ref": "#/components/schemas/HandoffReadiness"
+          }
+        },
+        "required": ["readiness"],
+        "title": "HandoffReadinessUnifiedResponse",
+        "type": "object"
+      },
       "HandoffRecordResponse": {
         "additionalProperties": false,
         "description": "Projected handoff record plus dashboard action state.",
@@ -8261,6 +9272,161 @@
         "enum": ["reviewer-safe", "redacted", "local-only-omitted", "raw-included", "unknown"],
         "title": "HandoffRedactionPosture",
         "type": "string"
+      },
+      "HandoffRedactionPreview": {
+        "additionalProperties": false,
+        "description": "Machine-readable preview for what a handoff export would include.",
+        "properties": {
+          "included_sections": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Included Sections",
+            "type": "array"
+          },
+          "intent": {
+            "$ref": "#/components/schemas/HandoffIntent"
+          },
+          "local_only": {
+            "$ref": "#/components/schemas/HandoffLocalOnlySummary"
+          },
+          "local_only_evidence_count": {
+            "readOnly": true,
+            "title": "Local Only Evidence Count",
+            "type": "integer"
+          },
+          "local_only_inventory": {
+            "$ref": "#/components/schemas/HandoffLocalOnlyInventory"
+          },
+          "omitted_raw_categories": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Omitted Raw Categories",
+            "type": "array"
+          },
+          "package_limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Package Limitations",
+            "type": "array"
+          },
+          "preview_kind": {
+            "default": "handoff_redaction_preview",
+            "title": "Preview Kind",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffExportProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redaction": {
+            "$ref": "#/components/schemas/HandoffRedactionSummary"
+          },
+          "safe_inspection_commands": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffSafeCommand"
+            },
+            "maxItems": 20,
+            "title": "Safe Inspection Commands",
+            "type": "array"
+          },
+          "source": {
+            "$ref": "#/components/schemas/HandoffSourceRef"
+          },
+          "unsupported_evidence": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Unsupported Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source",
+          "intent",
+          "redaction",
+          "local_only",
+          "local_only_inventory",
+          "local_only_evidence_count"
+        ],
+        "title": "HandoffRedactionPreview",
+        "type": "object"
+      },
+      "HandoffRedactionSummary": {
+        "additionalProperties": false,
+        "description": "Portable redaction and raw-inclusion posture for a package manifest.",
+        "properties": {
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "posture": {
+            "$ref": "#/components/schemas/HandoffRedactionPosture",
+            "default": "unknown"
+          },
+          "provider_output_included": {
+            "default": false,
+            "title": "Provider Output Included",
+            "type": "boolean"
+          },
+          "raw_artifacts_included": {
+            "default": false,
+            "title": "Raw Artifacts Included",
+            "type": "boolean"
+          },
+          "raw_diffs_included": {
+            "default": false,
+            "title": "Raw Diffs Included",
+            "type": "boolean"
+          },
+          "raw_logs_included": {
+            "default": false,
+            "title": "Raw Logs Included",
+            "type": "boolean"
+          },
+          "raw_transcript_included": {
+            "default": false,
+            "title": "Raw Transcript Included",
+            "type": "boolean"
+          },
+          "redacted_categories": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Redacted Categories",
+            "type": "array"
+          },
+          "redacted_field_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Redacted Field Count",
+            "type": "integer"
+          },
+          "screenshots_included": {
+            "default": false,
+            "title": "Screenshots Included",
+            "type": "boolean"
+          }
+        },
+        "title": "HandoffRedactionSummary",
+        "type": "object"
       },
       "HandoffRejectRequest": {
         "additionalProperties": false,
@@ -14536,6 +15702,71 @@
       "SessionId": {
         "format": "uuid",
         "type": "string"
+      },
+      "SessionImportResult": {
+        "additionalProperties": false,
+        "description": "Summary of a local session import operation.",
+        "properties": {
+          "checkpoint_event_count": {
+            "default": 0,
+            "title": "Checkpoint Event Count",
+            "type": "integer"
+          },
+          "import_mode": {
+            "const": "inspect",
+            "default": "inspect",
+            "title": "Import Mode",
+            "type": "string"
+          },
+          "imported_event_count": {
+            "title": "Imported Event Count",
+            "type": "integer"
+          },
+          "imported_session_id": {
+            "$ref": "#/components/schemas/SessionId"
+          },
+          "imported_status": {
+            "const": "completed",
+            "default": "completed",
+            "title": "Imported Status",
+            "type": "string"
+          },
+          "original_status": {
+            "title": "Original Status",
+            "type": "string"
+          },
+          "resumable": {
+            "default": false,
+            "title": "Resumable",
+            "type": "boolean"
+          },
+          "source_session_id": {
+            "$ref": "#/components/schemas/SessionId"
+          },
+          "task_count": {
+            "default": 0,
+            "title": "Task Count",
+            "type": "integer"
+          },
+          "task_event_count": {
+            "default": 0,
+            "title": "Task Event Count",
+            "type": "integer"
+          },
+          "transcript_message_count": {
+            "title": "Transcript Message Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_session_id",
+          "imported_session_id",
+          "original_status",
+          "imported_event_count",
+          "transcript_message_count"
+        ],
+        "title": "SessionImportResult",
+        "type": "object"
       },
       "SessionQueueCountsResponse": {
         "properties": {
@@ -21729,6 +22960,364 @@
           }
         },
         "summary": "List Handoffs"
+      }
+    },
+    "/handoffs/exports": {
+      "post": {
+        "description": "Write a redacted handoff package from a session or changeset source.",
+        "operationId": "export_handoff_handoffs_exports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffExportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Handoff"
+      }
+    },
+    "/handoffs/import-triage": {
+      "post": {
+        "description": "Inspect package import compatibility without mutating local state.",
+        "operationId": "triage_handoff_package_import_handoffs_import_triage_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffPackagePathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffImportTriageResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Triage Handoff Package Import"
+      }
+    },
+    "/handoffs/imports": {
+      "post": {
+        "description": "Import a supported session handoff package as inspection-only state.",
+        "operationId": "import_handoff_package_handoffs_imports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffPackagePathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffImportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Handoff Package"
+      }
+    },
+    "/handoffs/inspect": {
+      "post": {
+        "description": "Inspect a local handoff package without importing or mutating state.",
+        "operationId": "inspect_handoff_package_handoffs_inspect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffPackagePathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffPackageInspectResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inspect Handoff Package"
+      }
+    },
+    "/handoffs/prepare-preview": {
+      "post": {
+        "description": "Preview redaction and local-only posture before exporting a handoff.",
+        "operationId": "prepare_handoff_preview_handoffs_prepare_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffPreparePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffPreparePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare Handoff Preview"
+      }
+    },
+    "/handoffs/readiness": {
+      "get": {
+        "description": "Return shared v17 handoff readiness for a local source.",
+        "operationId": "get_handoff_readiness_handoffs_readiness_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "source_kind",
+            "required": false,
+            "schema": {
+              "default": "workspace",
+              "title": "Source Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "source_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "intent",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/HandoffIntent"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Intent"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffReadinessUnifiedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Handoff Readiness"
       }
     },
     "/handoffs/{session_id}/{package_id}": {

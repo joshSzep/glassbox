@@ -54,6 +54,13 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "/changesets/{changeset_id}/commit-readiness" in paths
     assert "/changesets/{changeset_id}/commit-message" in paths
     assert "/changesets/{changeset_id}/archive" in paths
+    assert "/handoffs" in paths
+    assert "/handoffs/prepare-preview" in paths
+    assert "/handoffs/exports" in paths
+    assert "/handoffs/inspect" in paths
+    assert "/handoffs/import-triage" in paths
+    assert "/handoffs/imports" in paths
+    assert "/handoffs/readiness" in paths
     assert "/memory" in paths
     assert "/memory/candidates" in paths
     assert "/memory/candidates/{candidate_id}/confirm" in paths
@@ -101,6 +108,9 @@ def test_openapi_schema_includes_browser_transport_contracts(
     assert "ChangesetActionResponse" in components
     assert "CommitReadinessResponse" in components
     assert "CommitMessageSuggestionResponse" in components
+    assert "HandoffExportRequest" in components
+    assert "HandoffPackageInspectResponse" in components
+    assert "HandoffReadinessUnifiedResponse" in components
     assert "WorkspaceMemoryListPageResponse" in components
     assert "WorkspaceMemoryDetailResponse" in components
     assert "WorkspaceMemoryCandidateListPageResponse" in components

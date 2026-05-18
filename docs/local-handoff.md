@@ -107,6 +107,26 @@ uv run glassbox handoff inspect changeset-review.json --markdown --cwd .
 The legacy `changeset export` and `changeset export-inspect` commands remain
 supported review-centered paths and use the same package services.
 
+The local API exposes the same inspection-first workflow for dashboard and
+local clients:
+
+```text
+POST /handoffs/prepare-preview
+POST /handoffs/exports
+POST /handoffs/inspect
+POST /handoffs/import-triage
+POST /handoffs/imports
+GET /handoffs/readiness
+POST /handoffs/{session_id}/{package_id}/accept
+POST /handoffs/{session_id}/{package_id}/reject
+POST /handoffs/{session_id}/{package_id}/archive
+```
+
+API export and import routes use the same redacted package builders and
+inspection-only import path as the CLI. Package inspection and import triage do
+not mutate local state; custody actions remain workflow metadata, not approval,
+authorization, verification success, or publication.
+
 The changeset export is the preferred review-centered bundle when a changeset
 exists. It includes redacted summaries, verification posture, reviewer-safe
 evidence graph slices, review feedback and response posture, manual evidence,

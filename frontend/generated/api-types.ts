@@ -668,6 +668,126 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/handoffs/exports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Export Handoff
+     * @description Write a redacted handoff package from a session or changeset source.
+     */
+    post: operations["export_handoff_handoffs_exports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/import-triage": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Triage Handoff Package Import
+     * @description Inspect package import compatibility without mutating local state.
+     */
+    post: operations["triage_handoff_package_import_handoffs_import_triage_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/imports": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Import Handoff Package
+     * @description Import a supported session handoff package as inspection-only state.
+     */
+    post: operations["import_handoff_package_handoffs_imports_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/inspect": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Inspect Handoff Package
+     * @description Inspect a local handoff package without importing or mutating state.
+     */
+    post: operations["inspect_handoff_package_handoffs_inspect_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/prepare-preview": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Prepare Handoff Preview
+     * @description Preview redaction and local-only posture before exporting a handoff.
+     */
+    post: operations["prepare_handoff_preview_handoffs_prepare_preview_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/readiness": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Handoff Readiness
+     * @description Return shared v17 handoff readiness for a local source.
+     */
+    get: operations["get_handoff_readiness_handoffs_readiness_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/handoffs/{session_id}/{package_id}": {
     parameters: {
       query?: never;
@@ -4656,6 +4776,44 @@ export interface components {
       reason: string;
     };
     /**
+     * HandoffChangesetPackageSummary
+     * @description Reviewer-safe changeset package inspection summary.
+     */
+    HandoffChangesetPackageSummary: {
+      /** Bundle Path */
+      bundle_path?: string | null;
+      /** Changeset Id */
+      changeset_id: string;
+      /** Evidence Graph Claim Count */
+      evidence_graph_claim_count: number;
+      /** Evidence Graph Node Count */
+      evidence_graph_node_count: number;
+      /** Export Kind */
+      export_kind: string;
+      /** Feedback Count */
+      feedback_count: number;
+      /** Handoff State */
+      handoff_state: string;
+      /** Local Only Evidence Count */
+      local_only_evidence_count: number;
+      /** Manual Evidence Count */
+      manual_evidence_count: number;
+      /** Non Claims */
+      non_claims?: string[];
+      /** Profile Id */
+      profile_id?: string | null;
+      /** Redaction Report Count */
+      redaction_report_count: number;
+      /** Safe Inspection Commands */
+      safe_inspection_commands?: string[];
+      /** Schema Version */
+      schema_version: number;
+      /** Status */
+      status: string;
+      /** Verification State */
+      verification_state: string;
+    };
+    /**
      * HandoffCompatibilityState
      * @description Compatibility status for a handoff package.
      * @enum {string}
@@ -4667,6 +4825,24 @@ export interface components {
       | "unsupported"
       | "future-version"
       | "invalid";
+    /**
+     * HandoffCompatibilitySummary
+     * @description Compatibility posture for a package manifest.
+     */
+    HandoffCompatibilitySummary: {
+      /** Missing Optional Sections */
+      missing_optional_sections?: string[];
+      /** @default supported */
+      state: components["schemas"]["HandoffCompatibilityState"];
+      /** Supported Sections */
+      supported_sections?: string[];
+      /** Unsupported Sections */
+      unsupported_sections?: string[];
+      /** Unsupported Values */
+      unsupported_values?: string[];
+      /** Warnings */
+      warnings?: string[];
+    };
     /**
      * HandoffContinuationPath
      * @description One possible recipient path after inspecting an imported handoff.
@@ -4714,11 +4890,109 @@ export interface components {
       non_claims?: string[];
     };
     /**
+     * HandoffDigestSummary
+     * @description Package integrity digests, not proof of source workspace completeness.
+     */
+    HandoffDigestSummary: {
+      /**
+       * Algorithm
+       * @default sha256
+       */
+      algorithm: string;
+      /** Limitations */
+      limitations?: string[];
+      /** Manifest Digest */
+      manifest_digest?: string | null;
+      /** Package Digest */
+      package_digest?: string | null;
+      /** Payload Digest */
+      payload_digest?: string | null;
+      /**
+       * Verified
+       * @default false
+       */
+      verified: boolean;
+    };
+    /**
      * HandoffEvidenceFreshness
      * @description Freshness posture for portable handoff evidence.
      * @enum {string}
      */
     HandoffEvidenceFreshness: "fresh" | "stale" | "missing" | "degraded" | "unknown";
+    /**
+     * HandoffExportProfile
+     * @description Typed export profile chosen from the recipient's next intended action.
+     */
+    HandoffExportProfile: {
+      /** Local Only Treatment */
+      local_only_treatment: string;
+      /** Non Claims */
+      non_claims?: string[];
+      /** Optional Sections */
+      optional_sections?: string[];
+      /**
+       * Output Format
+       * @default json
+       */
+      output_format: string;
+      package_kind: components["schemas"]["HandoffPackageKind"];
+      profile_id: components["schemas"]["HandoffIntent"];
+      /** Recipient Next Action */
+      recipient_next_action: string;
+      /** Required Sections */
+      required_sections?: string[];
+      /** Safe Inspection Commands */
+      safe_inspection_commands?: components["schemas"]["HandoffSafeCommand"][];
+      source: components["schemas"]["HandoffSourceRef"];
+    };
+    /**
+     * HandoffExportRequest
+     * @description Write a handoff package through the API.
+     */
+    HandoffExportRequest: {
+      /** Expected Custodian */
+      expected_custodian?: string | null;
+      /** Exported By */
+      exported_by?: string | null;
+      /** @default review-only */
+      intent: components["schemas"]["HandoffIntent"];
+      /** Markdown Output Path */
+      markdown_output_path?: string | null;
+      /** Note */
+      note?: string | null;
+      /**
+       * Output Format
+       * @default json
+       */
+      output_format: string;
+      /** Output Path */
+      output_path?: string | null;
+      /** Recipient */
+      recipient?: string | null;
+      /** Source Id */
+      source_id: string;
+      /** Source Kind */
+      source_kind: string;
+    };
+    /**
+     * HandoffExportResponse
+     * @description Result of writing a handoff package.
+     */
+    HandoffExportResponse: {
+      /** Markdown Output Path */
+      markdown_output_path?: string | null;
+      /** Output Path */
+      output_path: string;
+      /** Source Id */
+      source_id: string;
+      /** Source Kind */
+      source_kind: string;
+      /**
+       * Status
+       * @default exported
+       */
+      status: string;
+    };
     /**
      * HandoffGuidance
      * @description Recipient-facing fork-or-continue guidance.
@@ -4770,6 +5044,82 @@ export interface components {
       | "run-verification"
       | "refresh-repository"
       | "reject-handoff";
+    /** @enum {string} */
+    HandoffImportDisposition:
+      | "import-for-inspection"
+      | "inspect-only"
+      | "inspect-with-warnings"
+      | "inspect-local-only-gaps"
+      | "reject"
+      | "use-newer-glassbox";
+    /**
+     * HandoffImportResponse
+     * @description Response for importing a session handoff into inspection state.
+     */
+    HandoffImportResponse: {
+      result: components["schemas"]["SessionImportResult"];
+    };
+    /**
+     * HandoffImportSourceSummary
+     * @description Recipient-safe source description for an import candidate.
+     */
+    HandoffImportSourceSummary: {
+      /** Package Format */
+      package_format?: string | null;
+      /** Package Kind */
+      package_kind?: string | null;
+      /** Schema Version */
+      schema_version?: number | string | null;
+      /** Source Id */
+      source_id?: string | null;
+      /** Source Kind */
+      source_kind?: string | null;
+    };
+    /**
+     * HandoffImportTriage
+     * @description Read-only import triage result shown before local mutation.
+     */
+    HandoffImportTriage: {
+      /**
+       * Can Import For Inspection
+       * @default false
+       */
+      can_import_for_inspection: boolean;
+      compatibility: components["schemas"]["HandoffCompatibilitySummary"];
+      digest?: components["schemas"]["HandoffDigestSummary"];
+      /** Included Evidence */
+      included_evidence?: string[];
+      /** Limitations */
+      limitations?: string[];
+      /** Local Only Omissions */
+      local_only_omissions?: string[];
+      /** Missing Sections */
+      missing_sections?: string[];
+      /**
+       * Mutation Performed
+       * @default false
+       */
+      mutation_performed: boolean;
+      /** Package Id */
+      package_id: string;
+      /** Package Path */
+      package_path: string;
+      recipient_intent?: components["schemas"]["HandoffIntent"] | null;
+      recommended_disposition: components["schemas"]["HandoffImportDisposition"];
+      redaction?: components["schemas"]["HandoffRedactionSummary"];
+      /** Safe First Commands */
+      safe_first_commands?: components["schemas"]["HandoffSafeCommand"][];
+      source: components["schemas"]["HandoffImportSourceSummary"];
+      /** Unsupported Sections */
+      unsupported_sections?: string[];
+    };
+    /**
+     * HandoffImportTriageResponse
+     * @description Import triage response that performs no mutation.
+     */
+    HandoffImportTriageResponse: {
+      triage: components["schemas"]["HandoffImportTriage"];
+    };
     /**
      * HandoffIntent
      * @description Recipient intent for a local handoff package or readiness result.
@@ -4825,6 +5175,90 @@ export interface components {
       items?: components["schemas"]["HandoffRecordResponse"][];
     };
     /**
+     * HandoffLocalOnlyEvidenceItem
+     * @description One local-only evidence bucket that should not expose raw contents.
+     */
+    HandoffLocalOnlyEvidenceItem: {
+      /** Affected Claim Ids */
+      affected_claim_ids?: string[];
+      /** Category */
+      category: string;
+      /**
+       * Count
+       * @default 1
+       */
+      count: number;
+      /**
+       * Portable
+       * @default false
+       */
+      portable: boolean;
+      /** @default local-only-evidence */
+      reason: components["schemas"]["HandoffReadinessReasonKind"];
+      /** Recipient Limitation */
+      recipient_limitation: string;
+      /** Safe Local Inspection Commands */
+      safe_local_inspection_commands?: components["schemas"]["HandoffSafeCommand"][];
+      /** Summary */
+      summary: string;
+    };
+    /**
+     * HandoffLocalOnlyInventory
+     * @description Recipient-safe inventory of evidence that stayed in the source workspace.
+     */
+    HandoffLocalOnlyInventory: {
+      /** Category Counts */
+      category_counts?: {
+        [key: string]: number;
+      };
+      intent: components["schemas"]["HandoffIntent"];
+      /**
+       * Inventory Kind
+       * @default handoff_local_only_inventory
+       */
+      inventory_kind: string;
+      /** Items */
+      items?: components["schemas"]["HandoffLocalOnlyEvidenceItem"][];
+      /** Limitations */
+      limitations?: string[];
+      /** Safe Local Inspection Commands */
+      safe_local_inspection_commands?: components["schemas"]["HandoffSafeCommand"][];
+      source: components["schemas"]["HandoffSourceRef"];
+      /**
+       * Total Count
+       * @default 0
+       */
+      total_count: number;
+    };
+    /**
+     * HandoffLocalOnlySummary
+     * @description Summary of evidence that exists locally but did not travel.
+     */
+    HandoffLocalOnlySummary: {
+      /** Affected Claim Ids */
+      affected_claim_ids?: string[];
+      /** Category Counts */
+      category_counts?: {
+        [key: string]: number;
+      };
+      /** Limitations */
+      limitations?: string[];
+      /** Safe Local Inspection Commands */
+      safe_local_inspection_commands?: components["schemas"]["HandoffSafeCommand"][];
+    };
+    /**
+     * HandoffPackageInspectResponse
+     * @description Inspection-first response for a local handoff package path.
+     */
+    HandoffPackageInspectResponse: {
+      changeset_summary?: components["schemas"]["HandoffChangesetPackageSummary"] | null;
+      /** Package Family */
+      package_family: string;
+      /** Package Path */
+      package_path: string;
+      triage?: components["schemas"]["HandoffImportTriage"] | null;
+    };
+    /**
      * HandoffPackageKind
      * @description Portable handoff package families.
      * @enum {string}
@@ -4837,6 +5271,46 @@ export interface components {
       | "release-handoff"
       | "future-self-handoff"
       | "import-triage";
+    /**
+     * HandoffPackagePathRequest
+     * @description Request body for local package path inspection.
+     */
+    HandoffPackagePathRequest: {
+      /** Package Path */
+      package_path: string;
+    };
+    /**
+     * HandoffPreparePreviewRequest
+     * @description Request a redaction and local-only preview before export.
+     */
+    HandoffPreparePreviewRequest: {
+      /** Expected Custodian */
+      expected_custodian?: string | null;
+      /** Exported By */
+      exported_by?: string | null;
+      /** @default review-only */
+      intent: components["schemas"]["HandoffIntent"];
+      /** Note */
+      note?: string | null;
+      /**
+       * Output Format
+       * @default json
+       */
+      output_format: string;
+      /** Recipient */
+      recipient?: string | null;
+      /** Source Id */
+      source_id: string;
+      /** Source Kind */
+      source_kind: string;
+    };
+    /**
+     * HandoffPreparePreviewResponse
+     * @description Redaction and local-only preview for a prepared handoff.
+     */
+    HandoffPreparePreviewResponse: {
+      preview: components["schemas"]["HandoffRedactionPreview"];
+    };
     /**
      * HandoffProjectionRecord
      * @description Latest local workflow posture for one handoff package.
@@ -5076,6 +5550,13 @@ export interface components {
       | "blocked"
       | "accepted-with-risk";
     /**
+     * HandoffReadinessUnifiedResponse
+     * @description Shared v17 handoff readiness response for local sources.
+     */
+    HandoffReadinessUnifiedResponse: {
+      readiness: components["schemas"]["HandoffReadiness"];
+    };
+    /**
      * HandoffRecordResponse
      * @description Projected handoff record plus dashboard action state.
      */
@@ -5095,6 +5576,82 @@ export interface components {
       | "local-only-omitted"
       | "raw-included"
       | "unknown";
+    /**
+     * HandoffRedactionPreview
+     * @description Machine-readable preview for what a handoff export would include.
+     */
+    HandoffRedactionPreview: {
+      /** Included Sections */
+      included_sections?: string[];
+      intent: components["schemas"]["HandoffIntent"];
+      local_only: components["schemas"]["HandoffLocalOnlySummary"];
+      /** Local Only Evidence Count */
+      readonly local_only_evidence_count: number;
+      local_only_inventory: components["schemas"]["HandoffLocalOnlyInventory"];
+      /** Omitted Raw Categories */
+      omitted_raw_categories?: string[];
+      /** Package Limitations */
+      package_limitations?: string[];
+      /**
+       * Preview Kind
+       * @default handoff_redaction_preview
+       */
+      preview_kind: string;
+      profile?: components["schemas"]["HandoffExportProfile"] | null;
+      redaction: components["schemas"]["HandoffRedactionSummary"];
+      /** Safe Inspection Commands */
+      safe_inspection_commands?: components["schemas"]["HandoffSafeCommand"][];
+      source: components["schemas"]["HandoffSourceRef"];
+      /** Unsupported Evidence */
+      unsupported_evidence?: string[];
+    };
+    /**
+     * HandoffRedactionSummary
+     * @description Portable redaction and raw-inclusion posture for a package manifest.
+     */
+    HandoffRedactionSummary: {
+      /** Limitations */
+      limitations?: string[];
+      /** @default unknown */
+      posture: components["schemas"]["HandoffRedactionPosture"];
+      /**
+       * Provider Output Included
+       * @default false
+       */
+      provider_output_included: boolean;
+      /**
+       * Raw Artifacts Included
+       * @default false
+       */
+      raw_artifacts_included: boolean;
+      /**
+       * Raw Diffs Included
+       * @default false
+       */
+      raw_diffs_included: boolean;
+      /**
+       * Raw Logs Included
+       * @default false
+       */
+      raw_logs_included: boolean;
+      /**
+       * Raw Transcript Included
+       * @default false
+       */
+      raw_transcript_included: boolean;
+      /** Redacted Categories */
+      redacted_categories?: string[];
+      /**
+       * Redacted Field Count
+       * @default 0
+       */
+      redacted_field_count: number;
+      /**
+       * Screenshots Included
+       * @default false
+       */
+      screenshots_included: boolean;
+    };
     /**
      * HandoffRejectRequest
      * @description Request to reject local custody with a retained reason.
@@ -7381,6 +7938,52 @@ export interface components {
     };
     /** Format: uuid */
     SessionId: string;
+    /**
+     * SessionImportResult
+     * @description Summary of a local session import operation.
+     */
+    SessionImportResult: {
+      /**
+       * Checkpoint Event Count
+       * @default 0
+       */
+      checkpoint_event_count: number;
+      /**
+       * Import Mode
+       * @default inspect
+       * @constant
+       */
+      import_mode: "inspect";
+      /** Imported Event Count */
+      imported_event_count: number;
+      imported_session_id: components["schemas"]["SessionId"];
+      /**
+       * Imported Status
+       * @default completed
+       * @constant
+       */
+      imported_status: "completed";
+      /** Original Status */
+      original_status: string;
+      /**
+       * Resumable
+       * @default false
+       */
+      resumable: boolean;
+      source_session_id: components["schemas"]["SessionId"];
+      /**
+       * Task Count
+       * @default 0
+       */
+      task_count: number;
+      /**
+       * Task Event Count
+       * @default 0
+       */
+      task_event_count: number;
+      /** Transcript Message Count */
+      transcript_message_count: number;
+    };
     /** SessionQueueCountsResponse */
     SessionQueueCountsResponse: {
       /** Action Needed */
@@ -10294,6 +10897,285 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HandoffListResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  export_handoff_handoffs_exports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffExportRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffExportResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  triage_handoff_package_import_handoffs_import_triage_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffPackagePathRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffImportTriageResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  import_handoff_package_handoffs_imports_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffPackagePathRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffImportResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  inspect_handoff_package_handoffs_inspect_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffPackagePathRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffPackageInspectResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  prepare_handoff_preview_handoffs_prepare_preview_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffPreparePreviewRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffPreparePreviewResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_handoff_readiness_handoffs_readiness_get: {
+    parameters: {
+      query?: {
+        source_kind?: string;
+        source_id?: string | null;
+        intent?: components["schemas"]["HandoffIntent"] | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffReadinessUnifiedResponse"];
+        };
+      };
+      /** @description Bad Request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
         };
       };
       /** @description Validation Error */

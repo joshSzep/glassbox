@@ -331,6 +331,40 @@ function createApiClient(overrides: Partial<GlassboxApiClient> = {}): GlassboxAp
     getChangesetHandoffReadiness: async (changesetId) => makeHandoffReadiness(changesetId),
     getChangesetPage: async () => ({ items: [makeChangesetSummary("changeset-1")] }),
     getChangesetVerificationPlan: async (changesetId) => makeChangesetVerificationPlan(changesetId),
+    acceptHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    archiveHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    exportHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    getHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    getHandoffGuidance: async () => {
+      throw new Error("not implemented");
+    },
+    getHandoffReadiness: async () => {
+      throw new Error("not implemented");
+    },
+    importHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    inspectHandoffPackage: async () => {
+      throw new Error("not implemented");
+    },
+    listHandoffs: async () => ({ items: [] }),
+    previewHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    rejectHandoff: async () => {
+      throw new Error("not implemented");
+    },
+    triageHandoffImport: async () => {
+      throw new Error("not implemented");
+    },
     recordChangesetVerification: async (input) => ({
       changeset_id: input.changesetId,
       event_sequence: 9,

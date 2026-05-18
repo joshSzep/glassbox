@@ -4,6 +4,7 @@ import {
   createRequestJson,
   type GlassboxApiClientOptions,
 } from "./client-core";
+import { createHandoffEndpoints } from "./client-handoffs";
 import { createSessionEndpoints } from "./client-sessions";
 import { createTaskEndpoints } from "./client-tasks";
 import { createWorkspaceEndpoints } from "./client-workspace";
@@ -46,6 +47,7 @@ export {
   type RequestJson,
   type RequestOptions,
 } from "./client-core";
+export type * from "./client-handoffs";
 export type {
   ForkSessionResponse,
   SessionAggregateQuery,
@@ -106,6 +108,7 @@ export function createGlassboxApiClient(options: GlassboxApiClientOptions = {}) 
     ...createSessionEndpoints(requestJson),
     ...createTaskEndpoints(requestJson),
     ...createChangesetEndpoints(requestJson),
+    ...createHandoffEndpoints(requestJson),
     ...createWorkspaceEndpoints(requestJson),
   };
 }

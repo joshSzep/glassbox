@@ -768,7 +768,7 @@ large to review safely.
 
 ### GBX-1751: Add Handoff API Routes And OpenAPI Types
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1750`
 - Goal: expose handoff preparation, inspection, import triage, custody actions,
   and readiness through typed API responses

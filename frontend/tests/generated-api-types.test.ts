@@ -15,6 +15,10 @@ describe("generated OpenAPI types", () => {
       paths["/changesets/{changeset_id}/browser-evidence"]["post"]["responses"][200]["content"]["application/json"];
     type AccessibilityEvidenceResponse =
       paths["/changesets/{changeset_id}/accessibility-evidence"]["post"]["responses"][200]["content"]["application/json"];
+    type HandoffInspectResponse =
+      paths["/handoffs/inspect"]["post"]["responses"][200]["content"]["application/json"];
+    type HandoffReadinessResponse =
+      paths["/handoffs/readiness"]["get"]["responses"][200]["content"]["application/json"];
 
     const approvalBody: components["schemas"]["ResolveApprovalRequest"] = {
       decision: "approved",
@@ -78,6 +82,14 @@ describe("generated OpenAPI types", () => {
       tool: "manual keyboard",
     };
     const accessibilityEvidenceKey: keyof AccessibilityEvidenceResponse = "non_claims";
+    const handoffExportBody: components["schemas"]["HandoffExportRequest"] = {
+      intent: "review-only",
+      output_format: "json",
+      source_id: "00000000-0000-0000-0000-000000000111",
+      source_kind: "session",
+    };
+    const handoffInspectKey: keyof HandoffInspectResponse = "package_family";
+    const handoffReadinessKey: keyof HandoffReadinessResponse = "readiness";
 
     expect(approvalBody.decision).toBe("approved");
     expect(accepted.status).toBe("ok");
@@ -90,5 +102,8 @@ describe("generated OpenAPI types", () => {
     expect(browserEvidenceKey).toBe("safe_next_actions");
     expect(accessibilityEvidenceBody.observation_kind).toBe("focus_order_issue");
     expect(accessibilityEvidenceKey).toBe("non_claims");
+    expect(handoffExportBody.source_kind).toBe("session");
+    expect(handoffInspectKey).toBe("package_family");
+    expect(handoffReadinessKey).toBe("readiness");
   });
 });
