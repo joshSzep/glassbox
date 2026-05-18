@@ -25,15 +25,16 @@ from glassbox.runtime.changeset_export import CHANGESET_EXPORT_OMITTED_RAW_CATEG
 from glassbox.runtime.changeset_export import ChangesetExportPayload
 from glassbox.runtime.changeset_export import build_changeset_export_payload
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.handoff_export_profiles import HandoffExportProfile
 from glassbox.runtime.handoff_local_only_inventory import build_local_only_inventory
 from glassbox.runtime.handoff_local_only_inventory import (
     build_readiness_local_only_inventory,
 )
 from glassbox.runtime.observability import WorkspaceObservabilityReport
-from glassbox.runtime.session_export_package import (
+from glassbox.runtime.session_export_package import build_session_export_payload
+from glassbox.runtime.session_export_profile import (
     SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
 )
-from glassbox.runtime.session_export_package import build_session_export_payload
 from glassbox.runtime.session_export_redaction import REDACTION_PLACEHOLDER
 from glassbox.runtime.session_export_redaction import WORKSPACE_PLACEHOLDER
 from glassbox.runtime.session_queries import SessionQueryService
@@ -59,6 +60,7 @@ class HandoffRedactionPreview(BaseModel):
     preview_kind: str = "handoff_redaction_preview"
     source: HandoffSourceRef
     intent: HandoffIntent
+    profile: HandoffExportProfile | None = None
     included_sections: list[str] = Field(default_factory=list, max_length=100)
     redaction: HandoffRedactionSummary
     local_only: HandoffLocalOnlySummary
@@ -83,9 +85,12 @@ def build_session_redaction_preview(
     session_repository: SessionRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
     exported_by: str | None = None,
     expected_custodian: str | None = None,
     note: str | None = None,
+    output_format: str = "json",
 ) -> HandoffRedactionPreview:
     """Preview a session export using the same in-memory payload builder."""
 
@@ -94,9 +99,12 @@ def build_session_redaction_preview(
         session_repository=session_repository,
         artifact_repository=artifact_repository,
         workspace_root=workspace_root,
+        intent=intent,
+        recipient=recipient,
         exported_by=exported_by,
         expected_custodian=expected_custodian,
         note=note,
+        output_format=output_format,
     )
     snapshot = SessionQueryService(
         session_repository,
@@ -140,7 +148,8 @@ def session_redaction_preview_from_payload(
             primary_id=str(payload.metadata.session_id),
             label="session",
         ),
-        intent=HandoffIntent.REVIEW_ONLY,
+        intent=payload.handoff.intent,
+        profile=payload.profile,
         included_sections=_included_sections(payload_dict),
         redaction=HandoffRedactionSummary(
             posture=HandoffRedactionPosture.REVIEWER_SAFE,
@@ -162,7 +171,7 @@ def session_redaction_preview_from_payload(
                 primary_id=str(payload.metadata.session_id),
                 label="session",
             ),
-            intent=HandoffIntent.REVIEW_ONLY,
+            intent=payload.handoff.intent,
             summary=local_only_summary,
             omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
         ),
@@ -196,6 +205,12 @@ def build_changeset_redaction_preview(
     repository: ChangesetRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
+    expected_custodian: str | None = None,
+    exported_by: str | None = None,
+    note: str | None = None,
+    output_format: str = "json",
 ) -> HandoffRedactionPreview:
     """Preview a changeset export using the same reviewer-safe package builder."""
 
@@ -204,6 +219,12 @@ def build_changeset_redaction_preview(
         repository=repository,
         artifact_repository=artifact_repository,
         workspace_root=workspace_root,
+        intent=intent,
+        recipient=recipient,
+        expected_custodian=expected_custodian,
+        exported_by=exported_by,
+        note=note,
+        output_format=output_format,
     )
     return changeset_redaction_preview_from_payload(payload)
 
@@ -250,7 +271,12 @@ def changeset_redaction_preview_from_payload(
             identifiers={"session_id": str(payload.changeset["session_id"])},
             label=payload.changeset.get("summary") or payload.changeset["objective"],
         ),
-        intent=HandoffIntent.REVIEW_ONLY,
+        intent=(
+            payload.profile.profile_id
+            if payload.profile is not None
+            else HandoffIntent.REVIEW_ONLY
+        ),
+        profile=payload.profile,
         included_sections=_included_sections(payload_dict),
         redaction=HandoffRedactionSummary(
             posture=HandoffRedactionPosture.REVIEWER_SAFE,

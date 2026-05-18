@@ -227,6 +227,7 @@ def _session_export_command(args: argparse.Namespace) -> int:
         args.output,
         default_name=f"glassbox-session-{args.session_id}.json",
     )
+    intent = HandoffIntent(args.intent)
 
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         if args.preview:
@@ -235,9 +236,12 @@ def _session_export_command(args: argparse.Namespace) -> int:
                 session_repository=runtime_context.repositories.sessions,
                 artifact_repository=runtime_context.repositories.artifacts,
                 workspace_root=cwd,
+                intent=intent,
+                recipient=args.recipient,
                 exported_by=args.exported_by,
                 expected_custodian=args.expected_custodian,
                 note=args.note,
+                output_format=args.format,
             )
             if args.json:
                 print_json_output(preview.model_dump(mode="json"))
@@ -250,9 +254,12 @@ def _session_export_command(args: argparse.Namespace) -> int:
             session_repository=runtime_context.repositories.sessions,
             artifact_repository=runtime_context.repositories.artifacts,
             workspace_root=cwd,
+            intent=intent,
+            recipient=args.recipient,
             exported_by=args.exported_by,
             expected_custodian=args.expected_custodian,
             note=args.note,
+            output_format=args.format,
         )
 
     if args.json:

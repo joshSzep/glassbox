@@ -609,7 +609,7 @@ large to review safely.
 
 ### GBX-1732: Add Recipient-Oriented Export Profiles
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1722`, `GBX-1731`
 - Goal: make export output match the recipient's intent and role
 - Deliverables:

@@ -23,6 +23,8 @@ from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
 from glassbox.core.models_handoff import HandoffLocalOnlyInventory
+from glassbox.core.types_handoff import HandoffIntent
+from glassbox.runtime.handoff_export_profiles import HandoffExportProfile
 from glassbox.runtime.session_queries import BranchableTurnView
 from glassbox.runtime.session_queries import ChildSessionSummaryView
 
@@ -91,6 +93,8 @@ class SessionExportHandoff(BaseModel):
     """Operator-facing handoff context for the exported session."""
 
     model_config = ConfigDict(extra="forbid")
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY
+    recipient: str | None = None
     exported_by: str | None = None
     expected_custodian: str | None = None
     note: str | None = None
@@ -272,3 +276,4 @@ class SessionExportPayload(BaseModel):
     event_count: int = Field(ge=0)
     events: list[SessionExportEventSummary] = Field(default_factory=list)
     redaction_notes: list[str] = Field(default_factory=list)
+    profile: HandoffExportProfile | None = None

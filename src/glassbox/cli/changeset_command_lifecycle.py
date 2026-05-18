@@ -23,6 +23,7 @@ from glassbox.cli.changeset_command_payloads import _review_brief_payload
 from glassbox.cli.handoff_preview_output import print_handoff_redaction_preview
 from glassbox.cli.json_output import print_json_output
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.core import HandoffIntent
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRepository
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionService
@@ -737,11 +738,15 @@ def _changeset_archive_command(args: argparse.Namespace) -> int:
 def _changeset_export_command(args: argparse.Namespace) -> int:
     cwd, db_path = resolve_runtime_location(args)
     output_path = Path(args.output_path)
+    output_format = args.format
     markdown_output_path = (
         Path(args.markdown_output_path)
         if getattr(args, "markdown_output_path", None)
         else None
     )
+    if output_format == "json+markdown" and markdown_output_path is None:
+        markdown_output_path = output_path.with_suffix(".md")
+    intent = HandoffIntent(args.intent)
     with open_runtime_context(cwd, db_path=db_path) as runtime_context:
         if args.preview:
             preview = build_changeset_redaction_preview(
@@ -752,6 +757,12 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
                 ),
                 artifact_repository=runtime_context.repositories.artifacts,
                 workspace_root=cwd,
+                intent=intent,
+                recipient=args.recipient,
+                expected_custodian=args.expected_custodian,
+                exported_by=args.exported_by,
+                note=args.note,
+                output_format=output_format,
             )
             if args.json:
                 print_json_output(preview.model_dump(mode="json"))
@@ -764,6 +775,12 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
             repository=cast(ChangesetRepository, runtime_context.repositories.sessions),
             artifact_repository=runtime_context.repositories.artifacts,
             workspace_root=cwd,
+            intent=intent,
+            recipient=args.recipient,
+            expected_custodian=args.expected_custodian,
+            exported_by=args.exported_by,
+            note=args.note,
+            output_format=output_format,
             markdown_output_path=markdown_output_path,
         )
 
@@ -798,6 +815,8 @@ def _changeset_export_inspect_command(args: argparse.Namespace) -> int:
             f"for {summary['changeset_id']}"
         )
         print(f"Status: {summary['status']}")
+        if summary.get("profile_id"):
+            print(f"Profile: {summary['profile_id']}")
         print(f"Verification: {summary['verification_state']}")
         print(f"Handoff: {summary['handoff_state']}")
         print(

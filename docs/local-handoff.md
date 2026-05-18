@@ -30,6 +30,8 @@ Add operator labels when the recipient needs custody context:
 
 ```bash
 uv run glassbox session export SESSION_ID handoff.json \
+  --intent future-self \
+  --recipient bob \
   --exported-by alice \
   --expected-custodian bob \
   --note "waiting on verification review" \
@@ -63,6 +65,15 @@ commit-preparation and publication-boundary compatibility, and also carries a
 shared v17 readiness block with `changeset` source kind, review-only intent,
 safe inspection commands, local-only evidence, accepted-risk, stale-evidence,
 and non-claim fields aligned with session and task handoff readiness.
+
+Session and changeset exports now accept recipient-oriented profile metadata:
+`--intent`, `--recipient`, `--expected-custodian`, `--exported-by`, `--note`,
+and `--format`. Supported intents are `review-only`, `continue-work`,
+`verification-needed`, `failure-triage`, `release-signoff`, `future-self`, and
+`fork-recommended`. The exported payload records the chosen profile, required
+and optional sections, local-only evidence treatment, safe inspection commands,
+and profile-specific non-claims. Existing exports keep the stable default:
+review-only JSON.
 
 ## Safe Inspection First
 
@@ -147,8 +158,10 @@ sessions, tasks, changesets, workspaces, release evidence, and future-self
 continuity. The foundational shared handoff models, v2 package compatibility
 inspector, session/task/changeset readiness alignment, workspace/release
 handoff summaries, redaction preview, and local-only evidence inventory now
-exist in code, while broader operator-facing v17 commands and cockpit surfaces
-remain planned until later tasks land. Start with:
+exist in code. Recipient-oriented export profiles now carry intent, recipient,
+custody labels, profile sections, local-only evidence treatment, and non-claims
+on session and changeset exports, while broader operator-facing v17 commands and
+cockpit surfaces remain planned until later tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and
@@ -159,8 +172,7 @@ remain planned until later tasks land. Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities include recipient-oriented export profiles, import
-triage before mutation, custody
+Planned v17 capabilities include import triage before mutation, custody
 accept/reject/archive decisions, queue rows, API routes, TUI entry points,
 dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
 Until those tasks land, use the supported commands above and label any v17-only

@@ -64,8 +64,14 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
             str(output_path),
             "--exported-by",
             "alice",
+            "--recipient",
+            "carol",
             "--expected-custodian",
             "bob",
+            "--intent",
+            "future-self",
+            "--format",
+            "json",
             "--note",
             f"handoff from {tmp_path}",
             "--cwd",
@@ -85,8 +91,15 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
     assert payload.metadata.session_id == session_id
     assert payload.metadata.status == "running"
     assert payload.metadata.workspace.cwd == "<workspace-root>"
+    assert payload.handoff.intent == "future-self"
+    assert payload.handoff.recipient == "carol"
     assert payload.handoff.exported_by == "alice"
     assert payload.handoff.expected_custodian == "bob"
+    assert payload.profile is not None
+    assert payload.profile.profile_id == "future-self"
+    assert "future_self_context" in payload.profile.required_sections
+    assert payload.local_only_inventory is not None
+    assert payload.local_only_inventory.intent == "future-self"
     assert payload.handoff.live_actionable is True
     assert payload.handoff.historical_only is False
     assert payload.artifact_references

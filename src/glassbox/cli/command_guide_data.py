@@ -245,8 +245,9 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
                 ),
             ),
             CommandGuideEntry(
-                "glassbox session export SESSION_ID handoff.zip --cwd .",
-                "Export redacted checkpoint history for inspection-only handoff.",
+                "glassbox session export SESSION_ID handoff.json "
+                "--intent future-self --cwd .",
+                "Export redacted checkpoint history with a handoff profile.",
             ),
             CommandGuideEntry(
                 "glassbox session resume SESSION_ID --cwd .",

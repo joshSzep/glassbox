@@ -10,6 +10,8 @@ def print_handoff_redaction_preview(preview: HandoffRedactionPreview) -> None:
     if preview.source.primary_id is not None:
         print(f"Source: {preview.source.primary_id}")
     print(f"Intent: {preview.intent.value}")
+    if preview.profile is not None:
+        print(f"Profile: {preview.profile.profile_id.value}")
     print(
         "Sections: "
         f"{len(preview.included_sections)} included "

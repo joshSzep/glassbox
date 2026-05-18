@@ -7,11 +7,9 @@ from pathlib import Path
 from typing import cast
 
 from glassbox.core.ids import SessionId
+from glassbox.core.types_handoff import HandoffIntent
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
-from glassbox.runtime.handoff_local_only_inventory import (
-    build_session_local_only_inventory,
-)
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.session_export_handoff import build_export_handoff
 from glassbox.runtime.session_export_handoff import build_handoff_summary
@@ -29,6 +27,8 @@ from glassbox.runtime.session_export_models import SessionExportLineage
 from glassbox.runtime.session_export_models import SessionExportMetadata
 from glassbox.runtime.session_export_models import SessionExportPayload
 from glassbox.runtime.session_export_models import SessionExportWorkspace
+from glassbox.runtime.session_export_profile import attach_session_export_profile
+from glassbox.runtime.session_export_profile import attach_session_local_only_inventory
 from glassbox.runtime.session_export_redaction import REDACTION_NOTES
 from glassbox.runtime.session_export_redaction import RedactionContext
 from glassbox.runtime.session_export_redaction import redact_branchable_turns
@@ -45,14 +45,6 @@ from glassbox.runtime.task_queries import TaskQueryService
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 
-SESSION_EXPORT_OMITTED_RAW_CATEGORIES = [
-    "raw .glassbox database",
-    "raw artifact contents",
-    "raw command logs",
-    "raw provider output",
-    "raw tool transcripts",
-]
-
 
 def export_session_package(
     session_id: SessionId,
@@ -61,20 +53,24 @@ def export_session_package(
     session_repository: SessionRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
     exported_by: str | None = None,
     expected_custodian: str | None = None,
     note: str | None = None,
+    output_format: str = "json",
 ) -> Path:
-    """Write a portable session export package and return its resolved path."""
-
     package = build_session_export_payload(
         session_id,
         session_repository=session_repository,
         artifact_repository=artifact_repository,
         workspace_root=workspace_root,
+        intent=intent,
+        recipient=recipient,
         exported_by=exported_by,
         expected_custodian=expected_custodian,
         note=note,
+        output_format=output_format,
     )
     resolved_output = output_path.resolve()
     resolved_output.parent.mkdir(parents=True, exist_ok=True)
@@ -93,12 +89,13 @@ def build_session_export_payload(
     session_repository: SessionRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
     exported_by: str | None = None,
     expected_custodian: str | None = None,
     note: str | None = None,
+    output_format: str = "json",
 ) -> SessionExportPayload:
-    """Build a portable handoff payload from persisted session state."""
-
     query_service = SessionQueryService(session_repository, artifact_repository)
     task_query_service = TaskQueryService(
         cast(TaskPlanRepository, session_repository),
@@ -141,6 +138,8 @@ def build_session_export_payload(
             events,
             redaction_context,
             latest_checkpoint=checkpoint_history[0] if checkpoint_history else None,
+            intent=intent,
+            recipient=recipient,
             exported_by=exported_by,
             expected_custodian=expected_custodian,
             note=note,
@@ -180,14 +179,13 @@ def build_session_export_payload(
         events=[event_summary(event) for event in events],
         redaction_notes=list(REDACTION_NOTES),
     )
-    return payload.model_copy(
-        update={
-            "local_only_inventory": build_session_local_only_inventory(
-                payload,
-                omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
-            )
-        },
-        deep=True,
+    return attach_session_local_only_inventory(
+        attach_session_export_profile(
+            payload,
+            intent=intent,
+            output_format=output_format,
+        ),
+        intent=intent,
     )
 
 

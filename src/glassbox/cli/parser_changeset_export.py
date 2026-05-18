@@ -4,6 +4,7 @@ import argparse
 
 from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _parse_uuid
+from glassbox.cli.parser_handoff import add_handoff_profile_arguments
 
 
 def _add_changeset_export_parsers(
@@ -19,6 +20,12 @@ def _add_changeset_export_parsers(
     )
     export_parser.add_argument("changeset_id", type=_parse_uuid)
     export_parser.add_argument("output_path")
+    add_handoff_profile_arguments(
+        export_parser,
+        include_labels=True,
+        format_choices=("json", "json+markdown"),
+        format_help="export stable JSON, or JSON plus a Markdown summary",
+    )
     export_parser.add_argument(
         "--markdown-output",
         dest="markdown_output_path",

@@ -551,6 +551,18 @@ def test_changeset_create_list_show_refresh_and_archive(
             "export",
             changeset_id,
             str(preview_path),
+            "--intent",
+            "verification-needed",
+            "--recipient",
+            "reviewer-a",
+            "--expected-custodian",
+            "custodian-a",
+            "--exported-by",
+            "operator-a",
+            "--note",
+            f"verify from {tmp_path}",
+            "--format",
+            "json+markdown",
             "--preview",
             "--cwd",
             str(tmp_path),
@@ -568,6 +580,18 @@ def test_changeset_create_list_show_refresh_and_archive(
             str(export_path),
             "--markdown-output",
             str(export_markdown_path),
+            "--intent",
+            "verification-needed",
+            "--recipient",
+            "reviewer-a",
+            "--expected-custodian",
+            "custodian-a",
+            "--exported-by",
+            "operator-a",
+            "--note",
+            f"verify from {tmp_path}",
+            "--format",
+            "json+markdown",
             "--cwd",
             str(tmp_path),
             "--db-path",
@@ -811,6 +835,8 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert preview_exit == 0
     assert not preview_path.exists()
     assert preview_payload["source"]["kind"] == "changeset"
+    assert preview_payload["intent"] == "verification-needed"
+    assert preview_payload["local_only_inventory"]["intent"] == "verification-needed"
     assert "redaction_report" in preview_payload["included_sections"]
     assert "raw diffs" in preview_payload["omitted_raw_categories"]
     assert preview_payload["local_only_inventory"]["total_count"] >= 1
@@ -832,6 +858,13 @@ def test_changeset_create_list_show_refresh_and_archive(
         for node in export_payload["evidence_graph"]["reviewer_safe_graph"]["nodes"]
     )
     assert export_payload["handoff_readiness"]["readiness_kind"] == "handoff"
+    assert export_payload["profile"]["profile_id"] == "verification-needed"
+    assert export_payload["profile"]["output_format"] == "json+markdown"
+    assert "verification" in export_payload["profile"]["required_sections"]
+    assert export_payload["recipient"] == "reviewer-a"
+    assert export_payload["expected_custodian"] == "custodian-a"
+    assert export_payload["exported_by"] == "operator-a"
+    assert "<workspace-root>" in export_payload["note"]
     assert export_payload["handoff_readiness"]["state"] == handoff["state"]
     assert (
         export_payload["handoff_readiness"]["shared_readiness"]["source"]["kind"]
@@ -875,6 +908,7 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert "## Redaction" in export_markdown
     assert export_inspect_exit == 0
     assert export_inspection["changeset_id"] == changeset_id
+    assert export_inspection["profile_id"] == "verification-needed"
     assert export_inspection["evidence_graph_claim_count"] == 1
     assert export_inspection["handoff_state"] == handoff["state"]
     assert stale_show_exit == 0

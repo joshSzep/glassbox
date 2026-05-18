@@ -18,6 +18,7 @@ from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffLocalOnlyInventory
+from glassbox.core import HandoffPackageKind
 from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core import ManualEvidenceKind
@@ -31,11 +32,15 @@ from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_export_profiles import HandoffExportProfile
+from glassbox.runtime.handoff_export_profiles import build_handoff_export_profile
 from glassbox.runtime.handoff_local_only_inventory import (
     build_changeset_local_only_inventory,
 )
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
+from glassbox.runtime.session_export_redaction import RedactionContext
+from glassbox.runtime.session_export_redaction import redact_optional_text
 from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
 from glassbox.runtime.skipped_evidence import skipped_evidence_reason
 from glassbox.runtime.skipped_evidence import skipped_evidence_state
@@ -93,6 +98,11 @@ class ChangesetExportPayload(BaseModel):
     artifact_references: list[ChangesetExportArtifactReference] = Field(
         default_factory=list
     )
+    profile: HandoffExportProfile | None = None
+    recipient: str | None = None
+    expected_custodian: str | None = None
+    exported_by: str | None = None
+    note: str | None = None
     local_only_inventory: HandoffLocalOnlyInventory
     redaction_report: list[str]
     non_claims: list[str]
@@ -106,6 +116,12 @@ def export_changeset_package(
     repository: ChangesetRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
+    expected_custodian: str | None = None,
+    exported_by: str | None = None,
+    note: str | None = None,
+    output_format: str = "json",
     markdown_output_path: Path | None = None,
 ) -> Path:
     """Write one reviewer-safe changeset export package."""
@@ -115,6 +131,12 @@ def export_changeset_package(
         repository=repository,
         artifact_repository=artifact_repository,
         workspace_root=workspace_root,
+        intent=intent,
+        recipient=recipient,
+        expected_custodian=expected_custodian,
+        exported_by=exported_by,
+        note=note,
+        output_format=output_format,
     )
     resolved_output = output_path.resolve()
     resolved_output.parent.mkdir(parents=True, exist_ok=True)
@@ -143,6 +165,12 @@ def build_changeset_export_payload(
     repository: ChangesetRepository,
     artifact_repository: ArtifactRepository,
     workspace_root: Path,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
+    recipient: str | None = None,
+    expected_custodian: str | None = None,
+    exported_by: str | None = None,
+    note: str | None = None,
+    output_format: str = "json",
 ) -> ChangesetExportPayload:
     """Build a changeset-centered handoff payload from retained evidence."""
 
@@ -164,6 +192,7 @@ def build_changeset_export_payload(
         workspace_root=workspace_root,
     )
     latest_brief = detail.review_briefs[0] if detail.review_briefs else None
+    redaction_context = RedactionContext(workspace_root=workspace_root.resolve())
     source = HandoffSourceRef(
         kind=HandoffSourceKind.CHANGESET,
         primary_id=str(detail.changeset.changeset_id),
@@ -192,11 +221,31 @@ def build_changeset_export_payload(
         live_review_evidence=_live_review_evidence_summary(detail.manual_evidence),
         readiness=[item.model_dump(mode="json") for item in detail.readiness],
         artifact_references=_artifact_references(detail, verification_plan),
+        profile=build_handoff_export_profile(
+            source=source,
+            package_kind=HandoffPackageKind.CHANGESET,
+            intent=intent,
+            output_format=output_format,
+            included_sections=[
+                "changeset",
+                "evidence_graph",
+                "verification",
+                "handoff_readiness",
+                "local_only_inventory",
+            ],
+        ),
+        recipient=redact_optional_text(recipient, redaction_context),
+        expected_custodian=redact_optional_text(
+            expected_custodian,
+            redaction_context,
+        ),
+        exported_by=redact_optional_text(exported_by, redaction_context),
+        note=redact_optional_text(note, redaction_context),
         local_only_inventory=build_changeset_local_only_inventory(
             detail,
             verification_plan,
             source=source,
-            intent=HandoffIntent.REVIEW_ONLY,
+            intent=intent,
             omitted_raw_categories=CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
         ),
         redaction_report=[
@@ -255,6 +304,9 @@ def changeset_export_inspection_summary(
         "handoff_state": payload.handoff_readiness["state"],
         "feedback_count": payload.review_feedback["total_count"],
         "manual_evidence_count": payload.manual_evidence["total_count"],
+        "profile_id": (
+            payload.profile.profile_id.value if payload.profile is not None else None
+        ),
         "local_only_evidence_count": payload.local_only_inventory.total_count,
         "evidence_graph_node_count": evidence_graph.get("node_count", 0),
         "evidence_graph_claim_count": evidence_graph.get("claim_count", 0),

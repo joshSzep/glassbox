@@ -119,6 +119,7 @@ def build_readiness_local_only_inventory(
 def build_session_local_only_inventory(
     payload: SessionExportPayload,
     *,
+    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
     omitted_raw_categories: Sequence[str],
 ) -> HandoffLocalOnlyInventory:
     """Inventory local evidence referenced by a portable session export."""
@@ -136,7 +137,7 @@ def build_session_local_only_inventory(
     ]
     return build_local_only_inventory(
         source=source,
-        intent=HandoffIntent.REVIEW_ONLY,
+        intent=intent,
         summary=HandoffLocalOnlySummary(
             category_counts=_positive_counts(
                 {

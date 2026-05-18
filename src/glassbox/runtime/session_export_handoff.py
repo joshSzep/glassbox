@@ -6,6 +6,7 @@ from glassbox.core.events import ApprovalResolved
 from glassbox.core.events import EventEnvelope
 from glassbox.core.models import ContextCompactionRecord
 from glassbox.core.models import TaskCheckpointRecord
+from glassbox.core.types_handoff import HandoffIntent
 from glassbox.runtime.branch_decision_support import BranchSearchDecisionSupport
 from glassbox.runtime.branch_decision_support import (
     derive_branch_search_decision_support,
@@ -30,12 +31,16 @@ def build_export_handoff(
     redaction_context: RedactionContext,
     *,
     latest_checkpoint: TaskCheckpointRecord | None,
+    intent: HandoffIntent,
+    recipient: str | None,
     exported_by: str | None,
     expected_custodian: str | None,
     note: str | None,
     summary: SessionExportHandoffSummary,
 ) -> SessionExportHandoff:
     return SessionExportHandoff(
+        intent=intent,
+        recipient=redact_optional_text(recipient, redaction_context),
         exported_by=redact_optional_text(exported_by, redaction_context),
         expected_custodian=redact_optional_text(
             expected_custodian,

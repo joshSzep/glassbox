@@ -8,6 +8,7 @@ from glassbox.cli.parser_common import _add_runtime_location_arguments
 from glassbox.cli.parser_common import _add_session_start_default_arguments
 from glassbox.cli.parser_common import _parse_port
 from glassbox.cli.parser_common import _parse_uuid
+from glassbox.cli.parser_handoff import add_handoff_profile_arguments
 from glassbox.cli.parser_session_evidence import _add_session_evidence_graph_parser
 from glassbox.cli.parser_session_launch import add_interactive_launch_arguments
 
@@ -440,20 +441,11 @@ def _add_session_workflow_parsers(
         nargs="?",
         help="optional output path for the exported session handoff package",
     )
-    session_export_parser.add_argument(
-        "--exported-by",
-        default=None,
-        help="optional acting-operator label to include in the handoff package",
-    )
-    session_export_parser.add_argument(
-        "--expected-custodian",
-        default=None,
-        help="optional operator label expected to take custody after export",
-    )
-    session_export_parser.add_argument(
-        "--note",
-        default=None,
-        help="optional handoff note to include in the package",
+    add_handoff_profile_arguments(
+        session_export_parser,
+        include_labels=True,
+        format_choices=("json",),
+        format_help="export format; session handoff packages are stable JSON",
     )
     session_export_parser.add_argument(
         "--json",
