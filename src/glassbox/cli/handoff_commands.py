@@ -1,14 +1,26 @@
 """CLI handlers for local handoff custody decisions."""
 
 import argparse
+import json
+from pathlib import Path
 from typing import Any
 from typing import cast
 
+from pydantic import ValidationError
+
+from glassbox.cli.changeset_command_lifecycle import _changeset_export_command
 from glassbox.cli.json_output import print_json_output
+from glassbox.cli.path_helpers import resolve_optional_explicit_path
 from glassbox.cli.path_helpers import resolve_runtime_location
+from glassbox.cli.session_state_commands import _print_handoff_import_triage
+from glassbox.cli.session_state_commands import _session_command
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffProjectionRecord
 from glassbox.runtime.bootstrap import open_runtime_context
+from glassbox.runtime.changeset_export import CHANGESET_EXPORT_KIND
+from glassbox.runtime.changeset_export import ChangesetExportPayload
+from glassbox.runtime.changeset_export import build_changeset_export_markdown
+from glassbox.runtime.changeset_export import inspect_changeset_export_package
 from glassbox.runtime.handoff_decisions import HandoffDecisionRepository
 from glassbox.runtime.handoff_decisions import HandoffDecisionResult
 from glassbox.runtime.handoff_decisions import accept_handoff_custody
@@ -18,9 +30,19 @@ from glassbox.runtime.handoff_decisions import reject_handoff_custody
 from glassbox.runtime.handoff_decisions import safe_next_actions_for_decision
 from glassbox.runtime.handoff_guidance import HandoffGuidance
 from glassbox.runtime.handoff_guidance import load_handoff_guidance
+from glassbox.runtime.handoff_import_triage import triage_handoff_import
+from glassbox.runtime.handoff_markdown import build_session_export_markdown
+from glassbox.runtime.session_export import SESSION_EXPORT_KIND
+from glassbox.runtime.session_export_models import SessionExportPayload
 
 
 def _handoff_command(args: argparse.Namespace) -> int:
+    if args.handoff_command == "prepare":
+        return _handoff_prepare_command(args)
+    if args.handoff_command == "inspect":
+        return _handoff_inspect_command(args)
+    if args.handoff_command == "import":
+        return _handoff_import_command(args)
     if args.handoff_command == "list":
         return _handoff_list_command(args)
     if args.handoff_command == "show":
@@ -34,6 +56,47 @@ def _handoff_command(args: argparse.Namespace) -> int:
     if args.handoff_command == "archive":
         return _handoff_archive_command(args)
     raise ValueError("specify a handoff subcommand")
+
+
+def _handoff_prepare_command(args: argparse.Namespace) -> int:
+    source = getattr(args, "handoff_prepare_source", None)
+    if source == "session":
+        args.session_command = "export"
+        return _session_command(args)
+    if source == "changeset":
+        if args.output_path is None:
+            args.output_path = f"glassbox-changeset-{args.changeset_id}.json"
+        return _changeset_export_command(args)
+    raise ValueError("specify a handoff prepare source")
+
+
+def _handoff_inspect_command(args: argparse.Namespace) -> int:
+    cwd, _db_path = resolve_runtime_location(args)
+    package_path = resolve_optional_explicit_path(cwd, args.package)
+    assert package_path is not None
+    package_kind = _package_export_kind(package_path)
+    if args.markdown:
+        return _print_handoff_package_markdown(package_path, package_kind)
+    if package_kind == CHANGESET_EXPORT_KIND:
+        summary = inspect_changeset_export_package(package_path)
+        if args.json:
+            print_json_output(summary)
+        else:
+            _print_changeset_export_inspection(summary)
+        return 0
+
+    triage = triage_handoff_import(package_path)
+    if args.json:
+        print_json_output(triage.model_dump(mode="json"))
+    else:
+        _print_handoff_import_triage(triage)
+    return 0
+
+
+def _handoff_import_command(args: argparse.Namespace) -> int:
+    args.session_command = "import"
+    args.triage = False
+    return _session_command(args)
 
 
 def _handoff_list_command(args: argparse.Namespace) -> int:
@@ -185,6 +248,73 @@ def _print_decision_result(
         print(f"Recorded {result.event_type} for {result.record.package_id}")
         _print_handoff_record(result.record)
     return 0
+
+
+def _package_export_kind(package_path: Path) -> str | None:
+    try:
+        raw_payload = json.loads(package_path.read_text(encoding="utf-8"))
+    except OSError, json.JSONDecodeError:
+        return None
+    if not isinstance(raw_payload, dict):
+        return None
+    export_kind = raw_payload.get("export_kind")
+    return export_kind if isinstance(export_kind, str) else None
+
+
+def _print_handoff_package_markdown(
+    package_path: Path,
+    package_kind: str | None,
+) -> int:
+    if package_kind == CHANGESET_EXPORT_KIND:
+        payload = ChangesetExportPayload.model_validate_json(
+            package_path.read_text(encoding="utf-8")
+        )
+        print(build_changeset_export_markdown(payload))
+        return 0
+    if package_kind == SESSION_EXPORT_KIND:
+        payload = SessionExportPayload.model_validate_json(
+            package_path.read_text(encoding="utf-8")
+        )
+        print(build_session_export_markdown(payload))
+        return 0
+    try:
+        payload = SessionExportPayload.model_validate_json(
+            package_path.read_text(encoding="utf-8")
+        )
+    except (OSError, ValidationError) as exc:
+        raise ValueError(
+            "--markdown is only supported for session and changeset handoff packages"
+        ) from exc
+    print(build_session_export_markdown(payload))
+    return 0
+
+
+def _print_changeset_export_inspection(summary: dict[str, Any]) -> None:
+    print(f"Handoff package: {summary['bundle_path']}")
+    print(
+        f"Package: {summary['export_kind']} v{summary['schema_version']} "
+        f"for changeset {summary['changeset_id']}"
+    )
+    print(f"Status: {summary['status']}")
+    if summary.get("profile_id"):
+        print(f"Profile: {summary['profile_id']}")
+    print(f"Verification: {summary['verification_state']}")
+    print(f"Handoff: {summary['handoff_state']}")
+    print(f"Local-only evidence: {summary['local_only_evidence_count']}")
+    print(
+        "Evidence graph: "
+        f"{summary['evidence_graph_node_count']} node(s), "
+        f"{summary['evidence_graph_claim_count']} claim(s)"
+    )
+    print(f"Feedback: {summary['feedback_count']}")
+    print(f"Manual evidence: {summary['manual_evidence_count']}")
+    print(f"Redaction rows: {summary['redaction_report_count']}")
+    print("Safe inspection commands:")
+    for command in summary["safe_inspection_commands"][:5]:
+        print(f"  - {command}")
+    print("Non-claims:")
+    for claim in summary["non_claims"][:5]:
+        print(f"  - {claim}")
 
 
 def _print_handoff_records(records: list[HandoffProjectionRecord]) -> None:

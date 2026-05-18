@@ -16,6 +16,14 @@ deployments, or publication.
 Use session export when another local context needs the session story:
 
 ```bash
+uv run glassbox handoff prepare session SESSION_ID handoff.json --cwd .
+uv run glassbox handoff inspect handoff.json --cwd ../other-workspace
+uv run glassbox handoff import handoff.json --cwd ../other-workspace
+```
+
+The legacy session commands remain supported aliases for the same workflow:
+
+```bash
 uv run glassbox session export SESSION_ID handoff.json --cwd .
 uv run glassbox session import handoff.json --triage --cwd ../other-workspace
 uv run glassbox session import handoff.json --cwd ../other-workspace
@@ -30,7 +38,7 @@ embed artifact contents.
 Add operator labels when the recipient needs custody context:
 
 ```bash
-uv run glassbox session export SESSION_ID handoff.json \
+uv run glassbox handoff prepare session SESSION_ID handoff.json \
   --intent future-self \
   --recipient bob \
   --exported-by alice \
@@ -49,6 +57,13 @@ then be imported for inspection. The receiving workspace gets a new historical
 local session with imported transcript/history events, a durable imported
 handoff inspection record, and `Resumable: no`. Import does not silently merge
 into an existing live session or resume a provider stream.
+
+Use `handoff inspect` for package-first triage across supported handoff package
+types. For session packages it prints the same compatibility, redaction,
+local-only, safe-command, and disposition details as `session import --triage`.
+For changeset packages it prints the review bundle inspection summary. Add
+`--markdown` to render supported session or changeset packages as reviewer-safe
+Markdown without importing them.
 
 After import or package creation, custody decisions are local workflow evidence.
 They help humans coordinate follow-up, but they do not grant permissions or
@@ -82,12 +97,15 @@ For changeset-centered review handoff, start with:
 
 ```bash
 uv run glassbox changeset handoff-readiness CHANGESET_ID --cwd .
-uv run glassbox changeset export CHANGESET_ID changeset-review.json \
+uv run glassbox handoff prepare changeset CHANGESET_ID changeset-review.json \
   --markdown-output changeset-review.md \
   --cwd .
-uv run glassbox changeset export-inspect changeset-review.json --json
-uv run glassbox changeset export-inspect changeset-review.json --markdown
+uv run glassbox handoff inspect changeset-review.json --json --cwd .
+uv run glassbox handoff inspect changeset-review.json --markdown --cwd .
 ```
+
+The legacy `changeset export` and `changeset export-inspect` commands remain
+supported review-centered paths and use the same package services.
 
 The changeset export is the preferred review-centered bundle when a changeset
 exists. It includes redacted summaries, verification posture, reviewer-safe

@@ -1,5 +1,6 @@
 """Workflow-oriented command guide section data."""
 
+from glassbox.cli.command_guide_handoff import LOCAL_HANDOFF_COMMAND_GUIDE_SECTION
 from glassbox.cli.command_guide_models import CommandGuideEntry
 from glassbox.cli.command_guide_models import CommandGuideSection
 from glassbox.cli.command_guide_review import REVIEW_LOOP_COMMAND_GUIDE_SECTION
@@ -255,6 +256,7 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
             ),
         ),
     ),
+    LOCAL_HANDOFF_COMMAND_GUIDE_SECTION,
     CommandGuideSection(
         key="verify-work",
         title="Verification Recommendations",
@@ -476,4 +478,3 @@ COMMAND_GUIDE_SECTIONS: tuple[CommandGuideSection, ...] = (
         ),
     ),
 )
-__all__ = ["COMMAND_GUIDE_SECTIONS"]

@@ -28,7 +28,7 @@ COMMAND_GUIDE_WORKFLOW_GROUPS: dict[CommandGuideWorkflow, tuple[str, ...]] = {
     "knowledge": ("knowledge-freshness",),
     "branch-search": ("branch-search-review",),
     "review": ("review-loop",),
-    "handoff": ("checkpoint-inspection", "review-loop"),
+    "handoff": ("checkpoint-inspection", "local-handoff", "review-loop"),
     "release": ("release-evidence",),
 }
 

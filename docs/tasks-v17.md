@@ -740,7 +740,7 @@ large to review safely.
 
 ### GBX-1750: Add Handoff CLI Command Family And Command Guide Coverage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1732`, `GBX-1741`
 - Goal: expose local handoff as a coherent command family
 - Deliverables:

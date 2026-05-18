@@ -5,6 +5,7 @@ from typing import cast
 from glassbox.cli.command_guide_json import command_guide_json_payload
 from glassbox.cli.command_guide_render import format_command_guide
 from glassbox.cli.command_guide_workflows import sections_for_workflow
+from glassbox.cli.parser import build_parser
 
 
 def test_command_guide_renderer_preserves_terminal_contract() -> None:
@@ -34,6 +35,12 @@ def test_command_guide_renderer_preserves_terminal_contract() -> None:
     assert (
         "glassbox changeset evidence-graph CHANGESET_ID --summary --cwd ." in rendered
     )
+    assert "Local Handoff" in rendered
+    assert (
+        "glassbox handoff prepare session SESSION_ID handoff.json --cwd ." in rendered
+    )
+    assert "glassbox handoff inspect handoff.json --cwd ." in rendered
+    assert "Legacy session export remains a supported alias" in rendered
     assert "--capture-state not_run --skip-reason REASON" in rendered
     assert "without inventing a viewport or calling it a pass" in rendered
     assert "Use `glassbox command tree`" in rendered
@@ -56,6 +63,7 @@ def test_command_guide_json_preserves_payload_shape() -> None:
 def test_command_guide_workflows_group_related_sections() -> None:
     recovery_sections = sections_for_workflow("recovery")
     review_sections = sections_for_workflow("review")
+    handoff_sections = sections_for_workflow("handoff")
 
     assert [section.key for section in recovery_sections] == [
         "unblock-work",
@@ -64,3 +72,61 @@ def test_command_guide_workflows_group_related_sections() -> None:
         "tool-attempts",
     ]
     assert [section.key for section in review_sections] == ["review-loop"]
+    assert [section.key for section in handoff_sections] == [
+        "checkpoint-inspection",
+        "local-handoff",
+        "review-loop",
+    ]
+
+
+def test_handoff_command_family_parser_covers_v17_workflow() -> None:
+    parser = build_parser()
+
+    prepare_session = parser.parse_args(
+        [
+            "handoff",
+            "prepare",
+            "session",
+            "00000000-0000-0000-0000-000000000111",
+            "handoff.json",
+            "--intent",
+            "future-self",
+            "--recipient",
+            "next operator",
+            "--preview",
+            "--cwd",
+            ".",
+        ]
+    )
+    assert prepare_session.command == "handoff"
+    assert prepare_session.handoff_command == "prepare"
+    assert prepare_session.handoff_prepare_source == "session"
+    assert prepare_session.intent == "future-self"
+    assert prepare_session.preview is True
+
+    prepare_changeset = parser.parse_args(
+        [
+            "handoff",
+            "prepare",
+            "changeset",
+            "00000000-0000-0000-0000-000000000222",
+            "changeset-review.json",
+            "--format",
+            "json+markdown",
+            "--cwd",
+            ".",
+        ]
+    )
+    assert prepare_changeset.handoff_prepare_source == "changeset"
+    assert prepare_changeset.format == "json+markdown"
+
+    inspect = parser.parse_args(
+        ["handoff", "inspect", "handoff.json", "--markdown", "--cwd", "."]
+    )
+    assert inspect.handoff_command == "inspect"
+    assert inspect.package == "handoff.json"
+    assert inspect.markdown is True
+
+    imported = parser.parse_args(["handoff", "import", "handoff.json", "--cwd", "."])
+    assert imported.handoff_command == "import"
+    assert imported.package == "handoff.json"
