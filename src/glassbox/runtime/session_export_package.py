@@ -9,6 +9,9 @@ from typing import cast
 from glassbox.core.ids import SessionId
 from glassbox.runtime.branch_search import BranchSearchQueryService
 from glassbox.runtime.branch_search import BranchSearchRepository
+from glassbox.runtime.handoff_local_only_inventory import (
+    build_session_local_only_inventory,
+)
 from glassbox.runtime.knowledge_posture import build_workspace_knowledge_posture
 from glassbox.runtime.session_export_handoff import build_export_handoff
 from glassbox.runtime.session_export_handoff import build_handoff_summary
@@ -41,6 +44,14 @@ from glassbox.runtime.task_queries import TaskPlanRepository
 from glassbox.runtime.task_queries import TaskQueryService
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
+
+SESSION_EXPORT_OMITTED_RAW_CATEGORIES = [
+    "raw .glassbox database",
+    "raw artifact contents",
+    "raw command logs",
+    "raw provider output",
+    "raw tool transcripts",
+]
 
 
 def export_session_package(
@@ -117,7 +128,7 @@ def build_session_export_payload(
         session_repository,
     )
 
-    return SessionExportPayload(
+    payload = SessionExportPayload(
         exported_at=datetime.now(UTC),
         metadata=build_export_metadata(
             snapshot,
@@ -168,6 +179,15 @@ def build_session_export_payload(
         event_count=len(events),
         events=[event_summary(event) for event in events],
         redaction_notes=list(REDACTION_NOTES),
+    )
+    return payload.model_copy(
+        update={
+            "local_only_inventory": build_session_local_only_inventory(
+                payload,
+                omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
+            )
+        },
+        deep=True,
     )
 
 

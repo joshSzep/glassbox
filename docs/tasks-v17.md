@@ -585,7 +585,7 @@ large to review safely.
 
 ### GBX-1731: Add Local-Only Evidence Inventory
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1730`
 - Goal: make non-portable evidence explicit and reviewable
 - Deliverables:

@@ -813,6 +813,10 @@ def test_changeset_create_list_show_refresh_and_archive(
     assert preview_payload["source"]["kind"] == "changeset"
     assert "redaction_report" in preview_payload["included_sections"]
     assert "raw diffs" in preview_payload["omitted_raw_categories"]
+    assert preview_payload["local_only_inventory"]["total_count"] >= 1
+    assert (
+        "manual_evidence" in preview_payload["local_only_inventory"]["category_counts"]
+    )
     assert preview_payload["redaction"]["redacted_field_count"] >= len(
         export_payload["redaction_report"]
     )
@@ -861,7 +865,13 @@ def test_changeset_create_list_show_refresh_and_archive(
     }
     assert "manual_evidence" in artifact_kinds
     assert export_payload["artifact_references"][0]["local_only"] is True
+    assert export_payload["local_only_inventory"]["total_count"] >= 1
+    assert (
+        "raw command output"
+        in export_payload["local_only_inventory"]["category_counts"]
+    )
     assert "# Changeset Evidence Bundle" in export_markdown
+    assert "## Local-Only Evidence" in export_markdown
     assert "## Redaction" in export_markdown
     assert export_inspect_exit == 0
     assert export_inspection["changeset_id"] == changeset_id

@@ -257,6 +257,8 @@ from glassbox.core.models_evidence_graph import EvidenceGraphProvenance
 from glassbox.core.models_handoff import HandoffCompatibilitySummary
 from glassbox.core.models_handoff import HandoffDigestSummary
 from glassbox.core.models_handoff import HandoffLabel
+from glassbox.core.models_handoff import HandoffLocalOnlyEvidenceItem
+from glassbox.core.models_handoff import HandoffLocalOnlyInventory
 from glassbox.core.models_handoff import HandoffLocalOnlySummary
 from glassbox.core.models_handoff import HandoffPackageManifest
 from glassbox.core.models_handoff import HandoffPackageV2
@@ -507,6 +509,8 @@ __all__ = [
     "HandoffLabel",
     "HandoffLabelMetadataPosture",
     "HandoffLabelSource",
+    "HandoffLocalOnlyEvidenceItem",
+    "HandoffLocalOnlyInventory",
     "HandoffLocalOnlySummary",
     "HandoffPackageKind",
     "HandoffPackageCreated",

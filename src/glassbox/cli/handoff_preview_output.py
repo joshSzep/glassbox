@@ -28,6 +28,11 @@ def print_handoff_redaction_preview(preview: HandoffRedactionPreview) -> None:
         print("Local-only evidence:")
         for category, count in preview.local_only.category_counts.items():
             print(f"  - {category}: {count}")
+    if preview.local_only_inventory.items:
+        print("Local-only inventory:")
+        for item in preview.local_only_inventory.items[:10]:
+            print(f"  - {item.category}: {item.count} ({item.reason.value})")
+            print(f"    Limitation: {item.recipient_limitation}")
     if preview.omitted_raw_categories:
         print("Omitted raw categories:")
         for category in preview.omitted_raw_categories:

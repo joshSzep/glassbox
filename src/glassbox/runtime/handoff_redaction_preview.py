@@ -11,6 +11,7 @@ from pydantic import computed_field
 
 from glassbox.core import ChangesetId
 from glassbox.core import HandoffIntent
+from glassbox.core import HandoffLocalOnlyInventory
 from glassbox.core import HandoffLocalOnlySummary
 from glassbox.core import HandoffReadiness
 from glassbox.core import HandoffRedactionPosture
@@ -20,10 +21,18 @@ from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core import SessionId
 from glassbox.core import TaskId
+from glassbox.runtime.changeset_export import CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES
 from glassbox.runtime.changeset_export import ChangesetExportPayload
 from glassbox.runtime.changeset_export import build_changeset_export_payload
 from glassbox.runtime.changesets import ChangesetRepository
+from glassbox.runtime.handoff_local_only_inventory import build_local_only_inventory
+from glassbox.runtime.handoff_local_only_inventory import (
+    build_readiness_local_only_inventory,
+)
 from glassbox.runtime.observability import WorkspaceObservabilityReport
+from glassbox.runtime.session_export_package import (
+    SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
+)
 from glassbox.runtime.session_export_package import build_session_export_payload
 from glassbox.runtime.session_export_redaction import REDACTION_PLACEHOLDER
 from glassbox.runtime.session_export_redaction import WORKSPACE_PLACEHOLDER
@@ -53,6 +62,7 @@ class HandoffRedactionPreview(BaseModel):
     included_sections: list[str] = Field(default_factory=list, max_length=100)
     redaction: HandoffRedactionSummary
     local_only: HandoffLocalOnlySummary
+    local_only_inventory: HandoffLocalOnlyInventory
     omitted_raw_categories: list[str] = Field(default_factory=list, max_length=50)
     unsupported_evidence: list[str] = Field(default_factory=list, max_length=50)
     package_limitations: list[str] = Field(default_factory=list, max_length=50)
@@ -111,6 +121,19 @@ def session_redaction_preview_from_payload(
         ),
     }
     local_only_counts = _positive_counts(local_only_counts)
+    local_only_summary = HandoffLocalOnlySummary(
+        category_counts=local_only_counts,
+        limitations=[
+            "artifact contents remain local-only and are referenced by ID",
+            "raw tool logs and provider output are summarized, not copied",
+        ],
+        safe_local_inspection_commands=[
+            _safe_command(
+                f"glassbox session status {payload.metadata.session_id} --cwd .",
+                "Inspect the source session before sharing or importing.",
+            )
+        ],
+    )
     return HandoffRedactionPreview(
         source=HandoffSourceRef(
             kind=HandoffSourceKind.SESSION,
@@ -131,26 +154,19 @@ def session_redaction_preview_from_payload(
             provider_output_included=False,
             limitations=list(payload.redaction_notes),
         ),
-        local_only=HandoffLocalOnlySummary(
-            category_counts=local_only_counts,
-            limitations=[
-                "artifact contents remain local-only and are referenced by ID",
-                "raw tool logs and provider output are summarized, not copied",
-            ],
-            safe_local_inspection_commands=[
-                _safe_command(
-                    f"glassbox session status {payload.metadata.session_id} --cwd .",
-                    "Inspect the source session before sharing or importing.",
-                )
-            ],
+        local_only=local_only_summary,
+        local_only_inventory=payload.local_only_inventory
+        or build_local_only_inventory(
+            source=HandoffSourceRef(
+                kind=HandoffSourceKind.SESSION,
+                primary_id=str(payload.metadata.session_id),
+                label="session",
+            ),
+            intent=HandoffIntent.REVIEW_ONLY,
+            summary=local_only_summary,
+            omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
         ),
-        omitted_raw_categories=[
-            "raw .glassbox database",
-            "raw artifact contents",
-            "raw command logs",
-            "raw provider output",
-            "raw tool transcripts",
-        ],
+        omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
         unsupported_evidence=[],
         package_limitations=[
             "session preview is computed from the same payload path as export",
@@ -213,6 +229,20 @@ def changeset_redaction_preview_from_payload(
             ),
         }
     )
+    local_only_summary = HandoffLocalOnlySummary(
+        category_counts=local_only_counts,
+        limitations=[
+            "artifact paths remain local-only references by artifact ID",
+            ("manual, browser, dashboard, and accessibility raw evidence stays local"),
+        ],
+        safe_local_inspection_commands=[
+            _safe_command(
+                "glassbox changeset evidence list "
+                f"{payload.changeset['changeset_id']} --cwd .",
+                "Inspect local evidence inventory before sharing.",
+            )
+        ],
+    )
     return HandoffRedactionPreview(
         source=HandoffSourceRef(
             kind=HandoffSourceKind.CHANGESET,
@@ -236,35 +266,9 @@ def changeset_redaction_preview_from_payload(
             provider_output_included=False,
             limitations=list(payload.redaction_report),
         ),
-        local_only=HandoffLocalOnlySummary(
-            category_counts=local_only_counts,
-            limitations=[
-                "artifact paths remain local-only references by artifact ID",
-                (
-                    "manual, browser, dashboard, and accessibility raw evidence "
-                    "stays local"
-                ),
-            ],
-            safe_local_inspection_commands=[
-                _safe_command(
-                    "glassbox changeset evidence list "
-                    f"{payload.changeset['changeset_id']} --cwd .",
-                    "Inspect local evidence inventory before sharing.",
-                )
-            ],
-        ),
-        omitted_raw_categories=[
-            "raw .glassbox database",
-            "raw command output",
-            "raw provider transcripts",
-            "raw manual evidence text",
-            "raw external logs",
-            "raw diffs",
-            "raw file contents",
-            "raw screenshots",
-            "browser traces",
-            "accessibility transcripts",
-        ],
+        local_only=local_only_summary,
+        local_only_inventory=payload.local_only_inventory,
+        omitted_raw_categories=CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
         unsupported_evidence=[],
         package_limitations=[
             "changeset preview is computed from the same payload path as export",
@@ -311,6 +315,11 @@ def task_redaction_preview_from_readiness(
             ),
         }
     )
+    local_only_summary = HandoffLocalOnlySummary(
+        category_counts=local_only_counts,
+        limitations=readiness.limitations,
+        safe_local_inspection_commands=readiness.safe_first_commands,
+    )
     return HandoffRedactionPreview(
         source=readiness.source,
         intent=readiness.intent,
@@ -329,10 +338,20 @@ def task_redaction_preview_from_readiness(
                 "task handoff preview currently summarizes readiness sections only"
             ],
         ),
-        local_only=HandoffLocalOnlySummary(
-            category_counts=local_only_counts,
-            limitations=readiness.limitations,
-            safe_local_inspection_commands=readiness.safe_first_commands,
+        local_only=local_only_summary,
+        local_only_inventory=build_local_only_inventory(
+            source=readiness.source,
+            intent=readiness.intent,
+            summary=local_only_summary,
+            omitted_raw_categories=[
+                "raw task session transcript",
+                "raw verification logs",
+                "raw managed artifacts",
+            ],
+            affected_claim_ids_by_category={
+                "verification_artifacts": ["task.verification"],
+                "local_only_readiness_reasons": ["task.readiness"],
+            },
         ),
         omitted_raw_categories=[
             "raw task session transcript",
@@ -417,6 +436,11 @@ def _observability_preview(
         key = reason.kind.value
         local_only_counts[key] = local_only_counts.get(key, 0) + 1
     local_only_counts = _positive_counts(local_only_counts)
+    local_only_summary = HandoffLocalOnlySummary(
+        category_counts=local_only_counts,
+        limitations=readiness.limitations,
+        safe_local_inspection_commands=readiness.safe_first_commands,
+    )
     return HandoffRedactionPreview(
         source=readiness.source,
         intent=readiness.intent,
@@ -427,10 +451,14 @@ def _observability_preview(
             redacted_categories=[],
             limitations=readiness.limitations,
         ),
-        local_only=HandoffLocalOnlySummary(
-            category_counts=local_only_counts,
-            limitations=readiness.limitations,
-            safe_local_inspection_commands=readiness.safe_first_commands,
+        local_only=local_only_summary,
+        local_only_inventory=build_readiness_local_only_inventory(readiness)
+        if readiness.local_only_evidence
+        else build_local_only_inventory(
+            source=readiness.source,
+            intent=readiness.intent,
+            summary=local_only_summary,
+            omitted_raw_categories=omitted_raw_categories,
         ),
         omitted_raw_categories=omitted_raw_categories,
         unsupported_evidence=unsupported_evidence,

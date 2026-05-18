@@ -16,6 +16,10 @@ from glassbox.core import ChangesetId
 from glassbox.core import ChangesetRecord
 from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetSourceRecord
+from glassbox.core import HandoffIntent
+from glassbox.core import HandoffLocalOnlyInventory
+from glassbox.core import HandoffSourceKind
+from glassbox.core import HandoffSourceRef
 from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ReviewFeedbackRecord
@@ -27,6 +31,9 @@ from glassbox.runtime.changesets import ChangesetVerificationService
 from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_local_only_inventory import (
+    build_changeset_local_only_inventory,
+)
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 from glassbox.runtime.skipped_evidence import is_skipped_live_evidence
@@ -37,6 +44,18 @@ from glassbox.services import ArtifactRepository
 
 CHANGESET_EXPORT_KIND = "changeset_review_export"
 CHANGESET_EXPORT_VERSION = 1
+CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES = [
+    "raw .glassbox database",
+    "raw command output",
+    "raw provider transcripts",
+    "raw manual evidence text",
+    "raw external logs",
+    "raw diffs",
+    "raw file contents",
+    "raw screenshots",
+    "browser traces",
+    "accessibility transcripts",
+]
 
 
 class ChangesetExportArtifactReference(BaseModel):
@@ -74,6 +93,7 @@ class ChangesetExportPayload(BaseModel):
     artifact_references: list[ChangesetExportArtifactReference] = Field(
         default_factory=list
     )
+    local_only_inventory: HandoffLocalOnlyInventory
     redaction_report: list[str]
     non_claims: list[str]
     safe_inspection_commands: list[str]
@@ -144,6 +164,12 @@ def build_changeset_export_payload(
         workspace_root=workspace_root,
     )
     latest_brief = detail.review_briefs[0] if detail.review_briefs else None
+    source = HandoffSourceRef(
+        kind=HandoffSourceKind.CHANGESET,
+        primary_id=str(detail.changeset.changeset_id),
+        identifiers={"session_id": str(detail.changeset.session_id)},
+        label=detail.changeset.summary or detail.changeset.objective,
+    )
     return ChangesetExportPayload(
         exported_at=datetime.now(UTC),
         changeset=_changeset_summary(detail.changeset),
@@ -166,6 +192,13 @@ def build_changeset_export_payload(
         live_review_evidence=_live_review_evidence_summary(detail.manual_evidence),
         readiness=[item.model_dump(mode="json") for item in detail.readiness],
         artifact_references=_artifact_references(detail, verification_plan),
+        local_only_inventory=build_changeset_local_only_inventory(
+            detail,
+            verification_plan,
+            source=source,
+            intent=HandoffIntent.REVIEW_ONLY,
+            omitted_raw_categories=CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
+        ),
         redaction_report=[
             "raw .glassbox database state is not included",
             "raw command output is not included",
@@ -222,6 +255,7 @@ def changeset_export_inspection_summary(
         "handoff_state": payload.handoff_readiness["state"],
         "feedback_count": payload.review_feedback["total_count"],
         "manual_evidence_count": payload.manual_evidence["total_count"],
+        "local_only_evidence_count": payload.local_only_inventory.total_count,
         "evidence_graph_node_count": evidence_graph.get("node_count", 0),
         "evidence_graph_claim_count": evidence_graph.get("claim_count", 0),
         "redaction_report_count": len(payload.redaction_report),
@@ -254,10 +288,18 @@ def build_changeset_export_markdown(payload: ChangesetExportPayload) -> str:
             f"- Manual evidence: {payload.manual_evidence['total_count']} item(s), "
             f"{payload.manual_evidence['local_only_count']} local-only"
         ),
+        f"- Local-only inventory: {payload.local_only_inventory.total_count} item(s)",
         "",
         "## Redaction",
         "",
         *[f"- {item}" for item in payload.redaction_report],
+        "",
+        "## Local-Only Evidence",
+        "",
+        *[
+            f"- {item.category}: {item.count} item(s); {item.recipient_limitation}"
+            for item in payload.local_only_inventory.items[:10]
+        ],
         "",
         "## Safe Inspection",
         "",

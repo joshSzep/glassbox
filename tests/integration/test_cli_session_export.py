@@ -131,6 +131,8 @@ def test_cli_session_export_preview_reports_redaction_without_writing_package(
     assert "workspace-path" in preview["redaction"]["redacted_categories"]
     assert "secret-like-token" in preview["redaction"]["redacted_categories"]
     assert "raw artifact contents" in preview["omitted_raw_categories"]
+    assert preview["local_only_inventory"]["total_count"] >= 1
+    assert "raw command logs" in preview["local_only_inventory"]["category_counts"]
 
     export_exit = main(
         [

@@ -14,6 +14,8 @@ from glassbox.core import HandoffEvidenceFreshness
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffLabel
 from glassbox.core import HandoffLabelMetadataPosture
+from glassbox.core import HandoffLocalOnlyEvidenceItem
+from glassbox.core import HandoffLocalOnlyInventory
 from glassbox.core import HandoffLocalOnlySummary
 from glassbox.core import HandoffPackageKind
 from glassbox.core import HandoffPackageManifest
@@ -187,3 +189,44 @@ def test_local_only_summary_keeps_contents_out_of_categories() -> None:
 
     assert summary.category_counts["raw-command-log"] == 2
     assert summary.safe_local_inspection_commands[0].read_only is True
+
+
+def test_local_only_inventory_groups_counts_without_contents() -> None:
+    inventory = HandoffLocalOnlyInventory(
+        source=_source(),
+        intent=HandoffIntent.REVIEW_ONLY,
+        items=[
+            HandoffLocalOnlyEvidenceItem(
+                category="raw-command-log",
+                count=2,
+                summary="Two command logs remain local-only.",
+                affected_claim_ids=["claim.verify-tests"],
+                recipient_limitation=(
+                    "Recipient cannot inspect raw logs from the package."
+                ),
+                safe_local_inspection_commands=[_safe_command()],
+            ),
+            HandoffLocalOnlyEvidenceItem(
+                category="screenshot",
+                summary="Screenshot stays local.",
+                recipient_limitation=(
+                    "Recipient cannot inspect screenshots from the package."
+                ),
+            ),
+        ],
+        limitations=["Raw evidence must be inspected in the source workspace."],
+    )
+
+    assert inventory.total_count == 3
+    assert inventory.category_counts == {"raw-command-log": 2, "screenshot": 1}
+    assert inventory.items[0].affected_claim_ids == ["claim.verify-tests"]
+
+
+def test_local_only_inventory_item_rejects_portable_claim() -> None:
+    with pytest.raises(ValidationError, match="must not be portable"):
+        HandoffLocalOnlyEvidenceItem(
+            category="raw-command-log",
+            summary="Command log is local.",
+            recipient_limitation="Recipient cannot inspect it from the package.",
+            portable=True,
+        )

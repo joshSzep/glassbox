@@ -47,6 +47,12 @@ from glassbox.core.models_handoff import (
 from glassbox.core.models_handoff import HandoffDigestSummary as HandoffDigestSummary
 from glassbox.core.models_handoff import HandoffLabel as HandoffLabel
 from glassbox.core.models_handoff import (
+    HandoffLocalOnlyEvidenceItem as HandoffLocalOnlyEvidenceItem,
+)
+from glassbox.core.models_handoff import (
+    HandoffLocalOnlyInventory as HandoffLocalOnlyInventory,
+)
+from glassbox.core.models_handoff import (
     HandoffLocalOnlySummary as HandoffLocalOnlySummary,
 )
 from glassbox.core.models_handoff import (

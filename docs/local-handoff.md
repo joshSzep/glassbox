@@ -112,6 +112,15 @@ evidence counts, omitted raw categories, package limitations, and safe inspectio
 commands. Preview does not write the package, Markdown summary, raw artifacts,
 raw logs, provider output, screenshots, or raw diffs.
 
+Local-only evidence inventory is itemized separately from the raw contents. The
+inventory names category counts, affected claim IDs, recipient limitations, and
+safe local inspection commands for evidence such as managed artifacts, manual
+evidence, browser/dashboard/accessibility observations, provider evidence, raw
+command logs, raw transcripts, screenshots, repository-intelligence snapshots,
+and release evidence. It is included in session and changeset export payloads
+and in redaction previews so a package cannot silently lean on evidence that did
+not travel.
+
 ## Workspace And Release Handoff Summaries
 
 Workspace and release-candidate handoff summaries are read-only readiness views
@@ -136,9 +145,10 @@ or exports raw `.glassbox` evidence.
 The v17 local handoff track is planning a shared handoff workflow across
 sessions, tasks, changesets, workspaces, release evidence, and future-self
 continuity. The foundational shared handoff models, v2 package compatibility
-inspector, session/task/changeset readiness alignment, and workspace/release
-handoff summaries now exist in code, while broader operator-facing v17 commands
-and cockpit surfaces remain planned until later tasks land. Start with:
+inspector, session/task/changeset readiness alignment, workspace/release
+handoff summaries, redaction preview, and local-only evidence inventory now
+exist in code, while broader operator-facing v17 commands and cockpit surfaces
+remain planned until later tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and
@@ -149,8 +159,8 @@ and cockpit surfaces remain planned until later tasks land. Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities include recipient-oriented export profiles, redaction
-preview, local-only evidence inventory, import triage before mutation, custody
+Planned v17 capabilities include recipient-oriented export profiles, import
+triage before mutation, custody
 accept/reject/archive decisions, queue rows, API routes, TUI entry points,
 dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
 Until those tasks land, use the supported commands above and label any v17-only

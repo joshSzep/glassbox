@@ -14,6 +14,7 @@ from glassbox.core.models_handoff import HANDOFF_PACKAGE_FORMAT
 from glassbox.core.models_handoff import HANDOFF_PACKAGE_SCHEMA_VERSION
 from glassbox.core.models_handoff import HandoffCompatibilitySummary
 from glassbox.core.models_handoff import HandoffDigestSummary
+from glassbox.core.models_handoff import HandoffLocalOnlyInventory
 from glassbox.core.models_handoff import HandoffLocalOnlySummary
 from glassbox.core.models_handoff import HandoffPackageManifest
 from glassbox.core.models_handoff import HandoffPackageV2
@@ -44,6 +45,7 @@ class HandoffPackageInspection(BaseModel):
     local_only: HandoffLocalOnlySummary = Field(
         default_factory=HandoffLocalOnlySummary,
     )
+    local_only_inventory: HandoffLocalOnlyInventory | None = None
     digest: HandoffDigestSummary = Field(default_factory=HandoffDigestSummary)
     non_claims: list[str] = Field(default_factory=list, max_length=50)
     limitations: list[str] = Field(default_factory=list, max_length=50)
@@ -193,6 +195,7 @@ def _inspect_supported_package(package: HandoffPackageV2) -> HandoffPackageInspe
         missing_optional_sections=package.manifest.compatibility.missing_optional_sections,
         redaction=package.manifest.redaction,
         local_only=package.manifest.local_only,
+        local_only_inventory=package.manifest.local_only_inventory,
         digest=digest,
         non_claims=package.manifest.non_claims,
         limitations=[

@@ -22,6 +22,7 @@ from glassbox.core.models import PolicyDecisionTrace
 from glassbox.core.models import TaskCheckpointRecord
 from glassbox.core.models import ToolCallRecord
 from glassbox.core.models import TurnMetricsRecord
+from glassbox.core.models_handoff import HandoffLocalOnlyInventory
 from glassbox.runtime.session_queries import BranchableTurnView
 from glassbox.runtime.session_queries import ChildSessionSummaryView
 
@@ -267,6 +268,7 @@ class SessionExportPayload(BaseModel):
     branch_search_summaries: list[SessionExportBranchSearchSummary] = Field(
         default_factory=list
     )
+    local_only_inventory: HandoffLocalOnlyInventory | None = None
     event_count: int = Field(ge=0)
     events: list[SessionExportEventSummary] = Field(default_factory=list)
     redaction_notes: list[str] = Field(default_factory=list)

@@ -195,6 +195,60 @@ class HandoffLocalOnlySummary(BaseModel):
     )
 
 
+class HandoffLocalOnlyEvidenceItem(BaseModel):
+    """One local-only evidence bucket that should not expose raw contents."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str = Field(min_length=1, max_length=120)
+    count: int = Field(default=1, ge=1)
+    reason: HandoffReadinessReasonKind = HandoffReadinessReasonKind.LOCAL_ONLY_EVIDENCE
+    summary: str = Field(min_length=1, max_length=2000)
+    affected_claim_ids: list[str] = Field(default_factory=list, max_length=50)
+    recipient_limitation: str = Field(min_length=1, max_length=1000)
+    safe_local_inspection_commands: list[HandoffSafeCommand] = Field(
+        default_factory=list,
+        max_length=10,
+    )
+    portable: bool = False
+
+    @model_validator(mode="after")
+    def validate_local_only(self) -> HandoffLocalOnlyEvidenceItem:
+        if self.portable:
+            raise ValueError("local-only inventory items must not be portable")
+        return self
+
+
+class HandoffLocalOnlyInventory(BaseModel):
+    """Recipient-safe inventory of evidence that stayed in the source workspace."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    inventory_kind: str = "handoff_local_only_inventory"
+    source: HandoffSourceRef
+    intent: HandoffIntent
+    items: list[HandoffLocalOnlyEvidenceItem] = Field(
+        default_factory=list,
+        max_length=100,
+    )
+    category_counts: dict[str, int] = Field(default_factory=dict, max_length=50)
+    total_count: int = Field(default=0, ge=0)
+    limitations: list[str] = Field(default_factory=list, max_length=50)
+    safe_local_inspection_commands: list[HandoffSafeCommand] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+
+    @model_validator(mode="after")
+    def derive_inventory_counts(self) -> HandoffLocalOnlyInventory:
+        counts: dict[str, int] = {}
+        for item in self.items:
+            counts[item.category] = counts.get(item.category, 0) + item.count
+        self.category_counts = counts
+        self.total_count = sum(counts.values())
+        return self
+
+
 class HandoffCompatibilitySummary(BaseModel):
     """Compatibility posture for a package manifest."""
 
@@ -263,6 +317,7 @@ class HandoffPackageManifest(BaseModel):
     local_only: HandoffLocalOnlySummary = Field(
         default_factory=HandoffLocalOnlySummary,
     )
+    local_only_inventory: HandoffLocalOnlyInventory | None = None
     compatibility: HandoffCompatibilitySummary = Field(
         default_factory=HandoffCompatibilitySummary,
     )
@@ -354,6 +409,8 @@ __all__ = [
     "HandoffCompatibilitySummary",
     "HandoffDigestSummary",
     "HandoffLabel",
+    "HandoffLocalOnlyEvidenceItem",
+    "HandoffLocalOnlyInventory",
     "HandoffLocalOnlySummary",
     "HandoffPackageManifest",
     "HandoffPackageV2",
