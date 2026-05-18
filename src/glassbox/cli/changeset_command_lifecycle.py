@@ -27,6 +27,8 @@ from glassbox.core import HandoffIntent
 from glassbox.runtime.bootstrap import open_runtime_context
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionRepository
 from glassbox.runtime.branch_candidate_adoption import BranchCandidateAdoptionService
+from glassbox.runtime.changeset_export import ChangesetExportPayload
+from glassbox.runtime.changeset_export import build_changeset_export_markdown
 from glassbox.runtime.changeset_export import export_changeset_package
 from glassbox.runtime.changeset_export import inspect_changeset_export_package
 from glassbox.runtime.changesets import ChangesetActionService
@@ -805,6 +807,12 @@ def _changeset_export_command(args: argparse.Namespace) -> int:
 
 
 def _changeset_export_inspect_command(args: argparse.Namespace) -> int:
+    if getattr(args, "markdown", False):
+        payload = ChangesetExportPayload.model_validate_json(
+            Path(args.bundle_path).read_text(encoding="utf-8")
+        )
+        print(build_changeset_export_markdown(payload))
+        return 0
     summary = inspect_changeset_export_package(Path(args.bundle_path))
     if args.json:
         print_json_output(summary)

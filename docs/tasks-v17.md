@@ -635,7 +635,7 @@ large to review safely.
 
 ### GBX-1733: Generate Human Markdown Handoff Summaries
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1732`
 - Goal: provide readable handoff summaries without losing the stable JSON
   contract

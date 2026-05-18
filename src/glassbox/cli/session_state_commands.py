@@ -2,6 +2,7 @@
 
 import argparse
 from collections.abc import Sequence
+from pathlib import Path
 
 from glassbox.cli.handoff_preview_output import print_handoff_redaction_preview
 from glassbox.cli.json_output import print_json_output
@@ -20,7 +21,9 @@ from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_markdown import build_session_export_markdown
 from glassbox.runtime.handoff_redaction_preview import build_session_redaction_preview
+from glassbox.runtime.session_export import SessionExportPayload
 from glassbox.runtime.session_export import export_session_package
 from glassbox.runtime.session_handoff_readiness import SessionHandoffReadinessService
 from glassbox.runtime.session_import import import_session_package
@@ -261,18 +264,34 @@ def _session_export_command(args: argparse.Namespace) -> int:
             note=args.note,
             output_format=args.format,
         )
+    markdown_output_path = (
+        Path(args.markdown_output_path)
+        if getattr(args, "markdown_output_path", None)
+        else None
+    )
+    resolved_markdown_output: Path | None = None
+    if markdown_output_path is not None:
+        resolved_markdown_output = markdown_output_path.resolve()
+        resolved_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        payload = SessionExportPayload.model_validate_json(
+            exported_path.read_text(encoding="utf-8")
+        )
+        resolved_markdown_output.write_text(
+            build_session_export_markdown(payload),
+            encoding="utf-8",
+        )
 
     if args.json:
-        print_json_output(
-            {
-                "session_id": str(args.session_id),
-                "path": str(exported_path),
-            }
-        )
+        result = {"session_id": str(args.session_id), "path": str(exported_path)}
+        if resolved_markdown_output is not None:
+            result["markdown_output_path"] = str(resolved_markdown_output)
+        print_json_output(result)
     else:
         print(
             f"Exported session handoff package for {args.session_id}: {exported_path}"
         )
+        if resolved_markdown_output is not None:
+            print(f"Markdown: {resolved_markdown_output}")
     return 0
 
 

@@ -611,6 +611,15 @@ def test_changeset_create_list_show_refresh_and_archive(
         ]
     )
     export_inspection = json.loads(capsys.readouterr().out)
+    export_inspect_markdown_exit = main(
+        [
+            "changeset",
+            "export-inspect",
+            str(export_path),
+            "--markdown",
+        ]
+    )
+    export_inspection_markdown = capsys.readouterr().out
     (tmp_path / "app.py").write_text("print('changed again')\n", encoding="utf-8")
 
     stale_show_exit = main(
@@ -903,10 +912,14 @@ def test_changeset_create_list_show_refresh_and_archive(
         "raw command output"
         in export_payload["local_only_inventory"]["category_counts"]
     )
-    assert "# Changeset Evidence Bundle" in export_markdown
+    assert "# Changeset Handoff" in export_markdown
     assert "## Local-Only Evidence" in export_markdown
     assert "## Redaction" in export_markdown
+    assert "## Recipient Checklist" in export_markdown
     assert export_inspect_exit == 0
+    assert export_inspect_markdown_exit == 0
+    assert "# Changeset Handoff" in export_inspection_markdown
+    assert "## Safe First Commands" in export_inspection_markdown
     assert export_inspection["changeset_id"] == changeset_id
     assert export_inspection["profile_id"] == "verification-needed"
     assert export_inspection["evidence_graph_claim_count"] == 1

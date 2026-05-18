@@ -441,6 +441,11 @@ def _add_session_workflow_parsers(
         nargs="?",
         help="optional output path for the exported session handoff package",
     )
+    session_export_parser.add_argument(
+        "--markdown-output",
+        dest="markdown_output_path",
+        help="also write a reviewer-safe Markdown handoff summary",
+    )
     add_handoff_profile_arguments(
         session_export_parser,
         include_labels=True,

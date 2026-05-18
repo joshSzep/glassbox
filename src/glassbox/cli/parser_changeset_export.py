@@ -52,6 +52,11 @@ def _add_changeset_export_parsers(
     )
     export_inspect_parser.add_argument("bundle_path")
     export_inspect_parser.add_argument("--json", action="store_true")
+    export_inspect_parser.add_argument(
+        "--markdown",
+        action="store_true",
+        help="render the package as reviewer-safe Markdown",
+    )
 
 
 __all__ = ["_add_changeset_export_parsers"]

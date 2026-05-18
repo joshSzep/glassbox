@@ -54,6 +54,7 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
     prompt = f"Inspect {tmp_path} with OPENAI_API_KEY=sk-secret-session-export"
     db_path, session_id = _run_baseline_session(tmp_path, prompt=prompt)
     output_path = tmp_path / "exports" / "live-session.json"
+    markdown_path = tmp_path / "exports" / "live-session.md"
     _ = capsys.readouterr()
 
     exit_code = main(
@@ -62,6 +63,8 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
             "export",
             str(session_id),
             str(output_path),
+            "--markdown-output",
+            str(markdown_path),
             "--exported-by",
             "alice",
             "--recipient",
@@ -82,10 +85,12 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
     )
     captured = capsys.readouterr()
     raw_package = output_path.read_text(encoding="utf-8")
+    markdown = markdown_path.read_text(encoding="utf-8")
     payload = SessionExportPayload.model_validate_json(raw_package)
 
     assert exit_code == 0
     assert f"Exported session handoff package for {session_id}" in captured.out
+    assert f"Markdown: {markdown_path.resolve()}" in captured.out
     assert payload.export_kind == SESSION_EXPORT_KIND
     assert payload.export_version == SESSION_EXPORT_VERSION
     assert payload.metadata.session_id == session_id
@@ -106,6 +111,10 @@ def test_cli_session_export_writes_redacted_live_handoff_package(
     assert str(tmp_path) not in raw_package
     assert "sk-secret-session-export" not in raw_package
     assert "OPENAI_API_KEY=<redacted>" in raw_package
+    assert "# Session Handoff" in markdown
+    assert "## Recipient Checklist" in markdown
+    assert "sk-secret-session-export" not in markdown
+    assert str(tmp_path) not in markdown
 
 
 def test_cli_session_export_preview_reports_redaction_without_writing_package(

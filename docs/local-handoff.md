@@ -35,6 +35,7 @@ uv run glassbox session export SESSION_ID handoff.json \
   --exported-by alice \
   --expected-custodian bob \
   --note "waiting on verification review" \
+  --markdown-output handoff.md \
   --cwd .
 ```
 
@@ -50,6 +51,7 @@ uv run glassbox changeset export CHANGESET_ID changeset-review.json \
   --markdown-output changeset-review.md \
   --cwd .
 uv run glassbox changeset export-inspect changeset-review.json --json
+uv run glassbox changeset export-inspect changeset-review.json --markdown
 ```
 
 The changeset export is the preferred review-centered bundle when a changeset
@@ -74,6 +76,13 @@ and `--format`. Supported intents are `review-only`, `continue-work`,
 and optional sections, local-only evidence treatment, safe inspection commands,
 and profile-specific non-claims. Existing exports keep the stable default:
 review-only JSON.
+
+When `--markdown-output` is supplied, exports also write a reviewer-safe human
+handoff summary with objective, source, recipient intent, current posture,
+included evidence, local-only evidence, stale or missing evidence, accepted
+risks, safe first commands, recipient checklist, non-claims, and redaction
+summary. Markdown is a render target for people; JSON remains the stable package
+contract.
 
 ## Safe Inspection First
 
@@ -160,7 +169,8 @@ inspector, session/task/changeset readiness alignment, workspace/release
 handoff summaries, redaction preview, and local-only evidence inventory now
 exist in code. Recipient-oriented export profiles now carry intent, recipient,
 custody labels, profile sections, local-only evidence treatment, and non-claims
-on session and changeset exports, while broader operator-facing v17 commands and
+on session and changeset exports. Markdown handoff summaries are available for
+session and changeset exports, while broader operator-facing v17 commands and
 cockpit surfaces remain planned until later tasks land. Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared

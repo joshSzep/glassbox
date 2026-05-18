@@ -37,6 +37,9 @@ from glassbox.runtime.handoff_export_profiles import build_handoff_export_profil
 from glassbox.runtime.handoff_local_only_inventory import (
     build_changeset_local_only_inventory,
 )
+from glassbox.runtime.handoff_markdown import (
+    build_changeset_export_markdown as render_changeset_export_markdown,
+)
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 from glassbox.runtime.session_export_redaction import RedactionContext
@@ -319,50 +322,7 @@ def changeset_export_inspection_summary(
 def build_changeset_export_markdown(payload: ChangesetExportPayload) -> str:
     """Render a compact reviewer-safe Markdown summary."""
 
-    graph_summary = payload.evidence_graph["summary"]
-    lines = [
-        "# Changeset Evidence Bundle",
-        "",
-        f"- Changeset: `{payload.changeset['changeset_id']}`",
-        f"- Status: `{payload.changeset['status']}`",
-        f"- Risk: `{payload.changeset['risk_level']}`",
-        f"- Verification: `{payload.verification['readiness']['state']}`",
-        f"- Handoff: `{payload.handoff_readiness['state']}`",
-        (
-            f"- Evidence graph: {graph_summary['node_count']} node(s), "
-            f"{graph_summary['claim_count']} claim(s)"
-        ),
-        (
-            f"- Review feedback: {payload.review_feedback['total_count']} item(s), "
-            f"{payload.review_responses['accepted_risk_count']} accepted risk"
-        ),
-        (
-            f"- Manual evidence: {payload.manual_evidence['total_count']} item(s), "
-            f"{payload.manual_evidence['local_only_count']} local-only"
-        ),
-        f"- Local-only inventory: {payload.local_only_inventory.total_count} item(s)",
-        "",
-        "## Redaction",
-        "",
-        *[f"- {item}" for item in payload.redaction_report],
-        "",
-        "## Local-Only Evidence",
-        "",
-        *[
-            f"- {item.category}: {item.count} item(s); {item.recipient_limitation}"
-            for item in payload.local_only_inventory.items[:10]
-        ],
-        "",
-        "## Safe Inspection",
-        "",
-        *[f"- `{command}`" for command in payload.safe_inspection_commands[:10]],
-        "",
-        "## Non-Claims",
-        "",
-        *[f"- {claim}" for claim in payload.non_claims],
-        "",
-    ]
-    return "\n".join(lines)
+    return render_changeset_export_markdown(payload)
 
 
 def _changeset_summary(changeset: ChangesetRecord) -> dict[str, Any]:
