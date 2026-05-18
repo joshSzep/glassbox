@@ -648,6 +648,106 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/handoffs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Handoffs
+     * @description Return projected handoff records for local custody inspection.
+     */
+    get: operations["list_handoffs_handoffs_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/{session_id}/{package_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Handoff
+     * @description Return one projected handoff record.
+     */
+    get: operations["get_handoff_handoffs__session_id___package_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/{session_id}/{package_id}/accept": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Accept Handoff
+     * @description Accept local handoff custody or imported follow-up intent.
+     */
+    post: operations["accept_handoff_handoffs__session_id___package_id__accept_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/{session_id}/{package_id}/archive": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Archive Handoff Record
+     * @description Archive a handoff as historical local workflow evidence.
+     */
+    post: operations["archive_handoff_record_handoffs__session_id___package_id__archive_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/handoffs/{session_id}/{package_id}/reject": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reject Handoff
+     * @description Reject local handoff custody with a retained reason.
+     */
+    post: operations["reject_handoff_handoffs__session_id___package_id__reject_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/healthz": {
     parameters: {
       query?: never;
@@ -4509,6 +4609,69 @@ export interface components {
       detail?: components["schemas"]["ValidationError"][];
     };
     /**
+     * HandoffAcceptRequest
+     * @description Request to accept local custody or imported follow-up.
+     */
+    HandoffAcceptRequest: {
+      /**
+       * Accepted By
+       * @default operator
+       */
+      accepted_by: string;
+      follow_up_intent?: components["schemas"]["HandoffIntent"] | null;
+      /** Reason */
+      reason?: string | null;
+    };
+    /**
+     * HandoffArchiveRequest
+     * @description Request to archive a handoff as historical workflow evidence.
+     */
+    HandoffArchiveRequest: {
+      /**
+       * Archived By
+       * @default operator
+       */
+      archived_by: string;
+      /** Reason */
+      reason: string;
+    };
+    /**
+     * HandoffCompatibilityState
+     * @description Compatibility status for a handoff package.
+     * @enum {string}
+     */
+    HandoffCompatibilityState:
+      | "supported"
+      | "supported-with-warnings"
+      | "legacy-inspection-only"
+      | "unsupported"
+      | "future-version"
+      | "invalid";
+    /**
+     * HandoffCustodyState
+     * @description Local workflow state for a handoff package or imported handoff.
+     * @enum {string}
+     */
+    HandoffCustodyState:
+      | "created"
+      | "proposed"
+      | "accepted"
+      | "rejected"
+      | "imported-inspected"
+      | "accepted-for-follow-up"
+      | "archived";
+    /**
+     * HandoffDecisionResponse
+     * @description Response for a recorded handoff custody decision.
+     */
+    HandoffDecisionResponse: {
+      /** Event Type */
+      event_type: string;
+      handoff: components["schemas"]["HandoffRecordResponse"];
+      /** Non Claims */
+      non_claims?: string[];
+    };
+    /**
      * HandoffEvidenceFreshness
      * @description Freshness posture for portable handoff evidence.
      * @enum {string}
@@ -4560,6 +4723,97 @@ export interface components {
      * @enum {string}
      */
     HandoffLabelSource: "operator" | "package" | "import" | "runtime" | "config" | "unknown";
+    /**
+     * HandoffListResponse
+     * @description Bounded list of projected handoff records.
+     */
+    HandoffListResponse: {
+      /** Items */
+      items?: components["schemas"]["HandoffRecordResponse"][];
+    };
+    /**
+     * HandoffPackageKind
+     * @description Portable handoff package families.
+     * @enum {string}
+     */
+    HandoffPackageKind:
+      | "session-handoff"
+      | "task-handoff"
+      | "changeset-handoff"
+      | "workspace-handoff"
+      | "release-handoff"
+      | "future-self-handoff"
+      | "import-triage";
+    /**
+     * HandoffProjectionRecord
+     * @description Latest local workflow posture for one handoff package.
+     */
+    HandoffProjectionRecord: {
+      /**
+       * Archived
+       * @default false
+       */
+      archived: boolean;
+      /** Artifact Id */
+      artifact_id?: string | null;
+      /** Changeset Id */
+      changeset_id?: string | null;
+      compatibility_state?: components["schemas"]["HandoffCompatibilityState"] | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Current Custodian */
+      current_custodian?: string | null;
+      custody_state: components["schemas"]["HandoffCustodyState"];
+      /** Decision By */
+      decision_by?: string | null;
+      /** Decision Reason */
+      decision_reason?: string | null;
+      /** Expected Custodian */
+      expected_custodian?: string | null;
+      /** Exported By */
+      exported_by?: string | null;
+      follow_up_intent?: components["schemas"]["HandoffIntent"] | null;
+      /**
+       * Imported
+       * @default false
+       */
+      imported: boolean;
+      intent?: components["schemas"]["HandoffIntent"] | null;
+      /** Last Event Type */
+      last_event_type: string;
+      /** Last Sequence */
+      last_sequence: number;
+      /**
+       * Local Only Count
+       * @default 0
+       */
+      local_only_count: number;
+      /** Note */
+      note?: string | null;
+      /** Package Digest */
+      package_digest?: string | null;
+      /** Package Id */
+      package_id: string;
+      package_kind?: components["schemas"]["HandoffPackageKind"] | null;
+      redaction_posture?: components["schemas"]["HandoffRedactionPosture"] | null;
+      /** Safe Next Actions */
+      safe_next_actions?: string[];
+      /** Session Id */
+      session_id: string;
+      /** Source Id */
+      source_id?: string | null;
+      source_kind: components["schemas"]["HandoffSourceKind"];
+      /** Task Id */
+      task_id?: string | null;
+      /**
+       * Updated At
+       * Format: date-time
+       */
+      updated_at: string;
+    };
     /**
      * HandoffReadiness
      * @description Shared handoff readiness contract for sessions, tasks, and changesets.
@@ -4728,6 +4982,39 @@ export interface components {
       | "stale-evidence"
       | "blocked"
       | "accepted-with-risk";
+    /**
+     * HandoffRecordResponse
+     * @description Projected handoff record plus dashboard action state.
+     */
+    HandoffRecordResponse: {
+      /** Action State */
+      action_state: string;
+      record: components["schemas"]["HandoffProjectionRecord"];
+    };
+    /**
+     * HandoffRedactionPosture
+     * @description Package redaction posture.
+     * @enum {string}
+     */
+    HandoffRedactionPosture:
+      | "reviewer-safe"
+      | "redacted"
+      | "local-only-omitted"
+      | "raw-included"
+      | "unknown";
+    /**
+     * HandoffRejectRequest
+     * @description Request to reject local custody with a retained reason.
+     */
+    HandoffRejectRequest: {
+      /** Reason */
+      reason: string;
+      /**
+       * Rejected By
+       * @default operator
+       */
+      rejected_by: string;
+    };
     /**
      * HandoffSafeCommand
      * @description Safe inspection command shown before any handoff mutation.
@@ -9872,6 +10159,215 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ChangesetVerificationPlanPreviewResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_handoffs_handoffs_get: {
+    parameters: {
+      query?: {
+        session_id?: string | null;
+        include_archived?: boolean;
+        limit?: number | null;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffListResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_handoff_handoffs__session_id___package_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        package_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffRecordResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  accept_handoff_handoffs__session_id___package_id__accept_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        package_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffAcceptRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffDecisionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  archive_handoff_record_handoffs__session_id___package_id__archive_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        package_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffArchiveRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffDecisionResponse"];
+        };
+      };
+      /** @description Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorDetailResponse"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  reject_handoff_handoffs__session_id___package_id__reject_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        session_id: string;
+        package_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["HandoffRejectRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HandoffDecisionResponse"];
         };
       };
       /** @description Not Found */

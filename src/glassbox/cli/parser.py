@@ -5,6 +5,7 @@ import argparse
 from glassbox import __version__
 from glassbox.cli.parser_branch_search import _add_branch_search_parsers
 from glassbox.cli.parser_changesets import _add_changeset_parsers
+from glassbox.cli.parser_handoff import _add_handoff_parsers
 from glassbox.cli.parser_memory import _add_memory_parsers
 from glassbox.cli.parser_operations import _add_operations_parsers
 from glassbox.cli.parser_queue import _add_queue_parsers
@@ -42,6 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_session_workflow_parsers(subparsers)
     _add_task_parsers(subparsers)
     _add_queue_parsers(subparsers)
+    _add_handoff_parsers(subparsers)
     _add_changeset_parsers(subparsers)
     _add_worktree_parsers(subparsers)
     _add_branch_search_parsers(subparsers)

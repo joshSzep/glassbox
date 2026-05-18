@@ -7142,6 +7142,119 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "HandoffAcceptRequest": {
+        "additionalProperties": false,
+        "description": "Request to accept local custody or imported follow-up.",
+        "properties": {
+          "accepted_by": {
+            "default": "operator",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Accepted By",
+            "type": "string"
+          },
+          "follow_up_intent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffIntent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "title": "HandoffAcceptRequest",
+        "type": "object"
+      },
+      "HandoffArchiveRequest": {
+        "additionalProperties": false,
+        "description": "Request to archive a handoff as historical workflow evidence.",
+        "properties": {
+          "archived_by": {
+            "default": "operator",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Archived By",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": ["reason"],
+        "title": "HandoffArchiveRequest",
+        "type": "object"
+      },
+      "HandoffCompatibilityState": {
+        "description": "Compatibility status for a handoff package.",
+        "enum": [
+          "supported",
+          "supported-with-warnings",
+          "legacy-inspection-only",
+          "unsupported",
+          "future-version",
+          "invalid"
+        ],
+        "title": "HandoffCompatibilityState",
+        "type": "string"
+      },
+      "HandoffCustodyState": {
+        "description": "Local workflow state for a handoff package or imported handoff.",
+        "enum": [
+          "created",
+          "proposed",
+          "accepted",
+          "rejected",
+          "imported-inspected",
+          "accepted-for-follow-up",
+          "archived"
+        ],
+        "title": "HandoffCustodyState",
+        "type": "string"
+      },
+      "HandoffDecisionResponse": {
+        "additionalProperties": false,
+        "description": "Response for a recorded handoff custody decision.",
+        "properties": {
+          "event_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Event Type",
+            "type": "string"
+          },
+          "handoff": {
+            "$ref": "#/components/schemas/HandoffRecordResponse"
+          },
+          "non_claims": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Non Claims",
+            "type": "array"
+          }
+        },
+        "required": ["event_type", "handoff"],
+        "title": "HandoffDecisionResponse",
+        "type": "object"
+      },
       "HandoffEvidenceFreshness": {
         "description": "Freshness posture for portable handoff evidence.",
         "enum": ["fresh", "stale", "missing", "degraded", "unknown"],
@@ -7227,6 +7340,310 @@
         "enum": ["operator", "package", "import", "runtime", "config", "unknown"],
         "title": "HandoffLabelSource",
         "type": "string"
+      },
+      "HandoffListResponse": {
+        "additionalProperties": false,
+        "description": "Bounded list of projected handoff records.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HandoffRecordResponse"
+            },
+            "maxItems": 500,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "title": "HandoffListResponse",
+        "type": "object"
+      },
+      "HandoffPackageKind": {
+        "description": "Portable handoff package families.",
+        "enum": [
+          "session-handoff",
+          "task-handoff",
+          "changeset-handoff",
+          "workspace-handoff",
+          "release-handoff",
+          "future-self-handoff",
+          "import-triage"
+        ],
+        "title": "HandoffPackageKind",
+        "type": "string"
+      },
+      "HandoffProjectionRecord": {
+        "additionalProperties": false,
+        "description": "Latest local workflow posture for one handoff package.",
+        "properties": {
+          "archived": {
+            "default": false,
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "artifact_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Id"
+          },
+          "changeset_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changeset Id"
+          },
+          "compatibility_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffCompatibilityState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "current_custodian": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Custodian"
+          },
+          "custody_state": {
+            "$ref": "#/components/schemas/HandoffCustodyState"
+          },
+          "decision_by": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision By"
+          },
+          "decision_reason": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Reason"
+          },
+          "expected_custodian": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Custodian"
+          },
+          "exported_by": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exported By"
+          },
+          "follow_up_intent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffIntent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "imported": {
+            "default": false,
+            "title": "Imported",
+            "type": "boolean"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffIntent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_event_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Last Event Type",
+            "type": "string"
+          },
+          "last_sequence": {
+            "minimum": 0.0,
+            "title": "Last Sequence",
+            "type": "integer"
+          },
+          "local_only_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Local Only Count",
+            "type": "integer"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "package_digest": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Digest"
+          },
+          "package_id": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Package Id",
+            "type": "string"
+          },
+          "package_kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffPackageKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "redaction_posture": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HandoffRedactionPosture"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "safe_next_actions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Safe Next Actions",
+            "type": "array"
+          },
+          "session_id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Session Id",
+            "type": "string"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "source_kind": {
+            "$ref": "#/components/schemas/HandoffSourceKind"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "package_id",
+          "source_kind",
+          "custody_state",
+          "created_at",
+          "updated_at",
+          "last_event_type",
+          "last_sequence"
+        ],
+        "title": "HandoffProjectionRecord",
+        "type": "object"
       },
       "HandoffReadiness": {
         "additionalProperties": false,
@@ -7670,6 +8087,52 @@
         ],
         "title": "HandoffReadinessState",
         "type": "string"
+      },
+      "HandoffRecordResponse": {
+        "additionalProperties": false,
+        "description": "Projected handoff record plus dashboard action state.",
+        "properties": {
+          "action_state": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Action State",
+            "type": "string"
+          },
+          "record": {
+            "$ref": "#/components/schemas/HandoffProjectionRecord"
+          }
+        },
+        "required": ["record", "action_state"],
+        "title": "HandoffRecordResponse",
+        "type": "object"
+      },
+      "HandoffRedactionPosture": {
+        "description": "Package redaction posture.",
+        "enum": ["reviewer-safe", "redacted", "local-only-omitted", "raw-included", "unknown"],
+        "title": "HandoffRedactionPosture",
+        "type": "string"
+      },
+      "HandoffRejectRequest": {
+        "additionalProperties": false,
+        "description": "Request to reject local custody with a retained reason.",
+        "properties": {
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "rejected_by": {
+            "default": "operator",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Rejected By",
+            "type": "string"
+          }
+        },
+        "required": ["reason"],
+        "title": "HandoffRejectRequest",
+        "type": "object"
       },
       "HandoffSafeCommand": {
         "additionalProperties": false,
@@ -21040,6 +21503,352 @@
           }
         },
         "summary": "Preview Changeset Verification Plan"
+      }
+    },
+    "/handoffs": {
+      "get": {
+        "description": "Return projected handoff records for local custody inspection.",
+        "operationId": "list_handoffs_handoffs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "session_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Handoffs"
+      }
+    },
+    "/handoffs/{session_id}/{package_id}": {
+      "get": {
+        "description": "Return one projected handoff record.",
+        "operationId": "get_handoff_handoffs__session_id___package_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffRecordResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Handoff"
+      }
+    },
+    "/handoffs/{session_id}/{package_id}/accept": {
+      "post": {
+        "description": "Accept local handoff custody or imported follow-up intent.",
+        "operationId": "accept_handoff_handoffs__session_id___package_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffDecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept Handoff"
+      }
+    },
+    "/handoffs/{session_id}/{package_id}/archive": {
+      "post": {
+        "description": "Archive a handoff as historical local workflow evidence.",
+        "operationId": "archive_handoff_record_handoffs__session_id___package_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffArchiveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffDecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Archive Handoff Record"
+      }
+    },
+    "/handoffs/{session_id}/{package_id}/reject": {
+      "post": {
+        "description": "Reject local handoff custody with a retained reason.",
+        "operationId": "reject_handoff_handoffs__session_id___package_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "package_id",
+            "required": true,
+            "schema": {
+              "title": "Package Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandoffRejectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandoffDecisionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetailResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Handoff"
       }
     },
     "/healthz": {

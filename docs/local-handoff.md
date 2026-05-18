@@ -50,6 +50,30 @@ local session with imported transcript/history events, a durable imported
 handoff inspection record, and `Resumable: no`. Import does not silently merge
 into an existing live session or resume a provider stream.
 
+After import or package creation, custody decisions are local workflow evidence.
+They help humans coordinate follow-up, but they do not grant permissions or
+block any policy-controlled operator path:
+
+```bash
+uv run glassbox handoff list --cwd .
+uv run glassbox handoff show SESSION_ID PACKAGE_ID --cwd .
+uv run glassbox handoff accept SESSION_ID PACKAGE_ID \
+  --accepted-by bob \
+  --follow-up-intent verification-needed \
+  --cwd .
+uv run glassbox handoff reject SESSION_ID PACKAGE_ID \
+  --reason "recipient cannot inspect local-only evidence" \
+  --cwd .
+uv run glassbox handoff archive SESSION_ID PACKAGE_ID \
+  --reason "historical handoff retained" \
+  --cwd .
+```
+
+Accept, reject, and archive actions append canonical local events and update the
+handoff projection. Rejection preserves a reason and safe inspection commands;
+archive hides the record from default handoff lists while keeping it available
+with `--include-archived`.
+
 For changeset-centered review handoff, start with:
 
 ```bash
@@ -191,11 +215,10 @@ Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities still include custody accept/reject/archive decisions,
-queue rows, API routes, TUI entry points, dashboard cockpit surfaces,
-deterministic evals, and a v17 release gate. Until those tasks land, use the
-supported commands above and label any v17-only custody or cockpit workflow as
-planned.
+Planned v17 capabilities still include broader command-guide coverage, TUI entry
+points, dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
+Until those tasks land, use the supported commands above and label any v17-only
+cockpit workflow as planned.
 
 ## Non-Claims
 

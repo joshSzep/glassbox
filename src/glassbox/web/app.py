@@ -74,6 +74,7 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     from glassbox.web.routes.branch_searches import router as branch_searches_router
     from glassbox.web.routes.changesets import router as changesets_router
     from glassbox.web.routes.events import router as events_router
+    from glassbox.web.routes.handoffs import router as handoffs_router
     from glassbox.web.routes.health import router as health_router
     from glassbox.web.routes.jobs import router as jobs_router
     from glassbox.web.routes.memory import router as memory_router
@@ -87,6 +88,7 @@ def create_app(runtime_context: RuntimeContext) -> FastAPI:
     app.include_router(sessions_router)
     app.include_router(tasks_router)
     app.include_router(changesets_router)
+    app.include_router(handoffs_router)
     app.include_router(branch_searches_router)
     app.include_router(jobs_router)
     app.include_router(memory_router)

@@ -57,6 +57,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
     from glassbox.cli.branch_search_commands import _branch_search_command
     from glassbox.cli.changeset_commands import _changeset_command
     from glassbox.cli.daemon_commands import _daemon_command
+    from glassbox.cli.handoff_commands import _handoff_command
     from glassbox.cli.job_commands import _job_command
     from glassbox.cli.memory_commands import _memory_command
     from glassbox.cli.observability_commands import _observability_command
@@ -79,6 +80,7 @@ def _resolve_command_handler(args: argparse.Namespace) -> CommandHandler | None:
         "session": _session_command,
         "task": _task_command,
         "queue": _queue_command,
+        "handoff": _handoff_command,
         "changeset": _changeset_command,
         "changesets": _changeset_command,
         "worktree": _worktree_command,

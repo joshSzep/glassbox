@@ -687,7 +687,7 @@ large to review safely.
 
 ### GBX-1741: Record Handoff Acceptance, Rejection, And Custody Decisions
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1712`, `GBX-1740`
 - Goal: make the recipient's decision auditable local workflow state
 - Deliverables:

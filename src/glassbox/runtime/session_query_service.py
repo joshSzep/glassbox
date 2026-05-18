@@ -350,7 +350,11 @@ class SessionQueryService:
         sorted_rows = sort_operator_rows(filtered_rows, sort=sort)
         if limit is not None:
             sorted_rows = sorted_rows[:limit]
-        operator_queue = build_operator_queue(rows, runtime=runtime)
+        operator_queue = build_operator_queue(
+            rows,
+            runtime=runtime,
+            handoffs=_list_handoffs_if_available(self._session_repository),
+        )
 
         return SessionAggregateView(
             queue=queue,
@@ -570,3 +574,10 @@ class SessionQueryService:
             )
             for record in child_records
         ]
+
+
+def _list_handoffs_if_available(repository) -> list:
+    list_handoffs = getattr(repository, "list_handoffs", None)
+    if list_handoffs is None:
+        return []
+    return list_handoffs()
