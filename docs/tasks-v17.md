@@ -662,7 +662,7 @@ large to review safely.
 
 ### GBX-1740: Add Handoff Import Triage
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1711`, `GBX-1731`
 - Goal: turn package import into a safe inspection workflow
 - Deliverables:

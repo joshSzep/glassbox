@@ -21,6 +21,8 @@ from glassbox.runtime.evidence_graph import build_session_evidence_graph
 from glassbox.runtime.evidence_graph import claim_support
 from glassbox.runtime.evidence_graph import evidence_neighborhood
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
+from glassbox.runtime.handoff_import_triage import HandoffImportTriage
+from glassbox.runtime.handoff_import_triage import triage_handoff_import
 from glassbox.runtime.handoff_markdown import build_session_export_markdown
 from glassbox.runtime.handoff_redaction_preview import build_session_redaction_preview
 from glassbox.runtime.session_export import SessionExportPayload
@@ -350,6 +352,17 @@ def _print_session_handoff_readiness(readiness: HandoffReadiness) -> None:
 
 
 def _session_import_command(args: argparse.Namespace) -> int:
+    if args.triage:
+        cwd, _db_path = resolve_runtime_location(args)
+        package_path = resolve_optional_explicit_path(cwd, args.package)
+        assert package_path is not None
+        triage = triage_handoff_import(package_path)
+        if args.json:
+            print_json_output(triage.model_dump(mode="json"))
+        else:
+            _print_handoff_import_triage(triage)
+        return 0
+
     cwd, db_path = resolve_runtime_location(
         args,
         require_daemon_unowned_for="import a session handoff package locally",
@@ -374,6 +387,45 @@ def _session_import_command(args: argparse.Namespace) -> int:
         )
         print("Resumable: no")
     return 0
+
+
+def _print_handoff_import_triage(triage: HandoffImportTriage) -> None:
+    print(f"Handoff import triage: {triage.package_id}")
+    print(f"Package: {triage.package_path}")
+    print(f"Compatibility: {triage.compatibility.state.value}")
+    if triage.recipient_intent is not None:
+        print(f"Intent: {triage.recipient_intent.value}")
+    print(f"Disposition: {triage.recommended_disposition}")
+    can_import = "yes" if triage.can_import_for_inspection else "no"
+    print(f"Can import for inspection: {can_import}")
+    print(
+        "Source: "
+        f"{triage.source.source_kind or 'unknown'} "
+        f"{triage.source.source_id or ''}".rstrip()
+    )
+    if triage.included_evidence:
+        print("Included evidence:")
+        for section in triage.included_evidence:
+            print(f"  - {section}")
+    if triage.local_only_omissions:
+        print("Local-only omissions:")
+        for item in triage.local_only_omissions:
+            print(f"  - {item}")
+    if triage.unsupported_sections:
+        print("Unsupported sections:")
+        for section in triage.unsupported_sections:
+            print(f"  - {section}")
+    if triage.missing_sections:
+        print("Missing optional sections:")
+        for section in triage.missing_sections:
+            print(f"  - {section}")
+    if triage.limitations:
+        print("Limitations:")
+        for limitation in triage.limitations:
+            print(f"  - {limitation}")
+    print("Safe first commands:")
+    for command in triage.safe_first_commands:
+        print(f"  - {command.display}")
 
 
 def _projection_command(args: argparse.Namespace) -> int:

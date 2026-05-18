@@ -8,6 +8,7 @@ import pytest
 
 from glassbox.cli import main
 from glassbox.core import HandoffCompatibilityState
+from glassbox.core import HandoffCustodyState
 from glassbox.runtime.handoff_package import inspect_handoff_package_path
 from glassbox.store.repositories import SQLiteSessionRepository
 from glassbox.store.sqlite import open_database
@@ -60,6 +61,7 @@ def test_cli_session_import_rehydrates_export_for_inspection_in_clean_workspace(
         session = repository.get_session(imported_session_id)
         transcript = repository.list_transcript_messages(imported_session_id)
         state = repository.get_session_state(imported_session_id)
+        handoffs = repository.list_handoffs(session_id=imported_session_id)
     finally:
         connection.close()
 
@@ -70,6 +72,10 @@ def test_cli_session_import_rehydrates_export_for_inspection_in_clean_workspace(
     assert state.status == "completed"
     assert [message.role for message in transcript] == ["user", "assistant"]
     assert transcript[0].parts[0].text == "Prepare a portable handoff"
+    assert len(handoffs) == 1
+    assert handoffs[0].custody_state == HandoffCustodyState.IMPORTED_INSPECTED
+    assert handoffs[0].imported is True
+    assert handoffs[0].source_id == str(source_session_id)
 
     status_exit_code = main(
         [
@@ -180,6 +186,45 @@ def test_cli_session_import_help_does_not_expose_unsupported_modes(
     assert exc_info.value.code == 0
     assert "--mode" not in captured.out
     assert "resumable" not in captured.out
+
+
+def test_cli_session_import_triage_inspects_without_importing(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source_root = tmp_path / "source"
+    import_root = tmp_path / "imported"
+    source_root.mkdir()
+    import_root.mkdir()
+    package_path, source_session_id = _export_session_package(
+        source_root,
+        tmp_path / "handoff.json",
+        capsys,
+    )
+    import_db_path = import_root / ".glassbox" / "glassbox.sqlite3"
+
+    exit_code = main(
+        [
+            "session",
+            "import",
+            str(package_path),
+            "--triage",
+            "--json",
+            "--cwd",
+            str(import_root),
+            "--db-path",
+            str(import_db_path),
+        ]
+    )
+    captured = capsys.readouterr()
+    result = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert result["source"]["source_id"] == str(source_session_id)
+    assert result["recommended_disposition"] == "import-for-inspection"
+    assert result["can_import_for_inspection"] is True
+    assert result["mutation_performed"] is False
+    assert not import_db_path.exists()
 
 
 def test_cli_session_import_rejects_unsupported_package_version(

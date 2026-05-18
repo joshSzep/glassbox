@@ -17,6 +17,7 @@ Use session export when another local context needs the session story:
 
 ```bash
 uv run glassbox session export SESSION_ID handoff.json --cwd .
+uv run glassbox session import handoff.json --triage --cwd ../other-workspace
 uv run glassbox session import handoff.json --cwd ../other-workspace
 ```
 
@@ -39,9 +40,15 @@ uv run glassbox session export SESSION_ID handoff.json \
   --cwd .
 ```
 
-Import is inspection-only. The receiving workspace gets a new historical local
-session with imported transcript/history events and `Resumable: no`. Import does
-not silently merge into an existing live session or resume a provider stream.
+Run import triage before importing when receiving a package. Triage validates
+package compatibility, package digest posture, source summary, recipient
+intent, included evidence, local-only omissions, redaction posture, unsupported
+sections, limitations, safe first commands, and the recommended disposition
+without writing local runtime state. Legacy session exports that pass triage can
+then be imported for inspection. The receiving workspace gets a new historical
+local session with imported transcript/history events, a durable imported
+handoff inspection record, and `Resumable: no`. Import does not silently merge
+into an existing live session or resume a provider stream.
 
 For changeset-centered review handoff, start with:
 
@@ -89,6 +96,7 @@ contract.
 Before acting on a handoff, inspect what travelled and what stayed local:
 
 ```bash
+uv run glassbox session import handoff.json --triage --cwd .
 uv run glassbox session status SESSION_ID --cwd .
 uv run glassbox session handoff-readiness SESSION_ID --intent review-only --cwd .
 uv run glassbox session compactions SESSION_ID --cwd .
@@ -166,12 +174,13 @@ The v17 local handoff track is planning a shared handoff workflow across
 sessions, tasks, changesets, workspaces, release evidence, and future-self
 continuity. The foundational shared handoff models, v2 package compatibility
 inspector, session/task/changeset readiness alignment, workspace/release
-handoff summaries, redaction preview, and local-only evidence inventory now
-exist in code. Recipient-oriented export profiles now carry intent, recipient,
-custody labels, profile sections, local-only evidence treatment, and non-claims
-on session and changeset exports. Markdown handoff summaries are available for
-session and changeset exports, while broader operator-facing v17 commands and
-cockpit surfaces remain planned until later tasks land. Start with:
+handoff summaries, redaction preview, local-only evidence inventory, and import
+triage now exist in code. Recipient-oriented export profiles now carry intent,
+recipient, custody labels, profile sections, local-only evidence treatment, and
+non-claims on session and changeset exports. Markdown handoff summaries are
+available for session and changeset exports, while broader operator-facing v17
+custody commands and cockpit surfaces remain planned until later tasks land.
+Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
   intent, readiness, package, redaction, import triage, custody, surface, and
@@ -182,11 +191,11 @@ cockpit surfaces remain planned until later tasks land. Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities include import triage before mutation, custody
-accept/reject/archive decisions, queue rows, API routes, TUI entry points,
-dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
-Until those tasks land, use the supported commands above and label any v17-only
-operator workflow as planned.
+Planned v17 capabilities still include custody accept/reject/archive decisions,
+queue rows, API routes, TUI entry points, dashboard cockpit surfaces,
+deterministic evals, and a v17 release gate. Until those tasks land, use the
+supported commands above and label any v17-only custody or cockpit workflow as
+planned.
 
 ## Non-Claims
 

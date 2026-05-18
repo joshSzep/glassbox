@@ -477,6 +477,11 @@ def _add_session_workflow_parsers(
         action="store_true",
         help="print the import result as JSON",
     )
+    session_import_parser.add_argument(
+        "--triage",
+        action="store_true",
+        help="inspect package compatibility and local-only gaps without importing",
+    )
     _add_runtime_location_arguments(session_import_parser)
 
 

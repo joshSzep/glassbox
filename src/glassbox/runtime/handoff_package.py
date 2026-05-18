@@ -35,6 +35,7 @@ class HandoffPackageInspection(BaseModel):
     schema_version: int | str | None = None
     package_kind: str | None = Field(default=None, max_length=120)
     source_kind: str | None = Field(default=None, max_length=120)
+    source_id: str | None = Field(default=None, max_length=300)
     intent: str | None = Field(default=None, max_length=120)
     included_sections: list[str] = Field(default_factory=list, max_length=100)
     unsupported_sections: list[str] = Field(default_factory=list, max_length=100)
@@ -124,6 +125,7 @@ def inspect_handoff_package(raw_package: str) -> HandoffPackageInspection:
             schema_version=schema_version,
             package_kind=_manifest_string(manifest, "package_kind"),
             source_kind=_manifest_source_kind(manifest),
+            source_id=_manifest_source_id(manifest),
             intent=_manifest_string(manifest, "intent"),
             compatibility=HandoffCompatibilitySummary(
                 state=HandoffCompatibilityState.FUTURE_VERSION,
@@ -178,6 +180,7 @@ def _inspect_supported_package(package: HandoffPackageV2) -> HandoffPackageInspe
         schema_version=package.schema_version,
         package_kind=package.manifest.package_kind.value,
         source_kind=package.manifest.source.kind.value,
+        source_id=package.manifest.source.primary_id,
         intent=package.manifest.intent.value,
         compatibility=compatibility,
         included_sections=[
@@ -227,6 +230,7 @@ def _inspect_legacy_session_export(
         schema_version=export_version if isinstance(export_version, int) else None,
         package_kind="legacy-session-export",
         source_kind="session",
+        source_id=_legacy_session_id(raw_payload),
         intent="review-only",
         included_sections=[
             key
@@ -251,6 +255,13 @@ def _inspect_legacy_session_export(
             "legacy session export does not carry v17 custody decisions",
             "legacy session export does not prove source workspace completeness",
         ],
+        digest=HandoffDigestSummary(
+            package_digest=_sha256_json(raw_payload),
+            limitations=[
+                "Legacy packages do not include v17 digest, compatibility, or "
+                "local-only evidence summaries."
+            ],
+        ),
         limitations=[
             "Legacy packages do not include v17 digest, compatibility, or "
             "local-only evidence summaries."
@@ -362,6 +373,22 @@ def _manifest_source_kind(manifest: dict[str, Any]) -> str | None:
     if not isinstance(source, dict):
         return None
     value = source.get("kind")
+    return value if isinstance(value, str) else None
+
+
+def _manifest_source_id(manifest: dict[str, Any]) -> str | None:
+    source = manifest.get("source")
+    if not isinstance(source, dict):
+        return None
+    value = source.get("primary_id")
+    return value if isinstance(value, str) else None
+
+
+def _legacy_session_id(raw_payload: dict[str, Any]) -> str | None:
+    metadata = raw_payload.get("metadata")
+    if not isinstance(metadata, dict):
+        return None
+    value = metadata.get("session_id")
     return value if isinstance(value, str) else None
 
 
