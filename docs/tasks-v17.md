@@ -944,7 +944,7 @@ large to review safely.
 
 ### GBX-1764: Publish V17 Local Handoff Release-Candidate Guide
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1763`
 - Goal: publish the operator guide for the supported v17 release-candidate
   operating model, evidence expectations, residual risks, and release decision

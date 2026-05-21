@@ -14,13 +14,14 @@ v13 review-loop contract is the current implemented review lifecycle, and the
 v14 release candidate is the latest review-loop maturity guide. The v15 release
 candidate adds repository intelligence v2 for making local repository
 awareness richer while preserving advisory boundaries and deterministic release
-authority. The v16 planning track now covers operator flow compression:
+authority. The v16 release candidate covers operator flow compression:
 unified next actions, evidence graph claim support, verification
 orchestration, one operator queue, and maintenance-aware guidance while keeping
-operator authority explicit.
-The v17 local handoff planning track is now open for making sessions, tasks,
-changesets, workspaces, release evidence, and future-self continuity portable
-without treating handoff as hosted collaboration, approval, or publication.
+operator authority explicit. The v17 release candidate adds local handoff:
+sessions, tasks, changesets, workspaces, release evidence, and future-self
+continuity can be packaged, previewed, inspected, triaged, and accepted or
+rejected locally without treating handoff as hosted collaboration, approval,
+or publication.
 
 ## Start Here
 
@@ -130,6 +131,9 @@ without treating handoff as hosted collaboration, approval, or publication.
   dogfooding findings for recipient intent, redaction preview, local-only
   inventory, import triage, custody decisions, guidance, and release-signoff
   handoff posture
+- [v17-release-candidate.md](./v17-release-candidate.md): v17
+  release-candidate guide for the supported local handoff operating model,
+  validation path, advisory evidence expectations, residual risks, and decision
 - [v16-dogfooding-summary.md](./v16-dogfooding-summary.md): sanitized v16
   operator-flow dogfooding evidence for queue triage, maintenance cues,
   changeset workup, verification plans, evidence graph inspection, review
@@ -193,6 +197,9 @@ without treating handoff as hosted collaboration, approval, or publication.
   handoff dogfooding evidence for future-self, review-only,
   verification-needed, failure-triage, import triage, custody accept/reject,
   local-only preview, and release-signoff scenarios
+- [v17-release-candidate.md](./v17-release-candidate.md): release-candidate
+  guide for v17 local handoff release authority, evidence expectations,
+  advisory non-claims, accepted residual risks, and decision
 - [tasks-v17.md](./tasks-v17.md): v17 local handoff task graph for shared
   models, package schema, readiness, redaction preview, import triage, custody,
   CLI/API/TUI/dashboard cockpit surfaces, evals, packaging, dogfooding, and
@@ -501,6 +508,9 @@ without treating handoff as hosted collaboration, approval, or publication.
 - [v17-dogfooding-summary.md](./v17-dogfooding-summary.md): use the sanitized
   local dogfooding findings before publishing or changing v17 release-candidate
   handoff guidance
+- [v17-release-candidate.md](./v17-release-candidate.md): use the supported
+  v17 release-candidate guide before making release, package, or operator
+  handoff claims
 - [tasks-v17.md](./tasks-v17.md): follow the dependency-ordered graph for
   turning the v17 contract and audit into shared models, package schema,
   readiness services, redaction preview, local-only inventory, import triage,

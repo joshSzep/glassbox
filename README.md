@@ -100,11 +100,11 @@ freshness-aware, provenance-backed repository awareness that remains advisory
 and subordinate to deterministic release evidence. The v16 release candidate
 adds operator flow compression: unified next-action language, evidence graph
 claim support, verification orchestration, operator queueing, and
-maintenance-aware guidance without hidden automation.
-V17 local handoff planning has started. It is not the released baseline yet; it
-defines how sessions, tasks, changesets, workspaces, release evidence, and
-future-self continuity should become portable without adding hosted
-collaboration, remote custody authority, or automatic publication.
+maintenance-aware guidance without hidden automation. The v17 release candidate
+adds local handoff: sessions, tasks, changesets, workspaces, release evidence,
+and future-self continuity can be packaged, previewed, inspected, triaged, and
+accepted or rejected locally without adding hosted collaboration, remote custody
+authority, or automatic publication.
 
 Start with
 [docs/v10-long-running-task-contract.md](docs/v10-long-running-task-contract.md)
@@ -153,13 +153,15 @@ release-candidate guide in
 [docs/tasks-v16.md](docs/tasks-v16.md).
 The post-v16 behavior-preserving helper-owner roadmap and closeout notes live
 in [docs/refactor-v16.md](docs/refactor-v16.md).
-V17 local handoff planning starts with the operator guide in
+V17 local handoff release-candidate guidance starts with the operator guide in
 [docs/local-handoff.md](docs/local-handoff.md), the contract in
 [docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md), the
 source-linked audit in
 [docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md), the
 dogfooding summary in
-[docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md), and the task
+[docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md), the
+release-candidate guide in
+[docs/v17-release-candidate.md](docs/v17-release-candidate.md), and the task
 graph in [docs/tasks-v17.md](docs/tasks-v17.md).
 
 ## Documentation
@@ -205,6 +207,7 @@ Start here based on what you need:
 - [docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md)
 - [docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md)
 - [docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md)
+- [docs/v17-release-candidate.md](docs/v17-release-candidate.md)
 - [docs/tasks-v17.md](docs/tasks-v17.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

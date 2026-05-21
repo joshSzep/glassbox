@@ -1,8 +1,8 @@
 # Local Handoff
 
 For the docs hub and operator guides, start at [README.md](./README.md). This
-guide collects the current local handoff workflow and points to the v17 planning
-track without implying v17 is released behavior.
+guide collects the current local handoff workflow and points to the v17
+release-candidate track.
 
 Local handoff means moving inspectable local context between operators,
 terminals, machines, reviewers, release custodians, or a future self while
@@ -251,11 +251,11 @@ local-only limitations, safe first commands, and explicit non-claims. Neither
 summary runs release gates, approves publication, transfers runtime ownership,
 or exports raw `.glassbox` evidence.
 
-## V17 Planning Track
+## V17 Release-Candidate Track
 
-The v17 local handoff track is planning a shared handoff workflow across
-sessions, tasks, changesets, workspaces, release evidence, and future-self
-continuity. The foundational shared handoff models, v2 package compatibility
+The v17 local handoff track supports a shared handoff workflow across sessions,
+tasks, changesets, workspaces, release evidence, and future-self continuity.
+The foundational shared handoff models, v2 package compatibility
 inspector, session/task/changeset readiness alignment, workspace/release
 handoff summaries, redaction preview, local-only evidence inventory, and import
 triage now exist in code. Recipient-oriented export profiles now carry intent,
@@ -265,8 +265,9 @@ available for session and changeset exports, the handoff command family and
 typed API routes are available, and the local dashboard cockpit is available at
 `/app/handoffs`. Full-screen TUI handoff entry points are available for
 inspection-first command rendering. Deterministic evals and the v17 release
-gate dry-run scaffold are available; package and installed-smoke hardening,
-dogfooding, and release-candidate signoff remain planned until later tasks land.
+gate scaffold are available; package and installed-smoke hardening,
+dogfooding, and release-candidate guidance are recorded in the v17 evidence
+docs.
 Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
@@ -275,13 +276,15 @@ Start with:
 - [v17-local-handoff-audit.md](./v17-local-handoff-audit.md): source-linked
   audit of current export, import, review bundle, readiness, queue, web, and
   dashboard surfaces
+- [v17-dogfooding-summary.md](./v17-dogfooding-summary.md): sanitized
+  dogfooding evidence and accepted residual risks
+- [v17-release-candidate.md](./v17-release-candidate.md): supported
+  release-candidate operating model, validation path, and decision
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities still include package and installed-smoke hardening,
-dogfooding, and release-candidate signoff.
-Until those tasks land, use the supported commands and dashboard cockpit above,
-and label any unreleased release-evidence workflow as planned.
+Use the supported commands and dashboard cockpit above, and keep release
+evidence, advisory evidence, and publication actions separate.
 
 ## Non-Claims
 

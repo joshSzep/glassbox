@@ -7,12 +7,11 @@ inspect, act on, and hand off persisted sessions without losing auditability.
 
 This document is the `GBX-350` contract for ownership, identity, and handoff. It
 is the baseline for portable session export/import and workspace defaults work.
-The v17 local handoff planning track expands this vocabulary across sessions,
-tasks, changesets, workspaces, release evidence, and future-self continuity in
-[local-handoff.md](./local-handoff.md) and
-[v17-local-handoff-contract.md](./v17-local-handoff-contract.md). Those v17
-docs are planning docs until a release-candidate guide marks the behavior as
-released.
+The v17 local handoff release-candidate track expands this vocabulary across
+sessions, tasks, changesets, workspaces, release evidence, and future-self
+continuity in [local-handoff.md](./local-handoff.md),
+[v17-local-handoff-contract.md](./v17-local-handoff-contract.md), and
+[v17-release-candidate.md](./v17-release-candidate.md).
 
 ## Vocabulary
 
@@ -193,11 +192,13 @@ the handoff export with the guidance in
 `.glassbox` state, screenshots, provider output, and unreviewed logs stay local
 unless they have been explicitly sanitized.
 
-For the broader v17 planning direction, use
-[local-handoff.md](./local-handoff.md) as the operator guide and
+For the broader v17 release-candidate direction, use
+[local-handoff.md](./local-handoff.md) as the operator guide,
 [v17-local-handoff-audit.md](./v17-local-handoff-audit.md) as the
-source-linked baseline. V17 keeps custody as workflow metadata rather than
-authorization, and planned import triage remains inspection-first.
+source-linked baseline, and
+[v17-release-candidate.md](./v17-release-candidate.md) as the supported
+release-candidate guide. V17 keeps custody as workflow metadata rather than
+authorization, and import triage remains inspection-first.
 
 ## Daily Team Workflow
 

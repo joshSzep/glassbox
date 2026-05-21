@@ -1539,6 +1539,43 @@ def test_v16_dogfooding_summary_records_operator_flow_passes() -> None:
     assert "v16-dogfooding-summary.md" in docs_readme
 
 
+def test_v17_dogfooding_summary_records_local_handoff_passes() -> None:
+    content = (REPO_ROOT / "docs" / "v17-dogfooding-summary.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Passes",
+        "## Findings",
+        "## Residual Risks",
+        "## Disposition",
+        ".glassbox/releases/gbx-1763-v17-dogfooding/",
+        "Future-self preview",
+        "Review-only export",
+        "Package JSON inspection",
+        "Import triage and inspection-only import",
+        "Verification-needed readiness",
+        "Fork-or-continue guidance",
+        "Custody acceptance",
+        "Custody rejection",
+        "Failure-triage preview",
+        "Release-signoff package preview",
+        "V17 release gate dry run",
+        "9cf2289e-31c0-4199-bef5-c44808089639",
+        "05a03ba0-9dda-4263-9c6d-d9d0a3f34842",
+        "pkg-220eeb63aaa3127974499733",
+        "legacy-inspection-only",
+        "35 passed",
+        "no staging, commit, push, pull request, merge",
+    ):
+        assert required_text in content
+
+    assert "docs/v17-dogfooding-summary.md" in root_readme
+    assert "v17-dogfooding-summary.md" in docs_readme
+
+
 def test_v15_release_candidate_guide_covers_repository_intelligence_model() -> None:
     content = (REPO_ROOT / "docs" / "v15-release-candidate.md").read_text(
         encoding="utf-8"
@@ -1630,7 +1667,51 @@ def test_v16_release_candidate_guide_covers_operator_flow_model() -> None:
     assert "v16-release-candidate.md" in docs_readme
 
 
-def test_v17_local_handoff_planning_is_discoverable_without_release_claims() -> None:
+def test_v17_release_candidate_guide_covers_local_handoff_model() -> None:
+    content = (REPO_ROOT / "docs" / "v17-release-candidate.md").read_text(
+        encoding="utf-8"
+    )
+    root_readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    docs_readme = (REPO_ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+
+    for required_text in (
+        "## Release Posture",
+        "## Supported Operating Model",
+        "## Current Evidence Summary",
+        "## Known Residual Risks",
+        "## Deliberate Non-Goals",
+        "## Release Decision",
+        "Decision: GO for v17 release candidate publication.",
+        ".glassbox/releases/gbx-1763-v17-dogfooding/",
+        ".glassbox/releases/gbx-1763-v17-dogfooding/v17-gate-dry-run/",
+        ".glassbox/releases/20260521T035747Z-v17-gate/summary.json",
+        "| V17 release gate dry run | passed |",
+        "| V17 release gate | passed |",
+        "| V17 package and installed smoke | passed |",
+        "105 planned blocking deterministic stages",
+        "138 blocking stages passed",
+        "scripts/validate_v17_release_gate.py",
+        "docs/v17-dogfooding-summary.md",
+        "local-handoff.prepare-preview",
+        "local-handoff.import-triage",
+        "local-handoff.custody-decisions",
+        "local-handoff.reviewer-safe-bundle",
+        "legacy-inspection-only",
+        "35 passed",
+        "hosted collaboration",
+        "PR automation",
+        "automatic publication",
+        "automatic command approval",
+        "No deterministic blocker remains open",
+        "not a lock, permission grant, assignment system",
+    ):
+        assert required_text in content
+
+    assert "docs/v17-release-candidate.md" in root_readme
+    assert "v17-release-candidate.md" in docs_readme
+
+
+def test_v17_local_handoff_release_candidate_is_discoverable() -> None:
     contract = (REPO_ROOT / "docs" / "v17-local-handoff-contract.md").read_text(
         encoding="utf-8"
     )
@@ -1672,10 +1753,10 @@ def test_v17_local_handoff_planning_is_discoverable_without_release_claims() -> 
     for required_text in (
         "## Current Supported Flow",
         "## Safe Inspection First",
-        "## V17 Planning Track",
+        "## V17 Release-Candidate Track",
         "uv run glassbox session export SESSION_ID handoff.json --cwd .",
         "uv run glassbox changeset export CHANGESET_ID changeset-review.json",
-        "Until those tasks land",
+        "v17-release-candidate.md",
         "reviewer approval",
         "release approval",
     ):
@@ -1685,6 +1766,8 @@ def test_v17_local_handoff_planning_is_discoverable_without_release_claims() -> 
         "docs/local-handoff.md",
         "docs/v17-local-handoff-contract.md",
         "docs/v17-local-handoff-audit.md",
+        "docs/v17-dogfooding-summary.md",
+        "docs/v17-release-candidate.md",
         "docs/tasks-v17.md",
     ):
         assert doc_name in root_readme
@@ -1693,14 +1776,18 @@ def test_v17_local_handoff_planning_is_discoverable_without_release_claims() -> 
         "local-handoff.md",
         "v17-local-handoff-contract.md",
         "v17-local-handoff-audit.md",
+        "v17-dogfooding-summary.md",
+        "v17-release-candidate.md",
         "tasks-v17.md",
     ):
         assert doc_name in docs_readme
 
     assert "v17-local-handoff-contract.md" in team_workflows
     assert "v17-local-handoff-contract.md" in reviewer_bundles
-    assert "planning docs until" in team_workflows
-    assert "planning docs until" in reviewer_bundles
+    assert "v17-release-candidate.md" in team_workflows
+    assert "v17-release-candidate.md" in reviewer_bundles
+    assert "import triage remains inspection-first" in team_workflows
+    assert "custody decisions first-class handoff surfaces" in reviewer_bundles
 
 
 def test_v14_release_candidate_guide_covers_maturity_model() -> None:
@@ -2625,6 +2712,7 @@ def test_public_operator_doc_links_resolve() -> None:
         REPO_ROOT / "docs" / "version-release-policy.md",
         REPO_ROOT / "docs" / "v15-release-candidate.md",
         REPO_ROOT / "docs" / "v16-release-candidate.md",
+        REPO_ROOT / "docs" / "v17-release-candidate.md",
     )
 
     for doc_path in doc_paths:
