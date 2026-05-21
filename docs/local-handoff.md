@@ -138,6 +138,12 @@ visible next to actions. Browser actions remain explicit local actions: the
 dashboard does not approve verification, resume imported live turns, transfer
 runtime ownership, stage, commit, push, publish, merge, or expose raw logs.
 
+The full-screen TUI exposes the same inspection-first starting points through
+`/handoff`, `/handoff readiness`, `/handoff preview`, `/handoff inspect`,
+`/handoff custody`, and `/handoff dashboard`. These entries render compact safe
+commands or open the local cockpit; they do not silently export, import, accept,
+reject, archive, resume, approve, stage, commit, push, publish, or merge.
+
 The changeset export is the preferred review-centered bundle when a changeset
 exists. It includes redacted summaries, verification posture, reviewer-safe
 evidence graph slices, review feedback and response posture, manual evidence,
@@ -257,7 +263,8 @@ recipient, custody labels, profile sections, local-only evidence treatment, and
 non-claims on session and changeset exports. Markdown handoff summaries are
 available for session and changeset exports, the handoff command family and
 typed API routes are available, and the local dashboard cockpit is available at
-`/app/handoffs`. TUI entry points, deterministic evals, and a v17 release gate
+`/app/handoffs`. Full-screen TUI handoff entry points are available for
+inspection-first command rendering. Deterministic evals and a v17 release gate
 remain planned until later tasks land.
 Start with:
 
@@ -270,10 +277,10 @@ Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities still include TUI entry points, deterministic evals,
-and a v17 release gate.
+Planned v17 capabilities still include deterministic evals and a v17 release
+gate.
 Until those tasks land, use the supported commands and dashboard cockpit above,
-and label any unreleased TUI or release-evidence workflow as planned.
+and label any unreleased release-evidence workflow as planned.
 
 ## Non-Claims
 

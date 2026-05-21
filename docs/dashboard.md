@@ -32,6 +32,11 @@ points for the same cockpit language: `/review queue`, `/review next-actions`,
 bounded queue, verification, evidence-graph, and maintenance summaries in the
 conversation first, then point to the CLI or dashboard for deeper inspection.
 They do not run checks, approve actions, stage, commit, push, or publish.
+The TUI also exposes `/handoff`, `/handoff readiness`, `/handoff preview`,
+`/handoff inspect`, `/handoff accept`, `/handoff reject`, and
+`/handoff dashboard` as inspection-first local handoff entry points. They render
+safe commands or open the handoff cockpit; custody and package mutations still
+require explicit CLI/API/dashboard actions.
 
 If default dashboard startup fails, `chat` keeps the terminal workflow running and prints a warning that the dashboard is unavailable for that session.
 

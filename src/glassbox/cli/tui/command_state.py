@@ -30,6 +30,11 @@ def disabled_reason_for_command(
 
     if is_review_command(command_id):
         return review_disabled_reason(command_id, state)
+    from glassbox.cli.tui.handoff_commands import handoff_disabled_reason
+    from glassbox.cli.tui.handoff_commands import is_handoff_command
+
+    if is_handoff_command(command_id):
+        return handoff_disabled_reason(command_id, state)
     if command_id in {
         TerminalCommandId.OPEN_DASHBOARD,
         TerminalCommandId.COPY_DASHBOARD_URL,

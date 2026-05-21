@@ -201,6 +201,10 @@ def test_tui_app_executes_review_palette_actions() -> None:
     asyncio.run(_run_review_palette_action_test())
 
 
+def test_tui_app_executes_handoff_palette_actions() -> None:
+    asyncio.run(_run_handoff_palette_action_test())
+
+
 def test_tui_app_follows_latest_streaming_transcript() -> None:
     asyncio.run(_run_streaming_transcript_follow_latest_test())
 
@@ -1367,6 +1371,64 @@ async def _run_review_palette_action_test() -> None:
             ReviewLoopAction.EVIDENCE_GRAPH,
             "11111111-1111-1111-1111-111111111111",
         )
+
+        pilot.app.exit()
+
+    await app.close_client()
+
+
+async def _run_handoff_palette_action_test() -> None:
+    snapshot = _snapshot()
+    client = _FakeInteractiveClient()
+    app = create_tui_app(
+        client=client,
+        initial_snapshot=snapshot,
+        launch_options=_launch_options(),
+        dashboard_url="http://127.0.0.1:8765/",
+    )
+
+    async with app.run_test(size=(100, 30)) as pilot:
+        typed_app = cast(GlassboxTerminalApp, pilot.app)
+        conversation = pilot.app.query_one(ConversationPane)
+
+        await typed_app.execute_terminal_command(TerminalCommandId.HANDOFF_READINESS)
+        assert "Handoff readiness" in conversation.content_text
+        assert "glassbox session handoff-readiness" in conversation.content_text
+        assert "not approval or continuation authority" in conversation.content_text
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.HANDOFF_PREPARE_PREVIEW,
+            argument="11111111-1111-1111-1111-111111111111",
+        )
+        assert "Handoff prepare preview" in conversation.content_text
+        assert "--preview --json" in conversation.content_text
+        assert "local-only evidence" in conversation.content_text
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.HANDOFF_PACKAGE_INSPECT,
+            argument="handoff.json",
+        )
+        assert "Handoff package inspection" in conversation.content_text
+        assert (
+            "glassbox handoff import handoff.json --triage" in conversation.content_text
+        )
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.HANDOFF_CUSTODY_ACTIONS,
+            argument="session-1 pkg-1",
+        )
+        assert "Handoff custody actions" in conversation.content_text
+        assert "glassbox handoff accept session-1 pkg-1" in conversation.content_text
+        assert (
+            "not verification, review, release, or runtime authority"
+            in conversation.content_text
+        )
+
+        await typed_app.execute_terminal_command(
+            TerminalCommandId.HANDOFF_SAFE_COMMANDS
+        )
+        assert "Safe handoff commands" in conversation.content_text
+        assert "mutating follow-up remains explicit" in conversation.content_text
 
         pilot.app.exit()
 

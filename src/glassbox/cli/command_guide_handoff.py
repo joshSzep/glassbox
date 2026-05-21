@@ -48,6 +48,29 @@ LOCAL_HANDOFF_COMMAND_GUIDE_SECTION = CommandGuideSection(
             "Retain a rejection reason and safe next actions for the sender.",
         ),
         CommandGuideEntry(
+            "/handoff readiness [SESSION_ID]",
+            "Render compact session readiness commands from the full-screen TUI.",
+        ),
+        CommandGuideEntry(
+            "/handoff preview [SESSION_ID]",
+            ("Render redaction preview and export commands without writing a package."),
+        ),
+        CommandGuideEntry(
+            "/handoff inspect handoff.json",
+            "Render package inspection and import-triage commands from the TUI.",
+        ),
+        CommandGuideEntry(
+            "/handoff custody SESSION_ID PACKAGE_ID",
+            (
+                "Render guidance, accept, reject, and archive commands without "
+                "recording custody."
+            ),
+        ),
+        CommandGuideEntry(
+            "/handoff dashboard",
+            "Open the local dashboard handoff cockpit when a dashboard is available.",
+        ),
+        CommandGuideEntry(
             "glassbox session export SESSION_ID handoff.json --cwd .",
             "Legacy session export remains a supported alias for handoff prepare.",
         ),

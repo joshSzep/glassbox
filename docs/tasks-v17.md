@@ -819,7 +819,7 @@ large to review safely.
 
 ### GBX-1753: Add TUI Handoff Entry Points
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1750`
 - Goal: make handoff available from the primary conversational surface
 - Deliverables:

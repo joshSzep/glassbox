@@ -34,6 +34,12 @@ class TerminalCommandId(StrEnum):
     REVIEW_MAINTENANCE_CHECKS = "review_maintenance_checks"
     REVIEW_SHOW_FEEDBACK_STATUS = "review_show_feedback_status"
     REVIEW_RECORD_FEEDBACK_FIXUP = "review_record_feedback_fixup"
+    HANDOFF_READINESS = "handoff_readiness"
+    HANDOFF_PREPARE_PREVIEW = "handoff_prepare_preview"
+    HANDOFF_PACKAGE_INSPECT = "handoff_package_inspect"
+    HANDOFF_CUSTODY_ACTIONS = "handoff_custody_actions"
+    HANDOFF_SAFE_COMMANDS = "handoff_safe_commands"
+    HANDOFF_OPEN_DASHBOARD = "handoff_open_dashboard"
     QUIT = "quit"
 
 
@@ -255,6 +261,42 @@ _COMMAND_SPECS: tuple[TerminalCommandSpec, ...] = (
         "Review: Record Fixup Inventory",
         "Record response-linked changed-path inventory for one feedback ID",
         slash_aliases=("/review fixup", "/changeset fixup"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_READINESS,
+        "Handoff: Readiness",
+        "Show session handoff readiness commands and non-claims",
+        slash_aliases=("/handoff readiness", "/handoff status"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_PREPARE_PREVIEW,
+        "Handoff: Prepare Preview",
+        "Show redaction preview and export commands without writing a package",
+        slash_aliases=("/handoff preview", "/handoff prepare-preview"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_PACKAGE_INSPECT,
+        "Handoff: Inspect Package",
+        "Show package inspect and import triage commands",
+        slash_aliases=("/handoff inspect", "/handoff triage"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_CUSTODY_ACTIONS,
+        "Handoff: Custody Actions",
+        "Show accept, reject, archive, and guidance commands explicitly",
+        slash_aliases=("/handoff custody", "/handoff accept", "/handoff reject"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_OPEN_DASHBOARD,
+        "Handoff: Open Dashboard",
+        "Open the local handoff cockpit in the dashboard",
+        slash_aliases=("/handoff dashboard", "/handoff cockpit"),
+    ),
+    TerminalCommandSpec(
+        TerminalCommandId.HANDOFF_SAFE_COMMANDS,
+        "Handoff: Safe Commands",
+        "List safe first commands for inspection-first handoff work",
+        slash_aliases=("/handoff", "/handoff safe", "/handoff commands"),
     ),
     TerminalCommandSpec(
         TerminalCommandId.QUIT,

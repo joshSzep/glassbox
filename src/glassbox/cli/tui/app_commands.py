@@ -5,6 +5,8 @@ from typing import Any
 from glassbox.cli.tui.commands import TerminalCommandId
 from glassbox.cli.tui.commands import command_item_by_id
 from glassbox.cli.tui.commands import command_items_for_state
+from glassbox.cli.tui.handoff_commands import execute_handoff_command
+from glassbox.cli.tui.handoff_commands import is_handoff_command
 from glassbox.cli.tui.review_commands import execute_review_action
 from glassbox.cli.tui.review_commands import execute_review_create
 from glassbox.cli.tui.review_commands import open_review_dashboard
@@ -94,6 +96,9 @@ async def execute_terminal_command(
         return
     if command_id == TerminalCommandId.REVIEW_OPEN_DASHBOARD:
         open_review_dashboard(app, argument)
+        return
+    if is_handoff_command(command_id):
+        execute_handoff_command(app, command_id, argument)
         return
     review_action = review_action_for_command(command_id)
     if review_action is not None:

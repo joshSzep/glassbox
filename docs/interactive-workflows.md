@@ -37,6 +37,10 @@ Inside the full-screen session:
   dashboard review handoff, lifecycle brief generation, verification preview,
   handoff posture, feedback status, and response-linked fixup inventory with
   contextual disabled reasons
+- local handoff palette actions expose readiness, redaction preview, package
+  inspect/import triage, custody accept/reject/archive command templates, safe
+  first commands, and the dashboard handoff cockpit without silently exporting,
+  importing, accepting, rejecting, or archiving anything
 - `Ctrl+L` jumps to the latest activity, `Ctrl+E` toggles details, `Ctrl+D` opens the dashboard, `Alt+D` copies the dashboard URL, and `Ctrl+G` returns focus to the composer
 - `Escape` closes transient UI first, including the command palette or details pane, without mutating runtime state
 - `Ctrl+C` follows the interruption contract: it closes transient UI first and never silently abandons a live turn, approval, or question
@@ -103,6 +107,27 @@ do not auto-run tests, stage files, commit, push, open pull requests, merge,
 deploy, publish, or imply reviewer approval. Verification preview is
 read-only; lifecycle brief generation and inventory refresh record explicit
 local evidence and report the created artifact or refreshed inventory.
+
+### In-Session Local Handoff
+
+Use `/handoff` inside the full-screen terminal session when you want compact
+handoff commands without leaving the chat surface:
+
+```text
+/handoff
+/handoff readiness
+/handoff preview
+/handoff inspect handoff.json
+/handoff accept SESSION_ID PACKAGE_ID
+/handoff reject SESSION_ID PACKAGE_ID
+/handoff dashboard
+```
+
+These TUI entry points render safe first commands and non-claims into the local
+transcript. They do not write packages, import packages, accept custody, reject
+custody, archive handoffs, resume imported turns, stage, commit, push, publish,
+or expose raw local evidence. Use the rendered commands explicitly when you are
+ready to inspect or mutate local workflow evidence.
 
 ### Plain Line-Mode Compatibility
 

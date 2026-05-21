@@ -55,6 +55,12 @@ def test_command_registry_exposes_expected_palette_actions() -> None:
     assert TerminalCommandId.REVIEW_MAINTENANCE_CHECKS in command_ids
     assert TerminalCommandId.REVIEW_SHOW_FEEDBACK_STATUS in command_ids
     assert TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP in command_ids
+    assert TerminalCommandId.HANDOFF_READINESS in command_ids
+    assert TerminalCommandId.HANDOFF_PREPARE_PREVIEW in command_ids
+    assert TerminalCommandId.HANDOFF_PACKAGE_INSPECT in command_ids
+    assert TerminalCommandId.HANDOFF_CUSTODY_ACTIONS in command_ids
+    assert TerminalCommandId.HANDOFF_SAFE_COMMANDS in command_ids
+    assert TerminalCommandId.HANDOFF_OPEN_DASHBOARD in command_ids
     assert TerminalCommandId.QUIT in command_ids
 
 
@@ -99,6 +105,7 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
         TerminalCommandId.OPEN_DASHBOARD,
         TerminalCommandId.COPY_DASHBOARD_URL,
         TerminalCommandId.REVIEW_OPEN_DASHBOARD,
+        TerminalCommandId.HANDOFF_OPEN_DASHBOARD,
     ]
     assert [
         item.spec.command_id for item in filter_command_items(items, "/latest")
@@ -124,6 +131,12 @@ def test_command_registry_filters_by_title_description_and_slash_alias() -> None
     assert TerminalCommandId.REVIEW_OPERATOR_QUEUE in queue_command_ids
     assert TerminalCommandId.REVIEW_NEXT_ACTIONS in queue_command_ids
     assert TerminalCommandId.REVIEW_MAINTENANCE_CHECKS in queue_command_ids
+    handoff_command_ids = [
+        item.spec.command_id for item in filter_command_items(items, "handoff")
+    ]
+    assert TerminalCommandId.HANDOFF_READINESS in handoff_command_ids
+    assert TerminalCommandId.HANDOFF_PACKAGE_INSPECT in handoff_command_ids
+    assert TerminalCommandId.HANDOFF_CUSTODY_ACTIONS in handoff_command_ids
 
 
 def test_command_registry_reports_contextual_disabled_reasons() -> None:
@@ -136,17 +149,22 @@ def test_command_registry_reports_contextual_disabled_reasons() -> None:
     review_dashboard = command_item_by_id(
         items, TerminalCommandId.REVIEW_OPEN_DASHBOARD
     )
+    handoff_dashboard = command_item_by_id(
+        items, TerminalCommandId.HANDOFF_OPEN_DASHBOARD
+    )
 
     assert open_dashboard is not None
     assert approve is not None
     assert submit_answer is not None
     assert copy_artifact is not None
     assert review_dashboard is not None
+    assert handoff_dashboard is not None
     assert open_dashboard.disabled_reason == "dashboard unavailable"
     assert approve.disabled_reason == "no pending approval"
     assert submit_answer.disabled_reason == "no pending question"
     assert copy_artifact.disabled_reason == "no artifact path"
     assert review_dashboard.disabled_reason == "dashboard unavailable"
+    assert handoff_dashboard.disabled_reason == "dashboard unavailable"
 
 
 def test_command_registry_enables_approval_and_answer_commands() -> None:
@@ -227,6 +245,26 @@ def test_command_from_slash_routes_compatibility_aliases() -> None:
         command_from_slash("/review fixup 11111111-1111-1111-1111-111111111111")
         == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP
     )
+    assert command_from_slash("/handoff") == TerminalCommandId.HANDOFF_SAFE_COMMANDS
+    assert (
+        command_from_slash("/handoff readiness") == TerminalCommandId.HANDOFF_READINESS
+    )
+    assert (
+        command_from_slash("/handoff preview")
+        == TerminalCommandId.HANDOFF_PREPARE_PREVIEW
+    )
+    assert (
+        command_from_slash("/handoff inspect handoff.json")
+        == TerminalCommandId.HANDOFF_PACKAGE_INSPECT
+    )
+    assert (
+        command_from_slash("/handoff reject pkg-1")
+        == TerminalCommandId.HANDOFF_CUSTODY_ACTIONS
+    )
+    assert (
+        command_from_slash("/handoff dashboard")
+        == TerminalCommandId.HANDOFF_OPEN_DASHBOARD
+    )
     assert command_from_slash("hello") is None
     assert command_from_slash("/unknown") is None
 
@@ -245,6 +283,8 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     fixup = slash_command_from_text(
         "/review fixup 22222222-2222-2222-2222-222222222222"
     )
+    inspect = slash_command_from_text("/handoff inspect handoff.json")
+    custody = slash_command_from_text("/handoff accept session-1 pkg-1")
 
     assert create is not None
     assert create.command_id == TerminalCommandId.REVIEW_CREATE_CHANGESET
@@ -261,6 +301,12 @@ def test_slash_command_from_text_preserves_review_arguments() -> None:
     assert fixup is not None
     assert fixup.command_id == TerminalCommandId.REVIEW_RECORD_FEEDBACK_FIXUP
     assert fixup.argument == "22222222-2222-2222-2222-222222222222"
+    assert inspect is not None
+    assert inspect.command_id == TerminalCommandId.HANDOFF_PACKAGE_INSPECT
+    assert inspect.argument == "handoff.json"
+    assert custody is not None
+    assert custody.command_id == TerminalCommandId.HANDOFF_CUSTODY_ACTIONS
+    assert custody.argument == "session-1 pkg-1"
 
 
 def _state(*, session_id=None, dashboard_url="http://127.0.0.1:8765/"):
