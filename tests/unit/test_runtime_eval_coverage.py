@@ -284,6 +284,37 @@ def test_v16_operator_flow_cases_are_release_candidate_covered() -> None:
         assert status.selected_case_ids == [case_id]
 
 
+def test_v17_local_handoff_cases_are_release_candidate_covered() -> None:
+    release_cases = load_eval_suite(REPO_ROOT, profile_id="release-candidate")
+    release_case_ids = {case.case_id for case in release_cases}
+    expected_case_ids = {
+        "local-handoff.prepare-preview",
+        "local-handoff.import-triage",
+        "local-handoff.custody-decisions",
+        "local-handoff.reviewer-safe-bundle",
+    }
+
+    assert expected_case_ids.issubset(release_case_ids)
+
+    result = audit_eval_coverage(REPO_ROOT, profile_id="release-candidate")
+    statuses = {status.capability_id: status for status in result.capability_statuses}
+
+    for capability_id, case_id in (
+        ("local_handoff_session_readiness", "local-handoff.prepare-preview"),
+        ("local_handoff_redaction_preview", "local-handoff.prepare-preview"),
+        ("local_handoff_local_only_inventory", "local-handoff.prepare-preview"),
+        ("local_handoff_recipient_export_profile", "local-handoff.prepare-preview"),
+        ("local_handoff_import_triage", "local-handoff.import-triage"),
+        ("local_handoff_fork_continue_guidance", "local-handoff.import-triage"),
+        ("local_handoff_custody_decisions", "local-handoff.custody-decisions"),
+        ("local_handoff_reviewer_safe_bundle", "local-handoff.reviewer-safe-bundle"),
+    ):
+        status = statuses[capability_id]
+        assert status.covered is True
+        assert status.expected_case_ids == [case_id]
+        assert status.selected_case_ids == [case_id]
+
+
 def _write_eval_case(
     workspace_root: Path,
     *,

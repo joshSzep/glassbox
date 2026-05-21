@@ -570,6 +570,51 @@
             "notes": "Operator-flow changes should run the deterministic v16 fixture set, focused queue/evidence/verification tests, and the release-candidate profile before release signoff. Dashboard/browser/accessibility evidence remains advisory unless promoted by a deterministic fixture."
         },
         {
+            "rule_id": "v17-local-handoff",
+            "title": "V17 local handoff workflow surfaces",
+            "path_globs": [
+                "src/glassbox/core/*handoff*.py",
+                "src/glassbox/runtime/*handoff*.py",
+                "src/glassbox/runtime/session_export*.py",
+                "src/glassbox/runtime/handoff_*.py",
+                "src/glassbox/store/*handoff*.py",
+                "src/glassbox/cli/*handoff*.py",
+                "src/glassbox/cli/tui/*handoff*.py",
+                "src/glassbox/web/*handoff*.py",
+                "src/glassbox/web/routes/handoffs.py",
+                "frontend/api/client-handoffs.ts",
+                "frontend/stores/handoff-store.ts",
+                "frontend/components/console/handoff-cockpit.tsx",
+                "frontend/components/console/workspace-console/handoff-actions.ts",
+                "frontend/tests/handoff-cockpit.test.tsx",
+                "tests/unit/test_*handoff*.py",
+                "tests/integration/test_*handoff*.py",
+                "docs/local-handoff.md",
+                "docs/v17-local-handoff-*.md",
+                "evals/cases/local-handoff*.json",
+                "evals/bundles/local-handoff*.json"
+            ],
+            "owners": ["runtime.local-handoff"],
+            "capabilities": [
+                "local_handoff_session_readiness",
+                "local_handoff_redaction_preview",
+                "local_handoff_local_only_inventory",
+                "local_handoff_recipient_export_profile",
+                "local_handoff_import_triage",
+                "local_handoff_fork_continue_guidance",
+                "local_handoff_custody_decisions",
+                "local_handoff_reviewer_safe_bundle"
+            ],
+            "case_ids": [
+                "local-handoff.prepare-preview",
+                "local-handoff.import-triage",
+                "local-handoff.custody-decisions",
+                "local-handoff.reviewer-safe-bundle"
+            ],
+            "profile_ids": ["release-candidate"],
+            "notes": "Local handoff changes should run the deterministic v17 fixture set, focused handoff unit/integration tests, and the release-candidate profile before release signoff. Dashboard, browser, accessibility, and raw local evidence remain advisory unless promoted by deterministic fixtures."
+        },
+        {
             "rule_id": "eval-profile-governance",
             "title": "Eval profile governance metadata",
             "path_globs": ["evals/profiles.json"],

@@ -644,6 +644,86 @@
       "expected_case_ids": ["operator-flow.reviewer-safe-bundle"],
       "coverage_mode": "single_case",
       "notes": "GBX-1680 promotes deterministic v16 evidence that reviewer-safe evidence bundles preserve redaction, publication boundaries, verification posture, and safe next actions."
+    },
+    {
+      "capability_id": "local_handoff_session_readiness",
+      "title": "Local handoff session readiness",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.prepare-preview"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that session handoff readiness remains explicit, intent-shaped, and separate from approval or continuation authority."
+    },
+    {
+      "capability_id": "local_handoff_redaction_preview",
+      "title": "Local handoff redaction preview",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.prepare-preview"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that handoff preparation can preview redaction posture before writing a package."
+    },
+    {
+      "capability_id": "local_handoff_local_only_inventory",
+      "title": "Local handoff local-only inventory",
+      "kind": "product_behavior",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.prepare-preview"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that non-portable evidence is itemized as local-only instead of silently backing package claims."
+    },
+    {
+      "capability_id": "local_handoff_recipient_export_profile",
+      "title": "Local handoff recipient export profile",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.prepare-preview"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that recipient intent and profile metadata remain visible during handoff preparation."
+    },
+    {
+      "capability_id": "local_handoff_import_triage",
+      "title": "Local handoff import triage",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.import-triage"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that package inspection and import triage remain inspection-only before supported local import."
+    },
+    {
+      "capability_id": "local_handoff_fork_continue_guidance",
+      "title": "Local handoff fork-or-continue guidance",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.import-triage"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that fork, continue, verify, or reject guidance remains advisory and does not resume live turns."
+    },
+    {
+      "capability_id": "local_handoff_custody_decisions",
+      "title": "Local handoff custody decisions",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.custody-decisions"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that accept, reject, and archive decisions are workflow evidence rather than approval, verification, release, or runtime authority."
+    },
+    {
+      "capability_id": "local_handoff_reviewer_safe_bundle",
+      "title": "Local handoff reviewer-safe bundle",
+      "kind": "operator_workflow",
+      "criticality": "important",
+      "verification_stages": ["release-candidate"],
+      "expected_case_ids": ["local-handoff.reviewer-safe-bundle"],
+      "coverage_mode": "single_case",
+      "notes": "GBX-1760 promotes deterministic v17 evidence that reviewer-safe handoff bundles preserve redaction, safe commands, local-only limitations, and non-claims."
     }
   ]
 }

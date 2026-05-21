@@ -1,0 +1,29 @@
+{
+  "manifest_version": 1,
+  "case_id": "local-handoff.import-triage",
+  "title": "Local handoff import triage keeps continuation guidance safe",
+  "bundle_path": "../bundles/local-handoff.import-triage.json",
+  "tags": ["v17-local-handoff", "local-handoff", "import-triage"],
+  "notes": "Deterministic v17 fixture evidence that package inspection, import triage, and fork-or-continue guidance remain inspection-first and do not resume live turns.",
+  "release_contract": {
+    "owner": "runtime.local-handoff",
+    "capabilities": [
+      "local_handoff_import_triage",
+      "local_handoff_fork_continue_guidance"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-21T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000176002",
+      "rationale": "Promoted for GBX-1760 to retain deterministic release-candidate evidence for v17 import triage and fork-or-continue guidance contracts."
+    }
+  ]
+}

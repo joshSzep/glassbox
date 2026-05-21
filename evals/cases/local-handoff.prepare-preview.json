@@ -1,0 +1,31 @@
+{
+  "manifest_version": 1,
+  "case_id": "local-handoff.prepare-preview",
+  "title": "Local handoff readiness and prepare preview stay explicit",
+  "bundle_path": "../bundles/local-handoff.prepare-preview.json",
+  "tags": ["v17-local-handoff", "local-handoff", "prepare-preview"],
+  "notes": "Deterministic v17 fixture evidence that session readiness, redaction preview, local-only inventory, and recipient export profile posture stay visible before package export.",
+  "release_contract": {
+    "owner": "runtime.local-handoff",
+    "capabilities": [
+      "local_handoff_session_readiness",
+      "local_handoff_redaction_preview",
+      "local_handoff_local_only_inventory",
+      "local_handoff_recipient_export_profile"
+    ],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-21T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000176001",
+      "rationale": "Promoted for GBX-1760 to retain deterministic release-candidate evidence for v17 local handoff readiness, preview, local-only inventory, and export-profile contracts."
+    }
+  ]
+}

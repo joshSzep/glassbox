@@ -1,0 +1,26 @@
+{
+  "manifest_version": 1,
+  "case_id": "local-handoff.reviewer-safe-bundle",
+  "title": "Local handoff reviewer-safe bundle preserves non-claims",
+  "bundle_path": "../bundles/local-handoff.reviewer-safe-bundle.json",
+  "tags": ["v17-local-handoff", "local-handoff", "reviewer-safe-bundle"],
+  "notes": "Deterministic v17 fixture evidence that reviewer-safe local handoff bundles preserve redaction, safe first commands, local-only limitations, and explicit non-claims.",
+  "release_contract": {
+    "owner": "runtime.local-handoff",
+    "capabilities": ["local_handoff_reviewer_safe_bundle"],
+    "severity": "high",
+    "verification_stages": ["release-candidate"],
+    "baseline_refresh_policy": "review_required"
+  },
+  "expectation": {
+    "mode": "exact_match"
+  },
+  "baseline_history": [
+    {
+      "operation": "promote",
+      "recorded_at": "2026-05-21T00:00:00Z",
+      "source_session_id": "00000000-0000-0000-0000-000000176004",
+      "rationale": "Promoted for GBX-1760 to retain deterministic release-candidate evidence for v17 reviewer-safe local handoff bundles."
+    }
+  ]
+}

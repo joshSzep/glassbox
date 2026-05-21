@@ -844,7 +844,7 @@ large to review safely.
 
 ### GBX-1760: Add Deterministic V17 Handoff Eval Cases
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1753`
 - Goal: promote stable local handoff behavior into deterministic eval coverage
 - Deliverables:

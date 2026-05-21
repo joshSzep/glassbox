@@ -41,11 +41,11 @@ glassbox eval case refresh CASE_ID SESSION_ID --reason "Why this baseline change
 ```
 
 Named profiles live in `evals/profiles.json` and make stage intent explicit for
-automation and local verification. The release-candidate profile includes v14
-review-loop maturity cases for rich lifecycle evidence, response-linked fixup
-inventory, and skipped advisory evidence posture. Additional `CASE_ID`
-arguments and repeated `--tag` flags still work as narrower filters inside a
-selected profile.
+automation and local verification. The release-candidate profile includes v17
+local handoff cases for readiness and prepare preview, import triage and
+fork-or-continue guidance, custody decisions, and reviewer-safe handoff bundles.
+Additional `CASE_ID` arguments and repeated `--tag` flags still work as
+narrower filters inside a selected profile.
 
 Profiles also now declare a `track`. The default `deterministic` track feeds the
 normal replay, eval, budget, and release-signoff workflow. The separate

@@ -40,17 +40,17 @@
     {
       "profile_id": "release-candidate",
       "title": "Release-candidate deterministic suite",
-      "description": "Repository-owned replay coverage intended for release candidate sign-off. Commit/push smoke remains small; v9 promotes the stable v8 autonomy core for budgets, verification outcomes, and branch-search comparison, v10 adds compact deterministic long-run recovery, compaction, tool-attempt, stale-verification, and cockpit fixtures, v11 adds compact confidence fixtures for recommendations, compaction guardrails, checkpoint absence, knowledge posture, and branch-search decision support, v12 adds compact reviewable-change lifecycle and branch-candidate adoption fixtures, v13 adds compact review-loop lifecycle and in-session changeset UX fixtures, v14 adds compact review-loop maturity fixtures for rich lifecycle evidence, response-linked fixup inventory, and skipped advisory evidence posture, v15 adds compact repository-intelligence fixtures for rich snapshots, path-to-verification guidance, stale degradation, memory-derived command recommendations, and context drift, and v16 adds compact operator-flow fixtures for queue ranking, evidence graph support, verification plans, skipped checks, workup previews, maintenance cues, and reviewer-safe bundles.",
+      "description": "Repository-owned replay coverage intended for release candidate sign-off. Commit/push smoke remains small; v9 promotes the stable v8 autonomy core for budgets, verification outcomes, and branch-search comparison, v10 adds compact deterministic long-run recovery, compaction, tool-attempt, stale-verification, and cockpit fixtures, v11 adds compact confidence fixtures for recommendations, compaction guardrails, checkpoint absence, knowledge posture, and branch-search decision support, v12 adds compact reviewable-change lifecycle and branch-candidate adoption fixtures, v13 adds compact review-loop lifecycle and in-session changeset UX fixtures, v14 adds compact review-loop maturity fixtures for rich lifecycle evidence, response-linked fixup inventory, and skipped advisory evidence posture, v15 adds compact repository-intelligence fixtures for rich snapshots, path-to-verification guidance, stale degradation, memory-derived command recommendations, and context drift, v16 adds compact operator-flow fixtures for queue ranking, evidence graph support, verification plans, skipped checks, workup previews, maintenance cues, and reviewer-safe bundles, and v17 adds compact local handoff fixtures for readiness, preview, import triage, custody, guidance, and reviewer-safe packages.",
       "verification_stage": "release-candidate",
       "blocking": true,
       "budget": {
-        "max_selected_case_count": 37,
+        "max_selected_case_count": 41,
         "max_selected_invariant_case_count": 1,
         "max_recorded_model_call_count": 8,
         "max_case_artifact_bytes": 500000,
         "allow_unsupported_cases": false,
         "allow_advisory_cases": false,
-        "promotion_policy": "Promote stable deterministic cases that act as release-signoff evidence across core replay, context, approval, ask-user, budget, verification, recommendation, knowledge, branch-search comparison, review-loop maturity, repository-intelligence, and operator-flow capabilities.",
+        "promotion_policy": "Promote stable deterministic cases that act as release-signoff evidence across core replay, context, approval, ask-user, budget, verification, recommendation, knowledge, branch-search comparison, review-loop maturity, repository-intelligence, operator-flow, and local handoff capabilities.",
         "demotion_policy": "Demote cases that keep drifting, require exploratory-only interpretation, depend on local freshness, or rely on live daemon/provider timing instead of release-candidate confidence."
       }
     },
