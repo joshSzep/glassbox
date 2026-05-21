@@ -308,6 +308,14 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
         "sdist missing required file: "
         "evals/bundles/operator-flow.queue-ranking.json" in problems
     )
+    assert (
+        "sdist missing required file: "
+        "evals/cases/local-handoff.prepare-preview.json" in problems
+    )
+    assert (
+        "sdist missing required file: "
+        "evals/bundles/local-handoff.prepare-preview.json" in problems
+    )
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
@@ -324,9 +332,13 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     assert (
         "sdist missing required file: scripts/validate_v16_release_gate.py" in problems
     )
+    assert (
+        "sdist missing required file: scripts/validate_v17_release_gate.py" in problems
+    )
     assert "sdist missing required file: docs/local-handoff.md" in problems
     assert "sdist missing required file: docs/v17-local-handoff-contract.md" in problems
     assert "sdist missing required file: docs/v17-local-handoff-audit.md" in problems
+    assert "sdist missing required file: docs/v17-release-gate.md" in problems
     assert "sdist missing required file: docs/tasks-v17.md" in problems
     assert (
         "sdist missing required file: scripts/v16_release_gate_helpers.py" in problems
@@ -337,6 +349,16 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert (
         "sdist missing required file: scripts/v16_release_gate_summary.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/v17_release_gate_helpers.py" in problems
+    )
+    assert "sdist missing required file: scripts/v17_release_gate_stages.py" in problems
+    assert (
+        "sdist missing required file: scripts/v17_release_gate_advisory.py" in problems
+    )
+    assert (
+        "sdist missing required file: scripts/v17_release_gate_summary.py" in problems
     )
     assert (
         "sdist missing required file: scripts/validate_v11_release_gate.py" in problems
@@ -555,6 +577,7 @@ def _write_sdist(
                 "docs/v16-dogfooding-summary.md",
                 "docs/v16-release-candidate.md",
                 "docs/tasks-v16.md",
+                "docs/v17-release-gate.md",
                 "docs/local-handoff.md",
                 "docs/v17-local-handoff-contract.md",
                 "docs/v17-local-handoff-audit.md",
@@ -670,6 +693,10 @@ def _write_sdist(
                 "evals/cases/operator-flow.reviewer-safe-bundle.json",
                 "evals/cases/operator-flow.skipped-check-posture.json",
                 "evals/cases/operator-flow.verification-plan-lifecycle.json",
+                "evals/cases/local-handoff.prepare-preview.json",
+                "evals/cases/local-handoff.import-triage.json",
+                "evals/cases/local-handoff.custody-decisions.json",
+                "evals/cases/local-handoff.reviewer-safe-bundle.json",
                 "evals/cases/task-plan.proposal-capture.json",
                 "evals/cases/task.continuation-blocked.json",
                 "evals/cases/tool-attempt.partial-retry.json",
@@ -702,6 +729,10 @@ def _write_sdist(
                 "evals/bundles/operator-flow.reviewer-safe-bundle.json",
                 "evals/bundles/operator-flow.skipped-check-posture.json",
                 "evals/bundles/operator-flow.verification-plan-lifecycle.json",
+                "evals/bundles/local-handoff.prepare-preview.json",
+                "evals/bundles/local-handoff.import-triage.json",
+                "evals/bundles/local-handoff.custody-decisions.json",
+                "evals/bundles/local-handoff.reviewer-safe-bundle.json",
                 "evals/bundles/task-plan.proposal-capture.json",
                 "evals/bundles/task.continuation-blocked.json",
                 "evals/bundles/tool-attempt.partial-retry.json",
@@ -739,6 +770,11 @@ def _write_sdist(
                 "scripts/v16_release_gate_stages.py",
                 "scripts/v16_release_gate_advisory.py",
                 "scripts/v16_release_gate_summary.py",
+                "scripts/validate_v17_release_gate.py",
+                "scripts/v17_release_gate_helpers.py",
+                "scripts/v17_release_gate_stages.py",
+                "scripts/v17_release_gate_advisory.py",
+                "scripts/v17_release_gate_summary.py",
                 "scripts/v14_release_gate_helpers.py",
                 "scripts/v14_release_gate_stages.py",
                 "scripts/v14_release_gate_advisory.py",

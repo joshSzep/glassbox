@@ -868,7 +868,7 @@ large to review safely.
 
 ### GBX-1761: Add V17 Release Gate
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1760`
 - Goal: provide one deterministic release-gate command for v17 local handoff
 - Deliverables:

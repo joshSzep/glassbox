@@ -264,8 +264,9 @@ non-claims on session and changeset exports. Markdown handoff summaries are
 available for session and changeset exports, the handoff command family and
 typed API routes are available, and the local dashboard cockpit is available at
 `/app/handoffs`. Full-screen TUI handoff entry points are available for
-inspection-first command rendering. Deterministic evals and a v17 release gate
-remain planned until later tasks land.
+inspection-first command rendering. Deterministic evals and the v17 release
+gate dry-run scaffold are available; package and installed-smoke hardening,
+dogfooding, and release-candidate signoff remain planned until later tasks land.
 Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
@@ -277,8 +278,8 @@ Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities still include deterministic evals and a v17 release
-gate.
+Planned v17 capabilities still include package and installed-smoke hardening,
+dogfooding, and release-candidate signoff.
 Until those tasks land, use the supported commands and dashboard cockpit above,
 and label any unreleased release-evidence workflow as planned.
 

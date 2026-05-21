@@ -123,6 +123,9 @@ without treating handoff as hosted collaboration, approval, or publication.
   deterministic operator-flow eval, queue, evidence graph, verification plan,
   workup, CLI/API, frontend, package, installed-smoke, docs, and advisory
   evidence separation
+- [v17-release-gate.md](./v17-release-gate.md): automated v17 release gate for
+  deterministic local handoff eval, package, preview, triage, custody,
+  CLI/API, frontend, package, docs, and advisory evidence separation
 - [v16-dogfooding-summary.md](./v16-dogfooding-summary.md): sanitized v16
   operator-flow dogfooding evidence for queue triage, maintenance cues,
   changeset workup, verification plans, evidence graph inspection, review
