@@ -918,7 +918,7 @@ large to review safely.
 
 ### GBX-1763: Run V17 Local Handoff Dogfooding
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1762`
 - Goal: exercise v17 on real local handoff scenarios and disposition findings
 - Deliverables:

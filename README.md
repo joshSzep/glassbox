@@ -157,8 +157,10 @@ V17 local handoff planning starts with the operator guide in
 [docs/local-handoff.md](docs/local-handoff.md), the contract in
 [docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md), the
 source-linked audit in
-[docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md), and the
-task graph in [docs/tasks-v17.md](docs/tasks-v17.md).
+[docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md), the
+dogfooding summary in
+[docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md), and the task
+graph in [docs/tasks-v17.md](docs/tasks-v17.md).
 
 ## Documentation
 
@@ -202,6 +204,7 @@ Start here based on what you need:
 - [docs/local-handoff.md](docs/local-handoff.md)
 - [docs/v17-local-handoff-contract.md](docs/v17-local-handoff-contract.md)
 - [docs/v17-local-handoff-audit.md](docs/v17-local-handoff-audit.md)
+- [docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md)
 - [docs/tasks-v17.md](docs/tasks-v17.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)

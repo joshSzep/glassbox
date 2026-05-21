@@ -126,6 +126,10 @@ without treating handoff as hosted collaboration, approval, or publication.
 - [v17-release-gate.md](./v17-release-gate.md): automated v17 release gate for
   deterministic local handoff eval, package, preview, triage, custody,
   CLI/API, frontend, package, docs, and advisory evidence separation
+- [v17-dogfooding-summary.md](./v17-dogfooding-summary.md): sanitized v17
+  dogfooding findings for recipient intent, redaction preview, local-only
+  inventory, import triage, custody decisions, guidance, and release-signoff
+  handoff posture
 - [v16-dogfooding-summary.md](./v16-dogfooding-summary.md): sanitized v16
   operator-flow dogfooding evidence for queue triage, maintenance cues,
   changeset workup, verification plans, evidence graph inspection, review
@@ -185,6 +189,10 @@ without treating handoff as hosted collaboration, approval, or publication.
   audit of current session export/import, changeset export, handoff readiness,
   reviewer-safe bundles, queue, API, frontend, eval, release, docs, and
   dogfooding gaps before v17 implementation
+- [v17-dogfooding-summary.md](./v17-dogfooding-summary.md): sanitized local
+  handoff dogfooding evidence for future-self, review-only,
+  verification-needed, failure-triage, import triage, custody accept/reject,
+  local-only preview, and release-signoff scenarios
 - [tasks-v17.md](./tasks-v17.md): v17 local handoff task graph for shared
   models, package schema, readiness, redaction preview, import triage, custody,
   CLI/API/TUI/dashboard cockpit surfaces, evals, packaging, dogfooding, and
@@ -490,6 +498,9 @@ without treating handoff as hosted collaboration, approval, or publication.
 - [v17-local-handoff-audit.md](./v17-local-handoff-audit.md): use the
   source-linked baseline before changing current export, import, readiness,
   review bundle, queue, API, dashboard, eval, release, or docs behavior
+- [v17-dogfooding-summary.md](./v17-dogfooding-summary.md): use the sanitized
+  local dogfooding findings before publishing or changing v17 release-candidate
+  handoff guidance
 - [tasks-v17.md](./tasks-v17.md): follow the dependency-ordered graph for
   turning the v17 contract and audit into shared models, package schema,
   readiness services, redaction preview, local-only inventory, import triage,
