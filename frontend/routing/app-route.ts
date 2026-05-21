@@ -30,6 +30,7 @@ export const appSurfaces = [
   "sessions",
   "tasks",
   "changesets",
+  "handoffs",
   "memory",
   "repository",
   "branches",
@@ -119,6 +120,19 @@ export function parseAppRoute(input: string | URL, options: AppRouteOptions = {}
       selectedSessionId: null,
       selectedTaskId: null,
       surface: "changesets",
+      tab: "overview",
+      taskQueue,
+    };
+  }
+
+  if (segments[0] === "handoffs") {
+    return {
+      compareSessionId: null,
+      queue: "all",
+      selectedChangesetId: null,
+      selectedSessionId: null,
+      selectedTaskId: null,
+      surface: "handoffs",
       tab: "overview",
       taskQueue,
     };
@@ -236,6 +250,8 @@ export function buildAppRoute(state: AppRouteBuildState, options: AppRouteOption
       selectedChangesetId === null
         ? `${basePath}/changesets`
         : `${basePath}/changesets/${encodePathSegment(selectedChangesetId)}`;
+  } else if (surface === "handoffs") {
+    pathname = `${basePath}/handoffs`;
   } else if (surface === "memory") {
     pathname = `${basePath}/memory`;
   } else if (surface === "repository") {

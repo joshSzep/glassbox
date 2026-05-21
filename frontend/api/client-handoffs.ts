@@ -3,6 +3,7 @@ import type { components, paths } from "@/generated/api-types";
 import type { RequestJson, RequestOptions } from "./client-core";
 
 export type HandoffListResponse = components["schemas"]["HandoffListResponse"];
+export type HandoffIntent = components["schemas"]["HandoffIntent"];
 export type HandoffRecordResponse = components["schemas"]["HandoffRecordResponse"];
 export type HandoffPreparePreviewRequest = components["schemas"]["HandoffPreparePreviewRequest"];
 export type HandoffPreparePreviewResponse = components["schemas"]["HandoffPreparePreviewResponse"];

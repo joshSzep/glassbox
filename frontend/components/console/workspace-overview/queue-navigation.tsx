@@ -91,6 +91,26 @@ export function QueueNavigation({
           queue: "all",
           selectedSessionId: null,
           selectedTaskId: null,
+          surface: "handoffs",
+          tab: "overview",
+          taskQueue: "active",
+        })}
+      >
+        <span className="flex items-center justify-between gap-3 text-sm font-medium">
+          Handoffs
+          <Badge variant="info">Local</Badge>
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">
+          Preview exports, inspect packages, triage imports, and record custody.
+        </span>
+      </a>
+      <a
+        className="mb-3 grid min-h-density-row rounded-md border border-border/70 bg-surface px-3 py-2 text-left transition-colors hover:bg-surface-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        href={buildAppRoute({
+          compareSessionId: null,
+          queue: "all",
+          selectedSessionId: null,
+          selectedTaskId: null,
           surface: "memory",
           tab: "overview",
           taskQueue: "active",

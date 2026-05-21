@@ -127,6 +127,17 @@ inspection-only import path as the CLI. Package inspection and import triage do
 not mutate local state; custody actions remain workflow metadata, not approval,
 authorization, verification success, or publication.
 
+The local dashboard exposes the same workflow at `/app/handoffs`. The handoff
+cockpit lists projected handoff records, prepares session/task/changeset
+readiness previews, shows redaction and local-only inventory before export,
+inspects package compatibility, runs import triage, imports supported session
+packages as inspection-only state, loads fork-or-continue guidance, and records
+accept, reject, or archive custody decisions. It keeps safe commands,
+compatibility posture, redaction posture, local-only omissions, and non-claims
+visible next to actions. Browser actions remain explicit local actions: the
+dashboard does not approve verification, resume imported live turns, transfer
+runtime ownership, stage, commit, push, publish, merge, or expose raw logs.
+
 The changeset export is the preferred review-centered bundle when a changeset
 exists. It includes redacted summaries, verification posture, reviewer-safe
 evidence graph slices, review feedback and response posture, manual evidence,
@@ -244,8 +255,10 @@ handoff summaries, redaction preview, local-only evidence inventory, and import
 triage now exist in code. Recipient-oriented export profiles now carry intent,
 recipient, custody labels, profile sections, local-only evidence treatment, and
 non-claims on session and changeset exports. Markdown handoff summaries are
-available for session and changeset exports, while broader operator-facing v17
-custody commands and cockpit surfaces remain planned until later tasks land.
+available for session and changeset exports, the handoff command family and
+typed API routes are available, and the local dashboard cockpit is available at
+`/app/handoffs`. TUI entry points, deterministic evals, and a v17 release gate
+remain planned until later tasks land.
 Start with:
 
 - [v17-local-handoff-contract.md](./v17-local-handoff-contract.md): shared
@@ -257,10 +270,10 @@ Start with:
 - [tasks-v17.md](./tasks-v17.md): dependency-ordered implementation graph for
   local handoff
 
-Planned v17 capabilities still include broader command-guide coverage, TUI entry
-points, dashboard cockpit surfaces, deterministic evals, and a v17 release gate.
-Until those tasks land, use the supported commands above and label any v17-only
-cockpit workflow as planned.
+Planned v17 capabilities still include TUI entry points, deterministic evals,
+and a v17 release gate.
+Until those tasks land, use the supported commands and dashboard cockpit above,
+and label any unreleased TUI or release-evidence workflow as planned.
 
 ## Non-Claims
 

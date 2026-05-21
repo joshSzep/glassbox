@@ -524,6 +524,53 @@ test("operator can review a historical session as inspect-only work", async ({ p
   await expectNoHorizontalOverflow(page);
 });
 
+test("operator can use the local handoff cockpit inspection workflow", async ({ page }) => {
+  const fixture = await installGlassboxApiFixture(page);
+  page.on("dialog", (dialog) => dialog.accept());
+
+  await openClientRoute(page, "/app/handoffs");
+
+  await expect(page.getByRole("heading", { name: "Handoff Cockpit" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /pkg-1/ })).toBeVisible();
+
+  await page.getByLabel("Source id").fill(sessionId);
+  await page.getByRole("button", { name: "Readiness" }).click();
+  await expect(page.getByRole("heading", { name: "Readiness Summary" })).toBeVisible();
+  await expect(page.getByText("needs-verification")).toBeVisible();
+
+  await page.getByRole("button", { name: "Preview" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Redaction Preview And Local-Only Inventory" }),
+  ).toBeVisible();
+  await expect(page.getByText("Raw command logs remain local-only.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Export" }).click();
+  await expect(page.getByText("Exported session handoff to /tmp/handoff.json.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Inspect" }).click();
+  await page.getByRole("button", { name: "Triage" }).click();
+  await expect(page.getByText("import-for-inspection")).toBeVisible();
+  await page.getByRole("button", { name: "Import" }).click();
+  await expect(page.getByText("Imported package for inspection-only local state.")).toBeVisible();
+
+  await page.getByRole("button", { name: /pkg-1/ }).click();
+  await page.getByRole("button", { name: "Guidance" }).click();
+  await expect(page.getByText("Verification is the safest next inspection path.")).toBeVisible();
+  await page.getByRole("button", { name: "Accept" }).click();
+  await page.getByLabel("Decision reason").fill("cannot inspect local-only evidence");
+  await page.getByRole("button", { name: "Reject" }).click();
+  await page.getByRole("button", { name: "Archive" }).click();
+
+  expect(fixture.actions.map((action) => action.url)).toEqual([
+    "/handoffs/exports",
+    "/handoffs/imports",
+    `/handoffs/${sessionId}/pkg-1/accept`,
+    `/handoffs/${sessionId}/pkg-1/reject`,
+    `/handoffs/${sessionId}/pkg-1/archive`,
+  ]);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("operator sees inline feedback for action failures", async ({ page }) => {
   await installGlassboxApiFixture(page);
   await page.route("**/sessions/*/approvals/*", (route) =>

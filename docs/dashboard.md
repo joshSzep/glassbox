@@ -129,6 +129,18 @@ candidate, rejected alternatives, retained rationale, verification and risk
 posture, accepted risks, and follow-up actions while stating that Glassbox did
 not merge, rebase, stage, commit, push, or open a PR.
 
+The handoff surface at `/app/handoffs` is the v17 local handoff cockpit. It
+uses the typed `/handoffs` API family to list projected handoff records, preview
+source readiness, show redaction and local-only evidence inventory before
+export, inspect package compatibility, run import triage, import supported
+session packages for inspection-only state, load fork-or-continue guidance, and
+record custody accept, reject, or archive decisions. The cockpit keeps safe
+inspection commands, redaction posture, local-only omissions, compatibility
+warnings, and non-claims visible beside the controls. Export and import buttons
+require an explicit browser confirmation; custody actions record local workflow
+events only and do not approve verification, transfer runtime ownership,
+resume imported turns, stage, commit, push, publish, merge, or expose raw logs.
+
 Fresh v15 advisory browser and accessibility-adjacent evidence for the
 repository intelligence console and changeset deep links is retained in
 [v15-repository-intelligence-evidence.md](./v15-repository-intelligence-evidence.md).

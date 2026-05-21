@@ -83,6 +83,13 @@ describe("app route parsing", () => {
       surface: "changesets",
     });
   });
+
+  it("parses the local handoff cockpit route", () => {
+    expect(parseAppRoute("/app/handoffs")).toMatchObject({
+      selectedSessionId: null,
+      surface: "handoffs",
+    });
+  });
 });
 
 describe("app route building", () => {
@@ -154,6 +161,15 @@ describe("app route building", () => {
         tab: "overview",
       }),
     ).toBe("/app/changesets/change%2F1");
+    expect(
+      buildAppRoute({
+        compareSessionId: null,
+        queue: "all",
+        selectedSessionId: null,
+        surface: "handoffs",
+        tab: "overview",
+      }),
+    ).toBe("/app/handoffs");
   });
 });
 

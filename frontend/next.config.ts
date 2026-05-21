@@ -45,6 +45,10 @@ export function createDevRewrites(origin: string | undefined): DevRewrite[] {
       destination: "/",
     },
     {
+      source: "/handoffs/:path*",
+      destination: "/",
+    },
+    {
       source: "/queues/:path*",
       destination: "/",
     },
@@ -75,6 +79,16 @@ export function createDevRewrites(origin: string | undefined): DevRewrite[] {
     {
       source: "/changesets/:path*",
       destination: `${fastApiOrigin}/changesets/:path*`,
+      basePath: false,
+    },
+    {
+      source: "/handoffs",
+      destination: `${fastApiOrigin}/handoffs`,
+      basePath: false,
+    },
+    {
+      source: "/handoffs/:path*",
+      destination: `${fastApiOrigin}/handoffs/:path*`,
       basePath: false,
     },
   ];

@@ -6,6 +6,7 @@ import { useStore } from "zustand";
 import { createGlassboxApiClient } from "@/api/client";
 import { BranchSearchConsole } from "@/components/console/branch-search-console";
 import { ChangesetConsole } from "@/components/console/changeset-console";
+import { HandoffCockpit } from "@/components/console/handoff-cockpit";
 import { KnowledgeAutonomyConsole } from "@/components/console/knowledge-autonomy-console";
 import { SessionInspector } from "@/components/console/session-inspector";
 import { TaskAutonomyConsole } from "@/components/console/task-autonomy-console";
@@ -13,6 +14,7 @@ import { WorkspaceOverview } from "@/components/console/workspace-overview";
 import {
   branchSearchConsoleActions,
   changesetConsoleActions,
+  handoffConsoleActions,
   knowledgeConsoleActions,
   sessionInspectorActions,
   taskConsoleActions,
@@ -23,6 +25,7 @@ import {
   createBranchSearchStore,
   createChangesetStore,
   createConsoleStore,
+  createHandoffStore,
   createKnowledgeStore,
   createSessionStore,
   createTaskStore,
@@ -33,12 +36,14 @@ export function WorkspaceConsole() {
   const branchSearchStore = useMemo(() => createBranchSearchStore(apiClient), [apiClient]);
   const changesetStore = useMemo(() => createChangesetStore(apiClient), [apiClient]);
   const consoleStore = useMemo(() => createConsoleStore(apiClient), [apiClient]);
+  const handoffStore = useMemo(() => createHandoffStore(apiClient), [apiClient]);
   const knowledgeStore = useMemo(() => createKnowledgeStore(apiClient), [apiClient]);
   const sessionStore = useMemo(() => createSessionStore({ apiClient }), [apiClient]);
   const taskStore = useMemo(() => createTaskStore(apiClient), [apiClient]);
   const branchSearchState = useStore(branchSearchStore);
   const changesetState = useStore(changesetStore);
   const consoleState = useStore(consoleStore);
+  const handoffState = useStore(handoffStore);
   const knowledgeState = useStore(knowledgeStore);
   const sessionState = useStore(sessionStore);
   const taskState = useStore(taskStore);
@@ -46,6 +51,7 @@ export function WorkspaceConsole() {
     branchSearchStore,
     changesetStore,
     consoleStore,
+    handoffStore,
     knowledgeStore,
     sessionStore,
     taskStore,
@@ -95,6 +101,18 @@ export function WorkspaceConsole() {
         detail={changesetState.detail}
         page={changesetState.page}
         {...changesetConsoleActions({ changesetStore, navigate, route })}
+      />
+    );
+  }
+
+  if (route.surface === "handoffs") {
+    return (
+      <HandoffCockpit
+        action={handoffState.action}
+        detail={handoffState.detail}
+        drafts={handoffState.drafts}
+        list={handoffState.list}
+        {...handoffConsoleActions({ handoffStore })}
       />
     );
   }

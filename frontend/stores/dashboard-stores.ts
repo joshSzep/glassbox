@@ -22,6 +22,16 @@ export type {
 export { createConsoleStore } from "@/stores/console-store";
 export type { ConsoleFilters, ConsoleStoreState } from "@/stores/console-store";
 
+export { createHandoffStore } from "@/stores/handoff-store";
+export type {
+  HandoffActionKind,
+  HandoffActionStatus,
+  HandoffDetailState,
+  HandoffDraftState,
+  HandoffPageState,
+  HandoffStoreState,
+} from "@/stores/handoff-store";
+
 export { createKnowledgeStore } from "@/stores/knowledge-store";
 export type {
   KnowledgeActionKind,

@@ -14,6 +14,7 @@ import type { ConsoleFilters } from "@/stores/dashboard-stores";
 
 import { confirmAction } from "./action-confirm";
 export { changesetConsoleActions } from "./changeset-actions";
+export { handoffConsoleActions } from "./handoff-actions";
 import type { WorkspaceConsoleStores } from "./types";
 
 type Navigate = (route: AppRouteState) => void;

@@ -32,7 +32,14 @@ type ChangesetVerificationPlanSummary =
   components["schemas"]["ChangesetVerificationPlanLifecycleSummaryResponse"];
 type CommitMessageSuggestion = components["schemas"]["CommitMessageSuggestionResponse"];
 type CommitReadiness = components["schemas"]["CommitReadinessResponse"];
+type HandoffDecision = components["schemas"]["HandoffDecisionResponse"];
+type HandoffGuidance = components["schemas"]["HandoffGuidanceResponse"];
+type HandoffImportTriage = components["schemas"]["HandoffImportTriageResponse"];
+type HandoffList = components["schemas"]["HandoffListResponse"];
+type HandoffPreparePreview = components["schemas"]["HandoffPreparePreviewResponse"];
 type HandoffReadiness = components["schemas"]["HandoffReadinessResponse"];
+type HandoffRecord = components["schemas"]["HandoffRecordResponse"];
+type HandoffUnifiedReadiness = components["schemas"]["HandoffReadinessUnifiedResponse"];
 type RepositoryEntry = components["schemas"]["RepositoryIndexEntryResponse"];
 type RepositoryIntelligenceCommandRecipe =
   components["schemas"]["RepositoryIntelligenceCommandRecipeResponse"];
@@ -455,6 +462,90 @@ async function installAutonomyConsoleRoutes(page: Page, state: GlassboxApiFixtur
           search: branchSearch,
         },
       });
+      return;
+    }
+    await route.fulfill({ json: { detail: "not found" }, status: 404 });
+  });
+
+  await page.route("**/handoffs**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (!path.startsWith("/handoffs")) {
+      await route.fallback();
+      return;
+    }
+    if (path === "/handoffs" && request.method() === "GET") {
+      await route.fulfill({ json: makeHandoffList() });
+      return;
+    }
+    if (path === "/handoffs/readiness") {
+      await route.fulfill({ json: makeUnifiedHandoffReadiness() });
+      return;
+    }
+    if (path === "/handoffs/prepare-preview") {
+      await route.fulfill({ json: makeHandoffPreparePreview() });
+      return;
+    }
+    if (path === "/handoffs/exports") {
+      await recordAction(route, state, {
+        markdown_output_path: null,
+        output_path: "/tmp/handoff.json",
+        source_id: defaultSessionId,
+        source_kind: "session",
+        status: "exported",
+      });
+      return;
+    }
+    if (path === "/handoffs/inspect") {
+      await route.fulfill({
+        json: {
+          package_family: "session-export",
+          package_path: "/tmp/handoff.json",
+          triage: makeHandoffImportTriage().triage,
+        },
+      });
+      return;
+    }
+    if (path === "/handoffs/import-triage") {
+      await route.fulfill({ json: makeHandoffImportTriage() });
+      return;
+    }
+    if (path === "/handoffs/imports") {
+      await recordAction(route, state, {
+        result: {
+          checkpoint_event_count: 0,
+          import_mode: "inspect",
+          imported_event_count: 1,
+          imported_session_id: defaultSessionId,
+          imported_status: "completed",
+          original_status: "completed",
+          resumable: false,
+          source_session_id: "source-session-1",
+          task_count: 0,
+          task_event_count: 0,
+          transcript_message_count: 1,
+        },
+      });
+      return;
+    }
+    if (path === `/handoffs/${defaultSessionId}/pkg-1/guidance`) {
+      await route.fulfill({ json: makeHandoffGuidance() });
+      return;
+    }
+    if (path === `/handoffs/${defaultSessionId}/pkg-1/accept`) {
+      await recordAction(route, state, makeHandoffDecision("HandoffCustodyAccepted", "accepted"));
+      return;
+    }
+    if (path === `/handoffs/${defaultSessionId}/pkg-1/reject`) {
+      await recordAction(route, state, makeHandoffDecision("HandoffCustodyRejected", "rejected"));
+      return;
+    }
+    if (path === `/handoffs/${defaultSessionId}/pkg-1/archive`) {
+      await recordAction(route, state, makeHandoffDecision("HandoffArchived", "archived"));
+      return;
+    }
+    if (path === `/handoffs/${defaultSessionId}/pkg-1`) {
+      await route.fulfill({ json: makeHandoffRecord() });
       return;
     }
     await route.fulfill({ json: { detail: "not found" }, status: 404 });
@@ -1654,6 +1745,216 @@ function makeHandoffReadiness(changesetId: string): HandoffReadiness {
     ],
     state: "accepted_with_risk",
     verification_id: "verification-1",
+  };
+}
+
+function makeUnifiedHandoffReadiness(): HandoffUnifiedReadiness {
+  const shared = makeHandoffReadiness("changeset-1").shared_readiness;
+  return {
+    readiness: {
+      ...shared,
+      intent: "review-only",
+      source: {
+        identifiers: { session_id: defaultSessionId },
+        kind: "session",
+        label: "Session handoff",
+        primary_id: defaultSessionId,
+      },
+      state: "needs-verification",
+    },
+  };
+}
+
+function makeHandoffRecord(
+  overrides: Partial<components["schemas"]["HandoffProjectionRecord"]> = {},
+): HandoffRecord {
+  return {
+    action_state: overrides.custody_state ?? "awaiting-recipient",
+    record: {
+      archived: false,
+      artifact_id: "artifact-handoff-1",
+      changeset_id: null,
+      compatibility_state: "supported",
+      created_at: "2026-04-23T00:00:00Z",
+      current_custodian: null,
+      custody_state: "proposed",
+      decision_by: null,
+      decision_reason: null,
+      expected_custodian: "reviewer",
+      exported_by: "operator",
+      follow_up_intent: null,
+      imported: false,
+      intent: "review-only",
+      last_event_type: "HandoffCustodyProposed",
+      last_sequence: 41,
+      local_only_count: 1,
+      note: "ready for local inspection",
+      package_digest: "sha256:package",
+      package_id: "pkg-1",
+      package_kind: "session-handoff",
+      redaction_posture: "reviewer-safe",
+      safe_next_actions: ["glassbox handoff inspect /tmp/handoff.json --cwd ."],
+      session_id: defaultSessionId,
+      source_id: defaultSessionId,
+      source_kind: "session",
+      task_id: null,
+      updated_at: "2026-04-23T00:10:00Z",
+      ...overrides,
+    },
+  };
+}
+
+function makeHandoffList(): HandoffList {
+  return { items: [makeHandoffRecord()] };
+}
+
+function makeHandoffDecision(
+  eventType: string,
+  custodyState: components["schemas"]["HandoffCustodyState"],
+): HandoffDecision {
+  return {
+    event_type: eventType,
+    handoff: makeHandoffRecord({
+      custody_state: custodyState,
+      decision_by: "operator",
+      decision_reason: "dashboard decision",
+    }),
+    non_claims: ["custody is workflow metadata, not approval"],
+  };
+}
+
+function makeHandoffPreparePreview(): HandoffPreparePreview {
+  const readiness = makeUnifiedHandoffReadiness().readiness;
+  const safeCommand = readiness.safe_first_commands?.[0] ?? {
+    command: ["glassbox", "session", "status", defaultSessionId, "--cwd", "."],
+    display: `glassbox session status ${defaultSessionId} --cwd .`,
+    purpose: "Inspect session status before mutation.",
+    read_only: true,
+    requires_policy_approval: false,
+  };
+  return {
+    preview: {
+      included_sections: ["manifest", "handoff.summary"],
+      intent: "review-only",
+      local_only: {
+        category_counts: { raw_logs: 1 },
+        limitations: ["Raw logs remain local-only."],
+        safe_local_inspection_commands: [safeCommand],
+      },
+      local_only_evidence_count: 1,
+      local_only_inventory: {
+        category_counts: { raw_logs: 1 },
+        intent: "review-only",
+        inventory_kind: "handoff_local_only_inventory",
+        items: [
+          {
+            affected_claim_ids: ["claim-local-only"],
+            category: "raw_logs",
+            count: 1,
+            portable: false,
+            reason: "local-only-evidence",
+            recipient_limitation: "Recipient cannot inspect raw local command logs.",
+            safe_local_inspection_commands: [safeCommand],
+            summary: "Raw command logs remain local-only.",
+          },
+        ],
+        limitations: [],
+        safe_local_inspection_commands: [safeCommand],
+        source: readiness.source,
+        total_count: 1,
+      },
+      omitted_raw_categories: ["raw_logs"],
+      package_limitations: ["Reviewer-safe package omits raw evidence."],
+      preview_kind: "handoff_redaction_preview",
+      profile: null,
+      redaction: {
+        limitations: [],
+        posture: "reviewer-safe",
+        provider_output_included: false,
+        raw_artifacts_included: false,
+        raw_diffs_included: false,
+        raw_logs_included: false,
+        raw_transcript_included: false,
+        redacted_categories: ["secret-like-token"],
+        redacted_field_count: 1,
+        screenshots_included: false,
+      },
+      safe_inspection_commands: [safeCommand],
+      source: readiness.source,
+      unsupported_evidence: [],
+    },
+  };
+}
+
+function makeHandoffImportTriage(): HandoffImportTriage {
+  return {
+    triage: {
+      can_import_for_inspection: true,
+      compatibility: {
+        missing_optional_sections: [],
+        state: "supported",
+        supported_sections: ["manifest", "handoff.summary"],
+        unsupported_sections: [],
+        unsupported_values: [],
+        warnings: [],
+      },
+      digest: {
+        algorithm: "sha256",
+        limitations: ["Digest validates package integrity, not source workspace truth."],
+        manifest_digest: "sha256:manifest",
+        package_digest: "sha256:package",
+        payload_digest: "sha256:payload",
+        verified: true,
+      },
+      included_evidence: ["handoff.summary"],
+      limitations: ["Raw local evidence did not travel."],
+      local_only_omissions: ["raw_logs"],
+      missing_sections: [],
+      mutation_performed: false,
+      package_id: "pkg-1",
+      package_path: "/tmp/handoff.json",
+      recipient_intent: "review-only",
+      recommended_disposition: "import-for-inspection",
+      redaction: makeHandoffPreparePreview().preview.redaction,
+      safe_first_commands: makeUnifiedHandoffReadiness().readiness.safe_first_commands,
+      source: {
+        package_format: "session-export",
+        package_kind: "session-handoff",
+        schema_version: 2,
+        source_id: defaultSessionId,
+        source_kind: "session",
+      },
+      unsupported_sections: [],
+    },
+  };
+}
+
+function makeHandoffGuidance(): HandoffGuidance {
+  return {
+    guidance: {
+      blockers: [
+        {
+          kind: "local-only-evidence",
+          severity: "medium",
+          summary: "Raw local evidence must be inspected in the source workspace.",
+        },
+      ],
+      non_claims: ["guidance does not resume imported live turns"],
+      package_id: "pkg-1",
+      paths: [
+        {
+          path_id: "run-verification",
+          recommended: true,
+          requires_explicit_mutation: false,
+          summary: "Run retained verification before continuation.",
+          title: "Run verification",
+        },
+      ],
+      safe_commands: makeUnifiedHandoffReadiness().readiness.safe_first_commands,
+      session_id: defaultSessionId,
+      state: "run-verification",
+      summary: "Verification is the safest next inspection path.",
+    },
   };
 }
 

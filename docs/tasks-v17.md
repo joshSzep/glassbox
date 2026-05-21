@@ -793,7 +793,7 @@ large to review safely.
 
 ### GBX-1752: Build Dashboard Local Handoff Cockpit
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1751`
 - Goal: make handoff readable and actionable from the local dashboard
 - Deliverables:
