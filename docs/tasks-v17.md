@@ -895,7 +895,7 @@ large to review safely.
 
 ### GBX-1762: Harden Package Contents And Installed-Smoke Paths
 
-- Status: `TODO`
+- Status: `DONE`
 - Depends on: `GBX-1761`
 - Goal: ensure v17 local handoff ships correctly in wheel, sdist, and installed
   environments

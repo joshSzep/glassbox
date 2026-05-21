@@ -155,6 +155,10 @@ glassbox changeset evidence-graph --help
 glassbox session evidence-graph --help
 glassbox job list --json --cwd .
 glassbox branch-search list --json --cwd .
+glassbox handoff --help
+glassbox handoff inspect --help
+glassbox handoff inspect handoff.json --json --cwd .
+glassbox session handoff-readiness --help
 glassbox dashboard serve --cwd . --host 127.0.0.1 --port 8765
 glassbox daemon status --json --cwd .
 glassbox daemon start --cwd . --host 127.0.0.1 --port 8766
@@ -175,6 +179,12 @@ V16 extends the package smoke posture with `glassbox queue list --json`,
 operator queue, verification-plan preview surface, and evidence graph
 inspection commands import from the wheel without requiring Node.js or a source
 checkout.
+
+V17 extends the package smoke posture with `glassbox handoff --help`,
+`glassbox handoff inspect --help`, package compatibility inspection against a
+temporary legacy handoff fixture, and session handoff-readiness help. These
+installed checks prove local handoff entry points and package inspection import
+from the wheel without depending on the source checkout.
 
 The v9 smoke matrix adds first-run readiness, workflow-oriented command
 discovery, and promoted `release-candidate` profile inspection. These checks

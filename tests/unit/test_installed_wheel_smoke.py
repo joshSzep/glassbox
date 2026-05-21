@@ -50,6 +50,10 @@ def test_installed_wheel_smoke_dry_run_lists_v16_operator_flow_surfaces(
     assert "installed session: evidence graph help" in result.stdout
     assert "installed background jobs: list" in result.stdout
     assert "installed branch-search: list" in result.stdout
+    assert "installed handoff: command help" in result.stdout
+    assert "installed handoff: inspect help" in result.stdout
+    assert "installed handoff: package compatibility" in result.stdout
+    assert "installed handoff: readiness help" in result.stdout
     assert "installed dashboard: static routes" in result.stdout
     assert "installed eval: release profile show" in result.stdout
 
@@ -71,5 +75,9 @@ def test_installed_wheel_smoke_dry_run_lists_v16_operator_flow_surfaces(
     )
     assert any(
         stage["label"] == "installed changeset: verification plan help"
+        for stage in summary["stages"]
+    )
+    assert any(
+        stage["label"] == "installed handoff: package compatibility"
         for stage in summary["stages"]
     )

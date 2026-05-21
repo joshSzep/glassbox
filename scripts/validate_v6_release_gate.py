@@ -288,6 +288,7 @@ def _run_installed_wheel_smoke(summary: dict[str, Any], wheel_path: Path) -> int
         _prepare_eval_smoke_workspace(smoke_root / "eval")
         _prepare_profile_smoke_workspace(smoke_root / "profile")
         _prepare_empty_smoke_workspace(smoke_root / "readiness")
+        _prepare_handoff_smoke_workspace(smoke_root / "handoff")
 
         smoke_checks = build_installed_wheel_smoke_checks(wheel_path, smoke_root)
         daemon_stop_check = next(
@@ -338,6 +339,8 @@ def build_installed_wheel_smoke_checks(
     branch_search_workspace = smoke_root / "branch-search"
     daemon_workspace = smoke_root / "daemon"
     eval_workspace = smoke_root / "eval"
+    handoff_workspace = smoke_root / "handoff"
+    handoff_package_path = handoff_workspace / "handoff.json"
     daemon_host = "127.0.0.1"
     daemon_port_text = str(daemon_port if daemon_port is not None else 8766)
     return [
@@ -539,6 +542,35 @@ def build_installed_wheel_smoke_checks(
                 "--json",
                 "--cwd",
                 str(branch_search_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed handoff: command help",
+            _installed_glassbox_command(wheel_path, "handoff", "--help"),
+        ),
+        InstalledSmokeCheck(
+            "installed handoff: inspect help",
+            _installed_glassbox_command(wheel_path, "handoff", "inspect", "--help"),
+        ),
+        InstalledSmokeCheck(
+            "installed handoff: package compatibility",
+            _installed_glassbox_command(
+                wheel_path,
+                "handoff",
+                "inspect",
+                str(handoff_package_path),
+                "--json",
+                "--cwd",
+                str(handoff_workspace),
+            ),
+        ),
+        InstalledSmokeCheck(
+            "installed handoff: readiness help",
+            _installed_glassbox_command(
+                wheel_path,
+                "session",
+                "handoff-readiness",
+                "--help",
             ),
         ),
         InstalledSmokeCheck(
@@ -745,6 +777,21 @@ def _prepare_profile_smoke_workspace(workspace: Path) -> None:
             indent=2,
         )
         + "\n",
+        encoding="utf-8",
+    )
+
+
+def _prepare_handoff_smoke_workspace(workspace: Path) -> None:
+    workspace.mkdir(parents=True, exist_ok=True)
+    package = {
+        "export_kind": "glassbox_session_export",
+        "export_version": 1,
+        "metadata": {"session_id": "installed-smoke-session"},
+        "handoff": {"next_action_summary": "Inspect only."},
+        "transcript": [],
+    }
+    (workspace / "handoff.json").write_text(
+        json.dumps(package, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 

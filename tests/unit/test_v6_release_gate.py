@@ -172,6 +172,10 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "installed session: evidence graph help",
         "installed background jobs: list",
         "installed branch-search: list",
+        "installed handoff: command help",
+        "installed handoff: inspect help",
+        "installed handoff: package compatibility",
+        "installed handoff: readiness help",
         "installed daemon: status before start",
         "installed daemon: start",
         "installed daemon: status after start",
@@ -253,7 +257,16 @@ def test_v6_release_gate_builds_installed_smoke_matrix(tmp_path: Path) -> None:
         "--cwd",
         str(tmp_path / "branch-search"),
     )
-    assert "9876" in checks[23].command
+    assert checks[22].command[-2:] == ("handoff", "--help")
+    assert checks[23].command[-3:] == ("handoff", "inspect", "--help")
+    assert checks[24].command[-3:] == (
+        "--json",
+        "--cwd",
+        str(tmp_path / "handoff"),
+    )
+    assert checks[24].command[-4].endswith("handoff.json")
+    assert checks[25].command[-3:] == ("session", "handoff-readiness", "--help")
+    assert "9876" in checks[27].command
 
 
 def test_v6_release_gate_builds_dashboard_smoke_command(tmp_path: Path) -> None:
