@@ -97,6 +97,24 @@ def test_import_triage_rejects_tampered_v2_package(tmp_path: Path) -> None:
     assert triage.digest.verified is False
 
 
+def test_import_triage_keeps_future_schema_inspection_only(tmp_path: Path) -> None:
+    package_path = _write_v2_package(tmp_path)
+    payload = json.loads(package_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = 99
+    package_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    triage = triage_handoff_import(package_path)
+
+    assert triage.compatibility.state == HandoffCompatibilityState.FUTURE_VERSION
+    assert triage.recommended_disposition == "use-newer-glassbox"
+    assert triage.can_import_for_inspection is False
+    assert triage.mutation_performed is False
+    assert [command.display for command in triage.safe_first_commands] == [
+        f"glassbox session import {package_path.resolve()} --triage",
+        "glassbox session status session-123",
+    ]
+
+
 def test_import_triage_surfaces_missing_optional_sections(
     tmp_path: Path,
 ) -> None:

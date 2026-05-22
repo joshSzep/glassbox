@@ -56,6 +56,8 @@ def test_local_only_inventory_builder_links_affected_claims() -> None:
     assert inventory.items[0].affected_claim_ids == ["claim.review", "claim.manual"]
     assert inventory.items[1].category == "raw screenshots"
     assert inventory.items[1].affected_claim_ids == ["claim.browser"]
+    assert inventory.safe_local_inspection_commands[0].read_only is True
+    assert inventory.safe_local_inspection_commands[0].requires_policy_approval is False
 
 
 def test_handoff_export_profile_is_intent_specific() -> None:

@@ -34,6 +34,29 @@ describe("handoff cockpit", () => {
     expect(markup).toContain("custody is workflow metadata");
     expect(markup).not.toContain("super-secret-token");
   });
+
+  it("disables import when triage is inspection-only", () => {
+    const markup = renderToStaticMarkup(
+      <HandoffCockpit
+        action={actionStatus}
+        detail={{
+          ...detailState,
+          triage: {
+            triage: {
+              ...triage.triage,
+              can_import_for_inspection: false,
+              recommended_disposition: "use-newer-glassbox",
+            },
+          },
+        }}
+        drafts={draftState}
+        list={listState}
+      />,
+    );
+
+    expect(markup).toContain("use-newer-glassbox");
+    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*>Import<\/button>/);
+  });
 });
 
 const actionStatus: HandoffActionStatus = { error: null, kind: null, state: "idle" };

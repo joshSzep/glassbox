@@ -73,6 +73,8 @@ def test_handoff_package_v2_inspection_warns_for_future_schema() -> None:
     package = build_handoff_package_v2(_manifest())
     payload = json.loads(package.model_dump_json())
     payload["schema_version"] = 99
+    payload["manifest"]["unsupported_sections"] = ["future.audit_trail"]
+    payload["manifest"]["non_claims"] = ["future package is not approval"]
 
     inspection = inspect_handoff_package(json.dumps(payload))
 
@@ -80,6 +82,11 @@ def test_handoff_package_v2_inspection_warns_for_future_schema() -> None:
     assert inspection.schema_version == 99
     assert inspection.package_kind == "session-handoff"
     assert inspection.package is None
+    assert inspection.unsupported_sections == ["future.audit_trail"]
+    assert inspection.non_claims == ["future package is not approval"]
+    assert inspection.limitations == [
+        "Future package versions are inspection-only in this Glassbox build."
+    ]
 
 
 def test_handoff_package_v2_inspection_rejects_unknown_format() -> None:

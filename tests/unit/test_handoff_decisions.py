@@ -12,6 +12,7 @@ from glassbox.core import HandoffRedactionPosture
 from glassbox.core import HandoffSourceKind
 from glassbox.core import OperatorQueueFamily
 from glassbox.runtime.handoff_decisions import custody_action_state
+from glassbox.runtime.handoff_decisions import safe_next_actions_for_decision
 from glassbox.runtime.operator_queue_handoff_items import build_handoff_queue_items
 
 
@@ -45,6 +46,15 @@ def test_handoff_queue_items_rank_custody_states() -> None:
     assert queue[0].blocking is True
     assert queue[1].family == OperatorQueueFamily.ADVISORY
     assert queue[2].family == OperatorQueueFamily.REVIEW_BLOCKING
+
+
+def test_safe_next_actions_are_read_only_inspection_commands() -> None:
+    record = _record(HandoffCustodyState.ACCEPTED)
+
+    assert safe_next_actions_for_decision(record) == [
+        f"glassbox handoff show {record.session_id} {record.package_id}",
+        f"glassbox session status {record.source_id}",
+    ]
 
 
 def _record(

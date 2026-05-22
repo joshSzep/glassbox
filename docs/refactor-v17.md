@@ -365,7 +365,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R901: Characterize Current Local Handoff Behavior
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R900
 - Target files:
   - `tests/unit/test_handoff_package.py`
@@ -1195,6 +1195,10 @@ Each phase below corresponds to one concrete refactor milestone.
 These are current behavior observations that should be confirmed before moving
 code. They are not product changes by themselves, and later tasks may
 deliberately narrow them when the task text explicitly says so:
+
+GBX-R901 added characterization coverage for future-version package
+inspection, future-version import triage, local-only safe inspection command
+posture, custody safe next actions, and dashboard import disabled states.
 
 - the handoff API can export session and changeset packages, while workspace,
   release, and task source kinds are readiness-oriented unless a future product
