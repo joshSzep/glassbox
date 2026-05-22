@@ -18,12 +18,24 @@ from glassbox.core import ChangesetReviewBriefRecord
 from glassbox.core import ChangesetSourceRecord
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffLocalOnlyInventory
-from glassbox.core import HandoffPackageKind
 from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core import ManualEvidenceKind
 from glassbox.core import ManualEvidenceRecord
 from glassbox.core import ReviewFeedbackRecord
+from glassbox.runtime.changeset_export_handoff import (
+    CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
+)
+from glassbox.runtime.changeset_export_handoff import (
+    build_changeset_export_local_only_inventory,
+)
+from glassbox.runtime.changeset_export_handoff import build_changeset_export_profile
+from glassbox.runtime.changeset_export_handoff import changeset_export_non_claims
+from glassbox.runtime.changeset_export_handoff import changeset_export_redaction_report
+from glassbox.runtime.changeset_export_handoff import (
+    changeset_export_safe_inspection_commands,
+)
+from glassbox.runtime.changeset_export_markdown import build_changeset_export_markdown
 from glassbox.runtime.changesets import ChangesetDetailView
 from glassbox.runtime.changesets import ChangesetQueryService
 from glassbox.runtime.changesets import ChangesetRepository
@@ -33,13 +45,6 @@ from glassbox.runtime.evidence_graph import build_changeset_evidence_graph
 from glassbox.runtime.evidence_graph import reviewer_safe_graph_slice
 from glassbox.runtime.evidence_graph import summarize_evidence_graph
 from glassbox.runtime.handoff_export_profiles import HandoffExportProfile
-from glassbox.runtime.handoff_export_profiles import build_handoff_export_profile
-from glassbox.runtime.handoff_local_only_inventory import (
-    build_changeset_local_only_inventory,
-)
-from glassbox.runtime.handoff_markdown import (
-    build_changeset_export_markdown as render_changeset_export_markdown,
-)
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
 from glassbox.runtime.session_export_redaction import RedactionContext
@@ -52,18 +57,6 @@ from glassbox.services import ArtifactRepository
 
 CHANGESET_EXPORT_KIND = "changeset_review_export"
 CHANGESET_EXPORT_VERSION = 1
-CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES = [
-    "raw .glassbox database",
-    "raw command output",
-    "raw provider transcripts",
-    "raw manual evidence text",
-    "raw external logs",
-    "raw diffs",
-    "raw file contents",
-    "raw screenshots",
-    "browser traces",
-    "accessibility transcripts",
-]
 
 
 class ChangesetExportArtifactReference(BaseModel):
@@ -224,18 +217,10 @@ def build_changeset_export_payload(
         live_review_evidence=_live_review_evidence_summary(detail.manual_evidence),
         readiness=[item.model_dump(mode="json") for item in detail.readiness],
         artifact_references=_artifact_references(detail, verification_plan),
-        profile=build_handoff_export_profile(
+        profile=build_changeset_export_profile(
             source=source,
-            package_kind=HandoffPackageKind.CHANGESET,
             intent=intent,
             output_format=output_format,
-            included_sections=[
-                "changeset",
-                "evidence_graph",
-                "verification",
-                "handoff_readiness",
-                "local_only_inventory",
-            ],
         ),
         recipient=redact_optional_text(recipient, redaction_context),
         expected_custodian=redact_optional_text(
@@ -244,39 +229,15 @@ def build_changeset_export_payload(
         ),
         exported_by=redact_optional_text(exported_by, redaction_context),
         note=redact_optional_text(note, redaction_context),
-        local_only_inventory=build_changeset_local_only_inventory(
+        local_only_inventory=build_changeset_export_local_only_inventory(
             detail,
             verification_plan,
             source=source,
             intent=intent,
-            omitted_raw_categories=CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
         ),
-        redaction_report=[
-            "raw .glassbox database state is not included",
-            "raw command output is not included",
-            "raw provider transcripts are not included",
-            "raw manual evidence text and raw external logs are not included",
-            "raw diffs and file contents are not included",
-            (
-                "raw screenshots, browser traces, and accessibility transcripts "
-                "are not included"
-            ),
-            "artifact paths remain local-only references by artifact ID",
-        ],
-        non_claims=[
-            (
-                "export package is a summary index, not proof every changed "
-                "line was reviewed"
-            ),
-            "stale verification is not treated as fresh",
-            "review feedback response state is not reviewer approval",
-            "manual evidence is not retained Glassbox command evidence",
-            "browser, dashboard, and accessibility evidence remains advisory",
-            "local-only artifacts are not shareable without separate review",
-            "commit, push, PR, and merge remain explicit operator actions",
-            "export package does not publish the changeset",
-        ],
-        safe_inspection_commands=detail.safe_next_actions,
+        redaction_report=changeset_export_redaction_report(),
+        non_claims=changeset_export_non_claims(),
+        safe_inspection_commands=changeset_export_safe_inspection_commands(detail),
     )
 
 
@@ -317,12 +278,6 @@ def changeset_export_inspection_summary(
         "non_claims": payload.non_claims,
         "safe_inspection_commands": payload.safe_inspection_commands,
     }
-
-
-def build_changeset_export_markdown(payload: ChangesetExportPayload) -> str:
-    """Render a compact reviewer-safe Markdown summary."""
-
-    return render_changeset_export_markdown(payload)
 
 
 def _changeset_summary(changeset: ChangesetRecord) -> dict[str, Any]:
@@ -774,6 +729,7 @@ def _review_brief_artifact_path(session_id, artifact_id: ArtifactId) -> Path:
 
 __all__ = [
     "CHANGESET_EXPORT_KIND",
+    "CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES",
     "CHANGESET_EXPORT_VERSION",
     "ChangesetExportArtifactReference",
     "ChangesetExportPayload",

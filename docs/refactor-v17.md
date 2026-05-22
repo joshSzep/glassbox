@@ -667,7 +667,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R923: Split Changeset Export Profile And Reviewer-Safe Handoff Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R911
 - Target files:
   - `src/glassbox/runtime/changeset_export.py`
@@ -686,6 +686,13 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - changeset export remains review-evidence oriented while v17 handoff
     profile concerns are separately owned
+- Completed notes:
+  - `changeset_export_handoff.py` now owns reviewer-safe handoff profile,
+    local-only inventory, redaction report, non-claims, and safe inspection
+    command shaping for changeset exports.
+  - `changeset_export_markdown.py` owns the Markdown wrapper while
+    `changeset_export.py` preserves the public export and inspection
+    entrypoints.
 - Validation:
   - `uv run pytest tests/integration/test_cli_changeset_commands.py -k export`
   - `uv run pytest tests/unit/test_review_briefs.py`

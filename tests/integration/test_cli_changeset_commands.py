@@ -26,7 +26,7 @@ from glassbox.store import initialize_database
 from glassbox.store import open_database
 
 
-def test_changeset_create_list_show_refresh_and_archive(
+def test_changeset_create_list_show_refresh_export_and_archive(
     tmp_path: Path,
     capsys,
 ) -> None:
