@@ -12,6 +12,8 @@ from glassbox.core import HandoffSafeCommand
 from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 
+HANDOFF_OUTPUT_FORMATS = ("json", "json+markdown")
+
 
 class HandoffExportProfile(BaseModel):
     """Typed export profile chosen from the recipient's next intended action."""
@@ -59,6 +61,7 @@ def build_handoff_export_profile(
 ) -> HandoffExportProfile:
     """Build profile metadata for a portable handoff export."""
 
+    output_format = validate_handoff_output_format(output_format)
     required_sections = _required_sections(source.kind, intent, included_sections)
     optional_sections = _optional_sections(source.kind, intent)
     return HandoffExportProfile(
@@ -72,6 +75,21 @@ def build_handoff_export_profile(
         non_claims=_non_claims(intent),
         local_only_treatment=_local_only_treatment(intent),
         recipient_next_action=_recipient_next_action(intent),
+    )
+
+
+def validate_handoff_output_format(
+    output_format: str,
+    *,
+    supported_formats: Sequence[str] = HANDOFF_OUTPUT_FORMATS,
+) -> str:
+    """Validate a handoff package output format for profile metadata."""
+
+    if output_format in supported_formats:
+        return output_format
+    supported = ", ".join(supported_formats)
+    raise ValueError(
+        f"unsupported handoff output format {output_format!r}; use {supported}"
     )
 
 
@@ -244,7 +262,9 @@ def _dedupe(values: Sequence[str]) -> list[str]:
 
 
 __all__ = [
+    "HANDOFF_OUTPUT_FORMATS",
     "HandoffExportProfile",
     "build_handoff_export_profile",
     "parse_handoff_intent",
+    "validate_handoff_output_format",
 ]

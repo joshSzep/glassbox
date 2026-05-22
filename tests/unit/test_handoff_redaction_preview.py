@@ -8,6 +8,7 @@ from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.runtime.handoff_export_profiles import build_handoff_export_profile
 from glassbox.runtime.handoff_export_profiles import parse_handoff_intent
+from glassbox.runtime.handoff_export_profiles import validate_handoff_output_format
 from glassbox.runtime.handoff_local_only_inventory import build_local_only_inventory
 from glassbox.runtime.handoff_redaction_preview import _redaction_marker_summary
 
@@ -75,6 +76,28 @@ def test_handoff_export_profile_is_intent_specific() -> None:
     assert "continuation_posture" in profile.required_sections
     assert "local policy approval" in " ".join(profile.non_claims)
     assert profile.safe_inspection_commands[0].read_only is True
+
+
+def test_session_handoff_output_format_validation_is_scope_aware() -> None:
+    assert validate_handoff_output_format("json") == "json"
+    assert (
+        validate_handoff_output_format(
+            "json+markdown",
+            supported_formats=("json", "json+markdown"),
+        )
+        == "json+markdown"
+    )
+
+    try:
+        validate_handoff_output_format(
+            "tarball",
+            supported_formats=("json",),
+        )
+    except ValueError as exc:
+        assert "unsupported handoff output format" in str(exc)
+        assert "json" in str(exc)
+    else:
+        raise AssertionError("unknown handoff output format should fail")
 
 
 def test_parse_handoff_intent_rejects_unknown_profile() -> None:

@@ -5,11 +5,14 @@ from glassbox.core.types_handoff import HandoffIntent
 from glassbox.core.types_handoff import HandoffPackageKind
 from glassbox.core.types_handoff import HandoffSourceKind
 from glassbox.runtime.handoff_export_profiles import build_handoff_export_profile
+from glassbox.runtime.handoff_export_profiles import validate_handoff_output_format
 from glassbox.runtime.handoff_local_only_inventory import (
     build_session_local_only_inventory,
 )
 from glassbox.runtime.session_export_models import SessionExportPayload
+from glassbox.runtime.session_export_redaction import REDACTION_NOTES
 
+SESSION_EXPORT_OUTPUT_FORMATS = ("json",)
 SESSION_EXPORT_OMITTED_RAW_CATEGORIES = [
     "raw .glassbox database",
     "raw artifact contents",
@@ -17,6 +20,40 @@ SESSION_EXPORT_OMITTED_RAW_CATEGORIES = [
     "raw provider output",
     "raw tool transcripts",
 ]
+
+
+def attach_session_handoff_metadata(
+    payload: SessionExportPayload,
+    *,
+    intent: HandoffIntent,
+    output_format: str,
+) -> SessionExportPayload:
+    """Attach session handoff profile and local-only inventory metadata."""
+
+    output_format = validate_handoff_output_format(
+        output_format,
+        supported_formats=SESSION_EXPORT_OUTPUT_FORMATS,
+    )
+    payload = attach_session_redaction_summary(payload)
+    return attach_session_local_only_inventory(
+        attach_session_export_profile(
+            payload,
+            intent=intent,
+            output_format=output_format,
+        ),
+        intent=intent,
+    )
+
+
+def attach_session_redaction_summary(
+    payload: SessionExportPayload,
+) -> SessionExportPayload:
+    """Attach stable redaction notes for the session package shape."""
+
+    return payload.model_copy(
+        update={"redaction_notes": list(REDACTION_NOTES)},
+        deep=True,
+    )
 
 
 def attach_session_export_profile(
@@ -74,6 +111,9 @@ def _included_sections(payload: SessionExportPayload) -> list[str]:
 
 __all__ = [
     "SESSION_EXPORT_OMITTED_RAW_CATEGORIES",
+    "SESSION_EXPORT_OUTPUT_FORMATS",
     "attach_session_export_profile",
+    "attach_session_handoff_metadata",
     "attach_session_local_only_inventory",
+    "attach_session_redaction_summary",
 ]

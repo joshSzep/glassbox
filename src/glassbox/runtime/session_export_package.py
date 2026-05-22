@@ -27,9 +27,7 @@ from glassbox.runtime.session_export_models import SessionExportLineage
 from glassbox.runtime.session_export_models import SessionExportMetadata
 from glassbox.runtime.session_export_models import SessionExportPayload
 from glassbox.runtime.session_export_models import SessionExportWorkspace
-from glassbox.runtime.session_export_profile import attach_session_export_profile
-from glassbox.runtime.session_export_profile import attach_session_local_only_inventory
-from glassbox.runtime.session_export_redaction import REDACTION_NOTES
+from glassbox.runtime.session_export_profile import attach_session_handoff_metadata
 from glassbox.runtime.session_export_redaction import RedactionContext
 from glassbox.runtime.session_export_redaction import redact_branchable_turns
 from glassbox.runtime.session_export_redaction import redact_checkpoints
@@ -177,15 +175,11 @@ def build_session_export_payload(
         branch_search_summaries=search_summaries,
         event_count=len(events),
         events=[event_summary(event) for event in events],
-        redaction_notes=list(REDACTION_NOTES),
     )
-    return attach_session_local_only_inventory(
-        attach_session_export_profile(
-            payload,
-            intent=intent,
-            output_format=output_format,
-        ),
+    return attach_session_handoff_metadata(
+        payload,
         intent=intent,
+        output_format=output_format,
     )
 
 

@@ -637,7 +637,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R922: Split Session Export Profile And Local-Only Inventory Attachment
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R911
 - Target files:
   - `src/glassbox/runtime/session_export_package.py`
@@ -655,6 +655,12 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - session export assembly stays focused on collecting session evidence while
     v17 package profile concerns live in handoff helpers
+- Completed notes:
+  - `session_export_package.py` now delegates final handoff profile,
+    redaction-note, local-only inventory, and output-format handling to
+    `attach_session_handoff_metadata`.
+  - `handoff_export_profiles.py` owns reusable output-format validation, while
+    session exports narrow the supported format to stable JSON.
 - Validation:
   - `uv run pytest tests/integration/test_cli_session_export.py -k handoff`
   - `uv run pytest tests/unit/test_handoff_redaction_preview.py -k session`
