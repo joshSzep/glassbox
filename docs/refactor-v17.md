@@ -576,7 +576,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R920: Split Session And Task Handoff Readiness Signal Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `src/glassbox/runtime/session_handoff_readiness.py`

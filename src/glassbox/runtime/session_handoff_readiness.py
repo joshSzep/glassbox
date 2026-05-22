@@ -3,7 +3,6 @@
 from collections.abc import Sequence
 
 from glassbox.core import CheckpointAbsenceReason
-from glassbox.core import HandoffEvidenceFreshness
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffReadiness
 from glassbox.core import HandoffReadinessReason
@@ -14,8 +13,10 @@ from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core import NextActionEvidenceKind
 from glassbox.core import NextActionEvidenceRef
-from glassbox.core import RepositoryIntelligenceConfidence
 from glassbox.core import SessionId
+from glassbox.runtime.handoff_readiness_reasons import confidence_for_state
+from glassbox.runtime.handoff_readiness_reasons import evidence_ref
+from glassbox.runtime.handoff_readiness_reasons import freshness_for_state
 from glassbox.runtime.session_queries import SessionQueryService
 from glassbox.runtime.session_queries import SessionSnapshotView
 
@@ -169,8 +170,8 @@ def derive_session_handoff_readiness(
         stale_evidence=stale_evidence,
         local_only_evidence=local_only_evidence,
     )
-    freshness = _freshness_for_state(state)
-    confidence = _confidence_for_state(state)
+    freshness = freshness_for_state(state)
+    confidence = confidence_for_state(state)
 
     return HandoffReadiness(
         source=HandoffSourceRef(
@@ -323,35 +324,6 @@ def _is_imported_inspection_only(snapshot: SessionSnapshotView) -> bool:
     )
 
 
-def _freshness_for_state(state: HandoffReadinessState) -> HandoffEvidenceFreshness:
-    if state == HandoffReadinessState.STALE_EVIDENCE:
-        return HandoffEvidenceFreshness.STALE
-    if state in {
-        HandoffReadinessState.NEEDS_CONTEXT,
-        HandoffReadinessState.NEEDS_VERIFICATION,
-    }:
-        return HandoffEvidenceFreshness.MISSING
-    if state == HandoffReadinessState.BLOCKED:
-        return HandoffEvidenceFreshness.DEGRADED
-    return HandoffEvidenceFreshness.FRESH
-
-
-def _confidence_for_state(
-    state: HandoffReadinessState,
-) -> RepositoryIntelligenceConfidence:
-    if state in {HandoffReadinessState.READY, HandoffReadinessState.HISTORICAL_ONLY}:
-        return RepositoryIntelligenceConfidence.HIGH
-    if state in {
-        HandoffReadinessState.LOCAL_ONLY_EVIDENCE,
-        HandoffReadinessState.STALE_EVIDENCE,
-        HandoffReadinessState.ACCEPTED_WITH_RISK,
-    }:
-        return RepositoryIntelligenceConfidence.MEDIUM
-    if state == HandoffReadinessState.BLOCKED:
-        return RepositoryIntelligenceConfidence.LOW
-    return RepositoryIntelligenceConfidence.UNKNOWN
-
-
 def _evidence(
     kind: NextActionEvidenceKind,
     ref_id: str,
@@ -359,12 +331,7 @@ def _evidence(
     *,
     freshness: str | None = None,
 ) -> NextActionEvidenceRef:
-    return NextActionEvidenceRef(
-        kind=kind,
-        ref_id=ref_id,
-        summary=summary,
-        freshness=freshness,
-    )
+    return evidence_ref(kind, ref_id, summary, freshness=freshness)
 
 
 __all__ = [

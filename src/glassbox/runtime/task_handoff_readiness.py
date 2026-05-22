@@ -2,7 +2,6 @@
 
 from collections.abc import Sequence
 
-from glassbox.core import HandoffEvidenceFreshness
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffReadiness
 from glassbox.core import HandoffReadinessReason
@@ -13,10 +12,12 @@ from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core import NextActionEvidenceKind
 from glassbox.core import NextActionEvidenceRef
-from glassbox.core import RepositoryIntelligenceConfidence
 from glassbox.core import TaskBlockedReason
 from glassbox.core import TaskId
 from glassbox.core import TaskPlanStatus
+from glassbox.runtime.handoff_readiness_reasons import confidence_for_state
+from glassbox.runtime.handoff_readiness_reasons import evidence_ref
+from glassbox.runtime.handoff_readiness_reasons import freshness_for_state
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskQueryService
 
@@ -77,8 +78,20 @@ def derive_task_handoff_readiness(
         ),
         intent=intent,
         state=state,
-        confidence=_confidence_for_state(state),
-        freshness=_freshness_for_state(state),
+        confidence=confidence_for_state(
+            state,
+            degraded_states={
+                HandoffReadinessState.BLOCKED,
+                HandoffReadinessState.FAILED_NEEDS_TRIAGE,
+            },
+        ),
+        freshness=freshness_for_state(
+            state,
+            degraded_states={
+                HandoffReadinessState.BLOCKED,
+                HandoffReadinessState.FAILED_NEEDS_TRIAGE,
+            },
+        ),
         reasons=reasons,
         supporting_evidence=supporting_evidence,
         missing_evidence=missing_evidence,
@@ -457,41 +470,6 @@ def _safe_first_commands(
     ]
 
 
-def _freshness_for_state(state: HandoffReadinessState) -> HandoffEvidenceFreshness:
-    if state == HandoffReadinessState.STALE_EVIDENCE:
-        return HandoffEvidenceFreshness.STALE
-    if state in {
-        HandoffReadinessState.NEEDS_CONTEXT,
-        HandoffReadinessState.NEEDS_VERIFICATION,
-    }:
-        return HandoffEvidenceFreshness.MISSING
-    if state in {
-        HandoffReadinessState.BLOCKED,
-        HandoffReadinessState.FAILED_NEEDS_TRIAGE,
-    }:
-        return HandoffEvidenceFreshness.DEGRADED
-    return HandoffEvidenceFreshness.FRESH
-
-
-def _confidence_for_state(
-    state: HandoffReadinessState,
-) -> RepositoryIntelligenceConfidence:
-    if state in {HandoffReadinessState.READY, HandoffReadinessState.HISTORICAL_ONLY}:
-        return RepositoryIntelligenceConfidence.HIGH
-    if state in {
-        HandoffReadinessState.LOCAL_ONLY_EVIDENCE,
-        HandoffReadinessState.STALE_EVIDENCE,
-        HandoffReadinessState.ACCEPTED_WITH_RISK,
-    }:
-        return RepositoryIntelligenceConfidence.MEDIUM
-    if state in {
-        HandoffReadinessState.BLOCKED,
-        HandoffReadinessState.FAILED_NEEDS_TRIAGE,
-    }:
-        return RepositoryIntelligenceConfidence.LOW
-    return RepositoryIntelligenceConfidence.UNKNOWN
-
-
 def _evidence(
     kind: NextActionEvidenceKind,
     ref_id: str,
@@ -499,12 +477,7 @@ def _evidence(
     *,
     freshness: str | None = None,
 ) -> NextActionEvidenceRef:
-    return NextActionEvidenceRef(
-        kind=kind,
-        ref_id=ref_id,
-        summary=summary,
-        freshness=freshness,
-    )
+    return evidence_ref(kind, ref_id, summary, freshness=freshness)
 
 
 __all__ = [
