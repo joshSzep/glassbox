@@ -602,7 +602,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R921: Split Workspace And Release Handoff Readiness Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R920
 - Target files:
   - `src/glassbox/runtime/workspace_handoff_readiness.py`
@@ -622,6 +622,14 @@ Each phase below corresponds to one concrete refactor milestone.
     separation
 - Deliverables:
   - workspace and release handoff posture independently reviewable
+- Completed notes:
+  - `workspace_handoff_readiness.py` now remains a public facade while
+    workspace posture lives in `workspace_handoff_readiness_workspace.py`
+    and release-candidate posture lives in
+    `workspace_handoff_readiness_release.py`.
+  - Release non-claims and deterministic-versus-advisory evidence separation
+    remain unchanged; facade wiring is covered by
+    `tests/unit/test_workspace_handoff_readiness.py`.
 - Validation:
   - `uv run pytest tests/unit/test_workspace_handoff_readiness.py`
   - `uv run pytest tests/integration/test_observability_status.py -k handoff`

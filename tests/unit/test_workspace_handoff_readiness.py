@@ -2,6 +2,8 @@
 
 from glassbox.core import HandoffIntent
 from glassbox.core import HandoffReadinessState
+from glassbox.runtime import workspace_handoff_readiness_release as release_helper
+from glassbox.runtime import workspace_handoff_readiness_workspace as workspace_helper
 from glassbox.runtime.observability_models import ArtifactObservability
 from glassbox.runtime.observability_models import BackgroundJobObservability
 from glassbox.runtime.observability_models import BranchSearchObservability
@@ -36,6 +38,15 @@ def test_workspace_handoff_readiness_ready_for_future_self() -> None:
     assert readiness.safe_first_commands
     assert all(command.read_only for command in readiness.safe_first_commands)
     assert "does not approve" in readiness.non_claims[1]
+
+
+def test_workspace_handoff_readiness_public_entrypoint_uses_workspace_helper() -> None:
+    report = _report()
+
+    public_readiness = derive_workspace_handoff_readiness(report)
+    helper_readiness = workspace_helper.derive_workspace_handoff_readiness(report)
+
+    assert public_readiness.model_dump() == helper_readiness.model_dump()
 
 
 def test_workspace_handoff_readiness_surfaces_failed_work() -> None:
@@ -103,6 +114,15 @@ def test_release_handoff_readiness_marks_failed_eval_needs_verification() -> Non
 
     assert readiness.state == HandoffReadinessState.NEEDS_VERIFICATION
     assert any("failed" in reason.summary for reason in readiness.reasons)
+
+
+def test_release_handoff_readiness_public_entrypoint_uses_release_helper() -> None:
+    report = _report()
+
+    public_readiness = derive_release_handoff_readiness(report)
+    helper_readiness = release_helper.derive_release_handoff_readiness(report)
+
+    assert public_readiness.model_dump() == helper_readiness.model_dump()
 
 
 def _report(
