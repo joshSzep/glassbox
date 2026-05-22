@@ -547,7 +547,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R914: Split Handoff Guidance Path Derivation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R912, GBX-R913
 - Target files:
   - `src/glassbox/runtime/handoff_guidance.py`
