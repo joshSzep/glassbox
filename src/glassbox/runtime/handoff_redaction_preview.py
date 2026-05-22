@@ -1,44 +1,31 @@
-"""Redaction preview helpers for local handoff exports."""
+"""Redaction preview facade for local handoff exports."""
 
-from collections.abc import Mapping
-from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import Field
-from pydantic import computed_field
-
-from glassbox.core import ChangesetId
 from glassbox.core import HandoffIntent
-from glassbox.core import HandoffLocalOnlyInventory
 from glassbox.core import HandoffLocalOnlySummary
 from glassbox.core import HandoffReadiness
 from glassbox.core import HandoffRedactionPosture
 from glassbox.core import HandoffRedactionSummary
-from glassbox.core import HandoffSafeCommand
-from glassbox.core import HandoffSourceKind
-from glassbox.core import HandoffSourceRef
-from glassbox.core import SessionId
 from glassbox.core import TaskId
-from glassbox.runtime.changeset_export import CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES
-from glassbox.runtime.changeset_export import ChangesetExportPayload
-from glassbox.runtime.changeset_export import build_changeset_export_payload
-from glassbox.runtime.changesets import ChangesetRepository
-from glassbox.runtime.handoff_export_profiles import HandoffExportProfile
 from glassbox.runtime.handoff_local_only_inventory import build_local_only_inventory
 from glassbox.runtime.handoff_local_only_inventory import (
     build_readiness_local_only_inventory,
 )
-from glassbox.runtime.observability import WorkspaceObservabilityReport
-from glassbox.runtime.session_export_package import build_session_export_payload
-from glassbox.runtime.session_export_profile import (
-    SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
+from glassbox.runtime.handoff_redaction_preview_changeset import (
+    build_changeset_redaction_preview,
 )
-from glassbox.runtime.session_export_redaction import REDACTION_PLACEHOLDER
-from glassbox.runtime.session_export_redaction import WORKSPACE_PLACEHOLDER
-from glassbox.runtime.session_queries import SessionQueryService
-from glassbox.runtime.session_queries import SessionSnapshotView
+from glassbox.runtime.handoff_redaction_preview_changeset import (
+    changeset_redaction_preview_from_payload,
+)
+from glassbox.runtime.handoff_redaction_preview_models import HandoffRedactionPreview
+from glassbox.runtime.handoff_redaction_preview_session import (
+    build_session_redaction_preview,
+)
+from glassbox.runtime.handoff_redaction_preview_session import (
+    session_redaction_preview_from_payload,
+)
+from glassbox.runtime.handoff_redaction_preview_shared import positive_counts
+from glassbox.runtime.handoff_redaction_preview_shared import redaction_marker_summary
+from glassbox.runtime.observability import WorkspaceObservabilityReport
 from glassbox.runtime.task_handoff_readiness import derive_task_handoff_readiness
 from glassbox.runtime.task_queries import TaskDetailView
 from glassbox.runtime.task_queries import TaskQueryService
@@ -48,269 +35,8 @@ from glassbox.runtime.workspace_handoff_readiness import (
 from glassbox.runtime.workspace_handoff_readiness import (
     derive_workspace_handoff_readiness,
 )
-from glassbox.services import ArtifactRepository
-from glassbox.services import SessionRepository
 
-
-class HandoffRedactionPreview(BaseModel):
-    """Machine-readable preview for what a handoff export would include."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    preview_kind: str = "handoff_redaction_preview"
-    source: HandoffSourceRef
-    intent: HandoffIntent
-    profile: HandoffExportProfile | None = None
-    included_sections: list[str] = Field(default_factory=list, max_length=100)
-    redaction: HandoffRedactionSummary
-    local_only: HandoffLocalOnlySummary
-    local_only_inventory: HandoffLocalOnlyInventory
-    omitted_raw_categories: list[str] = Field(default_factory=list, max_length=50)
-    unsupported_evidence: list[str] = Field(default_factory=list, max_length=50)
-    package_limitations: list[str] = Field(default_factory=list, max_length=50)
-    safe_inspection_commands: list[HandoffSafeCommand] = Field(
-        default_factory=list,
-        max_length=20,
-    )
-
-    @computed_field
-    @property
-    def local_only_evidence_count(self) -> int:
-        return sum(self.local_only.category_counts.values())
-
-
-def build_session_redaction_preview(
-    session_id: SessionId,
-    *,
-    session_repository: SessionRepository,
-    artifact_repository: ArtifactRepository,
-    workspace_root: Path,
-    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
-    recipient: str | None = None,
-    exported_by: str | None = None,
-    expected_custodian: str | None = None,
-    note: str | None = None,
-    output_format: str = "json",
-) -> HandoffRedactionPreview:
-    """Preview a session export using the same in-memory payload builder."""
-
-    payload = build_session_export_payload(
-        session_id,
-        session_repository=session_repository,
-        artifact_repository=artifact_repository,
-        workspace_root=workspace_root,
-        intent=intent,
-        recipient=recipient,
-        exported_by=exported_by,
-        expected_custodian=expected_custodian,
-        note=note,
-        output_format=output_format,
-    )
-    snapshot = SessionQueryService(
-        session_repository,
-        artifact_repository,
-    ).get_session_snapshot(session_id, turn_metrics_limit=25)
-    return session_redaction_preview_from_payload(payload, snapshot=snapshot)
-
-
-def session_redaction_preview_from_payload(
-    payload,
-    *,
-    snapshot: SessionSnapshotView,
-) -> HandoffRedactionPreview:
-    """Build a redaction preview from a session export payload."""
-
-    payload_dict = payload.model_dump(mode="json", exclude_none=True)
-    redacted_field_count, categories = _redaction_marker_summary(payload_dict)
-    local_only_counts = {
-        "artifact_references": len(payload.artifact_references),
-        "checkpoint_artifacts": sum(
-            1 for item in payload.checkpoint_history if item.artifact_id is not None
-        ),
-    }
-    local_only_counts = _positive_counts(local_only_counts)
-    local_only_summary = HandoffLocalOnlySummary(
-        category_counts=local_only_counts,
-        limitations=[
-            "artifact contents remain local-only and are referenced by ID",
-            "raw tool logs and provider output are summarized, not copied",
-        ],
-        safe_local_inspection_commands=[
-            _safe_command(
-                f"glassbox session status {payload.metadata.session_id} --cwd .",
-                "Inspect the source session before sharing or importing.",
-            )
-        ],
-    )
-    return HandoffRedactionPreview(
-        source=HandoffSourceRef(
-            kind=HandoffSourceKind.SESSION,
-            primary_id=str(payload.metadata.session_id),
-            label="session",
-        ),
-        intent=payload.handoff.intent,
-        profile=payload.profile,
-        included_sections=_included_sections(payload_dict),
-        redaction=HandoffRedactionSummary(
-            posture=HandoffRedactionPosture.REVIEWER_SAFE,
-            redacted_field_count=redacted_field_count,
-            redacted_categories=categories,
-            raw_transcript_included=False,
-            raw_logs_included=False,
-            raw_artifacts_included=False,
-            raw_diffs_included=False,
-            screenshots_included=False,
-            provider_output_included=False,
-            limitations=list(payload.redaction_notes),
-        ),
-        local_only=local_only_summary,
-        local_only_inventory=payload.local_only_inventory
-        or build_local_only_inventory(
-            source=HandoffSourceRef(
-                kind=HandoffSourceKind.SESSION,
-                primary_id=str(payload.metadata.session_id),
-                label="session",
-            ),
-            intent=payload.handoff.intent,
-            summary=local_only_summary,
-            omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
-        ),
-        omitted_raw_categories=SESSION_EXPORT_OMITTED_RAW_CATEGORIES,
-        unsupported_evidence=[],
-        package_limitations=[
-            "session preview is computed from the same payload path as export",
-            (
-                "preview counts what the package would include; it does not write "
-                "the package"
-            ),
-            *(
-                ["session has pending approval local state"]
-                if snapshot.pending_approval_id is not None
-                else []
-            ),
-        ],
-        safe_inspection_commands=[
-            _safe_command(
-                f"glassbox session handoff-readiness {payload.metadata.session_id} "
-                "--cwd .",
-                "Inspect session handoff readiness before export.",
-            )
-        ],
-    )
-
-
-def build_changeset_redaction_preview(
-    changeset_id: ChangesetId,
-    *,
-    repository: ChangesetRepository,
-    artifact_repository: ArtifactRepository,
-    workspace_root: Path,
-    intent: HandoffIntent = HandoffIntent.REVIEW_ONLY,
-    recipient: str | None = None,
-    expected_custodian: str | None = None,
-    exported_by: str | None = None,
-    note: str | None = None,
-    output_format: str = "json",
-) -> HandoffRedactionPreview:
-    """Preview a changeset export using the same reviewer-safe package builder."""
-
-    payload = build_changeset_export_payload(
-        changeset_id,
-        repository=repository,
-        artifact_repository=artifact_repository,
-        workspace_root=workspace_root,
-        intent=intent,
-        recipient=recipient,
-        expected_custodian=expected_custodian,
-        exported_by=exported_by,
-        note=note,
-        output_format=output_format,
-    )
-    return changeset_redaction_preview_from_payload(payload)
-
-
-def changeset_redaction_preview_from_payload(
-    payload: ChangesetExportPayload,
-) -> HandoffRedactionPreview:
-    """Build a redaction preview from a changeset export payload."""
-
-    payload_dict = payload.model_dump(mode="json", exclude_none=True)
-    redacted_field_count, marker_categories = _redaction_marker_summary(payload_dict)
-    redaction_categories = list(
-        dict.fromkeys([*marker_categories, *_redaction_report_categories(payload)])
-    )
-    manual_evidence = payload.manual_evidence
-    live_evidence = payload.live_review_evidence
-    local_only_counts = _positive_counts(
-        {
-            "artifact_references": len(payload.artifact_references),
-            "manual_evidence": int(manual_evidence.get("local_only_count", 0)),
-            "skipped_live_evidence": int(
-                live_evidence.get("skipped_live_evidence_count", 0)
-            ),
-        }
-    )
-    local_only_summary = HandoffLocalOnlySummary(
-        category_counts=local_only_counts,
-        limitations=[
-            "artifact paths remain local-only references by artifact ID",
-            ("manual, browser, dashboard, and accessibility raw evidence stays local"),
-        ],
-        safe_local_inspection_commands=[
-            _safe_command(
-                "glassbox changeset evidence list "
-                f"{payload.changeset['changeset_id']} --cwd .",
-                "Inspect local evidence inventory before sharing.",
-            )
-        ],
-    )
-    return HandoffRedactionPreview(
-        source=HandoffSourceRef(
-            kind=HandoffSourceKind.CHANGESET,
-            primary_id=str(payload.changeset["changeset_id"]),
-            identifiers={"session_id": str(payload.changeset["session_id"])},
-            label=payload.changeset.get("summary") or payload.changeset["objective"],
-        ),
-        intent=(
-            payload.profile.profile_id
-            if payload.profile is not None
-            else HandoffIntent.REVIEW_ONLY
-        ),
-        profile=payload.profile,
-        included_sections=_included_sections(payload_dict),
-        redaction=HandoffRedactionSummary(
-            posture=HandoffRedactionPosture.REVIEWER_SAFE,
-            redacted_field_count=max(
-                redacted_field_count, len(payload.redaction_report)
-            ),
-            redacted_categories=redaction_categories,
-            raw_transcript_included=False,
-            raw_logs_included=False,
-            raw_artifacts_included=False,
-            raw_diffs_included=False,
-            screenshots_included=False,
-            provider_output_included=False,
-            limitations=list(payload.redaction_report),
-        ),
-        local_only=local_only_summary,
-        local_only_inventory=payload.local_only_inventory,
-        omitted_raw_categories=CHANGESET_EXPORT_OMITTED_RAW_CATEGORIES,
-        unsupported_evidence=[],
-        package_limitations=[
-            "changeset preview is computed from the same payload path as export",
-            (
-                "preview counts what the package would include; it does not write "
-                "the package"
-            ),
-        ],
-        safe_inspection_commands=[
-            _safe_command(
-                "glassbox changeset handoff-readiness "
-                f"{payload.changeset['changeset_id']} --cwd .",
-                "Inspect final handoff posture before export.",
-            )
-        ],
-    )
+_redaction_marker_summary = redaction_marker_summary
 
 
 def build_task_redaction_preview(
@@ -331,7 +57,7 @@ def task_redaction_preview_from_readiness(
     *,
     readiness: HandoffReadiness,
 ) -> HandoffRedactionPreview:
-    local_only_counts = _positive_counts(
+    local_only_counts = positive_counts(
         {
             "local_only_readiness_reasons": len(readiness.local_only_evidence),
             "verification_artifacts": sum(
@@ -461,7 +187,7 @@ def _observability_preview(
     for reason in readiness.local_only_evidence:
         key = reason.kind.value
         local_only_counts[key] = local_only_counts.get(key, 0) + 1
-    local_only_counts = _positive_counts(local_only_counts)
+    local_only_counts = positive_counts(local_only_counts)
     local_only_summary = HandoffLocalOnlySummary(
         category_counts=local_only_counts,
         limitations=readiness.limitations,
@@ -495,77 +221,9 @@ def _observability_preview(
     )
 
 
-def _included_sections(payload: Mapping[str, Any]) -> list[str]:
-    return [
-        key
-        for key, value in payload.items()
-        if value is not None and value != [] and value != {}
-    ][:100]
-
-
-def _redaction_marker_summary(value: Any) -> tuple[int, list[str]]:
-    categories: list[str] = []
-    count = 0
-    for item in _walk_values(value):
-        if not isinstance(item, str):
-            continue
-        redacted = REDACTION_PLACEHOLDER in item
-        workspace = WORKSPACE_PLACEHOLDER in item
-        if redacted or workspace:
-            count += 1
-        if redacted:
-            categories.append("secret-like-token")
-        if workspace:
-            categories.append("workspace-path")
-    return count, list(dict.fromkeys(categories))
-
-
-def _redaction_report_categories(payload: ChangesetExportPayload) -> list[str]:
-    categories: list[str] = []
-    for item in payload.redaction_report:
-        lowered = item.lower()
-        if "database" in lowered:
-            categories.append("database-state")
-        if "command output" in lowered:
-            categories.append("command-output")
-        if "provider" in lowered:
-            categories.append("provider-output")
-        if "manual evidence" in lowered or "external logs" in lowered:
-            categories.append("manual-evidence")
-        if "diff" in lowered or "file contents" in lowered:
-            categories.append("diff-and-file-content")
-        if "screenshots" in lowered or "browser" in lowered:
-            categories.append("browser-and-screenshot-evidence")
-        if "artifact" in lowered:
-            categories.append("artifact-path")
-    return list(dict.fromkeys(categories))
-
-
-def _walk_values(value: Any):
-    if isinstance(value, Mapping):
-        for item in value.values():
-            yield from _walk_values(item)
-    elif isinstance(value, list):
-        for item in value:
-            yield from _walk_values(item)
-    else:
-        yield value
-
-
-def _positive_counts(counts: Mapping[str, int]) -> dict[str, int]:
-    return {key: value for key, value in counts.items() if value > 0}
-
-
-def _safe_command(display: str, purpose: str) -> HandoffSafeCommand:
-    return HandoffSafeCommand(
-        command=display.split(),
-        display=display,
-        purpose=purpose,
-    )
-
-
 __all__ = [
     "HandoffRedactionPreview",
+    "_redaction_marker_summary",
     "build_changeset_redaction_preview",
     "build_session_redaction_preview",
     "build_task_redaction_preview",

@@ -462,7 +462,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R911: Split Redaction Preview Builders By Source Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `src/glassbox/runtime/handoff_redaction_preview.py`
