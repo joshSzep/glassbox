@@ -703,7 +703,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R930: Split Handoff Route Query And Action Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R910, GBX-R912, GBX-R913
 - Target files:
   - `src/glassbox/web/routes/handoffs.py`
@@ -725,6 +725,11 @@ Each phase below corresponds to one concrete refactor milestone.
     shape, and package-path behavior
 - Deliverables:
   - handoff route declarations become readable and thin
+- Completed notes:
+  - `web/routes/handoffs.py` now holds FastAPI route declarations and delegates
+    query, action, path, and error orchestration to route-local helper modules.
+  - Endpoint paths, response models, package-path behavior, and OpenAPI schema
+    coverage remain unchanged.
 - Validation:
   - `uv run pytest tests/integration/test_web_handoff_routes.py`
   - `uv run pytest tests/integration/test_openapi_schema.py`
