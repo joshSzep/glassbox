@@ -192,7 +192,7 @@ def _seed_handoff(tmp_path: Path, db_path: Path):
         ("changeset", "run-verification"),
     ],
 )
-def test_cli_handoff_guidance_for_imported_packages(
+def test_cli_handoff_guidance_for_imported_source_packages(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     case_name: str,

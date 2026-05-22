@@ -768,7 +768,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R932: Normalize Handoff Source-Kind Parsing Across Web And CLI
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R930, GBX-R940
 - Target files:
   - `src/glassbox/runtime/handoff_source_resolution.py`
@@ -787,6 +787,12 @@ Each phase below corresponds to one concrete refactor milestone.
   - avoid moving FastAPI, argparse, or command formatting into runtime helpers
 - Deliverables:
   - shared handoff source parsing semantics without transport coupling
+- Completed notes:
+  - `runtime/handoff_source_resolution.py` now normalizes supported source
+    kinds, source ID requirements, and prepare-source constraints without
+    importing web or CLI transport code.
+  - Web route helpers translate resolver `ValueError`s into HTTP 400s, while
+    CLI prepare preserves its existing source-selection error text.
 - Validation:
   - `uv run pytest tests/unit/test_handoff_models.py`
   - `uv run pytest tests/integration/test_cli_handoff_commands.py -k source`

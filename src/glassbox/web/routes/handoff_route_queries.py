@@ -11,6 +11,7 @@ from glassbox.runtime.daemon import inspect_runtime_owner
 from glassbox.runtime.handoff_guidance import load_handoff_guidance
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
+from glassbox.runtime.handoff_source_resolution import resolve_handoff_source
 from glassbox.runtime.observability import build_workspace_observability_report
 from glassbox.runtime.session_handoff_readiness import SessionHandoffReadinessService
 from glassbox.runtime.session_queries import SessionQueryService
@@ -97,44 +98,45 @@ def get_handoff_readiness_response(
 
     workspace_root = context.infrastructure.artifacts_root
     try:
-        if source_kind == "session":
-            if source_id is None:
-                raise handoff_bad_request("source_id is required")
+        source = resolve_handoff_source(source_kind, source_id)
+        if source.source_kind == "session":
             readiness = SessionHandoffReadinessService(
                 SessionQueryService(
                     context.repositories.sessions,
                     context.repositories.artifacts,
                 )
-            ).preview(UUID(source_id), intent=intent or HandoffIntent.REVIEW_ONLY)
-        elif source_kind == "task":
-            if source_id is None:
-                raise handoff_bad_request("source_id is required")
+            ).preview(
+                UUID(source.require_source_id()),
+                intent=intent or HandoffIntent.REVIEW_ONLY,
+            )
+        elif source.source_kind == "task":
             readiness = TaskHandoffReadinessService(
                 TaskQueryService(
                     cast(Any, context.repositories.sessions),
                     workspace_root=workspace_root,
                 )
-            ).preview(UUID(source_id), intent=intent or HandoffIntent.CONTINUE_WORK)
-        elif source_kind == "changeset":
-            if source_id is None:
-                raise handoff_bad_request("source_id is required")
+            ).preview(
+                UUID(source.require_source_id()),
+                intent=intent or HandoffIntent.CONTINUE_WORK,
+            )
+        elif source.source_kind == "changeset":
             assessment = preview_handoff_readiness(
                 ChangesetHandoffReadinessService(
                     cast(ChangesetRepository, context.repositories.sessions),
                     context.repositories.artifacts,
                 ),
-                UUID(source_id),
+                UUID(source.require_source_id()),
                 workspace_root,
             )
             readiness = assessment.shared_readiness
-        elif source_kind in {"workspace", "release"}:
+        elif source.source_kind in {"workspace", "release"}:
             report = build_workspace_observability_report(
                 workspace_root=workspace_root,
                 runtime_status=inspect_runtime_owner(workspace_root),
                 session_repository=context.repositories.sessions,
                 event_transport_stats=context.infrastructure.event_transport.stats(),
             )
-            if source_kind == "release":
+            if source.source_kind == "release":
                 readiness = derive_release_handoff_readiness(
                     report,
                     intent=intent or HandoffIntent.RELEASE_SIGNOFF,
@@ -144,8 +146,6 @@ def get_handoff_readiness_response(
                     report,
                     intent=intent or HandoffIntent.FUTURE_SELF,
                 )
-        else:
-            raise handoff_bad_request("unsupported handoff source")
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
 

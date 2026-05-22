@@ -17,6 +17,7 @@ from glassbox.runtime.handoff_import_triage import triage_handoff_import
 from glassbox.runtime.handoff_markdown import build_session_export_markdown
 from glassbox.runtime.handoff_redaction_preview import build_changeset_redaction_preview
 from glassbox.runtime.handoff_redaction_preview import build_session_redaction_preview
+from glassbox.runtime.handoff_source_resolution import resolve_handoff_source
 from glassbox.runtime.session_export import SESSION_EXPORT_KIND
 from glassbox.runtime.session_export_models import SessionExportPayload
 from glassbox.runtime.session_export_package import export_session_package
@@ -55,9 +56,15 @@ def prepare_handoff_preview_response(
     workspace_root = context.infrastructure.artifacts_root
     intent = request.intent
     try:
-        if request.source_kind == "session":
+        source = resolve_handoff_source(
+            request.source_kind,
+            request.source_id,
+            supported_source_kinds=("session", "changeset"),
+        )
+        source_id = UUID(source.require_source_id())
+        if source.source_kind == "session":
             preview = build_session_redaction_preview(
-                UUID(request.source_id),
+                source_id,
                 session_repository=context.repositories.sessions,
                 artifact_repository=context.repositories.artifacts,
                 workspace_root=workspace_root,
@@ -68,9 +75,9 @@ def prepare_handoff_preview_response(
                 note=request.note,
                 output_format=request.output_format,
             )
-        elif request.source_kind == "changeset":
+        elif source.source_kind == "changeset":
             preview = build_changeset_redaction_preview(
-                UUID(request.source_id),
+                source_id,
                 repository=cast(ChangesetRepository, context.repositories.sessions),
                 artifact_repository=context.repositories.artifacts,
                 workspace_root=workspace_root,
@@ -81,8 +88,6 @@ def prepare_handoff_preview_response(
                 note=request.note,
                 output_format=request.output_format,
             )
-        else:
-            raise handoff_bad_request("unsupported handoff source")
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
     return build_handoff_prepare_preview_response(preview)
@@ -96,18 +101,23 @@ def export_handoff_response(
 
     workspace_root = context.infrastructure.artifacts_root
     try:
-        source_id = UUID(request.source_id)
+        source = resolve_handoff_source(
+            request.source_kind,
+            request.source_id,
+            supported_source_kinds=("session", "changeset"),
+        )
+        source_id = UUID(source.require_source_id())
         output_path = resolve_local_package_path(
             workspace_root,
             request.output_path,
-            default_name=f"glassbox-{request.source_kind}-{source_id}.json",
+            default_name=f"glassbox-{source.source_kind}-{source_id}.json",
         )
         markdown_output_path = (
             resolve_local_package_path(workspace_root, request.markdown_output_path)
             if request.markdown_output_path is not None
             else None
         )
-        if request.source_kind == "session":
+        if source.source_kind == "session":
             resolved_output = export_session_package(
                 source_id,
                 output_path,
@@ -130,7 +140,7 @@ def export_handoff_response(
                     build_session_export_markdown(payload),
                     encoding="utf-8",
                 )
-        elif request.source_kind == "changeset":
+        elif source.source_kind == "changeset":
             resolved_output = export_changeset_package(
                 source_id,
                 output_path,
@@ -145,13 +155,11 @@ def export_handoff_response(
                 output_format=request.output_format,
                 markdown_output_path=markdown_output_path,
             )
-        else:
-            raise handoff_bad_request("unsupported handoff source")
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
 
     return build_handoff_export_response(
-        source_kind=request.source_kind,
+        source_kind=source.source_kind,
         source_id=source_id,
         output_path=resolved_output,
         markdown_output_path=markdown_output_path,

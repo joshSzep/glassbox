@@ -32,6 +32,7 @@ from glassbox.runtime.handoff_guidance import HandoffGuidance
 from glassbox.runtime.handoff_guidance import load_handoff_guidance
 from glassbox.runtime.handoff_import_triage import triage_handoff_import
 from glassbox.runtime.handoff_markdown import build_session_export_markdown
+from glassbox.runtime.handoff_source_resolution import resolve_handoff_prepare_source
 from glassbox.runtime.session_export import SESSION_EXPORT_KIND
 from glassbox.runtime.session_export_models import SessionExportPayload
 
@@ -59,15 +60,13 @@ def _handoff_command(args: argparse.Namespace) -> int:
 
 
 def _handoff_prepare_command(args: argparse.Namespace) -> int:
-    source = getattr(args, "handoff_prepare_source", None)
-    if source == "session":
+    source = resolve_handoff_prepare_source(args.handoff_prepare_source)
+    if source.source_kind == "session":
         args.session_command = "export"
         return _session_command(args)
-    if source == "changeset":
-        if args.output_path is None:
-            args.output_path = f"glassbox-changeset-{args.changeset_id}.json"
-        return _changeset_export_command(args)
-    raise ValueError("specify a handoff prepare source")
+    if args.output_path is None:
+        args.output_path = f"glassbox-changeset-{args.changeset_id}.json"
+    return _changeset_export_command(args)
 
 
 def _handoff_inspect_command(args: argparse.Namespace) -> int:

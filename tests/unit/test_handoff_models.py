@@ -31,6 +31,9 @@ from glassbox.core import HandoffSourceKind
 from glassbox.core import HandoffSourceRef
 from glassbox.core.models_handoff import HandoffPackageManifest as OwnerManifest
 from glassbox.core.types_handoff import HandoffIntent as OwnerIntent
+from glassbox.runtime.handoff_source_resolution import HandoffSourceResolutionError
+from glassbox.runtime.handoff_source_resolution import resolve_handoff_prepare_source
+from glassbox.runtime.handoff_source_resolution import resolve_handoff_source
 
 
 def _source() -> HandoffSourceRef:
@@ -56,6 +59,35 @@ def test_handoff_models_and_types_keep_core_compatibility_exports() -> None:
     assert core_models.HandoffPackageV2 is HandoffPackageV2
     assert HandoffIntent is OwnerIntent
     assert core_types.HandoffIntent is OwnerIntent
+
+
+def test_handoff_source_resolution_normalizes_supported_sources() -> None:
+    session = resolve_handoff_source(" Session ", " session-123 ")
+    workspace = resolve_handoff_source("workspace")
+    prepare = resolve_handoff_prepare_source("changeset")
+
+    assert session.source_kind == "session"
+    assert session.require_source_id() == "session-123"
+    assert session.source_id_required is True
+    assert workspace.source_kind == "workspace"
+    assert workspace.source_id is None
+    assert workspace.source_id_required is False
+    assert prepare.source_kind == "changeset"
+
+
+def test_handoff_source_resolution_rejects_unsupported_sources() -> None:
+    with pytest.raises(HandoffSourceResolutionError) as missing_id:
+        resolve_handoff_source("task")
+    with pytest.raises(HandoffSourceResolutionError) as unsupported:
+        resolve_handoff_source("database")
+    with pytest.raises(HandoffSourceResolutionError) as prepare_unsupported:
+        resolve_handoff_prepare_source("workspace")
+
+    assert missing_id.value.reason == "missing-source-id"
+    assert str(missing_id.value) == "source_id is required"
+    assert unsupported.value.reason == "unsupported-source-kind"
+    assert str(unsupported.value) == "unsupported handoff source"
+    assert prepare_unsupported.value.reason == "unsupported-source-kind"
 
 
 def test_handoff_package_manifest_serializes_default_non_claims() -> None:
