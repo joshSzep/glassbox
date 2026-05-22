@@ -804,7 +804,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R940: Split Handoff CLI Command Families
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `src/glassbox/cli/handoff_commands.py`
@@ -824,6 +824,14 @@ Each phase below corresponds to one concrete refactor milestone.
     compatibility with `session import` and `changeset export`
 - Deliverables:
   - handoff CLI command surface split by workflow family
+- Completed notes:
+  - `_handoff_command` now remains a dispatch facade while prepare/import
+    compatibility delegation, package inspection/Markdown/triage, projected
+    record and custody actions, and human/JSON formatting live in focused
+    `handoff_command_*` helpers.
+  - Handoff command help, JSON payload shaping, human output, and session
+    import / changeset export delegation remain covered by the focused CLI
+    and command-guide validation.
 - Validation:
   - `uv run pytest tests/integration/test_cli_handoff_commands.py`
   - `uv run pytest tests/unit/test_command_guide.py -k handoff`
