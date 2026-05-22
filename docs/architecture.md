@@ -305,6 +305,64 @@ skipped/manual-only evidence remains visible; and release-gate authority
 remains deterministic rather than dashboard, provider, browser, accessibility,
 memory, or advisory maintenance signals.
 
+## Current Post-v17 Local-Handoff Refactor Shape
+
+The v17 local-handoff implementation adds recipient intent, handoff readiness,
+portable package compatibility inspection, redaction preview, local-only
+evidence inventory, import triage, custody decisions, dashboard handoff
+cockpit surfaces, TUI entrypoints, and deterministic v17 release-gate coverage.
+These additions preserve the local-first authority model: canonical events,
+managed artifacts, typed API responses, package manifests, local source files,
+projection rows, and deterministic eval fixtures remain the source of truth,
+while package summaries, readiness rows, import guidance, custody state,
+dashboard state, and release-gate summaries are derived views.
+
+The post-v17 refactor starts by preserving current behavior and public
+entrypoints while naming the local-handoff helper-owner families that should
+become independently reviewable:
+
+- `runtime/handoff_package.py` remains the handoff package entrypoint while
+    package-local models, digest construction, v2 inspection, and legacy
+    session export compatibility move into `handoff_package_*` helpers
+- `runtime/handoff_redaction_preview.py` remains the redaction preview
+    entrypoint while session, changeset, shared marker scanning, local-only
+    inventory, safe commands, and omitted-category shaping split by source
+    family
+- `runtime/handoff_import_triage.py`, `runtime/handoff_decisions.py`, and
+    `runtime/handoff_guidance.py` remain public workflow facades while models,
+    disposition logic, imported inspection events, custody event payloads,
+    action-state derivation, safe actions, guidance paths, and blockers move
+    into focused runtime helpers
+- session, task, workspace, and release handoff readiness remain advisory
+    source-specific services while shared reason, evidence-reference,
+    safe-command, and non-claim vocabulary move into shared handoff readiness
+    helpers
+- session and changeset export assembly should keep collecting local evidence
+    while v17 profile metadata, redaction summaries, local-only inventory, and
+    reviewer-safe Markdown helpers stay in handoff/export-profile owners
+- `web/routes/handoffs.py`, `web/handoff_api.py`, `cli/handoff_commands.py`,
+    TUI handoff commands, `frontend/components/console/handoff-cockpit.tsx`,
+    and `frontend/stores/handoff-store.ts` stay stable transport or UI
+    entrypoints while route helpers, API builders, command families, cockpit
+    panels, formatting helpers, and store action families split underneath
+- `services/contracts.py` remains a broad protocol surface until handoff
+    repository use cases justify narrower repository protocols without
+    concrete store, runtime, CLI, web, or frontend imports
+- `scripts/validate_v17_release_gate.py` remains the operator command while
+    milestone-gate reuse, handoff evidence stages, advisory rows, package
+    checks, installed smoke, and summary metadata stay in release-gate helpers
+
+These splits must preserve the v17 non-claims described in
+[v17-local-handoff-contract.md](./v17-local-handoff-contract.md) and
+[local-handoff.md](./local-handoff.md): handoff readiness and guidance are
+advisory; custody decisions are local workflow metadata rather than approval,
+reviewer signoff, ownership transfer, publication readiness, merge readiness,
+or authorization; import triage remains inspection-first and separate from
+mutation; redaction, local-only, stale, missing, skipped, manual-only,
+unsupported, future-version, and compatibility-warning states remain visible;
+and refactor-only work must not add hosted collaboration, remote custody
+authority, hidden import mutation, or publication automation.
+
 ## Runtime Model
 
 The current shipped implementation still centers on one runtime owner per
@@ -490,6 +548,33 @@ explain, cite evidence, and surface stale/missing/manual-only/skipped posture;
 they must not claim reviewer approval, verification success, publication
 readiness, command approval, merge readiness, release authority, or hosted
 review state.
+
+### Runtime Local-Handoff Boundaries
+
+Local-handoff services are runtime-owned, transport-agnostic, and derived from
+canonical events, managed artifacts, repository read models, typed API
+responses, package manifests, and explicit service inputs. Runtime helpers may
+derive package compatibility, redaction posture, local-only inventory, import
+triage, custody action state, readiness reasons, guidance paths, and safe next
+actions, but they must not import CLI formatting, FastAPI response models,
+dashboard components, generated frontend types, or raw projection SQL.
+
+Package inspection helpers should keep v2 package validation, digest
+construction and verification, raw JSON rejection, unsupported and future
+schema classification, and legacy session export compatibility separate.
+Redaction preview helpers should keep session and changeset source families
+separate while sharing marker scanning, positive-count normalization,
+safe-command construction, and omitted-category shaping. Import triage,
+custody decisions, and guidance should stay inspection-first and advisory:
+they can recommend fork, inspect, reject, archive, or verify paths, but they
+must not perform hidden mutation or claim approval.
+
+Handoff readiness helpers stay source-specific for sessions, tasks, workspace,
+and release contexts while sharing common reason, evidence-reference,
+safe-command, and non-claim vocabulary. Export-profile helpers attach
+recipient intent, redaction summaries, local-only inventory, reviewer-safe
+Markdown, and package metadata without making session or changeset export
+assembly own handoff policy.
 
 ### Core Operator-Flow Domain Strategy
 

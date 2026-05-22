@@ -452,6 +452,46 @@ def test_post_v16_operator_flow_boundary_strategy_is_documented() -> None:
         assert required_text in architecture_doc
 
 
+def test_post_v17_local_handoff_boundary_strategy_is_documented() -> None:
+    boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
+        encoding="utf-8"
+    )
+    architecture_doc = (REPO_ROOT / "docs" / "architecture.md").read_text(
+        encoding="utf-8"
+    )
+
+    for required_text in (
+        "The post-v17 local-handoff boundary map starts",
+        "#### Post-V17 Local-Handoff Runtime Sub-Boundaries",
+        "`handoff_package_models.py`",
+        "`handoff_redaction_preview_shared.py`",
+        "`handoff_import_triage_disposition.py`",
+        "`handoff_decision_actions.py`",
+        "`handoff_guidance_paths.py`",
+        "#### Post-V17 Readiness And Export-Profile Sub-Boundaries",
+        "`handoff_readiness_reasons.py`",
+        "`handoff_local_only_inventory.py`",
+        "#### Post-V17 Web, CLI, TUI, And Frontend Handoff Sub-Boundaries",
+        "`handoff_route_queries.py`",
+        "`handoff_api_builders.py`",
+        "`frontend/stores/handoff-store.ts`",
+        "#### Post-V17 Repository, Release-Gate, And Guardrail Strategy",
+        "### Post-V17 Accepted Compatibility Shims",
+    ):
+        assert required_text in boundary_doc
+
+    for required_text in (
+        "## Current Post-v17 Local-Handoff Refactor Shape",
+        "`runtime/handoff_package.py` remains the handoff package entrypoint",
+        "`runtime/handoff_redaction_preview.py` remains the redaction preview",
+        "`web/routes/handoffs.py`, `web/handoff_api.py`, `cli/handoff_commands.py`",
+        "### Runtime Local-Handoff Boundaries",
+        "[v17-local-handoff-contract.md](./v17-local-handoff-contract.md)",
+        "[local-handoff.md](./local-handoff.md)",
+    ):
+        assert required_text in architecture_doc
+
+
 def test_v10_core_domain_strategy_is_documented() -> None:
     boundary_doc = (REPO_ROOT / "docs" / "refactor-boundaries.md").read_text(
         encoding="utf-8"

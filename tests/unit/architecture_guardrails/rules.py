@@ -2939,6 +2939,101 @@ V16_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
 )
 
+V17_PYTHON_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "handoff_package.py",
+        406,
+        (
+            "post-v17 handoff_package should move package-local models, "
+            "digest helpers, v2 inspection, and legacy compatibility into "
+            "focused handoff_package modules"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_redaction_preview.py",
+        577,
+        (
+            "post-v17 handoff_redaction_preview should move session, "
+            "changeset, marker scanning, omitted-category, and safe-command "
+            "behavior into focused preview helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_import_triage.py",
+        318,
+        (
+            "post-v17 handoff_import_triage should move models, disposition "
+            "logic, and imported inspection events into focused triage helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_decisions.py",
+        221,
+        (
+            "post-v17 handoff_decisions should move custody models, event "
+            "payloads, action state, and safe actions into focused decision "
+            "helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_guidance.py",
+        313,
+        (
+            "post-v17 handoff_guidance should move guidance models, path "
+            "derivation, blockers, and limitations into focused guidance "
+            "helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "handoffs.py",
+        554,
+        (
+            "post-v17 handoff routes should move query orchestration, action "
+            "orchestration, path resolution, and error translation into "
+            "route-local helpers"
+        ),
+    ),
+    (
+        SRC_ROOT / "cli" / "handoff_commands.py",
+        381,
+        (
+            "post-v17 handoff CLI commands should move command families, "
+            "compatibility delegation, payloads, and human output into "
+            "CLI-owned helpers"
+        ),
+    ),
+    (
+        REPO_ROOT / "scripts" / "validate_v17_release_gate.py",
+        242,
+        (
+            "post-v17 release gate should move reusable milestone-gate "
+            "configuration, handoff evidence stages, advisory rows, package "
+            "checks, installed smoke, and summary metadata into focused helpers"
+        ),
+    ),
+)
+
+V17_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "handoff-cockpit.tsx",
+        706,
+        (
+            "post-v17 handoff cockpit should move record list, prepare form, "
+            "readiness, preview, package inspection, triage/guidance, and "
+            "custody panels into focused cockpit helpers"
+        ),
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "handoff-store.ts",
+        472,
+        (
+            "post-v17 handoff store should move list/show, preview/export, "
+            "inspect/triage/import, readiness/guidance, and custody actions "
+            "into store-owned workflow helpers"
+        ),
+    ),
+)
+
 V16_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

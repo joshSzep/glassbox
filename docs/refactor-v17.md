@@ -336,7 +336,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R900: Define Post-V17 Refactor Boundary Map
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: none
 - Target files:
   - [architecture.md](./architecture.md)

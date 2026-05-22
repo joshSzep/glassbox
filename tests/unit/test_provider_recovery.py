@@ -58,3 +58,37 @@ def test_provider_recovery_ignores_local_model_failures() -> None:
     )
 
     assert recovery is None
+
+
+def test_provider_recovery_ignores_status_digits_inside_local_paths() -> None:
+    adapter = PydanticAIModelAdapter(
+        ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+    )
+
+    recovery = classify_provider_failure(
+        ValueError(
+            "blocked: path '../secret.txt' is outside workspace "
+            "'/tmp/pytest-3503/test-turn'"
+        ),
+        model_adapter=adapter,
+    )
+
+    assert recovery is None
+
+
+def test_provider_recovery_classifies_standalone_http_status() -> None:
+    adapter = PydanticAIModelAdapter(
+        ModelProviderConfig(provider="openai", model_name="gpt-5.4")
+    )
+
+    recovery = classify_provider_failure(
+        RuntimeError("provider returned HTTP 503"),
+        model_adapter=adapter,
+        attempt=1,
+        max_attempts=1,
+    )
+
+    assert recovery is not None
+    assert recovery.failure_kind == ProviderRecoveryKind.RETRYABLE_ERROR
+    assert recovery.action == ProviderRecoveryAction.RETRY_EXHAUSTED
+    assert recovery.retryable is True

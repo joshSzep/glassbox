@@ -6,6 +6,7 @@ from tests.unit.architecture_guardrails.rules import V11_PYTHON_PRESSURE_POINT_R
 from tests.unit.architecture_guardrails.rules import V13_PYTHON_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V14_PYTHON_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V16_PYTHON_PRESSURE_POINT_RULES
+from tests.unit.architecture_guardrails.rules import V17_PYTHON_PRESSURE_POINT_RULES
 
 
 def test_v10_python_pressure_points_do_not_grow_before_split() -> None:
@@ -34,5 +35,11 @@ def test_v14_python_pressure_points_do_not_grow_before_split() -> None:
 
 def test_v16_python_pressure_points_do_not_grow_before_split() -> None:
     violations = _line_count_violations(V16_PYTHON_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v17_python_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V17_PYTHON_PRESSURE_POINT_RULES)
 
     assert violations == []

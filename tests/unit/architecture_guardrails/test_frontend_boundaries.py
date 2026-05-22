@@ -19,6 +19,7 @@ from tests.unit.architecture_guardrails.rules import V14_FRONTEND_FACADE_RULES
 from tests.unit.architecture_guardrails.rules import V14_FRONTEND_IMPORT_RULES
 from tests.unit.architecture_guardrails.rules import V14_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V16_FRONTEND_PRESSURE_POINT_RULES
+from tests.unit.architecture_guardrails.rules import V17_FRONTEND_PRESSURE_POINT_RULES
 
 
 def test_frontend_store_boundaries_stay_framework_light() -> None:
@@ -108,6 +109,12 @@ def test_v14_frontend_pressure_points_do_not_grow_before_split() -> None:
 
 def test_v16_frontend_pressure_points_do_not_grow_before_split() -> None:
     violations = _line_count_violations(V16_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v17_frontend_pressure_points_do_not_grow_before_split() -> None:
+    violations = _line_count_violations(V17_FRONTEND_PRESSURE_POINT_RULES)
 
     assert violations == []
 

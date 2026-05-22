@@ -506,6 +506,82 @@ support and gaps; it is not reviewer approval, verification success, release
 authority, publication readiness, command approval, merge readiness, or hosted
 review state.
 
+The post-v17 local-handoff boundary map starts from the completed v17 local
+handoff release-candidate milestone and the new roadmap in
+[refactor-v17.md](./refactor-v17.md). The next split should keep recipient
+intent, package compatibility inspection, redaction preview, local-only
+inventory, import triage, custody decisions, handoff readiness, web route
+helpers, CLI/TUI surfaces, dashboard cockpit panels, handoff stores,
+repository protocols, and reusable release-gate helpers independently
+reviewable without changing shipped local-handoff contracts.
+
+The post-v17 pressure points are local-handoff surfaces that grew while
+handoff became a first-class local workflow across runtime, package I/O, web,
+CLI, TUI, dashboard, import/export, eval, and release-gate paths:
+
+- `src/glassbox/runtime/handoff_package.py` mixes package v2 construction,
+  raw JSON validation, digest construction and verification, supported package
+  inspection, unsupported/future schema classification, and legacy session
+  export compatibility. It should remain the public package entrypoint while
+  package-local models, digest helpers, inspection helpers, and legacy
+  compatibility helpers split underneath.
+- `src/glassbox/runtime/handoff_redaction_preview.py` mixes session and
+  changeset preview construction, marker scanning, redacted count shaping,
+  local-only inventory, safe inspection commands, omitted raw categories, and
+  workspace/release preview helpers. Session and changeset source families
+  should split while shared redaction vocabulary stays common.
+- `src/glassbox/runtime/handoff_import_triage.py`,
+  `src/glassbox/runtime/handoff_decisions.py`, and
+  `src/glassbox/runtime/handoff_guidance.py` should keep public workflow
+  entrypoints stable while response models, disposition derivation, imported
+  inspection events, custody event payloads, action state, safe actions,
+  guidance paths, blockers, and limitations become focused helpers.
+- `src/glassbox/runtime/session_handoff_readiness.py`,
+  `src/glassbox/runtime/task_handoff_readiness.py`, and
+  `src/glassbox/runtime/workspace_handoff_readiness.py` should keep
+  source-specific readiness derivation while sharing common reason,
+  evidence-reference, safe-command, and non-claim helpers.
+- `src/glassbox/runtime/session_export_package.py` and
+  `src/glassbox/runtime/changeset_export.py` should keep export evidence
+  assembly stable while v17 profile metadata, redaction summaries, local-only
+  inventory, reviewer-safe Markdown, and package metadata live in handoff and
+  export-profile helpers.
+- `src/glassbox/web/routes/handoffs.py` and `src/glassbox/web/handoff_api.py`
+  mix FastAPI route declarations, path resolution, query/action orchestration,
+  response shaping, package inspection, import mutation, custody decisions,
+  guidance lookup, and HTTP error translation. Route-local helpers and API
+  model/builder helpers should split without changing endpoint paths, status
+  codes, OpenAPI names, or package-path behavior.
+- `src/glassbox/cli/handoff_commands.py`, `src/glassbox/cli/parser_handoff.py`,
+  and TUI handoff command modules should keep command names and current-session
+  behavior stable while command families, compatibility delegation, parser
+  families, package-family detection, guidance rendering, and Markdown
+  inspection move into CLI/TUI-owned helpers.
+- `frontend/components/console/handoff-cockpit.tsx` and
+  `frontend/stores/handoff-store.ts` should keep dashboard entrypoints and
+  store transport ownership while cockpit panels, formatting/option helpers,
+  custody controls, preview/package/triage/guidance panels, and store action
+  families split underneath.
+- `src/glassbox/services/contracts.py` remains protocol-heavy and acceptable
+  today, but handoff, projection, and custody use cases should move to
+  narrower service protocol modules only when the domain boundary is clear and
+  compatibility re-exports can preserve imports.
+- `scripts/validate_v17_release_gate.py` and `scripts/v17_release_gate_*`
+  should preserve the operator command and v17 evidence behavior while moving
+  reusable milestone-gate configuration, handoff evidence stages, advisory
+  rows, package/static checks, installed smoke, and summary metadata into
+  focused helper boundaries.
+
+The post-v17 split should continue to treat canonical events, managed
+artifacts, package manifests, typed API responses, local source files,
+projection rows, deterministic eval fixtures, generated API types, and
+public model-heavy core surfaces as stable contract surfaces. Local handoff
+remains advisory and local-first: custody decisions are workflow metadata, not
+approval or authority; import triage is inspection-first and separate from
+mutation; redaction and local-only states remain visible; and refactor-only
+work must not add hosted collaboration, remote custody enforcement, hidden
+import mutation, approval semantics, or publication automation.
+
 ## Target Boundary Map
 
 ### Runtime
@@ -1027,6 +1103,132 @@ The `runtime` package should not become a catch-all for transport formatting, ra
   contracts should move only when the domain boundary is clear and the runtime,
   web, CLI, dashboard, replay, eval, OpenAPI, and tests can migrate
   deliberately.
+
+#### Post-V17 Local-Handoff Runtime Sub-Boundaries
+
+- `handoff_package.py` should remain the public runtime facade for
+  `build_handoff_package_v2`, `inspect_handoff_package_path`, and
+  `inspect_handoff_package`. Package-local inspection result models belong in
+  `handoff_package_models.py`; digest construction and verification belong in
+  `handoff_package_digest.py`; supported v2 package validation and inspection
+  belong in `handoff_package_inspection.py`; and legacy session export
+  compatibility belongs in `handoff_package_legacy.py`.
+- `handoff_redaction_preview.py` should remain the public preview facade for
+  session and changeset previews. `handoff_redaction_preview_models.py` owns
+  runtime-local preview models, session and changeset helpers own their source
+  families, and `handoff_redaction_preview_shared.py` owns marker scanning,
+  positive-count normalization, safe-command construction, and shared
+  omitted-category shaping.
+- `handoff_import_triage.py` should remain the public import triage facade
+  while `handoff_import_triage_models.py` owns triage response models,
+  `handoff_import_triage_disposition.py` owns compatibility-to-disposition
+  logic, and `handoff_import_triage_events.py` owns imported inspection event
+  construction and package/source/intent mapping.
+- `handoff_decisions.py` should remain the public custody workflow facade while
+  `handoff_decision_models.py`, `handoff_decision_events.py`, and
+  `handoff_decision_actions.py` own result models, event payload construction,
+  action-state derivation, and safe next actions.
+- `handoff_guidance.py` should remain the public guidance facade while
+  `handoff_guidance_models.py`, `handoff_guidance_paths.py`, and
+  `handoff_guidance_blockers.py` own recommendation models, inspect/fork/new
+  session/verification/rejection/archive paths, blockers, and limitations.
+
+#### Post-V17 Readiness And Export-Profile Sub-Boundaries
+
+- Session, task, workspace, and release handoff readiness helpers should stay
+  source-specific. Shared reason labels, evidence references, safe commands,
+  and non-claim copy belong in common handoff readiness helpers such as
+  `handoff_readiness_shared.py` and `handoff_readiness_reasons.py`.
+- `session_export_package.py` should stay focused on collecting session
+  evidence. Handoff profile attachment, output-format validation, local-only
+  inventory attachment, redaction summaries, and package metadata belong in
+  `session_export_profile.py`, `handoff_export_profiles.py`, and
+  `handoff_local_only_inventory.py`.
+- `changeset_export.py` should stay review-evidence oriented. Handoff-specific
+  profile metadata, reviewer-safe Markdown, redaction report shaping,
+  safe inspection commands, and local-only inventory belong in
+  `changeset_export_handoff.py`, `changeset_export_markdown.py`, and
+  shared handoff inventory helpers.
+
+#### Post-V17 Web, CLI, TUI, And Frontend Handoff Sub-Boundaries
+
+- `web/routes/handoffs.py` should remain the FastAPI route declaration
+  surface. Query orchestration belongs in `handoff_route_queries.py`, mutation
+  orchestration belongs in `handoff_route_actions.py`, package path
+  resolution belongs in `handoff_route_paths.py`, and HTTP error translation
+  belongs in `handoff_route_errors.py`.
+- `web/handoff_api.py` should remain the import-compatible API facade. Request
+  and response models may move to `handoff_api_models.py`, while record,
+  decision, inspect, export, and readiness response construction belongs in
+  `handoff_api_builders.py`.
+- `cli/handoff_commands.py` should remain the scriptable handoff command
+  entrypoint while command-family helpers own prepare/preview/export,
+  inspect/triage/import, custody, guidance, JSON payloads, and human output.
+  Parser helpers should split by command family, and TUI handoff entrypoints
+  should keep slash-command routing separate from guidance rendering.
+- `frontend/components/console/handoff-cockpit.tsx` should remain the
+  dashboard handoff cockpit entrypoint while panel modules own the record list,
+  prepare form, readiness, preview, package inspection, triage/guidance, and
+  custody action presentation. Pure formatting and option helpers should live
+  outside React components.
+- `frontend/stores/handoff-store.ts` should remain the public handoff store
+  facade while workflow-family store action modules own list/show loading,
+  preview/export, inspect/triage/import, readiness/guidance, custody
+  decisions, request tracking, and user-facing messages. Components must not
+  take over transport calls.
+
+#### Post-V17 Repository, Release-Gate, And Guardrail Strategy
+
+- Handoff repository protocols should split out of broad service contracts
+  only when source, projection, and custody use cases have stable cohesive
+  boundaries. Contract modules must remain free of concrete store, runtime,
+  CLI, web, frontend, and script imports.
+- `scripts/validate_v17_release_gate.py` should remain the operator command
+  while reusable milestone-gate configuration helpers and focused
+  `v17_release_gate_*` modules own deterministic handoff evidence stages,
+  advisory rows, dry-run output, package/static checks, installed smoke, and
+  summary metadata.
+- post-v17 guardrails start with pre-extraction pressure-point caps and
+  documented owner expectations. After runtime package, web route, frontend
+  cockpit, store action, CLI/TUI, repository protocol, and release-gate helper
+  owners exist, guardrails should add facade line-count and import-prefix
+  expectations that require delegation to those owner modules.
+- Guardrails should not freeze generated OpenAPI, generated frontend API
+  types, deterministic eval fixtures, release evidence artifacts, package
+  fixtures, or broad model-heavy core surfaces.
+
+### Post-V17 Accepted Compatibility Shims
+
+- `src/glassbox/runtime/handoff_package.py`: handoff package public entrypoint.
+- `src/glassbox/runtime/handoff_redaction_preview.py`: redaction preview
+  public entrypoint.
+- `src/glassbox/runtime/handoff_import_triage.py`: import triage public
+  entrypoint.
+- `src/glassbox/runtime/handoff_decisions.py`: custody workflow public
+  entrypoint.
+- `src/glassbox/runtime/handoff_guidance.py`: handoff guidance public
+  entrypoint.
+- `src/glassbox/runtime/session_handoff_readiness.py`: session readiness
+  public entrypoint.
+- `src/glassbox/runtime/task_handoff_readiness.py`: task readiness public
+  entrypoint.
+- `src/glassbox/runtime/workspace_handoff_readiness.py`: workspace and release
+  readiness public entrypoint.
+- `src/glassbox/runtime/session_export_package.py`: session export package
+  assembly entrypoint.
+- `src/glassbox/runtime/changeset_export.py`: changeset export entrypoint.
+- `src/glassbox/web/routes/handoffs.py`: FastAPI handoff route declarations.
+- `src/glassbox/web/handoff_api.py`: handoff API response facade.
+- `src/glassbox/cli/handoff_commands.py`: handoff CLI command entrypoint.
+- `src/glassbox/cli/parser_handoff.py`: handoff parser entrypoint.
+- `src/glassbox/cli/tui/handoff_commands.py`: TUI handoff command entrypoint.
+- `frontend/components/console/handoff-cockpit.tsx`: dashboard handoff cockpit
+  entrypoint.
+- `frontend/stores/handoff-store.ts`: dashboard handoff store facade.
+- `src/glassbox/services/contracts.py`: broad service protocol surface until
+  narrower handoff protocols are worthwhile.
+- `scripts/validate_v17_release_gate.py`: v17 release-gate operator
+  entrypoint.
 
 ### Post-V16 Accepted Compatibility Shims
 

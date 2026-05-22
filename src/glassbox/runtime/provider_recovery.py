@@ -1,5 +1,6 @@
 """Provider failure classification and recovery evidence helpers."""
 
+import re
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
@@ -126,7 +127,7 @@ def _failure_kind(
     *,
     retryable: bool,
 ) -> ProviderRecoveryKind:
-    if "rate limit" in message or "429" in message:
+    if "rate limit" in message or _contains_status_code(message, "429"):
         return ProviderRecoveryKind.RATE_LIMIT
     if "stream" in message or "connection reset" in message:
         return ProviderRecoveryKind.LOST_STREAM
@@ -152,9 +153,6 @@ def _is_retryable(message: str) -> bool:
         "timed out",
         "temporar",
         "rate limit",
-        "429",
-        "503",
-        "502",
         "connection reset",
         "lost stream",
         "stream interrupted",
@@ -162,7 +160,9 @@ def _is_retryable(message: str) -> bool:
     non_retryable_markers = ("api key", "credential", "unauthorized", "401")
     if any(marker in message for marker in non_retryable_markers):
         return False
-    return any(marker in message for marker in retryable_markers)
+    return any(marker in message for marker in retryable_markers) or (
+        _contains_status_code(message, "429", "502", "503")
+    )
 
 
 def _looks_like_provider_failure(message: str) -> bool:
@@ -182,13 +182,15 @@ def _looks_like_provider_failure(message: str) -> bool:
         "tool call",
         "tool_call",
         "unauthorized",
-        "401",
-        "429",
-        "500",
-        "502",
-        "503",
     )
-    return any(marker in message for marker in provider_markers)
+    return any(marker in message for marker in provider_markers) or (
+        _contains_status_code(message, "401", "429", "500", "502", "503")
+    )
+
+
+def _contains_status_code(message: str, *codes: str) -> bool:
+    pattern = r"(?<!\d)(" + "|".join(re.escape(code) for code in codes) + r")(?!\d)"
+    return re.search(pattern, message) is not None
 
 
 def _provider_from_model_name(model_name: str) -> str | None:
