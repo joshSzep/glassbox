@@ -519,7 +519,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R913: Split Custody Decisions, Action State, And Safe Actions
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `src/glassbox/runtime/handoff_decisions.py`
