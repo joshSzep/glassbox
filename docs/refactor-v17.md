@@ -430,7 +430,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R910: Split Handoff Package Inspection By Format Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `src/glassbox/runtime/handoff_package.py`
