@@ -839,7 +839,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R941: Split Parser Handoff Helpers By Command Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R940
 - Target files:
   - `src/glassbox/cli/parser_handoff.py`
@@ -858,6 +858,13 @@ Each phase below corresponds to one concrete refactor milestone.
     arguments
 - Deliverables:
   - parser helper split that mirrors CLI command families
+- Completed notes:
+  - `_add_handoff_parsers` and `add_handoff_profile_arguments` remain the
+    stable parser entrypoints while package-oriented prepare/import/inspect
+    parser construction lives in `parser_handoff_prepare.py`.
+  - Projected record, guidance, accept, reject, and archive parser
+    construction now lives in `parser_handoff_decisions.py`; command-tree
+    output and handoff parser defaults remain unchanged.
 - Validation:
   - `uv run pytest tests/integration/test_cli_entrypoint.py -k handoff`
   - `uv run pytest tests/unit/test_command_guide.py`
