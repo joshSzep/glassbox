@@ -8,7 +8,6 @@ from glassbox.core import HandoffIntent
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.daemon import inspect_runtime_owner
-from glassbox.runtime.handoff_decisions import custody_action_state
 from glassbox.runtime.handoff_guidance import load_handoff_guidance
 from glassbox.runtime.handoff_readiness import ChangesetHandoffReadinessService
 from glassbox.runtime.handoff_readiness import preview_handoff_readiness
@@ -27,6 +26,10 @@ from glassbox.web.handoff_api import HandoffGuidanceResponse
 from glassbox.web.handoff_api import HandoffListResponse
 from glassbox.web.handoff_api import HandoffReadinessUnifiedResponse
 from glassbox.web.handoff_api import HandoffRecordResponse
+from glassbox.web.handoff_api import build_handoff_guidance_response
+from glassbox.web.handoff_api import build_handoff_list_response
+from glassbox.web.handoff_api import build_handoff_readiness_response
+from glassbox.web.handoff_api import build_handoff_record_response
 from glassbox.web.routes.handoff_route_errors import handoff_bad_request
 from glassbox.web.routes.handoff_route_errors import handoff_not_found
 from glassbox.web.routes.handoff_route_errors import require_handoff_record
@@ -47,18 +50,13 @@ def list_handoff_records_response(
         include_archived=include_archived,
         limit=limit,
     )
-    return HandoffListResponse(
-        items=[handoff_record_response(record) for record in records]
-    )
+    return build_handoff_list_response(records)
 
 
 def handoff_record_response(record) -> HandoffRecordResponse:
     """Build the route response for one projected handoff record."""
 
-    return HandoffRecordResponse(
-        record=record,
-        action_state=custody_action_state(record),
-    )
+    return build_handoff_record_response(record)
 
 
 def get_handoff_record_response(
@@ -85,7 +83,7 @@ def get_handoff_guidance_response(
         guidance = load_handoff_guidance(repository, session_id, package_id)
     except ValueError as exc:
         raise handoff_not_found() from exc
-    return HandoffGuidanceResponse(guidance=guidance)
+    return build_handoff_guidance_response(guidance)
 
 
 def get_handoff_readiness_response(
@@ -151,7 +149,7 @@ def get_handoff_readiness_response(
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
 
-    return HandoffReadinessUnifiedResponse(readiness=readiness)
+    return build_handoff_readiness_response(readiness)
 
 
 __all__ = [

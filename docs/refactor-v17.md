@@ -737,7 +737,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R931: Split Handoff API Response Builders
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R930
 - Target files:
   - `src/glassbox/web/handoff_api.py`
@@ -754,6 +754,12 @@ Each phase below corresponds to one concrete refactor milestone.
     task explicitly changes the API contract
 - Deliverables:
   - handoff API models and builders separated from route orchestration
+- Completed notes:
+  - `web/handoff_api.py` now remains an import-compatible facade over
+    `handoff_api_models.py` and `handoff_api_builders.py`.
+  - Handoff route helpers now delegate record, decision, inspect, export,
+    import, guidance, and readiness response construction to API builders;
+    OpenAPI generation produced no generated-file diff.
 - Validation:
   - `uv run pytest tests/integration/test_web_handoff_routes.py`
   - `uv run pytest tests/integration/test_openapi_schema.py`

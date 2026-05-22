@@ -9,7 +9,6 @@ from glassbox.runtime.changeset_export import inspect_changeset_export_package
 from glassbox.runtime.changesets import ChangesetRepository
 from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.handoff_decisions import HandoffDecisionRepository
-from glassbox.runtime.handoff_decisions import HandoffDecisionResult
 from glassbox.runtime.handoff_decisions import accept_handoff_custody
 from glassbox.runtime.handoff_decisions import archive_handoff
 from glassbox.runtime.handoff_decisions import reject_handoff_custody
@@ -24,7 +23,6 @@ from glassbox.runtime.session_export_package import export_session_package
 from glassbox.runtime.session_import import import_session_package
 from glassbox.web.handoff_api import HandoffAcceptRequest
 from glassbox.web.handoff_api import HandoffArchiveRequest
-from glassbox.web.handoff_api import HandoffChangesetPackageSummary
 from glassbox.web.handoff_api import HandoffDecisionResponse
 from glassbox.web.handoff_api import HandoffExportRequest
 from glassbox.web.handoff_api import HandoffExportResponse
@@ -35,11 +33,17 @@ from glassbox.web.handoff_api import HandoffPackagePathRequest
 from glassbox.web.handoff_api import HandoffPreparePreviewRequest
 from glassbox.web.handoff_api import HandoffPreparePreviewResponse
 from glassbox.web.handoff_api import HandoffRejectRequest
+from glassbox.web.handoff_api import build_handoff_changeset_package_summary
+from glassbox.web.handoff_api import build_handoff_decision_response
+from glassbox.web.handoff_api import build_handoff_export_response
+from glassbox.web.handoff_api import build_handoff_import_response
+from glassbox.web.handoff_api import build_handoff_import_triage_response
+from glassbox.web.handoff_api import build_handoff_package_inspect_response
+from glassbox.web.handoff_api import build_handoff_prepare_preview_response
 from glassbox.web.routes.handoff_route_errors import handoff_bad_request
 from glassbox.web.routes.handoff_route_errors import require_handoff_record
 from glassbox.web.routes.handoff_route_paths import package_export_kind
 from glassbox.web.routes.handoff_route_paths import resolve_local_package_path
-from glassbox.web.routes.handoff_route_queries import handoff_record_response
 
 
 def prepare_handoff_preview_response(
@@ -81,7 +85,7 @@ def prepare_handoff_preview_response(
             raise handoff_bad_request("unsupported handoff source")
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
-    return HandoffPreparePreviewResponse(preview=preview)
+    return build_handoff_prepare_preview_response(preview)
 
 
 def export_handoff_response(
@@ -146,13 +150,11 @@ def export_handoff_response(
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
 
-    return HandoffExportResponse(
+    return build_handoff_export_response(
         source_kind=request.source_kind,
-        source_id=str(source_id),
-        output_path=str(resolved_output),
-        markdown_output_path=(
-            str(markdown_output_path) if markdown_output_path is not None else None
-        ),
+        source_id=source_id,
+        output_path=resolved_output,
+        markdown_output_path=markdown_output_path,
     )
 
 
@@ -168,18 +170,18 @@ def inspect_handoff_package_response(
     )
     package_kind = package_export_kind(package_path)
     if package_kind == CHANGESET_EXPORT_KIND:
-        summary = HandoffChangesetPackageSummary.model_validate(
+        summary = build_handoff_changeset_package_summary(
             inspect_changeset_export_package(package_path)
         )
-        return HandoffPackageInspectResponse(
-            package_path=str(package_path),
+        return build_handoff_package_inspect_response(
+            package_path=package_path,
             package_family="changeset-export",
             changeset_summary=summary,
         )
 
     triage = triage_handoff_import(package_path)
-    return HandoffPackageInspectResponse(
-        package_path=str(package_path),
+    return build_handoff_package_inspect_response(
+        package_path=package_path,
         package_family=(
             "session-export"
             if package_kind == SESSION_EXPORT_KIND
@@ -199,7 +201,7 @@ def triage_handoff_package_import_response(
         context.infrastructure.artifacts_root,
         request.package_path,
     )
-    return HandoffImportTriageResponse(triage=triage_handoff_import(package_path))
+    return build_handoff_import_triage_response(triage_handoff_import(package_path))
 
 
 def import_handoff_package_response(
@@ -220,7 +222,7 @@ def import_handoff_package_response(
         )
     except ValueError as exc:
         raise handoff_bad_request(str(exc)) from exc
-    return HandoffImportResponse(result=result)
+    return build_handoff_import_response(result)
 
 
 def accept_handoff_response(
@@ -242,7 +244,7 @@ def accept_handoff_response(
         follow_up_intent=request.follow_up_intent,
         safe_next_actions=safe_next_actions_for_decision(record),
     )
-    return _decision_response(result)
+    return build_handoff_decision_response(result)
 
 
 def reject_handoff_response(
@@ -263,7 +265,7 @@ def reject_handoff_response(
         reason=request.reason,
         safe_next_actions=safe_next_actions_for_decision(record),
     )
-    return _decision_response(result)
+    return build_handoff_decision_response(result)
 
 
 def archive_handoff_response(
@@ -283,15 +285,7 @@ def archive_handoff_response(
         archived_by=request.archived_by,
         reason=request.reason,
     )
-    return _decision_response(result)
-
-
-def _decision_response(result: HandoffDecisionResult) -> HandoffDecisionResponse:
-    return HandoffDecisionResponse(
-        event_type=result.event_type,
-        handoff=handoff_record_response(result.record),
-        non_claims=result.non_claims,
-    )
+    return build_handoff_decision_response(result)
 
 
 __all__ = [
