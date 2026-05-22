@@ -872,7 +872,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R942: Split TUI Handoff Entry Points And Guidance Rendering
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R940
 - Target files:
   - `src/glassbox/cli/tui/handoff_commands.py`
@@ -892,6 +892,13 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - TUI handoff entry points can grow without broad widget or command-module
     pressure
+- Completed notes:
+  - `tui/handoff_commands.py` remains the action-routing entrypoint while
+    dashboard URL/open handling lives in `tui/handoff_dashboard.py`.
+  - Local handoff command text, safe-command guidance, custody command
+    rendering, and non-claim copy now live in
+    `tui/handoff_message_builders.py`, preserving existing slash-command and
+    palette behavior.
 - Validation:
   - `uv run pytest tests/unit/test_cli_tui_commands.py -k handoff`
   - `uv run pytest tests/unit/test_cli_tui_workflows.py -k handoff`
