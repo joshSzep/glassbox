@@ -204,6 +204,10 @@ or publication.
   models, package schema, readiness, redaction preview, import triage, custody,
   CLI/API/TUI/dashboard cockpit surfaces, evals, packaging, dogfooding, and
   release-candidate guidance
+- [refactor-v17.md](./refactor-v17.md): post-v17 local-handoff refactor
+  roadmap for package inspection, redaction preview, import triage, custody,
+  readiness services, web routes, CLI/TUI surfaces, dashboard cockpit helpers,
+  repository protocols, release-gate reuse, guardrails, and validation
 - [v12-change-lifecycle-audit.md](./v12-change-lifecycle-audit.md):
   source-linked audit of current diff, branch-search, checkpoint,
   verification, handoff, artifact, command, dashboard, export, and redaction

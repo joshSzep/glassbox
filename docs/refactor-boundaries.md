@@ -1,6 +1,6 @@
 # Glassbox Refactor Boundaries
 
-For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md), the post-v15 repository-intelligence roadmap in [refactor-v15.md](./refactor-v15.md), and the post-v16 operator-flow roadmap in [refactor-v16.md](./refactor-v16.md).
+For the docs hub and operator guides, start at [README.md](./README.md). This note defines the target architectural boundaries for the v1 refactor roadmap in [refactor-v1.md](./refactor-v1.md), the post-v8 follow-on roadmap in [refactor-v8.md](./refactor-v8.md), the second-order v10 roadmap in [refactor-v10.md](./refactor-v10.md), the post-v11 confidence-surface roadmap in [refactor-v11.md](./refactor-v11.md), the post-v13 review-loop roadmap in [refactor-v13.md](./refactor-v13.md), the post-v14 review-loop maturity roadmap in [refactor-v14.md](./refactor-v14.md), the post-v15 repository-intelligence roadmap in [refactor-v15.md](./refactor-v15.md), the post-v16 operator-flow roadmap in [refactor-v16.md](./refactor-v16.md), and the post-v17 local-handoff roadmap in [refactor-v17.md](./refactor-v17.md).
 
 ## Purpose
 
@@ -10,7 +10,7 @@ It exists to answer one question before code moves begin:
 
 What are the intended module boundaries for the current Glassbox implementation, and what kinds of changes are explicitly out of scope for the first refactor pass?
 
-This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), [refactor-v14.md](./refactor-v14.md), [refactor-v15.md](./refactor-v15.md), and [refactor-v16.md](./refactor-v16.md). It does not define a new product architecture.
+This note is intentionally code-aligned. It describes the current implementation shape and the target decomposition boundaries for refactor work already captured in [refactor-v1.md](./refactor-v1.md), [refactor-v8.md](./refactor-v8.md), [refactor-v10.md](./refactor-v10.md), [refactor-v11.md](./refactor-v11.md), [refactor-v13.md](./refactor-v13.md), [refactor-v14.md](./refactor-v14.md), [refactor-v15.md](./refactor-v15.md), [refactor-v16.md](./refactor-v16.md), and [refactor-v17.md](./refactor-v17.md). It does not define a new product architecture.
 
 ## Implementation Status
 
@@ -77,6 +77,14 @@ operator queue, core operator-flow contracts, web builders, frontend queue and
 verification cockpit components, evidence graph panels, v16 release-gate
 helpers, and package guardrails now follow the focused boundaries described
 below while preserving the shipped v16 advisory contracts.
+
+The post-v17 local-handoff boundary map starts from the completed v17
+release-candidate milestone and the new roadmap in
+[refactor-v17.md](./refactor-v17.md). The next split should keep package
+inspection, redaction preview, import triage, custody decisions, handoff
+readiness, export profiles, web routes, CLI/TUI surfaces, dashboard cockpit
+helpers, repository protocols, and v17 release-gate reuse independently
+reviewable without changing the shipped v17 local-handoff contracts.
 
 ## Scope
 

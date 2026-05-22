@@ -163,6 +163,8 @@ dogfooding summary in
 release-candidate guide in
 [docs/v17-release-candidate.md](docs/v17-release-candidate.md), and the task
 graph in [docs/tasks-v17.md](docs/tasks-v17.md).
+The post-v17 behavior-preserving local-handoff refactor roadmap lives in
+[docs/refactor-v17.md](docs/refactor-v17.md).
 
 ## Documentation
 
@@ -209,6 +211,7 @@ Start here based on what you need:
 - [docs/v17-dogfooding-summary.md](docs/v17-dogfooding-summary.md)
 - [docs/v17-release-candidate.md](docs/v17-release-candidate.md)
 - [docs/tasks-v17.md](docs/tasks-v17.md)
+- [docs/refactor-v17.md](docs/refactor-v17.md)
 - [docs/review-feedback.md](docs/review-feedback.md)
 - [docs/review-responses.md](docs/review-responses.md)
 - [docs/manual-evidence.md](docs/manual-evidence.md)
@@ -238,6 +241,7 @@ Start here based on what you need:
 - [docs/refactor-boundaries.md](docs/refactor-boundaries.md)
 - [docs/refactor-v14.md](docs/refactor-v14.md)
 - [docs/refactor-v15.md](docs/refactor-v15.md)
+- [docs/refactor-v17.md](docs/refactor-v17.md)
 - [docs/refactor-v13.md](docs/refactor-v13.md)
 
 Release evidence and milestone history remain available when you need them:
