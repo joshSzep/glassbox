@@ -491,7 +491,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R912: Split Import Triage And Imported Inspection Event Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R910
 - Target files:
   - `src/glassbox/runtime/handoff_import_triage.py`
