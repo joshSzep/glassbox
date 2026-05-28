@@ -30,6 +30,10 @@ from glassbox.runtime.context import RuntimeContext
 from glassbox.runtime.context import RuntimeInfrastructure
 from glassbox.runtime.context import RuntimeRepositories
 from glassbox.runtime.context import RuntimeServices
+from glassbox.runtime.handoff_repository_contracts import HandoffGuidanceRepository
+from glassbox.runtime.handoff_repository_contracts import (
+    HandoffImportInspectionRepository,
+)
 from glassbox.runtime.provider_config import RuntimeProviderConfig
 from glassbox.services import ArtifactRepository
 from glassbox.services import ChangesetReadRepository
@@ -65,6 +69,9 @@ class FakeSessionRepository:
         return None
 
     def get_session_state(self, session_id):
+        return None
+
+    def get_handoff(self, session_id, package_id):
         return None
 
     def list_transcript_messages(self, session_id, *, limit=None, offset=0):
@@ -427,6 +434,8 @@ class FakeSessionService:
 def test_runtime_contract_fakes_satisfy_protocols() -> None:
     assert isinstance(FakeSessionRepository(), SessionRepository)
     assert isinstance(FakeSessionRepository(), ChangesetReadRepository)
+    assert isinstance(FakeSessionRepository(), HandoffGuidanceRepository)
+    assert isinstance(FakeSessionRepository(), HandoffImportInspectionRepository)
     assert isinstance(FakeArtifactRepository(), ArtifactRepository)
     assert isinstance(FakeSessionService(), SessionService)
 

@@ -1,26 +1,11 @@
-"""Runtime-local models and protocols for handoff custody decisions."""
-
-from typing import Protocol
+"""Runtime-local models for handoff custody decisions."""
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 
-from glassbox.core import EventEnvelope
 from glassbox.core import HandoffProjectionRecord
-from glassbox.core import SessionId
-
-
-class HandoffDecisionRepository(Protocol):
-    """Minimal repository surface needed to record custody decisions."""
-
-    def get_handoff(
-        self,
-        session_id: SessionId,
-        package_id: str,
-    ) -> HandoffProjectionRecord | None: ...
-
-    def append_event(self, event: EventEnvelope) -> EventEnvelope: ...
+from glassbox.runtime.handoff_repository_contracts import HandoffDecisionRepository
 
 
 class HandoffDecisionResult(BaseModel):

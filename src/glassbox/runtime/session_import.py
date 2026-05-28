@@ -12,11 +12,13 @@ from glassbox.runtime.handoff_import_triage import (
     build_imported_handoff_inspected_event,
 )
 from glassbox.runtime.handoff_package import inspect_handoff_package_path
+from glassbox.runtime.handoff_repository_contracts import (
+    HandoffImportInspectionRepository,
+)
 from glassbox.runtime.session_export import SessionExportPayload
 from glassbox.runtime.session_export import SessionExportTranscriptMessage
 from glassbox.runtime.session_import_events import build_inspection_import_events
 from glassbox.runtime.session_import_validation import load_session_export_package
-from glassbox.services import SessionRepository
 
 type SessionImportMode = Literal["inspect", "resumable"]
 
@@ -42,7 +44,7 @@ class SessionImportResult(BaseModel):
 def import_session_package(
     package_path: Path,
     *,
-    session_repository: SessionRepository,
+    session_repository: HandoffImportInspectionRepository,
     workspace_root: Path,
     mode: SessionImportMode = "inspect",
 ) -> SessionImportResult:

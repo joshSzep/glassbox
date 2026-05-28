@@ -4,6 +4,11 @@ from collections.abc import Mapping
 from importlib import import_module
 from types import ModuleType
 
+from glassbox.runtime.handoff_repository_contracts import HandoffDecisionRepository
+from glassbox.runtime.handoff_repository_contracts import HandoffGuidanceRepository
+from glassbox.runtime.handoff_repository_contracts import (
+    HandoffImportInspectionRepository,
+)
 from glassbox.services import ArtifactRepository
 from glassbox.services import SessionRepository
 from glassbox.store.repositories import FilesystemArtifactRepository
@@ -138,4 +143,7 @@ def test_sqlite_session_repository_inherits_domain_method_families() -> None:
 
 def test_repository_adapters_remain_protocol_compatible() -> None:
     assert issubclass(SQLiteSessionRepository, SessionRepository)
+    assert issubclass(SQLiteSessionRepository, HandoffDecisionRepository)
+    assert issubclass(SQLiteSessionRepository, HandoffGuidanceRepository)
+    assert issubclass(SQLiteSessionRepository, HandoffImportInspectionRepository)
     assert issubclass(FilesystemArtifactRepository, ArtifactRepository)

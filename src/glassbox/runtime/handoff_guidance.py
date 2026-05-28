@@ -14,6 +14,7 @@ from glassbox.runtime.handoff_guidance_paths import guidance_paths
 from glassbox.runtime.handoff_guidance_paths import guidance_state
 from glassbox.runtime.handoff_guidance_paths import guidance_summary
 from glassbox.runtime.handoff_guidance_paths import safe_commands
+from glassbox.runtime.handoff_repository_contracts import HandoffGuidanceRepository
 
 
 def derive_handoff_guidance(
@@ -46,7 +47,11 @@ def derive_handoff_guidance(
     )
 
 
-def load_handoff_guidance(repository, session_id: SessionId, package_id: str):
+def load_handoff_guidance(
+    repository: HandoffGuidanceRepository,
+    session_id: SessionId,
+    package_id: str,
+) -> HandoffGuidance:
     """Load a projected handoff and derive guidance from local projections."""
 
     record = repository.get_handoff(session_id, package_id)

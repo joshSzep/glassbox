@@ -3088,6 +3088,7 @@ V17_PYTHON_FACADE_RULES: tuple[
         (
             "glassbox.core",
             "glassbox.runtime.handoff_guidance_",
+            "glassbox.runtime.handoff_repository_contracts",
         ),
         90,
         "post-v17 handoff guidance facade should delegate guidance helpers",

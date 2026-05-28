@@ -1058,7 +1058,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R960: Define Narrow Handoff Repository Protocols
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R913
 - Target files:
   - `src/glassbox/services/contracts.py`
@@ -1078,6 +1078,14 @@ Each phase below corresponds to one concrete refactor milestone.
     while reducing new call sites that require it
 - Deliverables:
   - handoff runtime helpers can be tested against small protocols
+- Completed notes:
+  - Added `runtime/handoff_repository_contracts.py` with narrow projected
+    record read, single-event append, batch append, custody decision,
+    guidance, and inspection-import protocols.
+  - Handoff decisions keep their compatibility export while guidance and
+    inspection-focused session import now type against handoff-specific
+    repository surfaces instead of requiring the full session repository
+    protocol.
 - Validation:
   - `uv run pytest tests/unit/test_service_contracts.py`
   - `uv run pytest tests/unit/test_repository_adapter_boundaries.py`
