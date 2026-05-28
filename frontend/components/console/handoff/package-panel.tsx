@@ -8,14 +8,10 @@ import type {
   HandoffDraftState,
 } from "@/stores/dashboard-stores";
 
-import {
-  CockpitPanel,
-  CommandList,
-  Field,
-  NonClaims,
-  StateLine,
-  compatibilityVariant,
-} from "./shared";
+import { CommandList } from "./command-list";
+import { compatibilityVariant } from "./format";
+import { NonClaims } from "./non-claims";
+import { CockpitPanel, Field, StateLine } from "./shared";
 
 export function PackageInspectionPanel({
   action,

@@ -2,7 +2,9 @@ import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import type { HandoffDetailState } from "@/stores/dashboard-stores";
 
-import { CockpitPanel, CommandList, redactionVariant } from "./shared";
+import { CommandList } from "./command-list";
+import { redactionVariant } from "./format";
+import { CockpitPanel } from "./shared";
 
 export function PreviewPanel({ preview }: { preview: HandoffDetailState["preview"] }) {
   if (preview === null) {

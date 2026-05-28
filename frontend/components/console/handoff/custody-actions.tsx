@@ -8,17 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { HandoffDetailState, HandoffDraftState } from "@/stores/dashboard-stores";
 
+import { handoffIntentOptions } from "./options";
 import { CockpitPanel, Field, Select, StateLine } from "./shared";
-
-const intents: HandoffIntent[] = [
-  "review-only",
-  "continue-work",
-  "verification-needed",
-  "failure-triage",
-  "release-signoff",
-  "future-self",
-  "fork-recommended",
-];
 
 export function CustodyActionsPanel({
   drafts,
@@ -62,7 +53,7 @@ export function CustodyActionsPanel({
           <Field label="Follow-up intent">
             <Select
               onChange={(value) => onSetDraft?.("followUpIntent", value as HandoffIntent)}
-              options={intents}
+              options={handoffIntentOptions}
               value={drafts.followUpIntent}
             />
           </Field>

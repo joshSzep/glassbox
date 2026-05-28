@@ -2,7 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import type { HandoffDetailState } from "@/stores/dashboard-stores";
 
-import { CockpitPanel, CommandList, NonClaims, readinessVariant } from "./shared";
+import { CommandList } from "./command-list";
+import { readinessVariant } from "./format";
+import { NonClaims } from "./non-claims";
+import { CockpitPanel } from "./shared";
 
 export function ReadinessPanel({ readiness }: { readiness: HandoffDetailState["readiness"] }) {
   if (readiness === null) {

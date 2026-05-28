@@ -951,7 +951,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R951: Extract Handoff Cockpit Formatting And Option Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R950
 - Target files:
   - `frontend/components/console/handoff-cockpit.tsx`
@@ -968,6 +968,14 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve labels, variants, truncation limits, and screen text
 - Deliverables:
   - handoff cockpit presentation helpers independently testable and reusable
+- Completed notes:
+  - Handoff intent and source-kind options now live in
+    `frontend/components/console/handoff/options.ts` and are reused by the
+    prepare and custody panels.
+  - Badge variant derivation moved to
+    `frontend/components/console/handoff/format.ts`, while safe-command and
+    non-claim rendering moved to small shared TSX components with the same
+    truncation limits and visible copy.
 - Validation:
   - `pnpm --dir frontend test -- handoff-cockpit.test.tsx`
   - `pnpm --dir frontend typecheck`

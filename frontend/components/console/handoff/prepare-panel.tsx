@@ -7,25 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { HandoffDraftState } from "@/stores/dashboard-stores";
 
+import { handoffIntentOptions, handoffSourceKindOptions } from "./options";
 import { CockpitPanel, Field, Select } from "./shared";
-
-const intents: HandoffIntent[] = [
-  "review-only",
-  "continue-work",
-  "verification-needed",
-  "failure-triage",
-  "release-signoff",
-  "future-self",
-  "fork-recommended",
-];
-
-const sourceKinds: HandoffDraftState["sourceKind"][] = [
-  "session",
-  "task",
-  "changeset",
-  "workspace",
-  "release",
-];
 
 export function PreparePanel({
   drafts,
@@ -48,7 +31,7 @@ export function PreparePanel({
             onChange={(value) =>
               onSetDraft?.("sourceKind", value as HandoffDraftState["sourceKind"])
             }
-            options={sourceKinds}
+            options={handoffSourceKindOptions}
             value={drafts.sourceKind}
           />
         </Field>
@@ -63,7 +46,7 @@ export function PreparePanel({
         <Field label="Recipient intent">
           <Select
             onChange={(value) => onSetDraft?.("intent", value as HandoffIntent)}
-            options={intents}
+            options={handoffIntentOptions}
             value={drafts.intent}
           />
         </Field>

@@ -6,7 +6,8 @@ import { DataList } from "@/components/ui/data-list";
 import { operatorIconSizeClass } from "@/design-system/operator-status";
 import type { HandoffDetailState, HandoffPageState } from "@/stores/dashboard-stores";
 
-import { CockpitPanel, StateLine, custodyVariant } from "./shared";
+import { custodyVariant } from "./format";
+import { CockpitPanel, StateLine } from "./shared";
 
 export function HandoffRecordsPanel({
   list,
