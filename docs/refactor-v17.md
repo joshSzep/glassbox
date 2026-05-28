@@ -910,7 +910,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R950: Split Dashboard Handoff Cockpit Panels
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `frontend/components/console/handoff-cockpit.tsx`
@@ -935,6 +935,15 @@ Each phase below corresponds to one concrete refactor milestone.
     current copy, and route behavior
 - Deliverables:
   - dashboard handoff cockpit split into panel components by workflow family
+- Completed notes:
+  - `HandoffCockpit` remains the dashboard entrypoint while records, custody
+    actions, prepare/export controls, package inspection/follow-up,
+    readiness, and redaction preview rendering now live in focused
+    `frontend/components/console/handoff/` panel modules.
+  - The split preserves existing store callbacks, disabled import behavior,
+    screen text, and non-claim rendering; shared presentation helpers remain
+    local to the handoff component family for the follow-up formatting-helper
+    task.
 - Validation:
   - `pnpm --dir frontend test -- handoff-cockpit.test.tsx`
   - `pnpm --dir frontend typecheck`
