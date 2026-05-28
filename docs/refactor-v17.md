@@ -1250,7 +1250,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R973: Keep V17 Eval Fixtures Stable Through Refactor Movement
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `evals/cases/local-handoff.*.json`
@@ -1267,6 +1267,11 @@ Each phase below corresponds to one concrete refactor milestone.
     release evidence separate from deterministic eval authority
 - Deliverables:
   - v17 eval fixtures remain stable across helper extraction
+- Completed notes:
+  - Confirmed release-candidate eval audit and eval run remain exact-match
+    stable for all 41 selected cases, including the four local-handoff cases.
+  - Added a focused CLI eval integration test so the documented `-k handoff`
+    selector exercises the release-candidate local-handoff profile path.
 - Validation:
   - `uv run glassbox eval audit --profile release-candidate --cwd .`
   - `uv run glassbox eval run --profile release-candidate --cwd .`

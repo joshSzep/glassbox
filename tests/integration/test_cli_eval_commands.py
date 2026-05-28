@@ -248,6 +248,78 @@ def test_cli_eval_run_supports_profile_selection_and_tag_narrowing(
     assert payload["cases"][0]["case_id"] == "context.branch"
 
 
+def test_cli_eval_run_release_candidate_profile_selects_local_handoff_cases(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    bundle_path, _session_id = _export_eval_bundle(
+        tmp_path,
+        "local-handoff.prepare-preview",
+    )
+    _write_eval_case(
+        tmp_path,
+        case_id="local-handoff.prepare-preview",
+        title="Local handoff prepare preview",
+        bundle_name=bundle_path.name,
+        tags=["local-handoff", "v17-local-handoff"],
+        release_contract={
+            "owner": "runtime.local-handoff",
+            "capabilities": ["local_handoff_session_readiness"],
+            "verification_stages": ["release-candidate"],
+        },
+    )
+    _write_eval_profiles(
+        tmp_path,
+        profiles=[
+            {
+                "profile_id": "release-candidate",
+                "title": "Release candidate",
+                "verification_stage": "release-candidate",
+                "blocking": True,
+            }
+        ],
+    )
+    _write_eval_coverage(
+        tmp_path,
+        profiles=[
+            {
+                "capability_id": "local_handoff_session_readiness",
+                "title": "Local handoff session readiness",
+                "criticality": "release-critical",
+                "verification_stages": ["release-candidate"],
+                "expected_case_ids": ["local-handoff.prepare-preview"],
+            }
+        ],
+    )
+    output_dir = tmp_path / "handoff-eval-output"
+    _ = capsys.readouterr()
+
+    exit_code = main(
+        [
+            "eval",
+            "run",
+            "--profile",
+            "release-candidate",
+            "--tag",
+            "local-handoff",
+            "--json",
+            "--cwd",
+            str(tmp_path),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["profile_id"] == "release-candidate"
+    assert payload["profile_verification_stage"] == "release-candidate"
+    assert payload["coverage_audit"]["covered_capability_count"] == 1
+    assert payload["selected_case_count"] == 1
+    assert payload["cases"][0]["case_id"] == "local-handoff.prepare-preview"
+
+
 def test_cli_eval_run_uses_workspace_profile_verification_default(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
