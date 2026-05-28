@@ -1189,7 +1189,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R971: Split V17 Release-Gate Stages By Handoff Evidence Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R970
 - Target files:
   - `scripts/v17_release_gate_stages.py`
@@ -1206,6 +1206,12 @@ Each phase below corresponds to one concrete refactor milestone.
     artifacts
 - Deliverables:
   - v17 gate stage assembly can be reviewed by evidence family
+- Completed notes:
+  - Added `v17_release_gate_stage_groups.py` to group inherited v16 stages,
+    handoff evals, focused handoff smokes, CLI/API coverage, frontend smoke,
+    package validation, release docs/eval audit, and the installed-smoke label.
+  - Kept `build_gate_stages` as the public v17 stage assembly entrypoint and
+    documented the grouped evidence-family layout in the release-gate guide.
 - Validation:
   - `uv run pytest tests/unit/test_v17_release_gate.py`
   - `uv run python scripts/validate_v17_release_gate.py --dry-run`

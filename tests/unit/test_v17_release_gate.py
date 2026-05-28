@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scripts import v14_release_gate_helpers
+from scripts import v17_release_gate_stage_groups
 from scripts import validate_v17_release_gate as v17_gate
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -141,4 +143,40 @@ def test_v17_gate_stage_plan_adds_local_handoff_checks(
         "handoff-cockpit.test.tsx" in stage.command
         and "generated-api-types.test.ts" in stage.command
         for stage in stages
+    )
+
+
+def test_v17_gate_stage_groups_describe_evidence_families(tmp_path: Path) -> None:
+    evidence_dir = tmp_path / "evidence"
+    eval_output_dir = v14_release_gate_helpers.eval_evidence_dir(evidence_dir)
+
+    inherited = v17_release_gate_stage_groups.inherited_v16_stages(evidence_dir)
+    handoff_eval = v17_release_gate_stage_groups.handoff_eval_stages(eval_output_dir)
+    handoff_smoke = v17_release_gate_stage_groups.handoff_smoke_stages()
+    cli_api = v17_release_gate_stage_groups.cli_api_stages()
+    frontend = v17_release_gate_stage_groups.frontend_stages()
+    package = v17_release_gate_stage_groups.package_stages()
+    docs = v17_release_gate_stage_groups.docs_stages()
+
+    assert inherited[0].label == "python format"
+    assert [stage.label for stage in handoff_eval] == [
+        "v17 deterministic eval release report",
+        "v17 local handoff release profile",
+        "v17 local handoff eval smoke",
+    ]
+    assert [stage.label for stage in handoff_smoke] == [
+        "v17 handoff package smoke",
+        "v17 redaction preview smoke",
+        "v17 import triage smoke",
+        "v17 custody smoke",
+    ]
+    assert [stage.label for stage in cli_api] == ["v17 local handoff CLI API coverage"]
+    assert [stage.label for stage in frontend] == ["v17 local handoff frontend smoke"]
+    assert [stage.label for stage in package] == ["v17 package contents validation"]
+    assert [stage.label for stage in docs] == [
+        "v17 release docs",
+        "v17 eval coverage audit",
+    ]
+    assert v17_release_gate_stage_groups.installed_smoke_stage_labels() == (
+        "installed wheel smoke",
     )
