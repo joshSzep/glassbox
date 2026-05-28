@@ -1,6 +1,5 @@
 import { Archive, CheckCircle2, FileSearch, XCircle } from "lucide-react";
 
-import type { HandoffIntent } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { DataList, DataListItem, DataListLabel, DataListMeta } from "@/components/ui/data-list";
 import { Input } from "@/components/ui/input";
@@ -52,7 +51,9 @@ export function CustodyActionsPanel({
           </Field>
           <Field label="Follow-up intent">
             <Select
-              onChange={(value) => onSetDraft?.("followUpIntent", value as HandoffIntent)}
+              onChange={(value) =>
+                onSetDraft?.("followUpIntent", value as HandoffDraftState["followUpIntent"])
+              }
               options={handoffIntentOptions}
               value={drafts.followUpIntent}
             />

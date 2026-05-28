@@ -1,7 +1,6 @@
-import type { HandoffIntent } from "@/api/client";
 import type { HandoffDraftState } from "@/stores/dashboard-stores";
 
-export const handoffIntentOptions: HandoffIntent[] = [
+export const handoffIntentOptions: HandoffDraftState["intent"][] = [
   "review-only",
   "continue-work",
   "verification-needed",

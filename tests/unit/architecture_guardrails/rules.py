@@ -3034,6 +3034,20 @@ V17_FRONTEND_PRESSURE_POINT_RULES: tuple[tuple[Path, int, str], ...] = (
     ),
 )
 
+V17_HANDOFF_STORE_FORBIDDEN_IMPORTS: tuple[str, ...] = (
+    "@/app",
+    "@/components",
+    "@/pages",
+    "next/",
+    "react",
+    "src/glassbox",
+)
+
+V17_HANDOFF_COMPONENT_FORBIDDEN_IMPORTS: tuple[str, ...] = (
+    "@/api",
+    "src/glassbox",
+)
+
 V16_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

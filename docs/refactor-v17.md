@@ -1020,7 +1020,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R953: Add Frontend Handoff Boundary Guardrails
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R950, GBX-R952
 - Target files:
   - `tests/unit/architecture_guardrails/rules.py`
@@ -1036,6 +1036,11 @@ Each phase below corresponds to one concrete refactor milestone.
     helper family
 - Deliverables:
   - frontend architecture tests protect the handoff cockpit split
+- Completed notes:
+  - Frontend guardrails now check the handoff store helper family for
+    component, React, Next, and backend imports.
+  - Handoff cockpit components are guarded against direct API-client or
+    backend imports so transport remains in store helpers and callback props.
 - Validation:
   - `uv run pytest tests/unit/architecture_guardrails/test_frontend_boundaries.py`
   - `pnpm --dir frontend lint`

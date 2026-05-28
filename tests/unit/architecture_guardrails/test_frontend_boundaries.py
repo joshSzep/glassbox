@@ -8,6 +8,7 @@ from tests.unit.architecture_guardrails.helpers import _line_count_violations
 from tests.unit.architecture_guardrails.helpers import _matches_any_prefix
 from tests.unit.architecture_guardrails.rules import FRONTEND_FACADE_RULES
 from tests.unit.architecture_guardrails.rules import FRONTEND_IMPORT_RULES
+from tests.unit.architecture_guardrails.rules import FRONTEND_ROOT
 from tests.unit.architecture_guardrails.rules import V10_FRONTEND_IMPORT_RULES
 from tests.unit.architecture_guardrails.rules import V10_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V11_FRONTEND_IMPORT_RULES
@@ -20,6 +21,10 @@ from tests.unit.architecture_guardrails.rules import V14_FRONTEND_IMPORT_RULES
 from tests.unit.architecture_guardrails.rules import V14_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V16_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V17_FRONTEND_PRESSURE_POINT_RULES
+from tests.unit.architecture_guardrails.rules import (
+    V17_HANDOFF_COMPONENT_FORBIDDEN_IMPORTS,
+)
+from tests.unit.architecture_guardrails.rules import V17_HANDOFF_STORE_FORBIDDEN_IMPORTS
 
 
 def test_frontend_store_boundaries_stay_framework_light() -> None:
@@ -115,6 +120,47 @@ def test_v16_frontend_pressure_points_do_not_grow_before_split() -> None:
 
 def test_v17_frontend_pressure_points_do_not_grow_before_split() -> None:
     violations = _line_count_violations(V17_FRONTEND_PRESSURE_POINT_RULES)
+
+    assert violations == []
+
+
+def test_v17_handoff_store_helpers_stay_out_of_component_layers() -> None:
+    violations: list[str] = []
+
+    for file_path in sorted((FRONTEND_ROOT / "stores").glob("handoff-store*.ts")):
+        violations.extend(
+            _frontend_import_violations(
+                file_path,
+                V17_HANDOFF_STORE_FORBIDDEN_IMPORTS,
+                (
+                    "post-v17 handoff store helpers should own transport and "
+                    "action state without importing React components, Next "
+                    "server modules, or backend source"
+                ),
+            )
+        )
+
+    assert violations == []
+
+
+def test_v17_handoff_components_do_not_call_api_directly() -> None:
+    violations: list[str] = []
+
+    for path in (
+        FRONTEND_ROOT / "components" / "console" / "handoff-cockpit.tsx",
+        FRONTEND_ROOT / "components" / "console" / "handoff",
+    ):
+        violations.extend(
+            _frontend_import_violations(
+                path,
+                V17_HANDOFF_COMPONENT_FORBIDDEN_IMPORTS,
+                (
+                    "post-v17 handoff cockpit components should receive store "
+                    "callbacks and typed props instead of importing API clients "
+                    "or backend source"
+                ),
+            )
+        )
 
     assert violations == []
 

@@ -1,6 +1,5 @@
 import { FileSearch, PackageCheck, ShieldAlert } from "lucide-react";
 
-import type { HandoffIntent } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,7 +44,7 @@ export function PreparePanel({
         </Field>
         <Field label="Recipient intent">
           <Select
-            onChange={(value) => onSetDraft?.("intent", value as HandoffIntent)}
+            onChange={(value) => onSetDraft?.("intent", value as HandoffDraftState["intent"])}
             options={handoffIntentOptions}
             value={drafts.intent}
           />
