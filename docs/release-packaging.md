@@ -17,15 +17,18 @@ pnpm --dir frontend build
 The frontend build exports the Next.js app and copies `frontend/out/` into `src/glassbox/web/static_next/`. The `pyproject.toml` wheel and sdist targets include `src/glassbox/web/static_next/**` as release artifacts.
 
 The source distribution also carries repository-owned eval fixtures, v15
-repository-intelligence docs, v16 operator-flow docs, and generated frontend API
-contracts: `evals/**`, `docs/v15-repository-intelligence-*.md`,
-`docs/tasks-v15.md`, `docs/v16-operator-flow-*.md`, `docs/tasks-v16.md`,
+repository-intelligence docs, v16 operator-flow docs, v17 local-handoff docs,
+generated frontend API contracts, and the source handoff cockpit split:
+`evals/**`, `docs/v15-repository-intelligence-*.md`, `docs/tasks-v15.md`,
+`docs/v16-operator-flow-*.md`, `docs/tasks-v16.md`, `docs/local-handoff.md`,
+`docs/v17-local-handoff-*.md`, `docs/tasks-v17.md`,
 `docs/evidence-graph.md`, `docs/operator-queue.md`,
-`docs/verification-orchestrator.md`, `frontend/generated/openapi.json`, and
-`frontend/generated/api-types.ts`. It also packages the v16 release-gate
-entrypoint and helper modules under `scripts/v16_release_gate_*.py` so
-source-distribution release checks retain the same stage and advisory evidence
-ownership as the checkout.
+`docs/verification-orchestrator.md`, `frontend/generated/openapi.json`,
+`frontend/generated/api-types.ts`, `frontend/components/console/handoff/**`, and
+`frontend/stores/handoff-store*`. It also packages the shared release-gate
+runner plus v16/v17 release-gate entrypoints and helper modules under
+`scripts/*release_gate*.py` so source-distribution release checks retain the
+same stage and advisory evidence ownership as the checkout.
 Refresh the generated API files before building whenever FastAPI routes or
 response schemas change.
 
@@ -105,8 +108,9 @@ Before publishing, validate the wheel and sdist contents and confirm
 modules, repository-intelligence runtime/API modules, v16 queue/evidence graph
 and verification-plan modules, source-distribution docs, eval fixtures,
 generated API contracts, `textual>=6,<7`, and the `glassbox` console script are
-present. The FastAPI app validates the static export at startup time for
-dashboard requests: if `index.html` is missing or references a missing
+present, including v17 handoff runtime helpers and web route helpers. The
+FastAPI app validates the static export at startup time for dashboard requests:
+if `index.html` is missing or references a missing
 `/app/_next/...` file, `/` returns a developer-facing 503 that points back to
 `pnpm --dir frontend build`.
 
@@ -211,7 +215,7 @@ Known terminal limitations for this release candidate:
 - `pnpm --dir frontend api:generate` left no diff in `frontend/generated/openapi.json` or `frontend/generated/api-types.ts`.
 - `src/glassbox/web/static_next/index.html` references only assets that exist under `src/glassbox/web/static_next/`.
 - `uv run pre-commit run --all-files` passed.
-- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, source docs, v8 and v9 eval fixtures, generated frontend API contracts, TUI dependency metadata, and the `glassbox` console script.
+- `uv build --wheel --sdist` produced distributions containing `glassbox/web/static_next/`, runtime package modules, v17 handoff runtime/web helpers, source docs, eval fixtures, generated frontend API contracts, handoff cockpit source files in the sdist, TUI dependency metadata, and the `glassbox` console script.
 - `uv run python scripts/validate_package_contents.py` passed against the built wheel and sdist.
 - Package metadata includes `textual>=6,<7` and the `glassbox` console script.
 - Installed-package terminal and onboarding smoke passed for root help, `command tree`, `command guide --json`, `readiness check --json`, `session chat --help`, `session attach --help`, explicit plain fallback, provider diagnostics, and profile-example diagnostics.

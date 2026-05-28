@@ -1219,7 +1219,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R972: Refresh Package Contents And Installed-Smoke Guardrails For V17
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R970
 - Target files:
   - `scripts/validate_package_contents.py`
@@ -1236,6 +1236,13 @@ Each phase below corresponds to one concrete refactor milestone.
   - update docs only if package evidence ownership changes materially
 - Deliverables:
   - package and installed-smoke checks aligned with the post-v17 helper split
+- Completed notes:
+  - Extended package-content validation for shared release-gate runner helpers,
+    the v17 stage-group helper, local-handoff runtime/CLI/web helpers,
+    generated API contracts, handoff cockpit source files, and static dashboard
+    assets.
+  - Updated sdist build includes and release-packaging docs so v17 handoff
+    source artifacts and release-gate helper ownership are explicit.
 - Validation:
   - `uv run pytest tests/unit/test_packaging_metadata.py`
   - `uv run python scripts/validate_package_contents.py`

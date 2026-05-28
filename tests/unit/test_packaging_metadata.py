@@ -6,6 +6,7 @@ import tomllib
 import zipfile
 from pathlib import Path
 
+from scripts.validate_package_contents import WHEEL_REQUIRED_FILES
 from scripts.validate_package_contents import validate_distribution_contents
 from scripts.validate_package_contents import validate_sdist_contents
 from scripts.validate_package_contents import validate_wheel_contents
@@ -58,7 +59,9 @@ def test_build_targets_package_dashboard_static_assets() -> None:
     assert "src/glassbox/web/static_next/**" in hatch_config["sdist"]["artifacts"]
     assert "src/glassbox" in hatch_config["wheel"]["packages"]
     assert "/evals" in hatch_config["sdist"]["include"]
+    assert "/frontend/components/console/handoff" in hatch_config["sdist"]["include"]
     assert "/frontend/generated" in hatch_config["sdist"]["include"]
+    assert "/frontend/stores/handoff-store*" in hatch_config["sdist"]["include"]
     assert "/scripts" in hatch_config["sdist"]["include"]
 
 
@@ -98,6 +101,11 @@ def test_wheel_content_validator_reports_missing_metadata_and_assets(
         "glassbox/runtime/verification_plan_builder.py" in problems
     )
     assert "wheel missing required file: glassbox/runtime/task_queries.py" in problems
+    assert (
+        "wheel missing required file: glassbox/runtime/handoff_package.py" in problems
+    )
+    assert "wheel missing required file: glassbox/cli/handoff_commands.py" in problems
+    assert "wheel missing required file: glassbox/web/routes/handoffs.py" in problems
     assert (
         "wheel missing required file: glassbox/runtime/repository_index_builder.py"
         in problems
@@ -318,6 +326,19 @@ def test_sdist_content_validator_reports_missing_docs_and_static_assets(
     )
     assert "sdist missing required file: frontend/generated/openapi.json" in problems
     assert (
+        "sdist missing required file: "
+        "frontend/components/console/handoff/prepare-panel.tsx" in problems
+    )
+    assert (
+        "sdist missing required file: frontend/stores/handoff-store-loaders.ts"
+        in problems
+    )
+    assert "sdist missing required file: scripts/release_gate_runner.py" in problems
+    assert (
+        "sdist missing required file: scripts/v17_release_gate_stage_groups.py"
+        in problems
+    )
+    assert (
         "sdist missing required file: scripts/validate_v8_release_gate.py" in problems
     )
     assert (
@@ -469,6 +490,9 @@ def _write_wheel(path: Path) -> None:
         wheel.writestr("glassbox/web/routes/repository_intelligence.py", "")
         wheel.writestr("glassbox/web/static_next/index.html", "<html></html>")
         wheel.writestr("glassbox/web/static_next/_next/static/chunks/app.js", "")
+        for wheel_file in WHEEL_REQUIRED_FILES:
+            if wheel_file not in wheel.namelist():
+                wheel.writestr(wheel_file, "")
         wheel.writestr(
             "glassbox-0.10.0.dist-info/METADATA",
             "Name: glassbox\nRequires-Dist: textual<7,>=6\n",
@@ -751,8 +775,31 @@ def _write_sdist(
                 "glassbox-0.10.0/frontend/generated/api-types.ts",
                 "export type Api = unknown;\n",
             )
+            for frontend_path in (
+                "frontend/components/console/handoff-cockpit.tsx",
+                "frontend/components/console/handoff/command-list.tsx",
+                "frontend/components/console/handoff/custody-actions.tsx",
+                "frontend/components/console/handoff/format.ts",
+                "frontend/components/console/handoff/non-claims.tsx",
+                "frontend/components/console/handoff/options.ts",
+                "frontend/components/console/handoff/package-panel.tsx",
+                "frontend/components/console/handoff/prepare-panel.tsx",
+                "frontend/components/console/handoff/preview-panel.tsx",
+                "frontend/components/console/handoff/readiness-panel.tsx",
+                "frontend/components/console/handoff/records-panel.tsx",
+                "frontend/components/console/handoff/shared.tsx",
+                "frontend/stores/handoff-store.ts",
+                "frontend/stores/handoff-store-decision-actions.ts",
+                "frontend/stores/handoff-store-drafts.ts",
+                "frontend/stores/handoff-store-loaders.ts",
+                "frontend/stores/handoff-store-package-actions.ts",
+                "frontend/stores/handoff-store-selectors.ts",
+            ):
+                _add_tar_text(sdist, f"glassbox-0.10.0/{frontend_path}", "\n")
             for script_path in (
                 "scripts/background_autonomy_smoke.py",
+                "scripts/release_gate_models.py",
+                "scripts/release_gate_runner.py",
                 "scripts/validate_frontend_release_assets.py",
                 "scripts/validate_installed_wheel_smoke.py",
                 "scripts/validate_package_contents.py",
@@ -772,6 +819,7 @@ def _write_sdist(
                 "scripts/v16_release_gate_summary.py",
                 "scripts/validate_v17_release_gate.py",
                 "scripts/v17_release_gate_helpers.py",
+                "scripts/v17_release_gate_stage_groups.py",
                 "scripts/v17_release_gate_stages.py",
                 "scripts/v17_release_gate_advisory.py",
                 "scripts/v17_release_gate_summary.py",
