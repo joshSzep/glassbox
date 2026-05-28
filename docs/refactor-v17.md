@@ -982,7 +982,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R952: Split Handoff Store Actions By Workflow Family
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R950
 - Target files:
   - `frontend/stores/handoff-store.ts`
@@ -1006,6 +1006,13 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - handoff store split into transport/action families without moving API calls
     into components
+- Completed notes:
+  - `createHandoffStore` remains the public factory and now composes focused
+    loader, package-action, decision-action, draft, and selector helpers.
+  - API calls stay in store helper modules; components still receive callback
+    props only, with request tracking, stale list requests, post-import reload,
+    draft defaults, source/package validation, and selected-record updates
+    preserved.
 - Validation:
   - `pnpm --dir frontend test -- dashboard-stores.test.ts handoff-cockpit.test.tsx`
   - `pnpm --dir frontend typecheck`
