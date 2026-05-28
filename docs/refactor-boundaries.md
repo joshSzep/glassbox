@@ -86,6 +86,14 @@ readiness, export profiles, web routes, CLI/TUI surfaces, dashboard cockpit
 helpers, repository protocols, and v17 release-gate reuse independently
 reviewable without changing the shipped v17 local-handoff contracts.
 
+The first post-v17 extractions now have guardrails: handoff package, import
+triage, custody, guidance, web route/API, CLI/parser, frontend cockpit/store,
+and v17 release-gate facades must stay bounded and delegate to their
+helper-family owners. Frontend handoff components receive store callbacks and
+typed props rather than importing API clients directly, while handoff store
+helpers own transport/action state without importing React components, Next
+modules, or backend source.
+
 ## Scope
 
 This refactor pass is about implementation structure, not product behavior.

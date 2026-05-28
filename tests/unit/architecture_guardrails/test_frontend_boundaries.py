@@ -20,6 +20,8 @@ from tests.unit.architecture_guardrails.rules import V14_FRONTEND_FACADE_RULES
 from tests.unit.architecture_guardrails.rules import V14_FRONTEND_IMPORT_RULES
 from tests.unit.architecture_guardrails.rules import V14_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import V16_FRONTEND_PRESSURE_POINT_RULES
+from tests.unit.architecture_guardrails.rules import V17_FRONTEND_FACADE_DELEGATES
+from tests.unit.architecture_guardrails.rules import V17_FRONTEND_FACADE_RULES
 from tests.unit.architecture_guardrails.rules import V17_FRONTEND_PRESSURE_POINT_RULES
 from tests.unit.architecture_guardrails.rules import (
     V17_HANDOFF_COMPONENT_FORBIDDEN_IMPORTS,
@@ -161,6 +163,30 @@ def test_v17_handoff_components_do_not_call_api_directly() -> None:
                 ),
             )
         )
+
+    assert violations == []
+
+
+def test_v17_frontend_facades_stay_thin_and_delegate_to_helpers() -> None:
+    violations = _line_count_violations(V17_FRONTEND_FACADE_RULES)
+
+    for file_path, required_prefixes, message in V17_FRONTEND_FACADE_DELEGATES:
+        modules = _frontend_import_modules(file_path)
+        missing = [
+            required_prefix
+            for required_prefix in required_prefixes
+            if not any(
+                _matches_any_prefix(module, (required_prefix,)) for module in modules
+            )
+        ]
+        if missing:
+            violations.append(
+                _format_violation(
+                    file_path,
+                    message,
+                    f"missing delegate imports {missing}",
+                )
+            )
 
     assert violations == []
 

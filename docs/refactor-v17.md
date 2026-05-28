@@ -404,7 +404,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R902: Add Post-V17 Guardrails After First Extraction
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R910, GBX-R930, GBX-R950
 - Target files:
   - `tests/unit/architecture_guardrails/rules.py`
@@ -421,6 +421,13 @@ Each phase below corresponds to one concrete refactor milestone.
     legitimate implementation detail
 - Deliverables:
   - post-extraction architecture tests for the new v17 helper owners
+- Completed notes:
+  - Added post-v17 facade and delegate guardrails for handoff runtime package,
+    import triage, custody decision, guidance, web route/API, CLI/parser,
+    frontend cockpit/store, and release-gate entrypoints.
+  - Added frontend handoff boundary checks that keep API transport in store
+    helpers and prevent store helpers from importing component, React, Next,
+    or backend layers.
 - Validation:
   - `uv run pytest tests/unit/architecture_guardrails`
 

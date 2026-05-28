@@ -3048,6 +3048,220 @@ V17_HANDOFF_COMPONENT_FORBIDDEN_IMPORTS: tuple[str, ...] = (
     "src/glassbox",
 )
 
+V17_PYTHON_FACADE_RULES: tuple[
+    tuple[Path, tuple[str, ...], int, str],
+    ...,
+] = (
+    (
+        SRC_ROOT / "runtime" / "handoff_package.py",
+        (
+            "pathlib",
+            "glassbox.core.models_handoff",
+            "glassbox.runtime.handoff_package_",
+        ),
+        60,
+        "post-v17 handoff_package facade should delegate package inspection helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_import_triage.py",
+        (
+            "pathlib",
+            "glassbox.core.types_handoff",
+            "glassbox.runtime.handoff_import_triage_",
+            "glassbox.runtime.handoff_package",
+        ),
+        90,
+        "post-v17 handoff import triage facade should delegate triage helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_decisions.py",
+        (
+            "collections.abc",
+            "glassbox.core",
+            "glassbox.runtime.handoff_decision_",
+        ),
+        150,
+        "post-v17 handoff decisions facade should delegate custody helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_guidance.py",
+        (
+            "glassbox.core",
+            "glassbox.runtime.handoff_guidance_",
+        ),
+        90,
+        "post-v17 handoff guidance facade should delegate guidance helpers",
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "handoffs.py",
+        (
+            "typing",
+            "uuid",
+            "fastapi",
+            "glassbox.core",
+            "glassbox.web.app",
+            "glassbox.web.handoff_api",
+            "glassbox.web.routes.handoff_route_",
+            "glassbox.web.session_api",
+        ),
+        260,
+        "post-v17 handoff routes should stay a route declaration facade",
+    ),
+    (
+        SRC_ROOT / "web" / "handoff_api.py",
+        (
+            "glassbox.web.handoff_api_builders",
+            "glassbox.web.handoff_api_models",
+        ),
+        90,
+        "post-v17 handoff API facade should delegate models and builders",
+    ),
+    (
+        SRC_ROOT / "cli" / "handoff_commands.py",
+        (
+            "argparse",
+            "glassbox.cli.handoff_command_",
+        ),
+        60,
+        "post-v17 handoff CLI facade should delegate command families",
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_handoff.py",
+        (
+            "argparse",
+            "glassbox.core",
+            "glassbox.cli.parser_handoff_",
+        ),
+        120,
+        "post-v17 handoff parser facade should delegate parser families",
+    ),
+    (
+        REPO_ROOT / "scripts" / "validate_v17_release_gate.py",
+        (
+            "argparse",
+            "collections.abc",
+            "pathlib",
+            "subprocess",
+            "sys",
+            "typing",
+            "scripts.v11_release_gate_helpers",
+            "scripts.v17_release_gate_helpers",
+            "scripts.validate_v6_release_gate",
+        ),
+        260,
+        "post-v17 release gate facade should delegate milestone helpers",
+    ),
+)
+
+V17_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        SRC_ROOT / "runtime" / "handoff_package.py",
+        (
+            "glassbox.runtime.handoff_package_digest",
+            "glassbox.runtime.handoff_package_inspection",
+            "glassbox.runtime.handoff_package_models",
+        ),
+        "post-v17 handoff_package facade should delegate to package helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_import_triage.py",
+        (
+            "glassbox.runtime.handoff_import_triage_disposition",
+            "glassbox.runtime.handoff_import_triage_events",
+            "glassbox.runtime.handoff_import_triage_models",
+        ),
+        "post-v17 import triage facade should delegate to triage helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_decisions.py",
+        (
+            "glassbox.runtime.handoff_decision_actions",
+            "glassbox.runtime.handoff_decision_events",
+            "glassbox.runtime.handoff_decision_models",
+        ),
+        "post-v17 handoff decisions facade should delegate to custody helpers",
+    ),
+    (
+        SRC_ROOT / "runtime" / "handoff_guidance.py",
+        (
+            "glassbox.runtime.handoff_guidance_blockers",
+            "glassbox.runtime.handoff_guidance_models",
+            "glassbox.runtime.handoff_guidance_paths",
+        ),
+        "post-v17 handoff guidance facade should delegate to guidance helpers",
+    ),
+    (
+        SRC_ROOT / "web" / "routes" / "handoffs.py",
+        (
+            "glassbox.web.routes.handoff_route_actions",
+            "glassbox.web.routes.handoff_route_queries",
+        ),
+        "post-v17 handoff routes should delegate to route helpers",
+    ),
+    (
+        SRC_ROOT / "web" / "handoff_api.py",
+        (
+            "glassbox.web.handoff_api_builders",
+            "glassbox.web.handoff_api_models",
+        ),
+        "post-v17 handoff API facade should delegate to API helpers",
+    ),
+    (
+        SRC_ROOT / "cli" / "handoff_commands.py",
+        (
+            "glassbox.cli.handoff_command_decisions",
+            "glassbox.cli.handoff_command_inspect",
+            "glassbox.cli.handoff_command_prepare",
+        ),
+        "post-v17 handoff CLI facade should delegate to command helpers",
+    ),
+    (
+        SRC_ROOT / "cli" / "parser_handoff.py",
+        (
+            "glassbox.cli.parser_handoff_decisions",
+            "glassbox.cli.parser_handoff_prepare",
+        ),
+        "post-v17 handoff parser facade should delegate to parser helpers",
+    ),
+    (
+        REPO_ROOT / "scripts" / "validate_v17_release_gate.py",
+        ("scripts.v17_release_gate_helpers",),
+        "post-v17 release gate facade should delegate to v17 helper families",
+    ),
+)
+
+V17_FRONTEND_FACADE_RULES: tuple[tuple[Path, int, str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "handoff-cockpit.tsx",
+        160,
+        "post-v17 handoff cockpit entrypoint should compose panel helpers",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "handoff-store.ts",
+        180,
+        "post-v17 handoff store entrypoint should compose store helpers",
+    ),
+)
+
+V17_FRONTEND_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
+    (
+        FRONTEND_ROOT / "components" / "console" / "handoff-cockpit.tsx",
+        ("@/components/console/handoff/",),
+        "post-v17 handoff cockpit should delegate to handoff panel helpers",
+    ),
+    (
+        FRONTEND_ROOT / "stores" / "handoff-store.ts",
+        (
+            "@/stores/handoff-store-decision-actions",
+            "@/stores/handoff-store-drafts",
+            "@/stores/handoff-store-loaders",
+            "@/stores/handoff-store-package-actions",
+            "@/stores/handoff-store-selectors",
+        ),
+        "post-v17 handoff store should delegate to workflow helper families",
+    ),
+)
+
 V16_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

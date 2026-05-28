@@ -13,8 +13,8 @@ SCRIPT_REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(SCRIPT_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(SCRIPT_REPO_ROOT))
 
-from scripts import v11_release_gate_helpers as gate_helpers  # noqa: E402
-from scripts import v17_release_gate_helpers as v17_helpers  # noqa: E402
+import scripts.v11_release_gate_helpers as gate_helpers  # noqa: E402
+import scripts.v17_release_gate_helpers as v17_helpers  # noqa: E402
 from scripts.validate_v6_release_gate import REPO_ROOT  # noqa: E402
 from scripts.validate_v6_release_gate import GateStage  # noqa: E402
 from scripts.validate_v6_release_gate import _latest_glassbox_wheel  # noqa: E402
