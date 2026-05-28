@@ -38,6 +38,7 @@ DOMAIN_EXPORTS: Mapping[str, set[str]] = {
         "_SQLiteReviewFeedbackMethods",
         "_SQLiteReviewLoopMethods",
     },
+    "glassbox.store.repository_handoff": {"_SQLiteHandoffMethods"},
     "glassbox.store.repository_artifacts": {"FilesystemArtifactRepository"},
 }
 
@@ -122,6 +123,10 @@ def test_sqlite_session_repository_inherits_domain_method_families() -> None:
         loaded_modules[
             "glassbox.store.repository_review_loop"
         ]._SQLiteReviewLoopMethods,
+    )
+    assert issubclass(
+        SQLiteSessionRepository,
+        loaded_modules["glassbox.store.repository_handoff"]._SQLiteHandoffMethods,
     )
     assert issubclass(
         loaded_modules[

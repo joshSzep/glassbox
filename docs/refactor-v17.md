@@ -1093,7 +1093,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R961: Split Handoff Projection Query And Mutation Adapters
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R960
 - Target files:
   - `src/glassbox/store/repository_handoff.py`
@@ -1111,6 +1111,14 @@ Each phase below corresponds to one concrete refactor milestone.
   - preserve schema shape and projection rebuild output
 - Deliverables:
   - handoff projection ownership documented and guarded without schema change
+- Completed notes:
+  - Handoff projection reads remain in `sqlite_query_handoff.py`, repository
+    forwarding remains in `repository_handoff.py`, event-family projection
+    dispatch remains in `sqlite_projection_handoff.py`, and row upsert SQL now
+    lives in `sqlite_projection_handoff_mutations.py`.
+  - Added adapter/query boundary tests that name the handoff query owner,
+    repository mixin owner, projection dispatch owner, and mutation owner
+    without changing schema or rebuild output.
 - Validation:
   - `uv run pytest tests/integration/test_handoff_projection.py`
   - `uv run pytest tests/integration/test_projection_rebuild.py -k handoff`

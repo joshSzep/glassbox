@@ -8,11 +8,18 @@ import pytest
 from glassbox.cli import main
 from glassbox.core.events import ApprovalRequested
 from glassbox.core.events import EventEnvelope
+from glassbox.core.events import HandoffPackageCreated
 from glassbox.core.events import ToolExecutionCompleted
 from glassbox.core.events import ToolExecutionStarted
 from glassbox.core.ids import new_approval_id
+from glassbox.core.ids import new_artifact_id
 from glassbox.core.ids import new_tool_call_id
 from glassbox.core.ids import new_turn_id
+from glassbox.core.types import HandoffCompatibilityState
+from glassbox.core.types import HandoffIntent
+from glassbox.core.types import HandoffPackageKind
+from glassbox.core.types import HandoffRedactionPosture
+from glassbox.core.types import HandoffSourceKind
 from glassbox.store import SQLiteSessionRepository
 from glassbox.store import open_database
 
@@ -195,6 +202,72 @@ def test_cli_rebuild_check_reports_projection_lag_without_mutation(
     assert "progress 0%" in captured.out
     assert "Projection health: 0 ok, 1 degraded" in captured.out
     assert counts["session_state"] == 0
+
+
+def test_cli_rebuild_handoff_projection_restores_handoff_rows(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    db_path, session_id = _seed_session_with_projections(tmp_path)
+    _ = capsys.readouterr()
+    package_id = "pkg-rebuild-handoff"
+
+    connection = open_database(db_path)
+    try:
+        repository = SQLiteSessionRepository(connection)
+        repository.append_event(
+            EventEnvelope(
+                session_id=session_id,
+                sequence=0,
+                payload=HandoffPackageCreated(
+                    package_id=package_id,
+                    source_kind=HandoffSourceKind.SESSION,
+                    source_id=str(session_id),
+                    package_kind=HandoffPackageKind.SESSION,
+                    intent=HandoffIntent.REVIEW_ONLY,
+                    artifact_id=new_artifact_id(),
+                    package_digest="digest-rebuild",
+                    compatibility_state=HandoffCompatibilityState.SUPPORTED,
+                    redaction_posture=HandoffRedactionPosture.REVIEWER_SAFE,
+                    local_only_count=1,
+                ),
+            )
+        )
+        assert repository.get_handoff(session_id, package_id) is not None
+        with connection:
+            connection.execute(
+                "delete from handoffs where session_id = ?",
+                (str(session_id),),
+            )
+        assert repository.get_handoff(session_id, package_id) is None
+    finally:
+        connection.close()
+
+    exit_code = main(
+        [
+            "projection",
+            "rebuild",
+            str(session_id),
+            "--cwd",
+            str(tmp_path),
+            "--db-path",
+            str(db_path),
+        ]
+    )
+
+    connection = open_database(db_path)
+    try:
+        rebuilt = SQLiteSessionRepository(connection).get_handoff(
+            session_id,
+            package_id,
+        )
+    finally:
+        connection.close()
+
+    assert exit_code == 0
+    assert rebuilt is not None
+    assert rebuilt.package_digest == "digest-rebuild"
+    assert rebuilt.local_only_count == 1
 
 
 def test_cli_status_reports_degraded_projection_health(

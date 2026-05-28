@@ -117,3 +117,15 @@ def test_sqlite_query_domains_are_split_by_projection_family() -> None:
     assert loaded_modules["glassbox.store.sqlite_query_manual_evidence"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_review_feedback"].__doc__
     assert loaded_modules["glassbox.store.sqlite_query_review_loop"].__doc__
+
+
+def test_handoff_projection_query_and_mutation_owners_are_split() -> None:
+    query_module = import_module("glassbox.store.sqlite_query_handoff")
+    projection_module = import_module("glassbox.store.sqlite_projection_handoff")
+    mutation_module = import_module(
+        "glassbox.store.sqlite_projection_handoff_mutations"
+    )
+
+    assert set(query_module.__all__) == {"get_handoff", "list_handoffs"}
+    assert set(projection_module.__all__) == {"_apply_handoff_projection"}
+    assert set(mutation_module.__all__) == {"upsert_handoff_projection"}
