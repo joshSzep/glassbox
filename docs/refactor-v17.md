@@ -1283,7 +1283,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R980: Refresh Architecture And Boundary Documentation
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R902, GBX-R930, GBX-R950, GBX-R960, GBX-R970
 - Target files:
   - [architecture.md](./architecture.md)
@@ -1300,6 +1300,13 @@ Each phase below corresponds to one concrete refactor milestone.
     package behavior
 - Deliverables:
   - source-linked post-v17 refactor closeout notes
+- Completed notes:
+  - Refreshed architecture and boundary docs to name completed post-v17 helper
+    owners for runtime handoff facades, repository protocols, web/CLI/frontend
+    boundaries, release-gate runner/stage helpers, package guardrails, and eval
+    stability.
+  - Updated README docs-hub language so the post-v17 roadmap reads as completed
+    helper-owner closeout guidance rather than a future-only plan.
 - Validation:
   - `uv run pytest tests/unit/test_release_candidate_docs.py -q`
   - `uv run pytest tests/unit/architecture_guardrails`

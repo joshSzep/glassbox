@@ -317,9 +317,8 @@ projection rows, and deterministic eval fixtures remain the source of truth,
 while package summaries, readiness rows, import guidance, custody state,
 dashboard state, and release-gate summaries are derived views.
 
-The post-v17 refactor starts by preserving current behavior and public
-entrypoints while naming the local-handoff helper-owner families that should
-become independently reviewable:
+The post-v17 refactor preserves current behavior and public entrypoints while
+making the local-handoff helper-owner families independently reviewable:
 
 - `runtime/handoff_package.py` remains the handoff package entrypoint while
     package-local models, digest construction, v2 inspection, and legacy
@@ -344,13 +343,16 @@ become independently reviewable:
     TUI handoff commands, `frontend/components/console/handoff-cockpit.tsx`,
     and `frontend/stores/handoff-store.ts` stay stable transport or UI
     entrypoints while route helpers, API builders, command families, cockpit
-    panels, formatting helpers, and store action families split underneath
-- `services/contracts.py` remains a broad protocol surface until handoff
-    repository use cases justify narrower repository protocols without
-    concrete store, runtime, CLI, web, or frontend imports
+    panels, formatting/option helpers, and store action families split
+    underneath
+- `runtime/handoff_repository_contracts.py` owns narrow handoff repository
+    protocols for reads, events, decisions, guidance, and import inspection;
+    runtime handoff helpers stay transport-agnostic and avoid concrete SQLite,
+    web, CLI, and frontend imports
 - `scripts/validate_v17_release_gate.py` remains the operator command while
-    milestone-gate reuse, handoff evidence stages, advisory rows, package
-    checks, installed smoke, and summary metadata stay in release-gate helpers
+    shared `release_gate_runner.py`/`release_gate_models.py`, v17 stage groups,
+    advisory rows, package checks, installed smoke, and summary metadata stay
+    in release-gate helpers
 
 These splits must preserve the v17 non-claims described in
 [v17-local-handoff-contract.md](./v17-local-handoff-contract.md) and

@@ -515,13 +515,14 @@ authority, publication readiness, command approval, merge readiness, or hosted
 review state.
 
 The post-v17 local-handoff boundary map starts from the completed v17 local
-handoff release-candidate milestone and the new roadmap in
-[refactor-v17.md](./refactor-v17.md). The next split should keep recipient
+handoff release-candidate milestone and the roadmap in
+[refactor-v17.md](./refactor-v17.md). The completed split keeps recipient
 intent, package compatibility inspection, redaction preview, local-only
 inventory, import triage, custody decisions, handoff readiness, web route
 helpers, CLI/TUI surfaces, dashboard cockpit panels, handoff stores,
-repository protocols, and reusable release-gate helpers independently
-reviewable without changing shipped local-handoff contracts.
+repository protocols, reusable release-gate helpers, package guardrails, and
+eval fixture authority independently reviewable without changing shipped
+local-handoff contracts.
 
 The post-v17 pressure points are local-handoff surfaces that grew while
 handoff became a first-class local workflow across runtime, package I/O, web,
@@ -570,15 +571,15 @@ CLI, TUI, dashboard, import/export, eval, and release-gate paths:
   store transport ownership while cockpit panels, formatting/option helpers,
   custody controls, preview/package/triage/guidance panels, and store action
   families split underneath.
-- `src/glassbox/services/contracts.py` remains protocol-heavy and acceptable
-  today, but handoff, projection, and custody use cases should move to
-  narrower service protocol modules only when the domain boundary is clear and
-  compatibility re-exports can preserve imports.
+- `src/glassbox/runtime/handoff_repository_contracts.py` owns narrow handoff
+  repository protocols for reads, event appends, custody decisions, guidance,
+  and import inspection. Runtime handoff helpers should depend on those
+  protocols rather than concrete SQLite repositories.
 - `scripts/validate_v17_release_gate.py` and `scripts/v17_release_gate_*`
   should preserve the operator command and v17 evidence behavior while moving
-  reusable milestone-gate configuration, handoff evidence stages, advisory
-  rows, package/static checks, installed smoke, and summary metadata into
-  focused helper boundaries.
+  shared milestone-gate runner/model configuration, handoff evidence stage
+  groups, advisory rows, package/static checks, installed smoke, and summary
+  metadata into focused helper boundaries.
 
 The post-v17 split should continue to treat canonical events, managed
 artifacts, package manifests, typed API responses, local source files,
@@ -1187,20 +1188,18 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 
 #### Post-V17 Repository, Release-Gate, And Guardrail Strategy
 
-- Handoff repository protocols should split out of broad service contracts
-  only when source, projection, and custody use cases have stable cohesive
-  boundaries. Contract modules must remain free of concrete store, runtime,
-  CLI, web, frontend, and script imports.
+- `runtime/handoff_repository_contracts.py` owns handoff repository protocols
+  for source reads, event appends, decision projections, guidance reads, and
+  import inspection. Protocol modules must remain free of concrete store,
+  runtime orchestration, CLI, web, frontend, and script imports.
 - `scripts/validate_v17_release_gate.py` should remain the operator command
-  while reusable milestone-gate configuration helpers and focused
+  while `release_gate_runner.py`, `release_gate_models.py`, and focused
   `v17_release_gate_*` modules own deterministic handoff evidence stages,
   advisory rows, dry-run output, package/static checks, installed smoke, and
   summary metadata.
-- post-v17 guardrails start with pre-extraction pressure-point caps and
-  documented owner expectations. After runtime package, web route, frontend
-  cockpit, store action, CLI/TUI, repository protocol, and release-gate helper
-  owners exist, guardrails should add facade line-count and import-prefix
-  expectations that require delegation to those owner modules.
+- post-v17 guardrails now combine pressure-point caps with facade line-count,
+  import-prefix, frontend-boundary, runtime/store import-direction, package,
+  and eval-stability checks that require delegation to the owner modules above.
 - Guardrails should not freeze generated OpenAPI, generated frontend API
   types, deterministic eval fixtures, release evidence artifacts, package
   fixtures, or broad model-heavy core surfaces.
@@ -1233,8 +1232,10 @@ The `runtime` package should not become a catch-all for transport formatting, ra
 - `frontend/components/console/handoff-cockpit.tsx`: dashboard handoff cockpit
   entrypoint.
 - `frontend/stores/handoff-store.ts`: dashboard handoff store facade.
-- `src/glassbox/services/contracts.py`: broad service protocol surface until
-  narrower handoff protocols are worthwhile.
+- `src/glassbox/runtime/handoff_repository_contracts.py`: narrow handoff
+  repository protocol surface.
+- `src/glassbox/services/contracts.py`: broad non-handoff service protocol
+  compatibility surface.
 - `scripts/validate_v17_release_gate.py`: v17 release-gate operator
   entrypoint.
 

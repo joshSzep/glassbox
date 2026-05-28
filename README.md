@@ -163,8 +163,8 @@ dogfooding summary in
 release-candidate guide in
 [docs/v17-release-candidate.md](docs/v17-release-candidate.md), and the task
 graph in [docs/tasks-v17.md](docs/tasks-v17.md).
-The post-v17 behavior-preserving local-handoff refactor roadmap lives in
-[docs/refactor-v17.md](docs/refactor-v17.md).
+The completed post-v17 behavior-preserving local-handoff refactor roadmap and
+helper-owner closeout notes live in [docs/refactor-v17.md](docs/refactor-v17.md).
 
 ## Documentation
 
