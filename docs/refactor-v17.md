@@ -1313,7 +1313,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R981: Run Post-V17 Refactor Confidence Sweep
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R980
 - Target files:
   - tests, docs, scripts, frontend as needed
@@ -1327,7 +1327,17 @@ Each phase below corresponds to one concrete refactor milestone.
   - validation summary sufficient for post-v17 refactor closeout
   - updated task statuses when the roadmap is complete
 - Validation summary:
-  - not yet run
+  - `uv run ruff format --check .`: passed, 931 files already formatted
+  - `uv run ruff check .`: passed
+  - `uv run ty check`: passed
+  - `uv run pytest -n auto --dist loadfile`: passed, 1677 tests
+  - `pnpm --dir frontend lint`: passed
+  - `pnpm --dir frontend typecheck`: passed
+  - `pnpm --dir frontend test`: passed, 19 files and 136 tests
+  - `pnpm --dir frontend build`: passed and copied static dashboard assets
+  - `uv run python scripts/validate_v17_release_gate.py --dry-run`: passed,
+    105 planned blocking stages plus advisory evidence plan
+  - No deterministic eval baselines were refreshed during this closeout.
 - Validation:
   - `uv run ruff format --check .`
   - `uv run ruff check .`
