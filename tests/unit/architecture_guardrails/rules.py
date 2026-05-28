@@ -3263,6 +3263,20 @@ V17_FRONTEND_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
 )
 
+V17_RUNTIME_HANDOFF_FORBIDDEN_IMPORTS: tuple[str, ...] = (
+    "glassbox.cli",
+    "glassbox.store.repositories",
+    "glassbox.store.sqlite",
+    "glassbox.web",
+    "frontend",
+)
+
+V17_STORE_HANDOFF_FORBIDDEN_IMPORTS: tuple[str, ...] = (
+    "glassbox.cli",
+    "glassbox.runtime",
+    "glassbox.web",
+)
+
 V16_PYTHON_FACADE_RULES: tuple[
     tuple[Path, tuple[str, ...], int, str],
     ...,

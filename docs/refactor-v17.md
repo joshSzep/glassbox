@@ -1126,7 +1126,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R962: Guard Service And Store Import Direction For Handoff Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R960, GBX-R961
 - Target files:
   - `tests/unit/architecture_guardrails/rules.py`
@@ -1141,6 +1141,12 @@ Each phase below corresponds to one concrete refactor milestone.
   - assert store handoff modules do not import runtime, web, or CLI packages
 - Deliverables:
   - backend architecture tests protect handoff runtime/store direction
+- Completed notes:
+  - Added backend architecture guardrails for runtime `handoff_*.py` helpers
+    to avoid concrete SQLite, web, frontend, and CLI presentation imports.
+  - Added store handoff guardrails for repository, query, projection,
+    projection mutation, and schema helpers to stay below runtime, web, and
+    CLI layers.
 - Validation:
   - `uv run pytest tests/unit/architecture_guardrails/test_backend_import_direction.py`
 
