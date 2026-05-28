@@ -3139,13 +3139,11 @@ V17_PYTHON_FACADE_RULES: tuple[
     (
         REPO_ROOT / "scripts" / "validate_v17_release_gate.py",
         (
-            "argparse",
             "collections.abc",
             "pathlib",
-            "subprocess",
             "sys",
-            "typing",
-            "scripts.v11_release_gate_helpers",
+            "scripts.release_gate_models",
+            "scripts.release_gate_runner",
             "scripts.v17_release_gate_helpers",
             "scripts.validate_v6_release_gate",
         ),
@@ -3226,7 +3224,7 @@ V17_PYTHON_FACADE_DELEGATES: tuple[tuple[Path, tuple[str, ...], str], ...] = (
     ),
     (
         REPO_ROOT / "scripts" / "validate_v17_release_gate.py",
-        ("scripts.v17_release_gate_helpers",),
+        ("scripts.release_gate_runner", "scripts.v17_release_gate_helpers"),
         "post-v17 release gate facade should delegate to v17 helper families",
     ),
 )

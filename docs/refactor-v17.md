@@ -1156,7 +1156,7 @@ Each phase below corresponds to one concrete refactor milestone.
 
 ### GBX-R970: Extract Reusable Milestone Release-Gate Runner Helpers
 
-- Status: `TODO`
+- Status: `DONE`
 - Dependencies: GBX-R901
 - Target files:
   - `scripts/validate_v16_release_gate.py`
@@ -1176,6 +1176,12 @@ Each phase below corresponds to one concrete refactor milestone.
 - Deliverables:
   - future release gates can reuse a runner without copy-forward entrypoint
     scripts
+- Completed notes:
+  - Added shared release-gate configuration models and a reusable runner for
+    dry runs, stage execution, provider/advisory evidence recording, installed
+    wheel resolution, and summary persistence.
+  - Reduced the v16 and v17 gate entrypoints to milestone configuration
+    facades while preserving stage construction in their helper modules.
 - Validation:
   - `uv run pytest tests/unit/test_v16_release_gate.py`
   - `uv run pytest tests/unit/test_v17_release_gate.py`
